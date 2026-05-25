@@ -263,3 +263,26 @@ Review note: Context Assembler currently instructs review-gate output as `draft_
 
 Verification:
 - `.venv/bin/python -m pytest -q` — 98 passed
+
+### Phase 8 Review: Generation
+
+**Mode:** Review
+**Outcome:** Must-fix applied — transitioning to close
+
+Review checked Generation implementation against `ARCH_generation.md`. One must-fix identified and resolved.
+
+**Must-fix — JSON key mismatch (cross-module contract):**
+`DefaultContextAssembler._format_output_instruction()` instructed the LLM to return `draft_message` and `rationale`, while `GenerationResult` parsing in `LLMGenerator._parse_review_response()` and `config/prompts/generation.txt` both expect `response` and `reasoning`. This would cause all review-gate generation calls to fail at the parse step with "LLM response JSON must include a nonblank response". Fixed `_format_output_instruction` to emit the correct keys and updated the matching test assertion.
+
+All other review checks passed:
+- `GenerationResult` dataclass matches ARCH schema exactly
+- Constructor signature matches ARCH (llm_client, llm_config, tier, max_tokens, review_gate_enabled)
+- generate() delegates to llm_client.complete() with messages/config/tier/max_tokens
+- Plain-text mode strips text, sets reasoning=None
+- All failures surfaced via GenerationResult.success=False (no exceptions bubble)
+- No direct provider SDK imports
+- 11 Generation tests cover all required cases; full regression 98 passed
+- generation.txt output instructions match parser expectations
+
+Verification:
+- `python3 -m pytest -q` — 98 passed (post-fix)

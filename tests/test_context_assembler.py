@@ -100,7 +100,7 @@ async def test_review_gate_enabled_vs_disabled_instruction_text():
     enabled = await _assemble(review_gate_enabled=True)
     disabled = await _assemble(review_gate_enabled=False)
 
-    assert "Return JSON with keys draft_message and rationale" in enabled.user_prompt
+    assert 'Return JSON with keys "response" and "reasoning"' in enabled.user_prompt
     assert "review gate can present both fields" in enabled.user_prompt
     assert "Return plain text containing only the message to send." in (
         disabled.user_prompt

@@ -131,7 +131,7 @@ class DefaultContextAssembler:
     def _format_output_instruction(self, review_gate_enabled: bool) -> str:
         if review_gate_enabled:
             return (
-                "Return JSON with keys draft_message and rationale so the review "
+                'Return JSON with keys "response" and "reasoning" so the review '
                 "gate can present both fields."
             )
         return "Return plain text containing only the message to send."
