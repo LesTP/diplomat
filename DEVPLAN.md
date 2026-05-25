@@ -2,7 +2,7 @@
 phase: 7
 blocked: false
 state: execute
-steps_remaining: 0
+steps_remaining: 7
 ---
 
 # Diplomat — Development Plan
@@ -19,7 +19,7 @@ steps_remaining: 0
 ## Current Status
 
 - **Phase** — Phase 7: Context Assembler, in progress.
-- **Focus** — Planning complete. Next: implement `CoachingEntry`, `DecisionContext`, `DefaultContextAssembler` with full `assemble()` method and tests.
+- **Focus** — Context Assembler implementation complete with tests. Next: run full regression and update project status docs.
 - **Blocked/Broken** — None.
 
 ## Phase 7: Context Assembler
@@ -27,7 +27,7 @@ steps_remaining: 0
 Regime: Build. Scope: Pure composition module — no external deps. `CoachingEntry` dataclass, `DecisionContext` dataclass, `DefaultContextAssembler` with `assemble()` method assembling all inputs into the Decision Engine context window per the ARCH_context_assembler.md template. Full test coverage.
 
 Steps:
-- [ ] 7.1 — Implement `CoachingEntry`, `DecisionContext`, and `DefaultContextAssembler` (with `recent_events_limit=30` default) in `src/modules/context_assembler/__init__.py`. Write `tests/test_context_assembler.py` covering: all five coaching types in output, INTEL exclusion from coaching section, divergences present vs. absent, review_gate enabled vs. disabled instruction text, recent_events_limit truncation applied, metadata fields (event_count, coaching_count), empty coaching queue placeholder, section order matches template. Run full suite (target: 80 + new tests pass).
+- [x] 7.1 — Implement `CoachingEntry`, `DecisionContext`, and `DefaultContextAssembler` (with `recent_events_limit=30` default) in `src/modules/context_assembler/__init__.py`. Write `tests/test_context_assembler.py` covering: all five coaching types in output, INTEL exclusion from coaching section, divergences present vs. absent, review_gate enabled vs. disabled instruction text, recent_events_limit truncation applied, metadata fields (event_count, coaching_count), empty coaching queue placeholder, section order matches template. Run full suite (target: 80 + new tests pass).
 - [ ] 7.2 — Run full regression. Update DEVPLAN Current Status, DEVLOG, ARCHITECTURE.md sequence status. Commit.
 
 ## Phase 6: Analyst + Divergence
