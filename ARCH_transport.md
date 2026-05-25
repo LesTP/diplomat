@@ -48,7 +48,12 @@ into the shared `InboundEvent` type.
 
 ## Implementations
 
-**TelegramBotTransport** — wraps `toolkit/telegram_client.TelegramClient`. Uses `start_polling()` / `get_next_update()` for inbound, `send_message()` for outbound. Maps channel names to Telegram chat IDs from pipeline.yaml config. Applies delay jitter (default 50-200ms) before each send.
+**TelegramBotTransport** — wraps `toolkit/telegram_client.TelegramClient` via
+dependency injection. Uses `start_polling()` / `get_next_update()` for inbound,
+`send_message(chat_id, content)` for outbound. Maps public/coaching channel
+names and private recipients to Telegram chat IDs from pipeline.yaml config.
+Applies delay jitter (default 50-200ms) before each send attempt and retries
+send failures before raising `TransportError`.
 
 **TelethonUserTransport** — wraps `Telethon` library. Required if bot-to-bot messaging is unavailable. Same interface; different platform client.
 

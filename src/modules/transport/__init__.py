@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import random
 from collections.abc import AsyncIterable, Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -10,6 +11,7 @@ from modules.types import InboundEvent
 
 
 VALID_CHANNELS = frozenset({"public", "private", "coaching"})
+ChatId = str | int
 
 
 @dataclass(frozen=True)
@@ -96,6 +98,60 @@ class CLITransport:
             raise TransportError(f"CLI inbound line is invalid: {exc}") from exc
 
 
+class TelegramBotTransport:
+    def __init__(
+        self,
+        client: object,
+        *,
+        public_channel_id: ChatId,
+        coaching_channel_id: ChatId,
+        private_channel_ids: dict[str, ChatId] | None = None,
+        jitter_seconds: tuple[float, float] = (0.05, 0.2),
+        sleep: Callable[[float], Awaitable[None]] | None = None,
+        random_between: Callable[[float, float], float] | None = None,
+        max_send_attempts: int = 3,
+    ) -> None:
+        if max_send_attempts < 1:
+            raise ValueError("max_send_attempts must be at least 1")
+        min_jitter, max_jitter = jitter_seconds
+        if min_jitter < 0 or max_jitter < min_jitter:
+            raise ValueError("jitter_seconds must be a non-negative min/max pair")
+
+        self._client = client
+        self._public_channel_id = public_channel_id
+        self._coaching_channel_id = coaching_channel_id
+        self._private_channel_ids = dict(private_channel_ids or {})
+        self._jitter_seconds = jitter_seconds
+        self._sleep = sleep or _asyncio_sleep
+        self._random_between = random_between or random.uniform
+        self._max_send_attempts = max_send_attempts
+
+    async def send(self, message: OutboundMessage) -> None:
+        chat_id = self._chat_id_for(message)
+        last_error: Exception | None = None
+        for _attempt in range(self._max_send_attempts):
+            try:
+                await self._sleep(self._random_between(*self._jitter_seconds))
+                await self._client.send_message(chat_id, message.content)
+                return
+            except Exception as exc:
+                last_error = exc
+
+        raise TransportError(f"Telegram send failed: {last_error}") from last_error
+
+    async def listen(self) -> AsyncIterator[InboundEvent]:
+        raise TransportError("Telegram listen is not implemented yet")
+
+    def _chat_id_for(self, message: OutboundMessage) -> ChatId:
+        if message.channel == "public":
+            return self._public_channel_id
+        if message.channel == "coaching":
+            return self._coaching_channel_id
+        if message.recipient in self._private_channel_ids:
+            return self._private_channel_ids[message.recipient]
+        raise TransportError(f"No private Telegram chat configured for {message.recipient}")
+
+
 def validate_channel(channel: str) -> None:
     if channel not in VALID_CHANNELS:
         allowed = ", ".join(sorted(VALID_CHANNELS))
@@ -169,10 +225,17 @@ def _optional_int(payload: dict[object, object], key: str) -> int | None:
     return value
 
 
+async def _asyncio_sleep(delay: float) -> None:
+    import asyncio
+
+    await asyncio.sleep(delay)
+
+
 __all__ = [
     "CLITransport",
     "InboundEvent",
     "OutboundMessage",
+    "TelegramBotTransport",
     "Transport",
     "TransportError",
     "VALID_CHANNELS",
