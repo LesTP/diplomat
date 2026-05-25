@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from modules.context_assembler import DecisionContext
@@ -46,6 +48,35 @@ async def test_successful_plain_text_generation():
         raw_response=None,
         error=None,
     )
+
+
+@pytest.mark.asyncio
+async def test_successful_review_gate_json_generation():
+    generator = LLMGenerator(
+        FakeLLMClient(
+            json.dumps(
+                {
+                    "response": "Germany, we can coordinate in Belgium.",
+                    "reasoning": "Keeps commitment limited.",
+                }
+            )
+        ),
+        llm_config={},
+        tier="QUALITY",
+        review_gate_enabled=True,
+    )
+
+    result = await generator.generate(_context())
+
+    assert result.success is True
+    assert result.response_text == "Germany, we can coordinate in Belgium."
+    assert result.reasoning == "Keeps commitment limited."
+    assert result.raw_response == {
+        "parsed_json": {
+            "response": "Germany, we can coordinate in Belgium.",
+            "reasoning": "Keeps commitment limited.",
+        }
+    }
 
 
 @pytest.mark.asyncio
@@ -101,7 +132,12 @@ async def test_raw_response_propagated_when_client_returns_dict():
         "text": "France, let us coordinate quietly.",
         "provider_id": "anthropic",
     }
-    generator = LLMGenerator(FakeLLMClient(raw_response), llm_config={}, tier="QUALITY")
+    generator = LLMGenerator(
+        FakeLLMClient(raw_response),
+        llm_config={},
+        tier="QUALITY",
+        review_gate_enabled=False,
+    )
 
     result = await generator.generate(_context())
 
@@ -112,9 +148,74 @@ async def test_raw_response_propagated_when_client_returns_dict():
 
 @pytest.mark.asyncio
 async def test_blank_plain_text_response_success_false():
-    generator = LLMGenerator(FakeLLMClient("   "), llm_config={}, tier="QUALITY")
+    generator = LLMGenerator(
+        FakeLLMClient("   "),
+        llm_config={},
+        tier="QUALITY",
+        review_gate_enabled=False,
+    )
 
     result = await generator.generate(_context())
 
     assert result.success is False
     assert result.error == "LLM response must not be blank"
+
+
+@pytest.mark.asyncio
+async def test_review_gate_invalid_json_success_false():
+    generator = LLMGenerator(
+        FakeLLMClient("{invalid"),
+        llm_config={},
+        tier="QUALITY",
+        review_gate_enabled=True,
+    )
+
+    result = await generator.generate(_context())
+
+    assert result.success is False
+    assert "not valid JSON" in result.error
+
+
+@pytest.mark.asyncio
+async def test_review_gate_missing_response_success_false():
+    generator = LLMGenerator(
+        FakeLLMClient(json.dumps({"reasoning": "No draft."})),
+        llm_config={},
+        tier="QUALITY",
+        review_gate_enabled=True,
+    )
+
+    result = await generator.generate(_context())
+
+    assert result.success is False
+    assert result.error == "LLM response JSON must include a nonblank response"
+
+
+@pytest.mark.asyncio
+async def test_review_gate_blank_response_success_false():
+    generator = LLMGenerator(
+        FakeLLMClient(json.dumps({"response": " ", "reasoning": "No draft."})),
+        llm_config={},
+        tier="QUALITY",
+        review_gate_enabled=True,
+    )
+
+    result = await generator.generate(_context())
+
+    assert result.success is False
+    assert result.error == "LLM response JSON must include a nonblank response"
+
+
+@pytest.mark.asyncio
+async def test_review_gate_missing_reasoning_success_false():
+    generator = LLMGenerator(
+        FakeLLMClient(json.dumps({"response": "A draft."})),
+        llm_config={},
+        tier="QUALITY",
+        review_gate_enabled=True,
+    )
+
+    result = await generator.generate(_context())
+
+    assert result.success is False
+    assert result.error == "LLM response JSON must include reasoning"

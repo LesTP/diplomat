@@ -236,3 +236,17 @@ Added focused Generation tests for successful plain-text generation, exception f
 
 Verification:
 - `.venv/bin/python -m pytest tests/test_generation.py -q` — 6 passed
+
+### Step 8.2: Review-gate JSON parsing and prompt artifact
+
+**Mode:** Build
+**Outcome:** Complete — added review-gate JSON parsing, generation prompt artifact, and regression coverage
+**Contract changes:** Added `config/prompts/generation.txt` documenting Generation output keys `response` and `reasoning`
+
+Implemented review-gate mode parsing in `LLMGenerator.generate()`: JSON responses must be objects containing a nonblank `response` string and a `reasoning` string. Malformed JSON, missing response, blank response, and missing reasoning now return `GenerationResult.success=False`. Plain-text mode continues to return nonblank text with `reasoning=None`.
+
+Added `config/prompts/generation.txt` with the Generation output contract and expanded Generation tests for valid review-gate JSON, invalid JSON, missing/blank response, and missing reasoning. Full regression passes.
+
+Verification:
+- `.venv/bin/python -m pytest tests/test_generation.py -q` — 11 passed
+- `.venv/bin/python -m pytest -q` — 98 passed

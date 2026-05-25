@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from inspect import isawaitable
 from typing import Any
@@ -39,6 +40,13 @@ class LLMGenerator:
             response_text, raw_response = self._normalize_response(response)
             if not response_text.strip():
                 raise ValueError("LLM response must not be blank")
+            if self.review_gate_enabled:
+                response_text, reasoning, raw_response = self._parse_review_response(
+                    response_text, raw_response
+                )
+            else:
+                response_text = response_text.strip()
+                reasoning = None
         except Exception as exc:
             return GenerationResult(
                 success=False,
@@ -50,8 +58,8 @@ class LLMGenerator:
 
         return GenerationResult(
             success=True,
-            response_text=response_text.strip(),
-            reasoning=None,
+            response_text=response_text,
+            reasoning=reasoning,
             raw_response=raw_response,
             error=None,
         )
@@ -83,6 +91,28 @@ class LLMGenerator:
                     return value, response
             raise ValueError("LLM response dict must contain text content")
         raise ValueError("LLM response must be plain text")
+
+    def _parse_review_response(
+        self, response_text: str, raw_response: dict[str, Any] | None
+    ) -> tuple[str, str, dict[str, Any]]:
+        try:
+            parsed = json.loads(response_text)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"LLM response was not valid JSON: {exc.msg}") from exc
+
+        if not isinstance(parsed, dict):
+            raise ValueError("LLM response JSON must be an object")
+
+        response = parsed.get("response")
+        reasoning = parsed.get("reasoning")
+        if not isinstance(response, str) or not response.strip():
+            raise ValueError("LLM response JSON must include a nonblank response")
+        if not isinstance(reasoning, str):
+            raise ValueError("LLM response JSON must include reasoning")
+
+        debug_response = dict(raw_response or {})
+        debug_response["parsed_json"] = parsed
+        return response.strip(), reasoning.strip(), debug_response
 
 
 __all__ = ["GenerationResult", "LLMGenerator"]
