@@ -95,7 +95,7 @@ MVP is the configuration that closes the core loop: messages arrive → state up
 - **TelethonUserTransport** — only needed if bot-to-bot is blocked
 
 ## Risks and Open Questions
-- [must-resolve] **Bot vs. user accounts** — determines Transport implementation; resolve with game moderator before build
+- [watch] **Bot vs. user accounts** — TelegramBotTransport is implemented for MVP; add TelethonUserTransport only if the moderator confirms bot-to-bot messaging is unavailable
 - [must-resolve] **Round structure** — time-based or signal-based; sets pipeline.yaml config
 - [closed] **Structured output enforcement** — resolved in Phase 2: Extraction handles schema enforcement locally via prompt + parse + jsonschema.validate. Empty patch `{}` is valid.
 - [implementation] **Debounce strategy** — time-window batching vs. per-message cooldown for extraction

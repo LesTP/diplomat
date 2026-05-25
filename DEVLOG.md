@@ -57,99 +57,23 @@ No new gotchas were promoted. No contract changes require propagation beyond the
 
 ## Module 4: Transport
 
-### 2026-05-25 — Phase 4 Planned
+Phase 4 development entries archived to `DEVLOG_archive.md` (2026-05-25).
 
-**Action:** Phase Plan for Transport
-**Outcome:** Planned — DEVPLAN moved to execute state
+### 2026-05-25 — Phase 4 Complete
 
-Defined Phase 4 as a Build phase with six testable steps covering toolkit dependency probing, shared Transport API exports, CLI transport, Telegram bot send path, Telegram bot listen path, and phase verification. Telethon user-account support remains deferred pending moderator confirmation that bot-to-bot messaging is unavailable.
+**Action:** Phase Complete for Transport
+**Outcome:** Complete — human audit gate set in DEVPLAN frontmatter
 
-No code was changed during planning.
+Completed shared `OutboundMessage`, `TransportError`, `Transport`, channel validation, inbound normalization helpers, `CLITransport`, and dependency-injected `TelegramBotTransport` send/listen behavior. Phase Review found no must-fix or should-fix items.
 
-### Step 4.1: Dependency probe and contract reconciliation
-
-**Mode:** Build
-**Outcome:** Complete
-**Contract changes:** `ARCH_transport.md`, `src/modules/transport/__init__.py`
-
-Confirmed `toolkit` is not importable in this development environment, so Transport implementation will rely on dependency injection and fake-client tests until runtime wiring supplies the toolkit client. Reconciled `ARCH_transport.md` to the existing shared `modules.types.InboundEvent` shape used by Event Store instead of introducing a parallel Transport-only inbound event. Added the public Transport API surface: `OutboundMessage`, `TransportError`, and runtime-checkable `Transport` protocol, re-exporting the shared `InboundEvent` from `modules.transport`.
-
-Added `tests/test_transport.py` covering public exports, outbound defaults, protocol conformance, and shared inbound event reuse.
-
-Verification:
-- `python3 -m pytest tests/test_transport.py tests/test_coaching.py tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 42 passed
-
-### Step 4.2: Shared Transport exports
-
-**Mode:** Build
-**Outcome:** Complete
-**Contract changes:** `ARCH_transport.md`, `src/modules/transport/__init__.py`
-
-Completed the shared Transport API surface with canonical channel validation, outbound recipient rules, and `normalize_inbound_event()` for adapter code to create the existing shared `InboundEvent` type without altering Event Store semantics. Public exports now include `VALID_CHANNELS`, `validate_channel`, and `normalize_inbound_event` alongside `OutboundMessage`, `TransportError`, `Transport`, and `InboundEvent`.
-
-Expanded `tests/test_transport.py` for channel validation, private-message recipient requirements, public/coaching recipient rejection, and inbound normalization.
-
-Verification:
-- `python3 -m pytest tests/test_transport.py tests/test_coaching.py tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 45 passed
-
-### Step 4.3: CLITransport
-
-**Mode:** Build
-**Outcome:** Complete
-**Contract changes:** `ARCH_transport.md`, `src/modules/transport/__init__.py`
-
-Implemented `CLITransport` as an async JSON-lines adapter with injectable reader, writer, and clock. Outbound messages are serialized as one JSON object per line. Inbound lines are parsed as JSON objects, validated through the shared channel and event-normalization helpers, and yielded as shared `InboundEvent` instances. Writer, reader, malformed JSON, invalid payload shape, and invalid field values are wrapped in `TransportError`.
-
-Expanded `tests/test_transport.py` with deterministic CLI send/listen coverage, timestamp fallback via injected clock, EOF behavior, writer/reader error propagation, and malformed inbound rejection.
-
-Verification:
-- `python3 -m pytest tests/test_transport.py tests/test_coaching.py tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 51 passed
-
-### Step 4.4: TelegramBotTransport send path
-
-**Mode:** Build
-**Outcome:** Complete
-**Contract changes:** `ARCH_transport.md`, `src/modules/transport/__init__.py`
-
-Implemented `TelegramBotTransport` send behavior with dependency-injected toolkit-compatible client, public/coaching chat routing, private recipient chat routing, configurable jitter, and bounded retry handling. The class does not import toolkit directly, matching the dependency probe result and keeping tests credential-free. Unconfigured private recipients and persistent send failures raise `TransportError`; invalid send configuration raises `ValueError`.
-
-Expanded fake-client tests for public/private/coaching routing, jitter calls, retry success, persistent failure wrapping, missing private-recipient routes, and constructor validation.
-
-Verification:
-- `python3 -m pytest tests/test_transport.py tests/test_coaching.py tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 56 passed
-
-### Step 4.5: TelegramBotTransport listen path
-
-**Mode:** Build
-**Outcome:** Complete
-**Contract changes:** `ARCH_transport.md`, `src/modules/transport/__init__.py`
-
-Implemented `TelegramBotTransport.listen()` using dependency-injected `start_polling()` and `get_next_update()` client methods. The listener accepts dict-like and object-like updates, maps chat IDs to public/private/coaching channels, maps configured user IDs to factions or operator, falls back private-chat senders to their configured faction, falls back coaching senders to operator, and falls back unmatched public senders to system. Timestamps support ISO strings, `datetime`, epoch seconds, or injected-clock fallback. Telegram message IDs are preserved in the shared `telegram_msg_id` field.
-
-Expanded fake-client tests for public/private/coaching inbound normalization, polling startup, fallback source and timestamp behavior, malformed update wrapping, unknown chat rejection, and polling failure wrapping.
-
-Verification:
-- `python3 -m pytest tests/test_transport.py tests/test_coaching.py tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 59 passed
-
-### Step 4.6: Phase verification
-
-**Mode:** Build
-**Outcome:** Complete — DEVPLAN moved to review state
-**Contract changes:** `ARCH_transport.md`
-
-Ran the full current regression suite and Python bytecode compilation. Tightened `ARCH_transport.md` so the usage example matches the implemented dependency-injected `TelegramBotTransport` constructor and toolkit client boundary.
+All 59 tests pass. Transport remains toolkit-bound at the adapter boundary without direct Telegram SDK imports; local tests use fake toolkit-compatible clients because `toolkit` may be absent in the development environment.
 
 Verification:
 - `python3 -m pytest tests/test_transport.py tests/test_coaching.py tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 59 passed
 - `python3 -m compileall -q src` — passed
 
-### 2026-05-25 — Phase 4 Review
+Promoted gotchas:
+- Bot vs. user account question remains a deployment decision; implement `TelethonUserTransport` only if the moderator confirms bot-to-bot messaging is unavailable.
+- Transport tests use dependency-injected toolkit-compatible fakes when `toolkit` is not installed locally.
 
-**Action:** Phase Review for Transport
-**Outcome:** Complete — DEVPLAN moved to close state
-
-Reviewed Transport implementation against `ARCH_transport.md` and the phase plan. No must-fix or should-fix issues were found. The implementation preserves existing Event Store `InboundEvent` semantics, keeps toolkit access dependency-injected, avoids direct Telegram SDK imports, and has focused fake-client coverage for CLI and Telegram paths.
-
-Verification carried forward from Step 4.6:
-- `python3 -m pytest tests/test_transport.py tests/test_coaching.py tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 59 passed
-- `python3 -m compileall -q src` — passed
+No contract changes require propagation beyond `ARCH_transport.md`, `ARCHITECTURE.md`, and the existing `PROJECT.md` risk wording updated during close.
