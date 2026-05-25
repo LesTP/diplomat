@@ -105,3 +105,18 @@ Updated `DEVPLAN.md` to mark both Persona implementation steps complete and tran
 
 Verification:
 - `.venv/bin/python -m pytest` — 68 passed
+
+### 2026-05-25 — Phase 5 Review
+
+**Action:** Phase Review for Persona
+**Outcome:** Pass — no must-fix or should-fix items found
+
+Implementation matches ARCH_persona.md contract exactly: `CoachingContext` dataclass (frozen), `get_base_prompt` with mtime-based hot-reload and marker stripping, `build_round_context` with all coaching buckets and unknown-rounds handling, correct `__all__` exports. Sample config includes `## CURRENT ROUND CONTEXT` marker compatible with stripping logic.
+
+Test coverage satisfies all DEVPLAN 5.1 requirements: FileNotFoundError, fresh read, hot-reload, unchanged-mtime cache, marker stripping, full-field formatting, empty fields, `rounds_remaining=None`.
+
+Verification:
+- `python3 -m pytest tests/` — 68 passed
+
+DEVPLAN transitioned to `state: close`.
+
