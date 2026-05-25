@@ -370,21 +370,161 @@ def _telegram_transport(
         public_channel_id="public-chat",
         coaching_channel_id="coaching-chat",
         private_channel_ids={"france": "france-chat"},
+        faction_map={"100": "england", "200": "france"},
+        operator_user_ids={"900"},
         jitter_seconds=jitter_seconds,
         sleep=sleep,
         random_between=lambda _minimum, _maximum: 0.1,
         max_send_attempts=max_send_attempts,
+        now=lambda: datetime(1901, 1, 1, 12, 0, tzinfo=timezone.utc),
     )
 
 
 class _FakeTelegramClient:
-    def __init__(self, failures_before_success: int = 0) -> None:
+    def __init__(
+        self,
+        failures_before_success: int = 0,
+        updates: list[object] | None = None,
+    ) -> None:
         self.failures_before_success = failures_before_success
+        self.updates = list(updates or [])
         self.attempts: list[tuple[str, str]] = []
         self.sent: list[tuple[str, str]] = []
+        self.polling_started = False
 
     async def send_message(self, chat_id: str, content: str) -> None:
         self.attempts.append((chat_id, content))
         if len(self.attempts) <= self.failures_before_success:
             raise OSError("telegram unavailable")
         self.sent.append((chat_id, content))
+
+    async def start_polling(self) -> None:
+        self.polling_started = True
+
+    async def get_next_update(self):
+        if self.updates:
+            return self.updates.pop(0)
+        return None
+
+
+@pytest.mark.asyncio
+async def test_telegram_transport_listen_normalizes_public_private_and_coaching_updates():
+    client = _FakeTelegramClient(
+        updates=[
+            {
+                "chat_id": "public-chat",
+                "user_id": "100",
+                "timestamp": "1901-01-01T12:00:00+00:00",
+                "text": "Public press",
+                "message_id": 1,
+            },
+            {
+                "chat": {"id": "france-chat"},
+                "sender_id": "200",
+                "date": datetime(1901, 1, 1, 12, 5, tzinfo=timezone.utc),
+                "content": "Private press",
+                "telegram_msg_id": 2,
+            },
+            {
+                "chat_id": "coaching-chat",
+                "from_user_id": "900",
+                "timestamp": 978350700,
+                "message": "WATCH: France is stalling.",
+                "id": 3,
+            },
+        ]
+    )
+    transport = _telegram_transport(client)
+
+    events = [event async for event in transport.listen()]
+
+    assert client.polling_started is True
+    assert events == [
+        InboundEvent(
+            timestamp=datetime(1901, 1, 1, 12, 0, tzinfo=timezone.utc),
+            sender_faction="england",
+            channel="public",
+            content="Public press",
+            telegram_msg_id=1,
+        ),
+        InboundEvent(
+            timestamp=datetime(1901, 1, 1, 12, 5, tzinfo=timezone.utc),
+            sender_faction="france",
+            channel="private",
+            content="Private press",
+            telegram_msg_id=2,
+        ),
+        InboundEvent(
+            timestamp=datetime(2001, 1, 1, 12, 5, tzinfo=timezone.utc),
+            sender_faction="operator",
+            channel="coaching",
+            content="WATCH: France is stalling.",
+            telegram_msg_id=3,
+        ),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_telegram_transport_listen_uses_fallback_sources_and_clock():
+    client = _FakeTelegramClient(
+        updates=[
+            {
+                "chat_id": "public-chat",
+                "text": "System message",
+            },
+            {
+                "chat_id": "france-chat",
+                "text": "Private fallback",
+            },
+            {
+                "chat_id": "coaching-chat",
+                "text": "Operator fallback",
+            },
+        ]
+    )
+    transport = _telegram_transport(client)
+
+    events = [event async for event in transport.listen()]
+
+    assert [event.sender_faction for event in events] == [
+        "system",
+        "france",
+        "operator",
+    ]
+    assert [event.timestamp for event in events] == [
+        datetime(1901, 1, 1, 12, 0, tzinfo=timezone.utc),
+        datetime(1901, 1, 1, 12, 0, tzinfo=timezone.utc),
+        datetime(1901, 1, 1, 12, 0, tzinfo=timezone.utc),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_telegram_transport_listen_wraps_polling_and_update_errors():
+    class BrokenPollingClient(_FakeTelegramClient):
+        async def start_polling(self) -> None:
+            raise OSError("polling failed")
+
+    with pytest.raises(TransportError, match="Telegram listen failed"):
+        [event async for event in _telegram_transport(BrokenPollingClient()).listen()]
+
+    unknown_chat = _FakeTelegramClient(
+        updates=[
+            {
+                "chat_id": "unknown-chat",
+                "text": "No route",
+            }
+        ]
+    )
+    with pytest.raises(TransportError, match="No Telegram channel configured"):
+        [event async for event in _telegram_transport(unknown_chat).listen()]
+
+    malformed = _FakeTelegramClient(
+        updates=[
+            {
+                "chat_id": "public-chat",
+                "text": 123,
+            }
+        ]
+    )
+    with pytest.raises(TransportError, match="Telegram update is invalid"):
+        [event async for event in _telegram_transport(malformed).listen()]

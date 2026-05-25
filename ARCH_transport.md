@@ -53,7 +53,10 @@ dependency injection. Uses `start_polling()` / `get_next_update()` for inbound,
 `send_message(chat_id, content)` for outbound. Maps public/coaching channel
 names and private recipients to Telegram chat IDs from pipeline.yaml config.
 Applies delay jitter (default 50-200ms) before each send attempt and retries
-send failures before raising `TransportError`.
+send failures before raising `TransportError`. Inbound updates are normalized
+from dict-like or object-like toolkit payloads. Chat IDs determine channel,
+configured user IDs map to factions or operator, private chat IDs fall back to
+their configured faction, and unmatched public senders are `system`.
 
 **TelethonUserTransport** — wraps `Telethon` library. Required if bot-to-bot messaging is unavailable. Same interface; different platform client.
 
