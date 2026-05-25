@@ -54,3 +54,14 @@ Verification:
 - `python3 -m pytest tests/test_coaching.py tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 38 passed
 
 No new gotchas were promoted. No contract changes require propagation beyond the Phase 3 Coaching API and route config already captured in `ARCH_coaching.md`.
+
+## Module 4: Transport
+
+### 2026-05-25 — Phase 4 Planned
+
+**Action:** Phase Plan for Transport
+**Outcome:** Planned — DEVPLAN moved to execute state
+
+Defined Phase 4 as a Build phase with six testable steps covering toolkit dependency probing, shared Transport API exports, CLI transport, Telegram bot send path, Telegram bot listen path, and phase verification. Telethon user-account support remains deferred pending moderator confirmation that bot-to-bot messaging is unavailable.
+
+No code was changed during planning.

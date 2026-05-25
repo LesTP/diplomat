@@ -55,3 +55,10 @@ Priority: Important
 Decision: Phase 3 will implement Coaching as a stateless parser that loads tag routes and command allowlists from `config/coaching_routes.yaml`; persistence, command dispatch, and INTEL forwarding stay with later Orchestrator wiring.
 Rationale: `ARCH_coaching.md` defines Coaching as pure parsing with no state. Keeping routing data in config preserves domain flexibility and makes Phase 3 testable without storage or Telegram dependencies.
 Revisit if: Operator coaching requires durable queue semantics before Context Assembler or Orchestrator integration.
+
+D-8: Phase 4 targets Telegram bot transport plus CLI test transport
+Date: 2026-05-25 | Status: Closed
+Priority: Important
+Decision: Phase 4 will implement the platform-neutral Transport contract, `CLITransport` for deterministic local testing, and `TelegramBotTransport` through `toolkit/telegram_client`. `TelethonUserTransport` remains deferred unless the game moderator confirms bot-to-bot messaging is blocked.
+Rationale: MVP scope requires Telegram bot I/O and all Telegram access must go through toolkit. CLI transport gives repeatable coverage without live credentials. Building Telethon now would add a direct SDK dependency and expand scope before the account-mode question is answered.
+Revisit if: The moderator requires a user account, or toolkit lacks the Telegram client surface needed for polling and sending.
