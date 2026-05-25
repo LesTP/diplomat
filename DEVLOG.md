@@ -211,3 +211,15 @@ Verification:
 - `python3 -m pytest tests/ -q` — 87 passed
 
 No new gotchas promoted. No contract changes require propagation — `CoachingEntry` and `DecisionContext` are new types consumed by Generation (Phase 8, not yet implemented).
+
+## Module 8: Generation
+
+### Phase 8 Plan
+
+**Mode:** Discuss
+**Outcome:** Planned — Generation phase broken into three Build steps and state transitioned to execute
+**Contract changes:** None
+
+Planned `GenerationResult` and `LLMGenerator` implementation against `ARCH_generation.md`: consume `DecisionContext`, call toolkit-compatible completion dependency, support review-gate JSON output with local parsing, support plain-text mode when review gate is disabled, and cover all behavior with fake-client tests before full regression.
+
+Updated `ARCHITECTURE.md` Implementation Sequence row 9 to `In progress`.

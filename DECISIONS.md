@@ -69,3 +69,10 @@ Priority: Important
 Decision: `faction_prompt.txt` may contain a `## CURRENT ROUND CONTEXT` section. `FileBasedPersona.get_base_prompt()` returns everything before that marker, allowing the operator to optionally include a human-readable placeholder in the file without it leaking into the base prompt. `build_round_context()` constructs the round context string dynamically from caller-supplied inputs.
 Rationale: Keeps the faction prompt file self-documenting (the operator can annotate the expected round context format) while ensuring the dynamic context is always freshly assembled from live state, not read from a static file that may be stale.
 Revisit if: The file format needs to support multiple sections or variable interpolation within the base prompt.
+
+D-10: Generation parses review-gate JSON locally
+Date: 2026-05-25 | Status: Closed
+Priority: Important
+Decision: Phase 8 will implement a single `LLMGenerator` that consumes `DecisionContext` and parses review-gate JSON (`response`, `reasoning`) locally while preserving a plain-text mode when review gate output is disabled.
+Rationale: `toolkit/llm_client` returns plain text and the Review Gate needs both a draft and reasoning for human approval. Keeping parsing local mirrors Extraction and Analyst, avoids a toolkit contract expansion, and preserves provider selection as configuration/dependency injection.
+Revisit if: toolkit adds first-class structured output with portable schema enforcement across providers.
