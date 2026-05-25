@@ -77,3 +77,18 @@ Promoted gotchas:
 - Transport tests use dependency-injected toolkit-compatible fakes when `toolkit` is not installed locally.
 
 No contract changes require propagation beyond `ARCH_transport.md`, `ARCHITECTURE.md`, and the existing `PROJECT.md` risk wording updated during close.
+
+## Module 5: Persona
+
+### Step 5.1: FileBasedPersona implementation
+
+**Mode:** Build
+**Outcome:** Complete — implemented Persona public API and focused tests
+**Contract changes:** None
+
+Implemented frozen `CoachingContext` and `FileBasedPersona` in `src/modules/persona/__init__.py`. `get_base_prompt` now reads `config/faction_prompt.txt`-style files, strips the `## CURRENT ROUND CONTEXT` section, raises `FileNotFoundError` naturally when the prompt is absent, and caches by `st_mtime_ns` for hot-reload behavior. `build_round_context` formats round metadata and all coaching context buckets with explicit empty-state bullets.
+
+Added `tests/test_persona.py` covering public exports, missing file handling, fresh read, mtime reload, unchanged-mtime cache reuse, marker stripping, complete context formatting, empty fields, and unknown rounds remaining.
+
+Verification:
+- `.venv/bin/python -m pytest` — 68 passed
