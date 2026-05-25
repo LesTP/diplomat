@@ -76,3 +76,10 @@ Priority: Important
 Decision: Phase 8 will implement a single `LLMGenerator` that consumes `DecisionContext` and parses review-gate JSON (`response`, `reasoning`) locally while preserving a plain-text mode when review gate output is disabled.
 Rationale: `toolkit/llm_client` returns plain text and the Review Gate needs both a draft and reasoning for human approval. Keeping parsing local mirrors Extraction and Analyst, avoids a toolkit contract expansion, and preserves provider selection as configuration/dependency injection.
 Revisit if: toolkit adds first-class structured output with portable schema enforcement across providers.
+
+D-11: Review gate timeout is configurable auto-block
+Date: 2026-05-25 | Status: Closed
+Priority: Important
+Decision: Phase 9 will resolve the provisional Review Gate timeout contract with a configurable `timeout_seconds`. When set, `TelegramReviewGate.submit()` auto-blocks after the timeout and logs the blocked decision; when unset, it waits indefinitely for an operator command.
+Rationale: Auto-block is the safest default for a diplomacy agent because it prevents stale or unreviewed drafts from being posted after a round boundary. Keeping the timeout optional preserves local/manual workflows where the operator intentionally wants the gate to wait.
+Revisit if: Orchestrator round management needs carry-forward drafts or explicit operator escalation instead of blocking.

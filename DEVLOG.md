@@ -303,3 +303,15 @@ Verification:
 - `python3 -m pytest -q` — 98 passed
 
 Phase 9 (Review Gate) is the next module: human approval workflow via toolkit/telegram_client.
+
+## Module 9: Review Gate
+
+### Phase 9 Plan
+
+**Mode:** Discuss
+**Outcome:** Planned - Review Gate phase broken into three Build steps and state transitioned to execute
+**Contract changes:** Resolved provisional timeout behavior as optional configurable auto-block
+
+Planned `ReviewDecision`, `AutoApproveReviewGate`, and `TelegramReviewGate` implementation against `ARCH_review_gate.md`: auto-approve path first, Telegram approve/edit/block workflow second, and timeout/documentation cleanup third. All Telegram behavior will use toolkit-compatible dependency injection and fake clients in tests.
+
+Updated `ARCHITECTURE.md` Implementation Sequence row 10 to `In progress`.
