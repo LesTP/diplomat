@@ -1,8 +1,8 @@
 ---
 phase: 1
 blocked: false
-state: review
-steps_remaining: 2
+state: close
+steps_remaining: 1
 ---
 
 # Diplomat — Development Plan
@@ -19,7 +19,7 @@ steps_remaining: 2
 ## Current Status
 
 - **Phase** — Phase 1 (Event Store + State Manager)
-- **Focus** — Phase 1 review
+- **Focus** — Phase 1 close (awaiting human audit)
 - **Blocked/Broken** — None
 
 ## Phase 1: Event Store + State Manager

@@ -90,3 +90,24 @@ parameterized get/query operations, and full-state snapshots for Analyst input.
 Added pytest coverage for State Manager initialization, WAL mode, patch
 validation, audit logging, domain table upserts, public get/query behavior,
 unknown entity errors, and full-state filtering for pending/unspent records.
+
+### 2026-05-25 — Phase 1 Review
+
+**Action:** Architecture contract review for Event Store and State Manager
+**Outcome:** Clean — all 9 tests pass, no must-fix or should-fix items
+
+Review checklist:
+- Event Store API signatures match ARCH exactly (append, query)
+- messages table schema and indices match ARCH
+- WAL mode enabled on every connection ✅
+- All queries parameterised; no SQL injection surface ✅
+- State Manager API signatures match ARCH (get, query, apply_patch, get_full_state)
+- All 10 domain tables created at init ✅
+- apply_patch validates first, writes audit log, then applies domain changes — in one transaction ✅
+- get_full_state returns pending promises and unspent inconsistencies only ✅
+- Unknown entity_type and column raise ValueError ✅
+- Schema (state_patch.json) enforces required fields, non-empty strings, score range [0,1], promise status enum ✅
+
+No contract drift from ARCH files. No gotchas to promote.
+
+**State transition:** review → close
