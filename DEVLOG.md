@@ -76,3 +76,15 @@ Added frozen `CoachingEvent` and `Command` dataclasses, a `TaggedCoachingParser`
 Verification:
 - `python3 - <<'PY' ... TaggedCoachingParser('config/coaching_routes.yaml') ... PY` — loaded expected tags, commands, and default route
 - `python3 -m pytest tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 27 passed
+
+### Step 3.3: Implement tagged and free coaching parsing
+
+**Mode:** Build
+**Outcome:** Complete
+**Contract changes:** None.
+
+Implemented case-insensitive tag parsing for configured coaching tags and canonical route output from the YAML route table. Unknown tags, malformed tag-like text, untagged input, and empty input fall back to default `FREE` coaching with the configured default route.
+
+Verification:
+- `python3 - <<'PY' ... parser.parse(...) assertions ... PY` — tagged, INTEL, unknown tag, and empty input cases passed
+- `python3 -m pytest tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 27 passed

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+import re
 from typing import Any
 
 import yaml
@@ -27,6 +28,8 @@ class RouteRule:
 
 
 class TaggedCoachingParser:
+    _TAG_RE = re.compile(r"^\s*([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*)\Z", re.DOTALL)
+
     def __init__(self, routes_path: str | Path) -> None:
         config = load_routes_config(routes_path)
         tags = _require_mapping(config, "tags")
@@ -41,9 +44,21 @@ class TaggedCoachingParser:
         self.commands = _parse_commands(config)
 
     def parse(self, raw_input: str) -> CoachingEvent | Command:
+        text = raw_input.strip()
+        tag_match = self._TAG_RE.match(raw_input)
+        if tag_match:
+            tag, content = tag_match.groups()
+            route_rule = self.tag_routes.get(tag.upper())
+            if route_rule is not None:
+                return CoachingEvent(
+                    coaching_type=route_rule.coaching_type,
+                    content=content.strip(),
+                    route=route_rule.route,
+                )
+
         return CoachingEvent(
             coaching_type=self.default_route.coaching_type,
-            content=raw_input,
+            content=text,
             route=self.default_route.route,
         )
 
