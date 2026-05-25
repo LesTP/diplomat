@@ -62,3 +62,10 @@ Priority: Important
 Decision: Phase 4 will implement the platform-neutral Transport contract, `CLITransport` for deterministic local testing, and `TelegramBotTransport` through `toolkit/telegram_client`. `TelethonUserTransport` remains deferred unless the game moderator confirms bot-to-bot messaging is blocked.
 Rationale: MVP scope requires Telegram bot I/O and all Telegram access must go through toolkit. CLI transport gives repeatable coverage without live credentials. Building Telethon now would add a direct SDK dependency and expand scope before the account-mode question is answered.
 Revisit if: The moderator requires a user account, or toolkit lacks the Telegram client surface needed for polling and sending.
+
+D-9: Persona strips CURRENT ROUND CONTEXT section from faction_prompt.txt
+Date: 2026-05-25 | Status: Closed
+Priority: Important
+Decision: `faction_prompt.txt` may contain a `## CURRENT ROUND CONTEXT` section. `FileBasedPersona.get_base_prompt()` returns everything before that marker, allowing the operator to optionally include a human-readable placeholder in the file without it leaking into the base prompt. `build_round_context()` constructs the round context string dynamically from caller-supplied inputs.
+Rationale: Keeps the faction prompt file self-documenting (the operator can annotate the expected round context format) while ensuring the dynamic context is always freshly assembled from live state, not read from a static file that may be stale.
+Revisit if: The file format needs to support multiple sections or variable interpolation within the base prompt.
