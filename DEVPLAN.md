@@ -1,8 +1,8 @@
 ---
 phase: 1
-blocked: false
+blocked: true
 state: close
-steps_remaining: 1
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -19,26 +19,9 @@ steps_remaining: 1
 ## Current Status
 
 - **Phase** — Phase 1 (Event Store + State Manager)
-- **Focus** — Phase 1 close (awaiting human audit)
+- **Focus** — Phase 1 complete
 - **Blocked/Broken** — None
 
 ## Phase 1: Event Store + State Manager
 
-### Steps
-
-| Step | Description | Status |
-|------|-------------|--------|
-| 1.1 | Shared types: `InboundEvent`, `StoredEvent`, `EventFilter`, `StatePatch`, `PatchSource` in `src/modules/types.py` | ✅ Complete |
-| 1.2 | SQLiteEventStore: implement `append()` and `query()` with WAL mode in `src/modules/event_store/` | ✅ Complete |
-| 1.3 | Event Store tests: `tests/test_event_store.py` covering append, query filters, edge cases | ✅ Complete |
-| 1.4 | State patch JSON schema: `config/schemas/state_patch.json` for faction_state, promises, coalitions, inconsistencies | ✅ Complete |
-| 1.5 | SQLiteStateManager: implement `get()`, `query()`, `apply_patch()`, `get_full_state()` with schema validation and audit log | ✅ Complete |
-| 1.6 | State Manager tests: `tests/test_state_manager.py` covering all public API + patch validation + audit log | ✅ Complete |
-
-### Design Notes (from ARCH files)
-
-- Both modules share a single SQLite file (`data/game.db`) with WAL mode — no code dependency between them, separate table ownership.
-- `InboundEvent` is owned by Transport but referenced by Event Store; define it in shared `types.py` to avoid circular imports.
-- State Manager's `apply_patch()` validates against `state_patch.json` at apply time, writes audit entry to `state_change_log`, then applies changes to domain tables.
-- `get_full_state()` returns a snapshot of all faction_state rows, pending promises, coalitions, and unspent inconsistencies — formatted for the Analyst prompt.
-- All queries parameterised; no raw string interpolation into SQL.
+Complete. Implemented shared storage types, SQLiteEventStore, SQLiteStateManager, state patch schema validation, audit logging, and Phase 1 test coverage. See `DEVLOG_archive.md` and the 2026-05-25 phase completion entry in `DEVLOG.md`.
