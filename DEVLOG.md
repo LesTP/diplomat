@@ -172,3 +172,17 @@ Updated DEVPLAN Current Status to reflect Phase 6 complete and state transitione
 
 Verification:
 - `python3 -m pytest tests/` — 80 passed
+
+### 2026-05-25 — Phase 6 Review
+
+**Action:** Phase Review for Analyst + Divergence
+**Outcome:** Pass — no must-fix or should-fix items found
+
+Implementation matches ARCH_analyst.md contract exactly: `LLMAnalyst` constructor with correct parameters, `async analyze()` returning `AnalysisResult`, all failures routed through `success=False` path, pure `compare()` function with all three divergence checks (threat_level_steps, missing_leverage_item, coalition_stability_mismatch). Types (`AnalysisResult`, `Divergence`) are frozen dataclasses matching spec. Intelligence schema has correct fields, types, constraints, and `additionalProperties: false`. Prompt correctly requests JSON-only output aligned to schema.
+
+Test coverage satisfies all DEVPLAN 6.1 requirements: successful analysis, invalid JSON, LLM exception, schema validation failure, provider_id propagation, compare() with both failed, one failed, both identical, threat level steps divergence, within-threshold no-divergence, missing leverage item, coalition stability mismatch.
+
+Verification:
+- `python3 -m pytest tests/` — 80 passed
+
+DEVPLAN transitioned to `state: close`.
