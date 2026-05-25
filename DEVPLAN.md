@@ -1,8 +1,8 @@
 ---
 phase: 6
 blocked: false
-state: execute
-steps_remaining: 7
+state: review
+steps_remaining: 6
 ---
 
 # Diplomat — Development Plan
@@ -18,8 +18,8 @@ steps_remaining: 7
 
 ## Current Status
 
-- **Phase** — Phase 6: Analyst + Divergence, in progress.
-- **Focus** — Phase 6 implementation is complete; documentation cleanup and regression verification remain.
+- **Phase** — Phase 6: Analyst + Divergence, complete. State: review.
+- **Focus** — Phase 6 fully implemented and tested; pending Phase Review before close.
 - **Blocked/Broken** — None.
 
 ## Phase 6: Analyst + Divergence
@@ -28,7 +28,7 @@ Regime: Build. Scope: `AnalysisResult` + `Divergence` types, `LLMAnalyst.analyze
 
 Steps:
 - [x] 6.1 — Add `AnalysisResult` and `Divergence` dataclasses to `src/modules/types.py`. Implement `LLMAnalyst` in `src/modules/analyst/__init__.py` (constructor: `llm_client`, `llm_config`, `tier`, `prompt_path`, `schema_path`, `provider_id`; `analyze(state: dict) -> AnalysisResult` — calls toolkit/llm_client.complete, parses JSON, validates against intelligence schema, returns AnalysisResult; failures → success=False). Implement `compare(a, b) -> list[Divergence]` in `src/modules/analyst/divergence.py` (pure function; returns empty if either result failed; checks threat_level_steps, missing_leverage_item, coalition_stability_mismatch against configurable thresholds). Create `config/prompts/analyst.txt` (strategic intelligence analysis prompt). Create `config/schemas/intelligence.json` (schema with threat_level, key_leverage_points, coalition_stability fields). Write `tests/test_analyst.py` covering: successful analysis with valid JSON, LLM returns invalid JSON → success=False, LLM exception → success=False, schema validation failure → success=False, provider_id propagated; compare() both failed → empty, one failed → empty, both identical → empty, threat_level_steps divergence detected, threat_level_steps within threshold → no divergence, missing_leverage_item divergence, coalition_stability_mismatch divergence. Run full suite (68 + new tests pass).
-- [ ] 6.2 — Update DEVPLAN Current Status → Phase 6 complete, append DEVLOG entry, update ARCHITECTURE.md Implementation Sequence status to Phase 6 complete. Run full regression.
+- [x] 6.2 — Update DEVPLAN Current Status → Phase 6 complete, append DEVLOG entry, update ARCHITECTURE.md Implementation Sequence status to Phase 6 complete. Run full regression.
 
 ## Phase 5: Persona
 

@@ -161,3 +161,14 @@ Added the analyst prompt and intelligence schema, plus 12 analyst tests covering
 
 Verification:
 - `python3 -m pytest` — 80 passed
+
+### Step 6.2: Documentation cleanup and regression verification
+
+**Mode:** Build
+**Outcome:** Complete — DEVPLAN status updated, ARCHITECTURE.md updated, regression verified, state transitioned to review
+**Contract changes:** None
+
+Updated DEVPLAN Current Status to reflect Phase 6 complete and state transitioned to `review`. Updated `ARCHITECTURE.md` Implementation Sequence row 7 (Analyst + Divergence) from "Not started" to "Phase 6 complete". Confirmed full regression: 80 tests pass (12 new analyst tests + 68 regression).
+
+Verification:
+- `python3 -m pytest tests/` — 80 passed

@@ -115,7 +115,7 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 | 4 | Coaching | Pure parsing, no external deps. Needed before operator input can be processed. | Phase 3 complete |
 | 5 | Transport | Platform I/O. Validates toolkit/telegram_client integration. Needed for end-to-end. | Phase 4 complete |
 | 6 | Persona | File-based, simple. Needed before Generation. | Phase 5 complete |
-| 7 | Analyst + Divergence | Two LLM calls + pure comparison. High value — intelligence drives decision quality. | Not started |
+| 7 | Analyst + Divergence | Two LLM calls + pure comparison. High value — intelligence drives decision quality. | Phase 6 complete |
 | 8 | Context Assembler | Pure composition. Wires persona + intelligence + coaching + events into DecisionContext. | Not started |
 | 9 | Generation | LLM call with assembled context. Core output path. | Not started |
 | 10 | Review Gate | Human approval workflow via Telegram. Needed before any posting. | Not started |
