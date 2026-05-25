@@ -1,8 +1,8 @@
 ---
 phase: 7
-blocked: false
+blocked: true
 state: close
-steps_remaining: 1
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -18,17 +18,13 @@ steps_remaining: 1
 
 ## Current Status
 
-- **Phase** — Phase 7: Context Assembler, ready for review.
-- **Focus** — Context Assembler implementation and documentation cleanup complete. Next: review Phase 7 against `ARCH_context_assembler.md`.
-- **Blocked/Broken** — None.
+- **Phase** — Phase 7: Context Assembler, complete. Human audit gate set. Next: Phase 8 (Generation).
+- **Focus** — Awaiting human audit. Run `/close` to clear the gate and begin Phase 8 planning.
+- **Blocked/Broken** — Blocked: awaiting human audit (frontmatter `blocked: true`).
 
 ## Phase 7: Context Assembler
 
-Regime: Build. Scope: Pure composition module — no external deps. `CoachingEntry` dataclass, `DecisionContext` dataclass, `DefaultContextAssembler` with `assemble()` method assembling all inputs into the Decision Engine context window per the ARCH_context_assembler.md template. Full test coverage.
-
-Steps:
-- [x] 7.1 — Implement `CoachingEntry`, `DecisionContext`, and `DefaultContextAssembler` (with `recent_events_limit=30` default) in `src/modules/context_assembler/__init__.py`. Write `tests/test_context_assembler.py` covering: all five coaching types in output, INTEL exclusion from coaching section, divergences present vs. absent, review_gate enabled vs. disabled instruction text, recent_events_limit truncation applied, metadata fields (event_count, coaching_count), empty coaching queue placeholder, section order matches template. Run full suite (target: 80 + new tests pass).
-- [x] 7.2 — Run full regression. Update DEVPLAN Current Status, DEVLOG, ARCHITECTURE.md sequence status. Commit.
+Complete. Implemented `CoachingEntry`, `DecisionContext`, `DefaultContextAssembler` (pure composition, no external deps), 7-test coverage with 87 total regression tests passing. Phase Review passed with no must-fix or should-fix items. See `DEVLOG.md`.
 
 ## Phase 6: Analyst + Divergence
 

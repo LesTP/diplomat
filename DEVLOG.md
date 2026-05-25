@@ -197,3 +197,17 @@ Verification:
 - `python3 -m pytest tests/ -q` — 87 passed
 
 DEVPLAN transitioned to `state: close`.
+
+### 2026-05-25 — Phase 7 Complete
+
+**Action:** Phase Complete for Context Assembler
+**Outcome:** Complete — human audit gate set in DEVPLAN frontmatter
+
+Completed `CoachingEntry`, `DecisionContext`, and `DefaultContextAssembler` as a pure async composition module assembling persona prompt, round context, intelligence report, divergences, recent transcript, and coaching into a `DecisionContext` for the Generation module. INTEL coaching excluded from assembled context (already applied to database). All section ordering, formatting, and conditional review-gate instructions match `ARCH_context_assembler.md` template. Phase Review found no must-fix or should-fix items.
+
+All 87 tests pass (7 context assembler tests + 80 regression). No external dependencies — pure composition.
+
+Verification:
+- `python3 -m pytest tests/ -q` — 87 passed
+
+No new gotchas promoted. No contract changes require propagation — `CoachingEntry` and `DecisionContext` are new types consumed by Generation (Phase 8, not yet implemented).
