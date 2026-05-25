@@ -8,6 +8,7 @@ from modules.extraction import (
     ExtractionResult,
     OpenAIStructuredExtractor,
     RuleBasedExtractor,
+    load_prompt,
     load_schema,
     parse_json_object,
     validate_state_patch,
@@ -16,6 +17,7 @@ from modules.types import StatePatch
 
 
 SCHEMA_PATH = "config/schemas/state_patch.json"
+PROMPT_PATH = "config/prompts/state_updater.txt"
 
 
 class FakeLLMClient:
@@ -38,6 +40,21 @@ def test_extraction_result_exposes_success_patch_and_error_fields():
     assert result.success is True
     assert result.patch == patch
     assert result.error is None
+
+
+def test_public_exports_include_primary_and_fallback_extractors():
+    import modules.extraction as extraction
+
+    assert extraction.OpenAIStructuredExtractor is OpenAIStructuredExtractor
+    assert extraction.RuleBasedExtractor is RuleBasedExtractor
+    assert extraction.ExtractionResult is ExtractionResult
+
+
+def test_configured_state_updater_prompt_loads_json_only_guidance():
+    prompt = load_prompt(PROMPT_PATH)
+
+    assert "Return only JSON" in prompt
+    assert "empty JSON object" in prompt
 
 
 def test_parse_json_object_returns_decoded_object():

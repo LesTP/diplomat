@@ -65,3 +65,14 @@ Implemented `OpenAIStructuredExtractor` without direct provider SDK imports. The
 
 Verification:
 - `python3 -m pytest tests/test_extraction.py tests/test_state_manager.py` — 21 passed
+
+### Step 2.4: Extraction Prompt and Phase Readiness
+
+**Mode:** Build
+**Outcome:** Complete — state updater prompt added, public exports verified, and phase regression tests passed.
+**Contract changes:** None
+
+Added `config/prompts/state_updater.txt` with JSON-only state patch guidance for the LLM extractor. Added tests that verify the configured prompt loads and the public module exports include both primary and fallback extractors. Phase 2 is ready for review.
+
+Verification:
+- `python3 -m pytest tests/test_extraction.py tests/test_event_store.py tests/test_state_manager.py` — 27 passed
