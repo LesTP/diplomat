@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://diplomat.local/schemas/state_patch.json",
+  "title": "Diplomat State Patch",
+  "type": "object",
+  "additionalProperties": false,
+  "minProperties": 1,
+  "properties": {
+    "faction_state": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/faction_state"
+      }
+    },
+    "promises": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/promise"
+      }
+    },
+    "coalitions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/coalition"
+      }
+    },
+    "inconsistencies": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/inconsistency"
+      }
+    }
+  },
+  "$defs": {
+    "faction_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "non_empty_string": {
+      "type": "string",
+      "minLength": 1
+    },
+    "optional_string": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "faction_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "faction_id"
+      ],
+      "properties": {
+        "faction_id": {
+          "$ref": "#/$defs/faction_id"
+        },
+        "goals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/non_empty_string"
+          }
+        },
+        "credibility_score": {
+          "$ref": "#/$defs/score"
+        },
+        "behavioral_notes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/non_empty_string"
+          }
+        }
+      },
+      "minProperties": 2
+    },
+    "promise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "promise_id",
+        "from_faction",
+        "to_faction",
+        "content"
+      ],
+      "properties": {
+        "promise_id": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "from_faction": {
+          "$ref": "#/$defs/faction_id"
+        },
+        "to_faction": {
+          "$ref": "#/$defs/faction_id"
+        },
+        "content": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "status": {
+          "enum": [
+            "pending",
+            "kept",
+            "broken",
+            "void"
+          ]
+        },
+        "resolution": {
+          "$ref": "#/$defs/optional_string"
+        }
+      }
+    },
+    "coalition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "coalition_id",
+        "faction_a",
+        "faction_b"
+      ],
+      "properties": {
+        "coalition_id": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "faction_a": {
+          "$ref": "#/$defs/faction_id"
+        },
+        "faction_b": {
+          "$ref": "#/$defs/faction_id"
+        },
+        "strength": {
+          "$ref": "#/$defs/score"
+        },
+        "confidence": {
+          "$ref": "#/$defs/score"
+        },
+        "basis": {
+          "$ref": "#/$defs/optional_string"
+        }
+      }
+    },
+    "inconsistency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inconsistency_id",
+        "faction_id",
+        "description"
+      ],
+      "properties": {
+        "inconsistency_id": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "faction_id": {
+          "$ref": "#/$defs/faction_id"
+        },
+        "description": {
+          "$ref": "#/$defs/non_empty_string"
+        },
+        "leverage_value": {
+          "$ref": "#/$defs/score"
+        },
+        "spent": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

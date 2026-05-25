@@ -60,3 +60,13 @@ filters for round, sender/source, channel, timestamp, and limit.
 Added async pytest coverage for Event Store append/query behavior, including
 WAL mode, round/source/channel/since filters, timestamp ordering, limit
 handling, and empty result cases.
+
+### Step 1.4: State patch JSON schema
+
+**Mode:** Execute
+**Outcome:** Complete
+**Contract changes:** `config/schemas/state_patch.json`
+
+Added the JSON schema used by State Manager to validate extraction patches for
+faction state, promises, coalitions, and inconsistencies before any domain
+tables are updated.
