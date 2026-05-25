@@ -65,3 +65,16 @@ No new gotchas were promoted. No contract changes require propagation beyond the
 Defined Phase 4 as a Build phase with six testable steps covering toolkit dependency probing, shared Transport API exports, CLI transport, Telegram bot send path, Telegram bot listen path, and phase verification. Telethon user-account support remains deferred pending moderator confirmation that bot-to-bot messaging is unavailable.
 
 No code was changed during planning.
+
+### Step 4.1: Dependency probe and contract reconciliation
+
+**Mode:** Build
+**Outcome:** Complete
+**Contract changes:** `ARCH_transport.md`, `src/modules/transport/__init__.py`
+
+Confirmed `toolkit` is not importable in this development environment, so Transport implementation will rely on dependency injection and fake-client tests until runtime wiring supplies the toolkit client. Reconciled `ARCH_transport.md` to the existing shared `modules.types.InboundEvent` shape used by Event Store instead of introducing a parallel Transport-only inbound event. Added the public Transport API surface: `OutboundMessage`, `TransportError`, and runtime-checkable `Transport` protocol, re-exporting the shared `InboundEvent` from `modules.transport`.
+
+Added `tests/test_transport.py` covering public exports, outbound defaults, protocol conformance, and shared inbound event reuse.
+
+Verification:
+- `python3 -m pytest tests/test_transport.py tests/test_coaching.py tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 42 passed

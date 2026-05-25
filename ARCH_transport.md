@@ -29,12 +29,18 @@ class OutboundMessage:
 
 @dataclass
 class InboundEvent:
-    source: str           # faction_id | 'operator' | 'system'
+    timestamp: datetime
+    sender_faction: str   # faction_id | 'operator' | 'system'
     channel: str          # 'public' | 'private' | 'coaching'
     content: str
-    timestamp: datetime
-    metadata: dict        # platform-specific, opaque to other modules
+    recipient: str | None = None
+    telegram_msg_id: int | None = None
 ```
+
+`InboundEvent` is the shared project type from `modules.types`, already used by
+Event Store. Transport implementations normalize platform metadata into its
+stable fields and should keep implementation-specific payloads inside their own
+adapter boundary unless a downstream module needs them.
 
 ## Implementations
 
