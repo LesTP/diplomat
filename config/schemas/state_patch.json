@@ -4,7 +4,6 @@
   "title": "Diplomat State Patch",
   "type": "object",
   "additionalProperties": false,
-  "minProperties": 1,
   "properties": {
     "faction_state": {
       "type": "array",

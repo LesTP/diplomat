@@ -2,7 +2,7 @@
 phase: 2
 blocked: false
 state: execute
-steps_remaining: 7
+steps_remaining: 6
 ---
 
 # Diplomat — Development Plan
@@ -19,7 +19,7 @@ steps_remaining: 7
 ## Current Status
 
 - **Phase** — Phase 2 (Extraction)
-- **Focus** — Step 2.1 complete; next action is Step 2.2
+- **Focus** — Step 2.2 complete; next action is Step 2.3
 - **Blocked/Broken** — None
 
 ## Phase 1: Event Store + State Manager
@@ -41,6 +41,6 @@ Complete. Implemented shared storage types, SQLiteEventStore, SQLiteStateManager
 
 **Steps:**
 - [x] 2.1 — Add extraction API/types, prompt/schema loading, response JSON parsing, schema validation helpers, and tests for parser/validator failure modes.
-- [ ] 2.2 — Implement `RuleBasedExtractor` with deterministic promise/coalition/inconsistency extraction for simple phrases plus empty-patch fallback, with tests.
+- [x] 2.2 — Implement `RuleBasedExtractor` with deterministic promise/coalition/inconsistency extraction for simple phrases plus empty-patch fallback, with tests.
 - [ ] 2.3 — Implement `OpenAIStructuredExtractor` using a fake toolkit LLM dependency in tests; verify prompt content, COMMODITY tier usage, successful patch parsing, invalid JSON, invalid schema, and LLM exception handling.
 - [ ] 2.4 — Add `config/prompts/state_updater.txt`, finalize exports, run the module and storage regression tests, and update docs/logs for phase readiness.

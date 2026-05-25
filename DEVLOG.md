@@ -43,3 +43,14 @@ Added the public `ExtractionResult` type and reusable helper functions for loadi
 
 Verification:
 - `python3 -m pytest tests/test_extraction.py` — 6 passed
+
+### Step 2.2: Rule-Based Extraction Fallback
+
+**Mode:** Build
+**Outcome:** Complete — deterministic fallback extraction added for simple promises, coalitions, inconsistencies, and no-match empty patches.
+**Contract changes:** `config/schemas/state_patch.json` now permits an empty root object so fallback extraction can return a valid no-op patch.
+
+Implemented `RuleBasedExtractor` as a stateless async fallback with deterministic IDs and schema validation for every returned patch. The root schema now accepts `{}` while preserving validation for entity objects when they are present.
+
+Verification:
+- `python3 -m pytest tests/test_extraction.py tests/test_state_manager.py` — 16 passed

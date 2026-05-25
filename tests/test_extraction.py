@@ -4,6 +4,7 @@ import pytest
 
 from modules.extraction import (
     ExtractionResult,
+    RuleBasedExtractor,
     load_schema,
     parse_json_object,
     validate_state_patch,
@@ -77,3 +78,101 @@ def test_validate_state_patch_rejects_schema_violations():
             {"promises": [{"promise_id": "missing-required-fields"}]},
             schema,
         )
+
+
+def test_validate_state_patch_accepts_empty_patch():
+    assert validate_state_patch({}, load_schema(SCHEMA_PATH)) == StatePatch({})
+
+
+@pytest.mark.asyncio
+async def test_rule_based_extractor_extracts_simple_promise():
+    extractor = RuleBasedExtractor(SCHEMA_PATH)
+
+    result = await extractor.extract(
+        "England promises France support into Belgium.",
+        current_state={},
+        trigger_type="message",
+    )
+
+    assert result.success is True
+    assert result.error is None
+    assert result.patch == StatePatch(
+        {
+            "promises": [
+                {
+                    "promise_id": "promise-england-promises-france-support-into-belgium",
+                    "from_faction": "England",
+                    "to_faction": "France",
+                    "content": "support into Belgium",
+                    "status": "pending",
+                }
+            ]
+        }
+    )
+
+
+@pytest.mark.asyncio
+async def test_rule_based_extractor_extracts_simple_coalition():
+    extractor = RuleBasedExtractor(SCHEMA_PATH)
+
+    result = await extractor.extract(
+        "England and France form a coalition against Germany.",
+        current_state={},
+        trigger_type="message",
+    )
+
+    assert result.patch == StatePatch(
+        {
+            "coalitions": [
+                {
+                    "coalition_id": (
+                        "coalition-england-and-france-form-a-coalition-against-germ"
+                    ),
+                    "faction_a": "England",
+                    "faction_b": "France",
+                    "confidence": 0.7,
+                    "basis": "against Germany",
+                }
+            ]
+        }
+    )
+
+
+@pytest.mark.asyncio
+async def test_rule_based_extractor_extracts_simple_inconsistency():
+    extractor = RuleBasedExtractor(SCHEMA_PATH)
+
+    result = await extractor.extract(
+        "Germany broke the non-aggression promise to Russia.",
+        current_state={},
+        trigger_type="intel_correction",
+    )
+
+    assert result.patch == StatePatch(
+        {
+            "inconsistencies": [
+                {
+                    "inconsistency_id": (
+                        "inconsistency-germany-broke-the-non-aggression-promise-to-russ"
+                    ),
+                    "faction_id": "Germany",
+                    "description": "the non-aggression promise to Russia",
+                    "leverage_value": 0.5,
+                    "spent": False,
+                }
+            ]
+        }
+    )
+
+
+@pytest.mark.asyncio
+async def test_rule_based_extractor_returns_empty_patch_when_no_pattern_matches():
+    extractor = RuleBasedExtractor(SCHEMA_PATH)
+
+    result = await extractor.extract(
+        "The board is quiet this round.",
+        current_state={},
+        trigger_type="message",
+    )
+
+    assert result == ExtractionResult(success=True, patch=StatePatch({}))
