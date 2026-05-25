@@ -42,6 +42,10 @@ Event Store. Transport implementations normalize platform metadata into its
 stable fields and should keep implementation-specific payloads inside their own
 adapter boundary unless a downstream module needs them.
 
+Valid channel values are `public`, `private`, and `coaching`. Shared helpers in
+`modules.transport` validate channel names and normalize inbound platform data
+into the shared `InboundEvent` type.
+
 ## Implementations
 
 **TelegramBotTransport** — wraps `toolkit/telegram_client.TelegramClient`. Uses `start_polling()` / `get_next_update()` for inbound, `send_message()` for outbound. Maps channel names to Telegram chat IDs from pipeline.yaml config. Applies delay jitter (default 50-200ms) before each send.

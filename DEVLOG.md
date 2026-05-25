@@ -78,3 +78,16 @@ Added `tests/test_transport.py` covering public exports, outbound defaults, prot
 
 Verification:
 - `python3 -m pytest tests/test_transport.py tests/test_coaching.py tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 42 passed
+
+### Step 4.2: Shared Transport exports
+
+**Mode:** Build
+**Outcome:** Complete
+**Contract changes:** `ARCH_transport.md`, `src/modules/transport/__init__.py`
+
+Completed the shared Transport API surface with canonical channel validation, outbound recipient rules, and `normalize_inbound_event()` for adapter code to create the existing shared `InboundEvent` type without altering Event Store semantics. Public exports now include `VALID_CHANNELS`, `validate_channel`, and `normalize_inbound_event` alongside `OutboundMessage`, `TransportError`, `Transport`, and `InboundEvent`.
+
+Expanded `tests/test_transport.py` for channel validation, private-message recipient requirements, public/coaching recipient rejection, and inbound normalization.
+
+Verification:
+- `python3 -m pytest tests/test_transport.py tests/test_coaching.py tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 45 passed

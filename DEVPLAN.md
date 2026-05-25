@@ -2,7 +2,7 @@
 phase: 4
 blocked: false
 state: execute
-steps_remaining: 6
+steps_remaining: 5
 ---
 
 # Diplomat — Development Plan
@@ -47,7 +47,7 @@ Outcomes:
 
 Steps:
 - [x] 4.1 Dependency probe and contract reconciliation: inspect the available `toolkit/telegram_client` surface, reconcile `ARCH_transport.md` with existing `src/modules/types.py`, and add focused tests for the public Transport types/protocol.
-- [ ] 4.2 Implement shared Transport exports: add `OutboundMessage`, `TransportError`, `Transport` protocol/base typing, channel validation helpers, and event normalization without changing storage semantics.
+- [x] 4.2 Implement shared Transport exports: add `OutboundMessage`, `TransportError`, `Transport` protocol/base typing, channel validation helpers, and event normalization without changing storage semantics.
 - [ ] 4.3 Implement `CLITransport`: async reader/writer implementation with deterministic tests for inbound parsing, outbound formatting, EOF behavior, and error propagation.
 - [ ] 4.4 Implement `TelegramBotTransport` send path: dependency-injected toolkit client, channel/recipient routing, configurable jitter, retry handling, and fake-client tests.
 - [ ] 4.5 Implement `TelegramBotTransport` listen path: polling/update normalization into `InboundEvent`, faction/operator/system source mapping, metadata preservation, and fake-client tests.
