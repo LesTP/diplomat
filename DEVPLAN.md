@@ -1,8 +1,8 @@
 ---
 phase: 8
-blocked: false
+blocked: true
 state: close
-steps_remaining: 1
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -18,9 +18,9 @@ steps_remaining: 1
 
 ## Current Status
 
-- **Phase** — Phase 8: Generation, implementation complete and ready for review.
-- **Focus** — Review Phase 8 against `ARCH_generation.md`.
-- **Blocked/Broken** — None.
+- **Phase** — Phase 8: Generation, complete. Awaiting human audit before Phase 9.
+- **Focus** — Phase 9: Review Gate.
+- **Blocked/Broken** — Blocked: awaiting-human-audit.
 
 ## Phase 8: Generation
 
@@ -31,7 +31,7 @@ Steps:
 - [x] 8.2 — Add review-gate JSON handling and generation prompt/config artifacts. When `review_gate_enabled=True`, require JSON containing `response` and `reasoning`; reject malformed JSON, missing/blank response, and schema-shaped failures through `GenerationResult.success=False`. When disabled, treat nonblank plain text as `response_text` with `reasoning=None`. Create `config/prompts/generation.txt` with JSON/plain output instructions aligned to `ARCH_generation.md`. Run focused tests plus full regression.
 - [x] 8.3 — Documentation cleanup and regression verification. Verify the full suite, update Phase 8 summary/status, mark implementation sequence row 9 as pending review, and transition DEVPLAN to `state: review`.
 
-Summary: Implemented `GenerationResult`, `LLMGenerator`, review-gate JSON parsing (`response`, `reasoning`), plain-text mode, raw response preservation, `config/prompts/generation.txt`, and 11 focused Generation tests. Full regression: 98 passed. Pending review should check the Context Assembler review-gate instruction wording against Generation's expected JSON keys.
+Summary: Implemented `GenerationResult`, `LLMGenerator`, review-gate JSON parsing (`response`, `reasoning`), plain-text mode, raw response preservation, `config/prompts/generation.txt`, and 11 focused Generation tests. Full regression: 98 passed. Phase Review found and fixed one must-fix: Context Assembler was instructing the LLM to use `draft_message`/`rationale` keys while Generation expected `response`/`reasoning` — fixed in both `_format_output_instruction` and its test. Phase complete.
 
 ## Phase 7: Context Assembler
 

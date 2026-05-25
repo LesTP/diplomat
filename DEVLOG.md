@@ -286,3 +286,20 @@ All other review checks passed:
 
 Verification:
 - `python3 -m pytest -q` — 98 passed (post-fix)
+
+### Phase 8 Close
+
+**Mode:** Close
+**Outcome:** Phase 8 complete — blocked awaiting human audit
+
+Doc cleanup complete:
+- DEVPLAN: summary updated with review fix note, Current Status updated to Phase 9 focus, state=close, blocked=true
+- ARCHITECTURE.md: Implementation Sequence row 9 updated to "Phase 8 complete" (was "pending review")
+- DEVLOG: review and close entries appended
+
+No gotchas to promote — the JSON key mismatch was caught and fixed in review. The pattern to watch in future phases: when Context Assembler output instructions reference specific field names, verify they match the consuming module's parser.
+
+Verification:
+- `python3 -m pytest -q` — 98 passed
+
+Phase 9 (Review Gate) is the next module: human approval workflow via toolkit/telegram_client.
