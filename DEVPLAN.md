@@ -2,7 +2,7 @@
 phase: 3
 blocked: false
 state: execute
-steps_remaining: 7
+steps_remaining: 6
 ---
 
 # Diplomat — Development Plan
@@ -49,7 +49,7 @@ Out of scope:
 - Orchestrator integration.
 
 Steps:
-- [ ] 3.1 Add `config/coaching_routes.yaml` with the Phase 3 tag and command contract.
+- [x] 3.1 Add `config/coaching_routes.yaml` with the Phase 3 tag and command contract.
 - [ ] 3.2 Implement `CoachingEvent`, `Command`, route loading, and parser initialization errors.
 - [ ] 3.3 Implement tagged/free coaching parsing with canonical route output.
 - [ ] 3.4 Implement slash command parsing, including edit text arguments.

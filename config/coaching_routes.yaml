@@ -1,0 +1,31 @@
+tags:
+  PRIORITY:
+    route: coaching_queue
+    coaching_type: PRIORITY
+  CONSTRAINT:
+    route: coaching_queue
+    coaching_type: CONSTRAINT
+  INTEL:
+    route: state_updater
+    coaching_type: INTEL
+  TONE:
+    route: coaching_queue
+    coaching_type: TONE
+  WATCH:
+    route: coaching_queue
+    coaching_type: WATCH
+  default:
+    route: coaching_queue
+    coaching_type: FREE
+
+commands:
+  - /preview
+  - /approve
+  - /edit
+  - /block
+  - /status
+  - /state
+  - /ledger
+  - /intel
+  - /divergences
+  - /edits

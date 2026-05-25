@@ -53,3 +53,14 @@ Planned steps:
 - 3.4 Implement slash command parsing.
 - 3.5 Add focused parser tests.
 - 3.6 Run Coaching and regression tests, then clean up exports/docs.
+
+### Step 3.1: Add coaching routes config
+
+**Mode:** Build
+**Outcome:** Complete
+**Contract changes:** Added `config/coaching_routes.yaml` implementing the Phase 3 route contract from `ARCH_coaching.md`.
+
+Added the coaching tag routes and command allowlist used by `TaggedCoachingParser`. The file keeps routing data out of code: `INTEL` routes to `state_updater`, all other defined coaching tags and default free coaching route to `coaching_queue`, and the MVP slash commands are listed explicitly.
+
+Verification:
+- `python3 -m pytest tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 27 passed
