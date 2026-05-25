@@ -70,3 +70,13 @@ handling, and empty result cases.
 Added the JSON schema used by State Manager to validate extraction patches for
 faction state, promises, coalitions, and inconsistencies before any domain
 tables are updated.
+
+### Step 1.5: SQLiteStateManager implementation
+
+**Mode:** Execute
+**Outcome:** Complete
+**Contract changes:** `src/modules/state_manager/__init__.py`
+
+Implemented the State Manager API with WAL-backed SQLite table ownership,
+schema validation at patch application time, audit logging before domain writes,
+parameterized get/query operations, and full-state snapshots for Analyst input.
