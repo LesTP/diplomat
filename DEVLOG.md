@@ -112,3 +112,15 @@ Added `tests/test_coaching.py` covering public exports, route config loading, co
 Verification:
 - `python3 -m pytest tests/test_coaching.py` — 11 passed
 - `python3 -m pytest tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py tests/test_coaching.py` — 38 passed
+
+### Step 3.6: Run full tests and clean up
+
+**Mode:** Build
+**Outcome:** Complete — state set to review
+**Contract changes:** None.
+
+Ran the full test suite and performed a small cleanup in command parsing: the command regex is wrapped for readability and configured command strings are normalized after trimming. Phase 3 implementation is complete and ready for review.
+
+Verification:
+- `python3 -m pytest` — 38 passed
+- `python3 -m pytest tests/test_coaching.py tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 38 passed

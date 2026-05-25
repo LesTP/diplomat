@@ -29,7 +29,10 @@ class RouteRule:
 
 class TaggedCoachingParser:
     _TAG_RE = re.compile(r"^\s*([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*)\Z", re.DOTALL)
-    _COMMAND_RE = re.compile(r"^\s*(/[A-Za-z][A-Za-z0-9_-]*)(?::|\s)?\s*(.*)\Z", re.DOTALL)
+    _COMMAND_RE = re.compile(
+        r"^\s*(/[A-Za-z][A-Za-z0-9_-]*)(?::|\s)?\s*(.*)\Z",
+        re.DOTALL,
+    )
 
     def __init__(self, routes_path: str | Path) -> None:
         config = load_routes_config(routes_path)
@@ -117,9 +120,12 @@ def _parse_commands(config: dict[str, Any]) -> frozenset[str]:
 
     parsed: set[str] = set()
     for command in commands:
-        if not isinstance(command, str) or not command.startswith("/"):
+        if not isinstance(command, str):
             raise ValueError("Coaching commands must be slash-prefixed strings")
-        parsed.add(command.strip().lower())
+        normalized = command.strip().lower()
+        if not normalized.startswith("/"):
+            raise ValueError("Coaching commands must be slash-prefixed strings")
+        parsed.add(normalized)
 
     return frozenset(parsed)
 

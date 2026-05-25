@@ -1,8 +1,8 @@
 ---
 phase: 3
 blocked: false
-state: execute
-steps_remaining: 2
+state: review
+steps_remaining: 1
 ---
 
 # Diplomat — Development Plan
@@ -17,8 +17,8 @@ steps_remaining: 2
 
 ## Current Status
 
-- **Phase** — Phase 3 in progress — Coaching.
-- **Focus** — Implement config-driven tagged coaching parser and command parsing.
+- **Phase** — Phase 3 implementation complete — Coaching review pending.
+- **Focus** — Review config-driven tagged coaching parser and command parsing.
 - **Blocked/Broken** — None.
 
 ## Phase 1: Event Store + State Manager
@@ -31,7 +31,7 @@ Complete. Implemented `ExtractionResult`, `OpenAIStructuredExtractor`, `RuleBase
 
 ## Phase 3: Coaching
 
-Status: In progress.
+Status: Implementation complete — review pending.
 
 Work regime: Build. Coaching is a pure parser with config-loaded routing, so each step should be small, testable, and avoid Orchestrator storage or dispatch behavior.
 
@@ -54,4 +54,4 @@ Steps:
 - [x] 3.3 Implement tagged/free coaching parsing with canonical route output.
 - [x] 3.4 Implement slash command parsing, including edit text arguments.
 - [x] 3.5 Add focused unit tests for routing, command parsing, defaults, and malformed input.
-- [ ] 3.6 Run the Coaching test set plus existing regression tests and clean up exports/docs.
+- [x] 3.6 Run the Coaching test set plus existing regression tests and clean up exports/docs.
