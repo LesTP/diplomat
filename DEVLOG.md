@@ -315,3 +315,16 @@ Phase 9 (Review Gate) is the next module: human approval workflow via toolkit/te
 Planned `ReviewDecision`, `AutoApproveReviewGate`, and `TelegramReviewGate` implementation against `ARCH_review_gate.md`: auto-approve path first, Telegram approve/edit/block workflow second, and timeout/documentation cleanup third. All Telegram behavior will use toolkit-compatible dependency injection and fake clients in tests.
 
 Updated `ARCHITECTURE.md` Implementation Sequence row 10 to `In progress`.
+
+### Step 9.1: Auto-approve review gate
+
+**Mode:** Build
+**Outcome:** Complete - implemented Review Gate decision type, auto-approve path, and focused tests
+**Contract changes:** Added `ReviewDecision` and `AutoApproveReviewGate` public exports in `src/modules/review_gate/__init__.py`
+
+Implemented `ReviewDecision` as a frozen dataclass matching `ARCH_review_gate.md`, and added `AutoApproveReviewGate.submit()` for `review_gate.enabled: false`. Successful nonblank drafts are approved with stripped final text. Failed or blank drafts return blocked decisions with explanatory edit notes, so the Orchestrator never posts unusable output through the disabled-review path.
+
+Added `tests/test_review_gate.py` coverage for successful auto-approval, failed draft blocking, blank draft blocking, and the `ReviewDecision` field contract.
+
+Verification:
+- `.venv/bin/python -m pytest tests/test_review_gate.py -q` - 4 passed
