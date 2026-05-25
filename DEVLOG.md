@@ -100,3 +100,15 @@ Implemented config-allowlisted slash command parsing before coaching tag parsing
 Verification:
 - `python3 - <<'PY' ... parser.parse(...) command assertions ... PY` — preview, status, edit, unknown slash, and tagged fallback cases passed
 - `python3 -m pytest tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 27 passed
+
+### Step 3.5: Add focused coaching parser tests
+
+**Mode:** Build
+**Outcome:** Complete
+**Contract changes:** None.
+
+Added `tests/test_coaching.py` covering public exports, route config loading, configured tag routes, INTEL routing, free-coaching defaults, malformed and unknown input fallback, command parsing, edit command arguments, unknown slash fallback, and config validation errors.
+
+Verification:
+- `python3 -m pytest tests/test_coaching.py` — 11 passed
+- `python3 -m pytest tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py tests/test_coaching.py` — 38 passed
