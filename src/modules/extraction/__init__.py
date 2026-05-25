@@ -176,7 +176,14 @@ def load_prompt(prompt_path: str | Path) -> str:
 
 
 def load_schema(schema_path: str | Path) -> dict[str, Any]:
-    return parse_json_object(Path(schema_path).read_text(encoding="utf-8"))
+    text = Path(schema_path).read_text(encoding="utf-8")
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"Schema file is not valid JSON: {exc.msg}") from exc
+    if not isinstance(parsed, dict):
+        raise ValueError("Schema file must be a JSON object")
+    return parsed
 
 
 def parse_json_object(response_text: str) -> dict[str, Any]:
