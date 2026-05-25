@@ -1,5 +1,116 @@
 # Diplomat — Development Log Archive
 
+## Archived 2026-05-25 — Module 3 Phase 3: Coaching
+
+### 2026-05-25 — Phase 3 Plan
+
+**Action:** Phase Plan for Coaching
+**Outcome:** Planned — state set to execute
+
+Defined Phase 3 as a Build phase for a stateless, config-driven coaching parser. The plan keeps persistence, command dispatch, INTEL forwarding, and Orchestrator integration out of scope for this module.
+
+Planned steps:
+- 3.1 Add `config/coaching_routes.yaml`.
+- 3.2 Implement public types, route loading, and initialization errors.
+- 3.3 Implement tagged/free coaching parsing.
+- 3.4 Implement slash command parsing.
+- 3.5 Add focused parser tests.
+- 3.6 Run Coaching and regression tests, then clean up exports/docs.
+
+### Step 3.1: Add coaching routes config
+
+**Mode:** Build
+**Outcome:** Complete
+**Contract changes:** Added `config/coaching_routes.yaml` implementing the Phase 3 route contract from `ARCH_coaching.md`.
+
+Added the coaching tag routes and command allowlist used by `TaggedCoachingParser`. The file keeps routing data out of code: `INTEL` routes to `state_updater`, all other defined coaching tags and default free coaching route to `coaching_queue`, and the MVP slash commands are listed explicitly.
+
+Verification:
+- `python3 -m pytest tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 27 passed
+
+### Step 3.2: Add coaching public types and route loader
+
+**Mode:** Build
+**Outcome:** Complete
+**Contract changes:** Implemented the public Coaching API types from `ARCH_coaching.md`.
+
+Added frozen `CoachingEvent` and `Command` dataclasses, a `TaggedCoachingParser` shell, route-rule normalization, YAML config loading, command allowlist normalization, and startup validation for missing or malformed routing config. The parser still returns default free coaching until tag and command parsing are implemented in the next steps.
+
+Verification:
+- `python3 - <<'PY' ... TaggedCoachingParser('config/coaching_routes.yaml') ... PY` — loaded expected tags, commands, and default route
+- `python3 -m pytest tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 27 passed
+
+### Step 3.3: Implement tagged and free coaching parsing
+
+**Mode:** Build
+**Outcome:** Complete
+**Contract changes:** None.
+
+Implemented case-insensitive tag parsing for configured coaching tags and canonical route output from the YAML route table. Unknown tags, malformed tag-like text, untagged input, and empty input fall back to default `FREE` coaching with the configured default route.
+
+Verification:
+- `python3 - <<'PY' ... parser.parse(...) assertions ... PY` — tagged, INTEL, unknown tag, and empty input cases passed
+- `python3 -m pytest tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 27 passed
+
+### Step 3.4: Implement slash command parsing
+
+**Mode:** Build
+**Outcome:** Complete
+**Contract changes:** None.
+
+Implemented config-allowlisted slash command parsing before coaching tag parsing. Command names are returned without the leading slash and are matched case-insensitively. `/edit: ...` and `/edit ...` populate `args["text"]`; other commands return empty args. Unknown slash commands fall back to `FREE` coaching.
+
+Verification:
+- `python3 - <<'PY' ... parser.parse(...) command assertions ... PY` — preview, status, edit, unknown slash, and tagged fallback cases passed
+- `python3 -m pytest tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 27 passed
+
+### Step 3.5: Add focused coaching parser tests
+
+**Mode:** Build
+**Outcome:** Complete
+**Contract changes:** None.
+
+Added `tests/test_coaching.py` covering public exports, route config loading, configured tag routes, INTEL routing, free-coaching defaults, malformed and unknown input fallback, command parsing, edit command arguments, unknown slash fallback, and config validation errors.
+
+Verification:
+- `python3 -m pytest tests/test_coaching.py` — 11 passed
+- `python3 -m pytest tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py tests/test_coaching.py` — 38 passed
+
+### Step 3.6: Run full tests and clean up
+
+**Mode:** Build
+**Outcome:** Complete — state set to review
+**Contract changes:** None.
+
+Ran the full test suite and performed a small cleanup in command parsing: the command regex is wrapped for readability and configured command strings are normalized after trimming. Phase 3 implementation is complete and ready for review.
+
+Verification:
+- `python3 -m pytest` — 38 passed
+- `python3 -m pytest tests/test_coaching.py tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 38 passed
+
+### 2026-05-25 — Phase 3 Review
+
+**Action:** Phase Review — Coaching
+**Outcome:** Passed — no must-fix or should-fix items found. State set to close.
+
+Reviewed `src/modules/coaching/__init__.py` and `tests/test_coaching.py` against `ARCH_coaching.md`.
+
+Contract compliance:
+- `parse(str) -> CoachingEvent | Command` signature matches exactly.
+- No exceptions raised for unrecognized input — returns FREE CoachingEvent.
+- `CoachingEvent` and `Command` frozen dataclasses match ARCH types.
+- All routing loaded from `config/coaching_routes.yaml`, no hardcoded routing logic.
+- YAML structure matches ARCH exactly: 5 tags + default + 10 commands.
+- INTEL -> state_updater, all others -> coaching_queue, unknown tag -> FREE.
+- `/edit:` and `/edit ` argument variants both handled.
+- Pure parsing function — no state, persistence, dispatch, or Orchestrator coupling.
+- `__all__` exports `TaggedCoachingParser`, `CoachingEvent`, `Command`, `RouteRule`, `load_routes_config`.
+- Phase scope respected — no coaching queue, no INTEL forwarding, no Orchestrator integration.
+
+All 38 tests pass (11 coaching + 27 regression).
+
+---
+
 ## Archived 2026-05-25 — Module 1 Phase 1: Event Store + State Manager
 
 ### Phase 1: Core Storage

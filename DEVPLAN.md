@@ -1,8 +1,8 @@
 ---
 phase: 3
-blocked: false
+blocked: true
 state: close
-steps_remaining: 1
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -17,8 +17,8 @@ steps_remaining: 1
 
 ## Current Status
 
-- **Phase** — Phase 3 implementation complete — Coaching review pending.
-- **Focus** — Review config-driven tagged coaching parser and command parsing.
+- **Phase** — Phase 3 complete.
+- **Focus** — Phase 4 Transport planning after `/close`.
 - **Blocked/Broken** — None.
 
 ## Phase 1: Event Store + State Manager
@@ -31,27 +31,4 @@ Complete. Implemented `ExtractionResult`, `OpenAIStructuredExtractor`, `RuleBase
 
 ## Phase 3: Coaching
 
-Status: Implementation complete — review pending.
-
-Work regime: Build. Coaching is a pure parser with config-loaded routing, so each step should be small, testable, and avoid Orchestrator storage or dispatch behavior.
-
-Scope:
-- Add public Coaching dataclasses and `TaggedCoachingParser`.
-- Load tag routes and allowed commands from `config/coaching_routes.yaml`.
-- Parse tagged coaching input case-insensitively while returning canonical coaching types and configured routes.
-- Parse slash commands, including `/edit: ...` and `/edit ...` text arguments.
-- Treat unrecognized text, empty input, and malformed tags as free coaching rather than errors.
-
-Out of scope:
-- Persisting coaching queue entries.
-- Dispatching commands.
-- Forwarding INTEL to Extraction.
-- Orchestrator integration.
-
-Steps:
-- [x] 3.1 Add `config/coaching_routes.yaml` with the Phase 3 tag and command contract.
-- [x] 3.2 Implement `CoachingEvent`, `Command`, route loading, and parser initialization errors.
-- [x] 3.3 Implement tagged/free coaching parsing with canonical route output.
-- [x] 3.4 Implement slash command parsing, including edit text arguments.
-- [x] 3.5 Add focused unit tests for routing, command parsing, defaults, and malformed input.
-- [x] 3.6 Run the Coaching test set plus existing regression tests and clean up exports/docs.
+Complete. Implemented `config/coaching_routes.yaml`, `CoachingEvent`, `Command`, `RouteRule`, `TaggedCoachingParser`, config validation, tagged/free coaching parsing, slash command parsing, and 11-test coverage with 38 total regression tests passing. See `DEVLOG_archive.md` and the 2026-05-25 phase completion entry in `DEVLOG.md`.
