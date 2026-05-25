@@ -50,3 +50,13 @@ Extraction work a common import surface.
 Implemented the append-only SQLite event store with WAL enabled on every
 connection, table/index initialization, UUID event IDs, and parameterized query
 filters for round, sender/source, channel, timestamp, and limit.
+
+### Step 1.3: Event Store tests
+
+**Mode:** Execute
+**Outcome:** Complete
+**Contract changes:** None
+
+Added async pytest coverage for Event Store append/query behavior, including
+WAL mode, round/source/channel/since filters, timestamp ordering, limit
+handling, and empty result cases.

@@ -2,7 +2,7 @@
 phase: 1
 blocked: false
 state: execute
-steps_remaining: 6
+steps_remaining: 5
 ---
 
 # Diplomat — Development Plan
@@ -19,7 +19,7 @@ steps_remaining: 6
 ## Current Status
 
 - **Phase** — Phase 1 (Event Store + State Manager)
-- **Focus** — Step 1.3: Event Store tests
+- **Focus** — Step 1.4: State patch JSON schema
 - **Blocked/Broken** — None
 
 ## Phase 1: Event Store + State Manager
@@ -30,7 +30,7 @@ steps_remaining: 6
 |------|-------------|--------|
 | 1.1 | Shared types: `InboundEvent`, `StoredEvent`, `EventFilter`, `StatePatch`, `PatchSource` in `src/modules/types.py` | ✅ Complete |
 | 1.2 | SQLiteEventStore: implement `append()` and `query()` with WAL mode in `src/modules/event_store/` | ✅ Complete |
-| 1.3 | Event Store tests: `tests/test_event_store.py` covering append, query filters, edge cases | ⬜ Not started |
+| 1.3 | Event Store tests: `tests/test_event_store.py` covering append, query filters, edge cases | ✅ Complete |
 | 1.4 | State patch JSON schema: `config/schemas/state_patch.json` for faction_state, promises, coalitions, inconsistencies | ⬜ Not started |
 | 1.5 | SQLiteStateManager: implement `get()`, `query()`, `apply_patch()`, `get_full_state()` with schema validation and audit log | ⬜ Not started |
 | 1.6 | State Manager tests: `tests/test_state_manager.py` covering all public API + patch validation + audit log | ⬜ Not started |
