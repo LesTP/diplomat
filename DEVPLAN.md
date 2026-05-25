@@ -1,8 +1,8 @@
 ---
 phase: 4
 blocked: false
-state: execute
-steps_remaining: 2
+state: review
+steps_remaining: 1
 ---
 
 # Diplomat — Development Plan
@@ -18,7 +18,7 @@ steps_remaining: 2
 ## Current Status
 
 - **Phase** — Phase 4 in progress.
-- **Focus** — Transport module implementation.
+- **Focus** — Phase 4 Transport review.
 - **Blocked/Broken** — None.
 
 ## Phase 1: Event Store + State Manager
@@ -51,4 +51,4 @@ Steps:
 - [x] 4.3 Implement `CLITransport`: async reader/writer implementation with deterministic tests for inbound parsing, outbound formatting, EOF behavior, and error propagation.
 - [x] 4.4 Implement `TelegramBotTransport` send path: dependency-injected toolkit client, channel/recipient routing, configurable jitter, retry handling, and fake-client tests.
 - [x] 4.5 Implement `TelegramBotTransport` listen path: polling/update normalization into `InboundEvent`, faction/operator/system source mapping, metadata preservation, and fake-client tests.
-- [ ] 4.6 Phase verification: run full regression tests, tighten docs/contracts if needed, and prepare for review.
+- [x] 4.6 Phase verification: run full regression tests, tighten docs/contracts if needed, and prepare for review.

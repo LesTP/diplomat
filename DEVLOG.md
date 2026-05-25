@@ -130,3 +130,15 @@ Expanded fake-client tests for public/private/coaching inbound normalization, po
 
 Verification:
 - `python3 -m pytest tests/test_transport.py tests/test_coaching.py tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 59 passed
+
+### Step 4.6: Phase verification
+
+**Mode:** Build
+**Outcome:** Complete — DEVPLAN moved to review state
+**Contract changes:** `ARCH_transport.md`
+
+Ran the full current regression suite and Python bytecode compilation. Tightened `ARCH_transport.md` so the usage example matches the implemented dependency-injected `TelegramBotTransport` constructor and toolkit client boundary.
+
+Verification:
+- `python3 -m pytest tests/test_transport.py tests/test_coaching.py tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 59 passed
+- `python3 -m compileall -q src` — passed

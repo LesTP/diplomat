@@ -79,12 +79,15 @@ JSON objects use the shared `InboundEvent` field names.
 
 ```python
 from modules.transport import TelegramBotTransport, OutboundMessage
+from toolkit.telegram_client import TelegramClient
 
 transport = TelegramBotTransport(
-    bot_token="bot123:ABC...",
+    client=TelegramClient(bot_token="bot123:ABC..."),
     public_channel_id="-100xxx",
     coaching_channel_id="-100yyy",
-    faction_map={"user1": "alpha", "user2": "beta"},
+    private_channel_ids={"beta": "-100private"},
+    faction_map={"12345": "alpha", "67890": "beta"},
+    operator_user_ids={"99999"},
 )
 
 # Send

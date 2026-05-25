@@ -129,8 +129,12 @@ class TelegramBotTransport:
             _chat_key(chat_id): faction
             for faction, chat_id in self._private_channel_ids.items()
         }
-        self._faction_map = {str(user_id): faction for user_id, faction in (faction_map or {}).items()}
-        self._operator_user_ids = {str(user_id) for user_id in (operator_user_ids or set())}
+        self._faction_map = {
+            str(user_id): faction for user_id, faction in (faction_map or {}).items()
+        }
+        self._operator_user_ids = {
+            str(user_id) for user_id in (operator_user_ids or set())
+        }
         self._jitter_seconds = jitter_seconds
         self._sleep = sleep or _asyncio_sleep
         self._random_between = random_between or random.uniform
@@ -173,13 +177,21 @@ class TelegramBotTransport:
             return self._coaching_channel_id
         if message.recipient in self._private_channel_ids:
             return self._private_channel_ids[message.recipient]
-        raise TransportError(f"No private Telegram chat configured for {message.recipient}")
+        raise TransportError(
+            f"No private Telegram chat configured for {message.recipient}"
+        )
 
     def _event_from_update(self, update: object) -> InboundEvent:
         chat_id = _get_value(update, "chat_id", "chat.id")
         chat_key = _chat_key(chat_id)
         channel = self._channel_for_chat(chat_key)
-        user_id = _get_value(update, "user_id", "sender_id", "from_user_id", default=None)
+        user_id = _get_value(
+            update,
+            "user_id",
+            "sender_id",
+            "from_user_id",
+            default=None,
+        )
         sender_faction = self._sender_for(channel, chat_key, user_id)
 
         try:
