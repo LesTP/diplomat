@@ -111,7 +111,7 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 |-------|--------|-----------|--------|
 | 1 | Event Store | Leaf dependency. Append-only SQLite, simplest module. Everything downstream needs stored events. | Complete |
 | 2 | State Manager | Leaf dependency. Domain tables, schema validation, audit log. Extraction and Analyst depend on it. | Complete |
-| 3 | Extraction | First LLM-consuming module. Validates toolkit/llm_client integration. Feeds State Manager. | Not started |
+| 3 | Extraction | First LLM-consuming module. Validates toolkit/llm_client integration. Feeds State Manager. | In progress |
 | 4 | Coaching | Pure parsing, no external deps. Needed before operator input can be processed. | Not started |
 | 5 | Transport | Platform I/O. Validates toolkit/telegram_client integration. Needed for end-to-end. | Not started |
 | 6 | Persona | File-based, simple. Needed before Generation. | Not started |

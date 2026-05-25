@@ -41,3 +41,10 @@ Priority: Important
 Decision: `review_gate.enabled: true` for the first game. No autonomous posting.
 Rationale: First game is about calibrating the faction prompt and building operator trust. The edit log from the review gate is the primary feedback mechanism for prompt improvement.
 Revisit if: The operator consistently approves without edit for multiple consecutive rounds, indicating the prompt is well-calibrated.
+
+D-6: Extraction remains stateless
+Date: 2026-05-25 | Status: Closed
+Priority: Important
+Decision: The Extraction module processes one supplied text batch at a time and does not own debounce windows, batching, or event scheduling.
+Rationale: `ARCH_extraction.md` already defines independent `extract()` calls, and Orchestrator has the pipeline context needed to batch transport events. Keeping Extraction stateless makes it easy to test with fake LLM responses and avoids coupling it to round timing before Orchestrator is implemented.
+Revisit if: Real game traffic shows that extraction quality depends on stateful message accumulation that cannot be represented by Orchestrator-provided batches.

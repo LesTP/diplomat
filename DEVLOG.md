@@ -20,3 +20,15 @@ Verification:
 - `python3 -m pytest tests/test_event_store.py tests/test_state_manager.py` — 9 passed
 
 No new gotchas were promoted. No contract changes require propagation beyond the Phase 1 storage interfaces already captured in the ARCH files.
+
+## Module 2: Extraction
+
+### 2026-05-25 — Phase 2 Plan
+
+**Action:** Phase Plan for Extraction
+**Outcome:** Planned — DEVPLAN moved to `state: execute`
+
+Defined a Build-regime plan for the Extraction module. Scope covers the public extraction API, local JSON/schema enforcement for plain-text LLM responses, deterministic rule-based fallback behavior, prompt configuration, and focused fake-provider tests.
+
+Scope decision:
+- Extraction remains stateless; batching/debounce behavior stays with Orchestrator.
