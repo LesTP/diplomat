@@ -124,3 +124,24 @@ Ran the full test suite and performed a small cleanup in command parsing: the co
 Verification:
 - `python3 -m pytest` — 38 passed
 - `python3 -m pytest tests/test_coaching.py tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 38 passed
+
+### 2026-05-25 — Phase 3 Review
+
+**Action:** Phase Review — Coaching
+**Outcome:** Passed — no must-fix or should-fix items found. State set to close.
+
+Reviewed `src/modules/coaching/__init__.py` and `tests/test_coaching.py` against `ARCH_coaching.md`.
+
+Contract compliance:
+- `parse(str) -> CoachingEvent | Command` signature matches exactly.
+- No exceptions raised for unrecognized input — returns FREE CoachingEvent.
+- `CoachingEvent` and `Command` frozen dataclasses match ARCH types.
+- All routing loaded from `config/coaching_routes.yaml`, no hardcoded routing logic.
+- YAML structure matches ARCH exactly: 5 tags + default + 10 commands.
+- INTEL → state_updater, all others → coaching_queue, unknown tag → FREE.
+- `/edit:` and `/edit ` argument variants both handled.
+- Pure parsing function — no state, persistence, dispatch, or Orchestrator coupling.
+- `__all__` exports `TaggedCoachingParser`, `CoachingEvent`, `Command`, `RouteRule`, `load_routes_config`.
+- Phase scope respected — no coaching queue, no INTEL forwarding, no Orchestrator integration.
+
+All 38 tests pass (11 coaching + 27 regression).
