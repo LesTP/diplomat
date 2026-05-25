@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "diplomat"
+version = "0.1.0"
+description = "AI faction agent for multiplayer diplomacy games"
+requires-python = ">=3.11"
+dependencies = [
+    "aiofiles",
+    "python-dotenv",
+    "pyyaml",
+    "jsonschema",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-asyncio",
+]
+telethon = [
+    "telethon",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
