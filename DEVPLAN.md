@@ -1,8 +1,8 @@
 ---
-phase: 6
-blocked: false
-state: close
-steps_remaining: 5
+phase: 7
+blocked: true
+state: plan
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -14,21 +14,17 @@ steps_remaining: 5
 - **Gotchas** —
   - Bot vs. user account question must be resolved with game moderator before deployment; implement `TelethonUserTransport` only if bot-to-bot messaging is unavailable
   - Round structure (signal vs. time-based) must be confirmed before Orchestrator event loop
-  - Transport tests use dependency-injected toolkit-compatible fakes because `toolkit` may be absent in the local development environment
+  - `toolkit` lives at `../toolkit` and must be installed editable into the diplomat venv (`<venv>/bin/python3 -m pip install -e ../toolkit`). It is not declared in `pyproject.toml` to avoid a misleading install contract — fresh `pip install -e .` cannot resolve `toolkit` from PyPI, so the editable install is a one-time per-host setup step. Module-level tests use dependency-injected fakes for isolation; that pattern is fine and should continue, but integration paths in Orchestrator must exercise real `toolkit` imports
 
 ## Current Status
 
-- **Phase** — Phase 6: Analyst + Divergence, complete. State: review.
-- **Focus** — Phase 6 fully implemented and tested; pending Phase Review before close.
-- **Blocked/Broken** — None.
+- **Phase** — Phase 6: Analyst + Divergence, complete.
+- **Focus** — Phase 6 complete: `AnalysisResult`, `Divergence`, `LLMAnalyst`, divergence comparison, intelligence prompt/schema, and 12 focused analyst tests. 80 total tests pass.
+- **Blocked/Broken** — Phase boundary gate set for human audit.
 
 ## Phase 6: Analyst + Divergence
 
-Regime: Build. Scope: `AnalysisResult` + `Divergence` types, `LLMAnalyst.analyze()`, `compare()` pure function, `config/prompts/analyst.txt`, `config/schemas/intelligence.json`, full test coverage.
-
-Steps:
-- [x] 6.1 — Add `AnalysisResult` and `Divergence` dataclasses to `src/modules/types.py`. Implement `LLMAnalyst` in `src/modules/analyst/__init__.py` (constructor: `llm_client`, `llm_config`, `tier`, `prompt_path`, `schema_path`, `provider_id`; `analyze(state: dict) -> AnalysisResult` — calls toolkit/llm_client.complete, parses JSON, validates against intelligence schema, returns AnalysisResult; failures → success=False). Implement `compare(a, b) -> list[Divergence]` in `src/modules/analyst/divergence.py` (pure function; returns empty if either result failed; checks threat_level_steps, missing_leverage_item, coalition_stability_mismatch against configurable thresholds). Create `config/prompts/analyst.txt` (strategic intelligence analysis prompt). Create `config/schemas/intelligence.json` (schema with threat_level, key_leverage_points, coalition_stability fields). Write `tests/test_analyst.py` covering: successful analysis with valid JSON, LLM returns invalid JSON → success=False, LLM exception → success=False, schema validation failure → success=False, provider_id propagated; compare() both failed → empty, one failed → empty, both identical → empty, threat_level_steps divergence detected, threat_level_steps within threshold → no divergence, missing_leverage_item divergence, coalition_stability_mismatch divergence. Run full suite (68 + new tests pass).
-- [x] 6.2 — Update DEVPLAN Current Status → Phase 6 complete, append DEVLOG entry, update ARCHITECTURE.md Implementation Sequence status to Phase 6 complete. Run full regression.
+Complete. Implemented shared intelligence result types, `LLMAnalyst`, pure divergence comparison, analyst prompt/schema, and 12-test coverage with 80 total regression tests passing. See `DEVLOG.md`.
 
 ## Phase 5: Persona
 

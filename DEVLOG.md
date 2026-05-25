@@ -80,59 +80,14 @@ No contract changes require propagation beyond `ARCH_transport.md`, `ARCHITECTUR
 
 ## Module 5: Persona
 
-### Step 5.1: FileBasedPersona implementation
-
-**Mode:** Build
-**Outcome:** Complete — implemented Persona public API and focused tests
-**Contract changes:** None
-
-Implemented frozen `CoachingContext` and `FileBasedPersona` in `src/modules/persona/__init__.py`. `get_base_prompt` now reads `config/faction_prompt.txt`-style files, strips the `## CURRENT ROUND CONTEXT` section, raises `FileNotFoundError` naturally when the prompt is absent, and caches by `st_mtime_ns` for hot-reload behavior. `build_round_context` formats round metadata and all coaching context buckets with explicit empty-state bullets.
-
-Added `tests/test_persona.py` covering public exports, missing file handling, fresh read, mtime reload, unchanged-mtime cache reuse, marker stripping, complete context formatting, empty fields, and unknown rounds remaining.
-
-Verification:
-- `.venv/bin/python -m pytest` — 68 passed
-
-### Step 5.2: Sample faction persona config
-
-**Mode:** Build
-**Outcome:** Complete — added sample persona config and marked Phase 5 ready for review
-**Contract changes:** `ARCHITECTURE.md` implementation sequence status updated for Persona
-
-Created `config/faction_prompt.txt` with a sample England persona, strategic identity, negotiation rules, behavioral style, and a `## CURRENT ROUND CONTEXT` placeholder section compatible with `FileBasedPersona.get_base_prompt` stripping.
-
-Updated `DEVPLAN.md` to mark both Persona implementation steps complete and transition Phase 5 to review. Updated `ARCHITECTURE.md` implementation status for Persona to ready for review.
-
-Verification:
-- `.venv/bin/python -m pytest` — 68 passed
-
-### 2026-05-25 — Phase 5 Review
-
-**Action:** Phase Review for Persona
-**Outcome:** Pass — no must-fix or should-fix items found
-
-Implementation matches ARCH_persona.md contract exactly: `CoachingContext` dataclass (frozen), `get_base_prompt` with mtime-based hot-reload and marker stripping, `build_round_context` with all coaching buckets and unknown-rounds handling, correct `__all__` exports. Sample config includes `## CURRENT ROUND CONTEXT` marker compatible with stripping logic.
-
-Test coverage satisfies all DEVPLAN 5.1 requirements: FileNotFoundError, fresh read, hot-reload, unchanged-mtime cache, marker stripping, full-field formatting, empty fields, `rounds_remaining=None`.
-
-Verification:
-- `python3 -m pytest tests/` — 68 passed
-
-DEVPLAN transitioned to `state: close`.
+Phase 5 development entries archived to `DEVLOG_archive.md` (2026-05-25).
 
 ### 2026-05-25 — Phase 5 Complete
 
 **Action:** Phase Complete for Persona
 **Outcome:** Complete — human audit gate set in DEVPLAN frontmatter
 
-Completed `CoachingContext` (frozen dataclass), `FileBasedPersona` with `get_base_prompt` (mtime-based hot-reload, `## CURRENT ROUND CONTEXT` marker stripping, `FileNotFoundError` on missing file) and `build_round_context` (formatted round metadata and all coaching buckets with empty-state bullets). Added `config/faction_prompt.txt` sample England persona with `## CURRENT ROUND CONTEXT` placeholder. Phase Review found no must-fix or should-fix items.
-
-All 68 tests pass (9 new persona tests + 59 regression). Persona is a leaf module with no dependencies beyond the filesystem.
-
-Verification:
-- `.venv/bin/python -m pytest tests/` — 68 passed
-
-No new gotchas promoted. No contract changes — Persona exposes `FileBasedPersona` and `CoachingContext` as documented in `ARCH_persona.md`; no other modules depend on it yet.
+Completed `CoachingContext`, `FileBasedPersona`, hot-reload behavior, dynamic round-context formatting, and sample `config/faction_prompt.txt`. All 68 tests passed. Detailed Phase 5 development entries were archived to `DEVLOG_archive.md`.
 
 ## Module 6: Analyst + Divergence
 
@@ -186,3 +141,17 @@ Verification:
 - `python3 -m pytest tests/` — 80 passed
 
 DEVPLAN transitioned to `state: close`.
+
+### 2026-05-25 — Phase 6 Complete
+
+**Action:** Phase Complete for Analyst + Divergence
+**Outcome:** Complete — human audit gate set in DEVPLAN frontmatter
+
+Completed shared `AnalysisResult` and `Divergence` dataclasses, `LLMAnalyst` with toolkit-compatible plain-text completion handling, local JSON parsing and JSON Schema validation, provider-aware failure reporting, pure divergence comparison, `config/prompts/analyst.txt`, and `config/schemas/intelligence.json`. Phase Review found no must-fix or should-fix items.
+
+All 80 tests pass (12 analyst tests + 68 regression). Analyst remains toolkit-bound through dependency injection and Divergence remains pure Python.
+
+Verification:
+- `python3 -m pytest tests/` — 80 passed
+
+No new gotchas promoted. No contract changes require propagation beyond the Phase 6 Analyst API and shared intelligence types already captured in `ARCH_analyst.md` and `ARCHITECTURE.md`.
