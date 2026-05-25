@@ -36,3 +36,20 @@ All 27 tests pass. Structured output enforcement resolved: local prompt + parse 
 
 Verification:
 - `python3 -m pytest tests/test_extraction.py tests/test_event_store.py tests/test_state_manager.py` — 27 passed
+
+## Module 3: Coaching
+
+### 2026-05-25 — Phase 3 Plan
+
+**Action:** Phase Plan for Coaching
+**Outcome:** Planned — state set to execute
+
+Defined Phase 3 as a Build phase for a stateless, config-driven coaching parser. The plan keeps persistence, command dispatch, INTEL forwarding, and Orchestrator integration out of scope for this module.
+
+Planned steps:
+- 3.1 Add `config/coaching_routes.yaml`.
+- 3.2 Implement public types, route loading, and initialization errors.
+- 3.3 Implement tagged/free coaching parsing.
+- 3.4 Implement slash command parsing.
+- 3.5 Add focused parser tests.
+- 3.6 Run Coaching and regression tests, then clean up exports/docs.

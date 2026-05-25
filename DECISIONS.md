@@ -48,3 +48,10 @@ Priority: Important
 Decision: The Extraction module processes one supplied text batch at a time and does not own debounce windows, batching, or event scheduling.
 Rationale: `ARCH_extraction.md` already defines independent `extract()` calls, and Orchestrator has the pipeline context needed to batch transport events. Keeping Extraction stateless makes it easy to test with fake LLM responses and avoids coupling it to round timing before Orchestrator is implemented.
 Revisit if: Real game traffic shows that extraction quality depends on stateful message accumulation that cannot be represented by Orchestrator-provided batches.
+
+D-7: Coaching remains a pure config-driven parser
+Date: 2026-05-25 | Status: Closed
+Priority: Important
+Decision: Phase 3 will implement Coaching as a stateless parser that loads tag routes and command allowlists from `config/coaching_routes.yaml`; persistence, command dispatch, and INTEL forwarding stay with later Orchestrator wiring.
+Rationale: `ARCH_coaching.md` defines Coaching as pure parsing with no state. Keeping routing data in config preserves domain flexibility and makes Phase 3 testable without storage or Telegram dependencies.
+Revisit if: Operator coaching requires durable queue semantics before Context Assembler or Orchestrator integration.
