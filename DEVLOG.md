@@ -40,3 +40,13 @@ Added shared dataclasses for inbound and stored events, event filtering, state
 patches, and patch audit sources. These types keep Event Store and State
 Manager contracts independent of each other while giving later Transport and
 Extraction work a common import surface.
+
+### Step 1.2: SQLiteEventStore implementation
+
+**Mode:** Execute
+**Outcome:** Complete
+**Contract changes:** `src/modules/event_store/__init__.py`
+
+Implemented the append-only SQLite event store with WAL enabled on every
+connection, table/index initialization, UUID event IDs, and parameterized query
+filters for round, sender/source, channel, timestamp, and limit.
