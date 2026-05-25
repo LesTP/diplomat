@@ -64,3 +64,15 @@ Added the coaching tag routes and command allowlist used by `TaggedCoachingParse
 
 Verification:
 - `python3 -m pytest tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 27 passed
+
+### Step 3.2: Add coaching public types and route loader
+
+**Mode:** Build
+**Outcome:** Complete
+**Contract changes:** Implemented the public Coaching API types from `ARCH_coaching.md`.
+
+Added frozen `CoachingEvent` and `Command` dataclasses, a `TaggedCoachingParser` shell, route-rule normalization, YAML config loading, command allowlist normalization, and startup validation for missing or malformed routing config. The parser still returns default free coaching until tag and command parsing are implemented in the next steps.
+
+Verification:
+- `python3 - <<'PY' ... TaggedCoachingParser('config/coaching_routes.yaml') ... PY` — loaded expected tags, commands, and default route
+- `python3 -m pytest tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 27 passed
