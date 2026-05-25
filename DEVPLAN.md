@@ -2,7 +2,7 @@
 phase: 3
 blocked: false
 state: execute
-steps_remaining: 4
+steps_remaining: 3
 ---
 
 # Diplomat — Development Plan
@@ -52,6 +52,6 @@ Steps:
 - [x] 3.1 Add `config/coaching_routes.yaml` with the Phase 3 tag and command contract.
 - [x] 3.2 Implement `CoachingEvent`, `Command`, route loading, and parser initialization errors.
 - [x] 3.3 Implement tagged/free coaching parsing with canonical route output.
-- [ ] 3.4 Implement slash command parsing, including edit text arguments.
+- [x] 3.4 Implement slash command parsing, including edit text arguments.
 - [ ] 3.5 Add focused unit tests for routing, command parsing, defaults, and malformed input.
 - [ ] 3.6 Run the Coaching test set plus existing regression tests and clean up exports/docs.

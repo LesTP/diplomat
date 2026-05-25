@@ -29,6 +29,7 @@ class RouteRule:
 
 class TaggedCoachingParser:
     _TAG_RE = re.compile(r"^\s*([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*)\Z", re.DOTALL)
+    _COMMAND_RE = re.compile(r"^\s*(/[A-Za-z][A-Za-z0-9_-]*)(?::|\s)?\s*(.*)\Z", re.DOTALL)
 
     def __init__(self, routes_path: str | Path) -> None:
         config = load_routes_config(routes_path)
@@ -45,6 +46,15 @@ class TaggedCoachingParser:
 
     def parse(self, raw_input: str) -> CoachingEvent | Command:
         text = raw_input.strip()
+        command_match = self._COMMAND_RE.match(raw_input)
+        if command_match:
+            command, args_text = command_match.groups()
+            command = command.lower()
+            if command in self.commands:
+                name = command.removeprefix("/")
+                args = {"text": args_text.strip()} if name == "edit" else {}
+                return Command(name=name, args=args)
+
         tag_match = self._TAG_RE.match(raw_input)
         if tag_match:
             tag, content = tag_match.groups()
