@@ -328,3 +328,16 @@ Added `tests/test_review_gate.py` coverage for successful auto-approval, failed 
 
 Verification:
 - `.venv/bin/python -m pytest tests/test_review_gate.py -q` - 4 passed
+
+### Step 9.2: Telegram review workflow
+
+**Mode:** Build
+**Outcome:** Complete - implemented TelegramReviewGate command workflow and fake-client tests
+**Contract changes:** Added `TelegramReviewGate` public export in `src/modules/review_gate/__init__.py`
+
+Implemented `TelegramReviewGate.submit()` with dependency-injected toolkit-compatible Telegram client calls. The gate sends a formatted coaching-channel review prompt containing draft text, optional reasoning, adversarial analysis or failure/skipped warning, and `/approve`, `/edit: ...`, `/block` command instructions. It waits for coaching-channel updates, ignores other channels, accepts approve/edit/block commands, retries after unknown commands, tracks in-memory pending state, and calls an optional `state_manager.log_review_decision(...)` hook when present.
+
+Expanded `tests/test_review_gate.py` to cover prompt formatting, approve/edit/block decisions, other-channel filtering, unknown command retry, optional edit-log hook calls, and adversarial failure formatting.
+
+Verification:
+- `.venv/bin/python -m pytest tests/test_review_gate.py -q` - 12 passed
