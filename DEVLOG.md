@@ -32,3 +32,14 @@ Defined a Build-regime plan for the Extraction module. Scope covers the public e
 
 Scope decision:
 - Extraction remains stateless; batching/debounce behavior stays with Orchestrator.
+
+### Step 2.1: Extraction API and Patch Validation Helpers
+
+**Mode:** Build
+**Outcome:** Complete — extraction result type, prompt/schema loading, JSON parsing, and state patch validation helpers added with focused tests.
+**Contract changes:** None
+
+Added the public `ExtractionResult` type and reusable helper functions for loading prompts, loading JSON schemas, parsing plain-text LLM responses as JSON objects, and validating decoded patch data against the state patch schema before wrapping it in `StatePatch`.
+
+Verification:
+- `python3 -m pytest tests/test_extraction.py` — 6 passed
