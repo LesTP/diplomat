@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from modules.extraction import (
     ExtractionResult,
+    OpenAIStructuredExtractor,
     RuleBasedExtractor,
     load_schema,
     parse_json_object,
@@ -13,6 +16,18 @@ from modules.types import StatePatch
 
 
 SCHEMA_PATH = "config/schemas/state_patch.json"
+
+
+class FakeLLMClient:
+    def __init__(self, response):
+        self.response = response
+        self.calls = []
+
+    async def complete(self, **kwargs):
+        self.calls.append(kwargs)
+        if isinstance(self.response, Exception):
+            raise self.response
+        return self.response
 
 
 def test_extraction_result_exposes_success_patch_and_error_fields():
@@ -176,3 +191,146 @@ async def test_rule_based_extractor_returns_empty_patch_when_no_pattern_matches(
     )
 
     assert result == ExtractionResult(success=True, patch=StatePatch({}))
+
+
+@pytest.mark.asyncio
+async def test_openai_structured_extractor_uses_prompt_context_and_commodity_tier(
+    tmp_path,
+):
+    prompt_path = tmp_path / "state_updater.txt"
+    prompt_path.write_text("Extract only valid state patch JSON.", encoding="utf-8")
+    client = FakeLLMClient(
+        json.dumps(
+            {
+                "promises": [
+                    {
+                        "promise_id": "p1",
+                        "from_faction": "England",
+                        "to_faction": "France",
+                        "content": "Support into Belgium.",
+                    }
+                ]
+            }
+        )
+    )
+    extractor = OpenAIStructuredExtractor(
+        llm_client=client,
+        llm_config={"provider": "openai"},
+        schema_path=SCHEMA_PATH,
+        prompt_path=prompt_path,
+        tier="COMMODITY",
+    )
+
+    result = await extractor.extract(
+        "England promises France support into Belgium.",
+        current_state={"promises": []},
+        trigger_type="message",
+    )
+
+    assert result.success is True
+    assert result.patch == StatePatch(
+        {
+            "promises": [
+                {
+                    "promise_id": "p1",
+                    "from_faction": "England",
+                    "to_faction": "France",
+                    "content": "Support into Belgium.",
+                }
+            ]
+        }
+    )
+    assert client.calls[0]["config"] == {"provider": "openai"}
+    assert client.calls[0]["tier"] == "COMMODITY"
+    assert client.calls[0]["messages"][0] == {
+        "role": "system",
+        "content": "Extract only valid state patch JSON.",
+    }
+    user_prompt = client.calls[0]["messages"][1]["content"]
+    assert "State patch JSON schema:" in user_prompt
+    assert '"promises": []' in user_prompt
+    assert "Treat this as an observed game message." in user_prompt
+    assert "England promises France" in user_prompt
+
+
+@pytest.mark.asyncio
+async def test_openai_structured_extractor_marks_intel_as_high_confidence(tmp_path):
+    prompt_path = tmp_path / "state_updater.txt"
+    prompt_path.write_text("Extract JSON.", encoding="utf-8")
+    client = FakeLLMClient("{}")
+    extractor = OpenAIStructuredExtractor(
+        client,
+        llm_config={},
+        schema_path=SCHEMA_PATH,
+        prompt_path=prompt_path,
+        tier="COMMODITY",
+    )
+
+    await extractor.extract(
+        "France did not agree to support England.",
+        current_state={},
+        trigger_type="intel_correction",
+    )
+
+    user_prompt = client.calls[0]["messages"][1]["content"]
+    assert "[OPERATOR INTEL]" in user_prompt
+    assert "high-confidence correction" in user_prompt
+
+
+@pytest.mark.asyncio
+async def test_openai_structured_extractor_reports_invalid_json(tmp_path):
+    prompt_path = tmp_path / "state_updater.txt"
+    prompt_path.write_text("Extract JSON.", encoding="utf-8")
+    extractor = OpenAIStructuredExtractor(
+        FakeLLMClient("{invalid"),
+        llm_config={},
+        schema_path=SCHEMA_PATH,
+        prompt_path=prompt_path,
+        tier="COMMODITY",
+    )
+
+    result = await extractor.extract("bad response", {}, "message")
+
+    assert result.success is False
+    assert result.patch is None
+    assert "not valid JSON" in result.error
+
+
+@pytest.mark.asyncio
+async def test_openai_structured_extractor_reports_invalid_schema(tmp_path):
+    prompt_path = tmp_path / "state_updater.txt"
+    prompt_path.write_text("Extract JSON.", encoding="utf-8")
+    extractor = OpenAIStructuredExtractor(
+        FakeLLMClient('{"promises": [{"promise_id": "missing"}]}'),
+        llm_config={},
+        schema_path=SCHEMA_PATH,
+        prompt_path=prompt_path,
+        tier="COMMODITY",
+    )
+
+    result = await extractor.extract("bad schema", {}, "message")
+
+    assert result.success is False
+    assert result.patch is None
+    assert "failed schema validation" in result.error
+
+
+@pytest.mark.asyncio
+async def test_openai_structured_extractor_reports_llm_exception(tmp_path):
+    prompt_path = tmp_path / "state_updater.txt"
+    prompt_path.write_text("Extract JSON.", encoding="utf-8")
+    extractor = OpenAIStructuredExtractor(
+        FakeLLMClient(RuntimeError("provider unavailable")),
+        llm_config={},
+        schema_path=SCHEMA_PATH,
+        prompt_path=prompt_path,
+        tier="COMMODITY",
+    )
+
+    result = await extractor.extract("anything", {}, "message")
+
+    assert result == ExtractionResult(
+        success=False,
+        patch=None,
+        error="provider unavailable",
+    )

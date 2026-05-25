@@ -54,3 +54,14 @@ Implemented `RuleBasedExtractor` as a stateless async fallback with deterministi
 
 Verification:
 - `python3 -m pytest tests/test_extraction.py tests/test_state_manager.py` — 16 passed
+
+### Step 2.3: OpenAI Structured Extractor
+
+**Mode:** Build
+**Outcome:** Complete — LLM-backed extractor added with injected toolkit-compatible client, prompt assembly, COMMODITY tier usage, JSON parsing, schema validation, and failure reporting.
+**Contract changes:** None
+
+Implemented `OpenAIStructuredExtractor` without direct provider SDK imports. The extractor builds system/user messages from the configured prompt, schema, current state, trigger type, and input text, marks `intel_correction` inputs as high-confidence operator intel, and returns failed `ExtractionResult` values for LLM exceptions, invalid JSON, invalid schema, and non-text responses.
+
+Verification:
+- `python3 -m pytest tests/test_extraction.py tests/test_state_manager.py` — 21 passed

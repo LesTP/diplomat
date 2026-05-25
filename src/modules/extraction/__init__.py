@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
+from inspect import isawaitable
 from pathlib import Path
 from typing import Any
 
@@ -101,6 +102,75 @@ class RuleBasedExtractor:
         return f"{prefix}-{slug[:48] or 'unknown'}"
 
 
+class OpenAIStructuredExtractor:
+    def __init__(
+        self,
+        llm_client: Any,
+        llm_config: Any,
+        schema_path: str | Path,
+        prompt_path: str | Path,
+        tier: Any | None = None,
+    ) -> None:
+        self.llm_client = llm_client
+        self.llm_config = llm_config
+        self.schema = load_schema(schema_path)
+        self.system_prompt = load_prompt(prompt_path)
+        self.tier = tier if tier is not None else _commodity_tier()
+
+    async def extract(
+        self, input_text: str, current_state: dict[str, Any], trigger_type: str
+    ) -> ExtractionResult:
+        try:
+            response_text = await self._complete(
+                self._build_messages(input_text, current_state, trigger_type)
+            )
+            patch_data = parse_json_object(response_text)
+            patch = validate_state_patch(patch_data, self.schema)
+        except Exception as exc:
+            return ExtractionResult(success=False, patch=None, error=str(exc))
+
+        return ExtractionResult(success=True, patch=patch)
+
+    async def _complete(self, messages: list[dict[str, str]]) -> str:
+        response = self.llm_client.complete(
+            messages=messages,
+            config=self.llm_config,
+            tier=self.tier,
+        )
+        if isawaitable(response):
+            response = await response
+        if not isinstance(response, str):
+            raise ValueError("LLM response must be plain text")
+        return response
+
+    def _build_messages(
+        self, input_text: str, current_state: dict[str, Any], trigger_type: str
+    ) -> list[dict[str, str]]:
+        if trigger_type not in {"message", "intel_correction"}:
+            raise ValueError(f"Unsupported trigger_type: {trigger_type}")
+
+        trigger_note = (
+            "[OPERATOR INTEL] Treat this as a high-confidence correction."
+            if trigger_type == "intel_correction"
+            else "Treat this as an observed game message."
+        )
+        user_prompt = "\n\n".join(
+            [
+                trigger_note,
+                "State patch JSON schema:",
+                json.dumps(self.schema, sort_keys=True),
+                "Current state snapshot:",
+                json.dumps(current_state, sort_keys=True),
+                "Input text:",
+                input_text,
+            ]
+        )
+        return [
+            {"role": "system", "content": self.system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+
 def load_prompt(prompt_path: str | Path) -> str:
     return Path(prompt_path).read_text(encoding="utf-8").strip()
 
@@ -128,12 +198,23 @@ def validate_state_patch(
     except ValidationError as exc:
         path = ".".join(str(part) for part in exc.absolute_path)
         location = f" at {path}" if path else ""
-        raise ValueError(f"State patch failed schema validation{location}: {exc.message}") from exc
+        raise ValueError(
+            f"State patch failed schema validation{location}: {exc.message}"
+        ) from exc
     return StatePatch(patch_data)
+
+
+def _commodity_tier() -> Any:
+    try:
+        from toolkit.llm_client import ModelTier
+    except ImportError:
+        return "commodity"
+    return ModelTier.COMMODITY
 
 
 __all__ = [
     "ExtractionResult",
+    "OpenAIStructuredExtractor",
     "RuleBasedExtractor",
     "load_prompt",
     "load_schema",
