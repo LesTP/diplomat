@@ -250,3 +250,16 @@ Added `config/prompts/generation.txt` with the Generation output contract and ex
 Verification:
 - `.venv/bin/python -m pytest tests/test_generation.py -q` — 11 passed
 - `.venv/bin/python -m pytest -q` — 98 passed
+
+### Step 8.3: Documentation cleanup and regression verification
+
+**Mode:** Build
+**Outcome:** Complete — Phase 8 implementation marked ready for review
+**Contract changes:** None
+
+Ran final full regression after Generation implementation and confirmed all tests pass. Updated DEVPLAN Current Status, marked Step 8.3 complete, summarized Phase 8 output, transitioned DEVPLAN to `state: review`, and updated `ARCHITECTURE.md` Implementation Sequence row 9 to `Phase 8 complete, pending review`.
+
+Review note: Context Assembler currently instructs review-gate output as `draft_message` and `rationale`, while `ARCH_generation.md` and Generation parsing expect `response` and `reasoning`. This should be evaluated during Phase 8 review before close.
+
+Verification:
+- `.venv/bin/python -m pytest -q` — 98 passed

@@ -1,8 +1,8 @@
 ---
 phase: 8
 blocked: false
-state: execute
-steps_remaining: 7
+state: review
+steps_remaining: 6
 ---
 
 # Diplomat — Development Plan
@@ -18,8 +18,8 @@ steps_remaining: 7
 
 ## Current Status
 
-- **Phase** — Phase 8: Generation, planned and ready for execution.
-- **Focus** — Next: Step 8.3, run final regression and prepare Phase 8 for review.
+- **Phase** — Phase 8: Generation, implementation complete and ready for review.
+- **Focus** — Review Phase 8 against `ARCH_generation.md`.
 - **Blocked/Broken** — None.
 
 ## Phase 8: Generation
@@ -29,7 +29,9 @@ Regime: Build. Scope: `GenerationResult` dataclass, `LLMGenerator.generate()`, r
 Steps:
 - [x] 8.1 — Implement `GenerationResult` and `LLMGenerator` in `src/modules/generation/__init__.py`. Constructor accepts toolkit-compatible LLM config/client dependency, tier, max_tokens, and `review_gate_enabled`; `generate(context)` calls the injected completion client with `DecisionContext.system_prompt` and `DecisionContext.user_prompt`, returns `success=False` for client exceptions, and preserves provider/debug response data where available. Add `tests/test_generation.py` coverage for successful plain-text generation, client exception failure, prompt forwarding, tier/max token forwarding, and provider/raw response propagation. Run focused tests.
 - [x] 8.2 — Add review-gate JSON handling and generation prompt/config artifacts. When `review_gate_enabled=True`, require JSON containing `response` and `reasoning`; reject malformed JSON, missing/blank response, and schema-shaped failures through `GenerationResult.success=False`. When disabled, treat nonblank plain text as `response_text` with `reasoning=None`. Create `config/prompts/generation.txt` with JSON/plain output instructions aligned to `ARCH_generation.md`. Run focused tests plus full regression.
-- [ ] 8.3 — Documentation cleanup and regression verification. Verify the full suite, update Phase 8 summary/status, mark implementation sequence row 9 as pending review, and transition DEVPLAN to `state: review`.
+- [x] 8.3 — Documentation cleanup and regression verification. Verify the full suite, update Phase 8 summary/status, mark implementation sequence row 9 as pending review, and transition DEVPLAN to `state: review`.
+
+Summary: Implemented `GenerationResult`, `LLMGenerator`, review-gate JSON parsing (`response`, `reasoning`), plain-text mode, raw response preservation, `config/prompts/generation.txt`, and 11 focused Generation tests. Full regression: 98 passed. Pending review should check the Context Assembler review-gate instruction wording against Generation's expected JSON keys.
 
 ## Phase 7: Context Assembler
 
