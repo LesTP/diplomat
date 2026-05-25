@@ -97,7 +97,7 @@ MVP is the configuration that closes the core loop: messages arrive → state up
 ## Risks and Open Questions
 - [must-resolve] **Bot vs. user accounts** — determines Transport implementation; resolve with game moderator before build
 - [must-resolve] **Round structure** — time-based or signal-based; sets pipeline.yaml config
-- [implementation] **Structured output enforcement** — toolkit/llm_client returns plain text; Extraction needs JSON schema enforcement. Handle in the module or extend toolkit.
+- [closed] **Structured output enforcement** — resolved in Phase 2: Extraction handles schema enforcement locally via prompt + parse + jsonschema.validate. Empty patch `{}` is valid.
 - [implementation] **Debounce strategy** — time-window batching vs. per-message cooldown for extraction
 - [implementation] **Review gate timeout** — what happens if the operator doesn't respond before round boundary
 - [watch] **Response rate** — if posts are capped per round, affects Orchestrator response trigger logic

@@ -102,3 +102,50 @@ Review checklist:
 No contract drift from ARCH files. No gotchas to promote.
 
 **State transition:** review → close
+
+---
+
+## Archived 2026-05-25 — Module 2 Phase 2: Extraction
+
+### 2026-05-25 — Phase Plan (2.0)
+
+**Action:** Phase Plan for Extraction
+**Outcome:** Step breakdown written to DEVPLAN.md. 4 steps defined.
+
+Defined a Build-regime plan for the Extraction module. Scope covers the public extraction API, local JSON/schema enforcement for plain-text LLM responses, deterministic rule-based fallback behavior, prompt configuration, and focused fake-provider tests.
+
+Scope decision: Extraction remains stateless; batching/debounce behavior stays with Orchestrator.
+
+**State transition:** plan → execute
+
+### Step 2.1: Extraction API and Patch Validation Helpers
+
+**Mode:** Build
+**Outcome:** Complete — extraction result type, prompt/schema loading, JSON parsing, and state patch validation helpers added with focused tests.
+**Contract changes:** None
+
+Added the public `ExtractionResult` type and reusable helper functions for loading prompts, loading JSON schemas, parsing plain-text LLM responses as JSON objects, and validating decoded patch data against the state patch schema before wrapping it in `StatePatch`.
+
+### Step 2.2: Rule-Based Extraction Fallback
+
+**Mode:** Build
+**Outcome:** Complete — deterministic fallback extraction added for simple promises, coalitions, inconsistencies, and no-match empty patches.
+**Contract changes:** `config/schemas/state_patch.json` now permits an empty root object so fallback extraction can return a valid no-op patch.
+
+Implemented `RuleBasedExtractor` as a stateless async fallback with deterministic IDs and schema validation for every returned patch. The root schema now accepts `{}` while preserving validation for entity objects when they are present.
+
+### Step 2.3: OpenAI Structured Extractor
+
+**Mode:** Build
+**Outcome:** Complete — LLM-backed extractor added with injected toolkit-compatible client, prompt assembly, COMMODITY tier usage, JSON parsing, schema validation, and failure reporting.
+**Contract changes:** None
+
+Implemented `OpenAIStructuredExtractor` without direct provider SDK imports. The extractor builds system/user messages from the configured prompt, schema, current state, trigger type, and input text, marks `intel_correction` inputs as high-confidence operator intel, and returns failed `ExtractionResult` values for LLM exceptions, invalid JSON, invalid schema, and non-text responses.
+
+### Step 2.4: Extraction Prompt and Phase Readiness
+
+**Mode:** Build
+**Outcome:** Complete — state updater prompt added, public exports verified, and phase regression tests passed.
+**Contract changes:** None
+
+Added `config/prompts/state_updater.txt` with JSON-only state patch guidance for the LLM extractor. Added tests that verify the configured prompt loads and the public module exports include both primary and fallback extractors. Phase 2 is ready for review.

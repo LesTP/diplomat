@@ -1,8 +1,8 @@
 ---
 phase: 2
-blocked: false
+blocked: true
 state: close
-steps_remaining: 1
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -14,13 +14,12 @@ steps_remaining: 1
 - **Gotchas** —
   - Bot vs. user account question must be resolved with game moderator before Transport implementation
   - Round structure (signal vs. time-based) must be confirmed before Orchestrator event loop
-  - toolkit/llm_client returns plain text — Extraction module needs to handle JSON schema enforcement locally
 
 ## Current Status
 
-- **Phase** — Phase 2 (Extraction)
-- **Focus** — Phase 2 implementation complete; next action is Phase Review
-- **Blocked/Broken** — None
+- **Phase** — Phase 2 complete — awaiting human audit. Next: Phase 3 (Coaching).
+- **Focus** — Human audit gate set. `/close` to clear and open Phase 3.
+- **Blocked/Broken** — Awaiting human audit (`blocked: true`)
 
 ## Phase 1: Event Store + State Manager
 
@@ -28,19 +27,4 @@ Complete. Implemented shared storage types, SQLiteEventStore, SQLiteStateManager
 
 ## Phase 2: Extraction
 
-**Regime:** Build
-
-**Scope:** Implement the Extraction module that converts raw game messages and operator INTEL corrections into `StatePatch` objects validated against `config/schemas/state_patch.json`. The module stays stateless; Orchestrator-owned batching/debounce behavior remains out of scope for this phase.
-
-**Outcomes:**
-- Public `ExtractionResult`, `OpenAIStructuredExtractor`, and `RuleBasedExtractor` exports from `src/modules/extraction`.
-- LLM extractor calls toolkit-compatible `complete()` through dependency injection, builds prompts from `config/prompts/state_updater.txt`, includes schema/current-state context, parses plain-text JSON responses, and validates against the state patch schema.
-- Operator `intel_correction` inputs are explicitly marked as high-confidence in the LLM prompt.
-- Rule-based fallback returns deterministic valid patches for simple diplomacy facts and an empty valid patch when no pattern matches.
-- Focused pytest coverage verifies success, invalid JSON, schema validation failure, trigger handling, and fallback behavior without real provider calls.
-
-**Steps:**
-- [x] 2.1 — Add extraction API/types, prompt/schema loading, response JSON parsing, schema validation helpers, and tests for parser/validator failure modes.
-- [x] 2.2 — Implement `RuleBasedExtractor` with deterministic promise/coalition/inconsistency extraction for simple phrases plus empty-patch fallback, with tests.
-- [x] 2.3 — Implement `OpenAIStructuredExtractor` using a fake toolkit LLM dependency in tests; verify prompt content, COMMODITY tier usage, successful patch parsing, invalid JSON, invalid schema, and LLM exception handling.
-- [x] 2.4 — Add `config/prompts/state_updater.txt`, finalize exports, run the module and storage regression tests, and update docs/logs for phase readiness.
+Complete. Implemented `ExtractionResult`, `OpenAIStructuredExtractor`, `RuleBasedExtractor`, local JSON/schema enforcement, rule-based promise/coalition/inconsistency fallback, `config/prompts/state_updater.txt`, and 18-test coverage with fake toolkit client. 27 tests pass (including Phase 1 regression). See `DEVLOG_archive.md` and the 2026-05-25 phase completion entry in `DEVLOG.md`.

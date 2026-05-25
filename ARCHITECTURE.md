@@ -111,7 +111,7 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 |-------|--------|-----------|--------|
 | 1 | Event Store | Leaf dependency. Append-only SQLite, simplest module. Everything downstream needs stored events. | Complete |
 | 2 | State Manager | Leaf dependency. Domain tables, schema validation, audit log. Extraction and Analyst depend on it. | Complete |
-| 3 | Extraction | First LLM-consuming module. Validates toolkit/llm_client integration. Feeds State Manager. | In progress |
+| 3 | Extraction | First LLM-consuming module. Validates toolkit/llm_client integration. Feeds State Manager. | Phase 2 complete |
 | 4 | Coaching | Pure parsing, no external deps. Needed before operator input can be processed. | Not started |
 | 5 | Transport | Platform I/O. Validates toolkit/telegram_client integration. Needed for end-to-end. | Not started |
 | 6 | Persona | File-based, simple. Needed before Generation. | Not started |
@@ -171,7 +171,7 @@ Revisit if: Operator consistently approves without edit.
 
 ## Provisional Contracts
 
-- **Extraction ↔ toolkit/llm_client structured output** — toolkit/llm_client.complete() returns plain text. Extraction needs JSON conforming to state_patch.json schema. The module must handle schema enforcement locally (prompt engineering + response parsing + validation). If this proves fragile, extend toolkit with a `complete_structured()` method. Resolve during Module 3.
+- **Extraction ↔ toolkit/llm_client structured output** — Resolved during Phase 2. Extraction handles JSON schema enforcement locally: prompt engineering + response parsing + jsonschema validation. No toolkit extension needed. Empty root object (`{}`) is a valid patch.
 - **Orchestrator ↔ toolkit/cost_accountant budget lifecycle** — the Orchestrator creates a CostBudget per round from pipeline.yaml config. Unclear whether the budget should reset per round (strict) or accumulate across rounds (flexible with session cap). Resolve during Module 12.
 - **Review Gate timeout** — what happens if the operator doesn't respond before the next round boundary. Options: auto-block after N minutes, carry draft forward, alert and wait. Resolve during Module 10.
 - **Debounce strategy for Extraction** — pipeline.yaml specifies `debounce_seconds: 2` but the batching semantics (time-window batch vs. per-message cooldown) are unspecified. Resolve during Module 3.
