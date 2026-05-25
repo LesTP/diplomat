@@ -120,3 +120,17 @@ Verification:
 
 DEVPLAN transitioned to `state: close`.
 
+### 2026-05-25 — Phase 5 Complete
+
+**Action:** Phase Complete for Persona
+**Outcome:** Complete — human audit gate set in DEVPLAN frontmatter
+
+Completed `CoachingContext` (frozen dataclass), `FileBasedPersona` with `get_base_prompt` (mtime-based hot-reload, `## CURRENT ROUND CONTEXT` marker stripping, `FileNotFoundError` on missing file) and `build_round_context` (formatted round metadata and all coaching buckets with empty-state bullets). Added `config/faction_prompt.txt` sample England persona with `## CURRENT ROUND CONTEXT` placeholder. Phase Review found no must-fix or should-fix items.
+
+All 68 tests pass (9 new persona tests + 59 regression). Persona is a leaf module with no dependencies beyond the filesystem.
+
+Verification:
+- `.venv/bin/python -m pytest tests/` — 68 passed
+
+No new gotchas promoted. No contract changes — Persona exposes `FileBasedPersona` and `CoachingContext` as documented in `ARCH_persona.md`; no other modules depend on it yet.
+

@@ -1,6 +1,6 @@
 ---
 phase: 5
-blocked: false
+blocked: "awaiting-human-audit"
 state: close
 steps_remaining: 0
 ---
@@ -18,9 +18,9 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 5: Persona, in progress.
-- **Focus** — Phase 5 implementation complete; Persona is ready for review.
-- **Blocked/Broken** — None.
+- **Phase** — Phase 5: Persona, complete.
+- **Focus** — Phase 5 complete. `CoachingContext`, `FileBasedPersona`, hot-reload, sample config, and 9 focused persona tests. 68 total tests pass. Awaiting human audit.
+- **Blocked/Broken** — awaiting-human-audit (phase boundary).
 
 ## Phase 5: Persona
 
