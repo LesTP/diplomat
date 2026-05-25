@@ -134,3 +134,16 @@ Verification:
 
 No new gotchas promoted. No contract changes — Persona exposes `FileBasedPersona` and `CoachingContext` as documented in `ARCH_persona.md`; no other modules depend on it yet.
 
+## Module 6: Analyst + Divergence
+
+### 2026-05-25 — Phase 6 Plan
+
+**Action:** Phase Plan for Analyst + Divergence
+**Outcome:** Complete — DEVPLAN updated with step breakdown, state transitioned to execute
+
+Planned 2-step phase:
+- **Step 6.1** — Types (`AnalysisResult`, `Divergence`), `LLMAnalyst`, `compare()`, intelligence prompt + schema, full test coverage
+- **Step 6.2** — Doc cleanup and ARCHITECTURE.md status update
+
+DEVPLAN frontmatter: `phase: 6`, `state: execute`, `steps_remaining: 0`.
+
