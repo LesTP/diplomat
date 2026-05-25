@@ -29,3 +29,14 @@ Steps planned:
 Key design decisions confirmed from ARCH files: single SQLite file with WAL mode, shared types module to avoid circular imports, apply_patch validates then audits then applies.
 
 **State transition:** plan → execute
+
+### Step 1.1: Shared types module
+
+**Mode:** Execute
+**Outcome:** Complete
+**Contract changes:** `src/modules/types.py`
+
+Added shared dataclasses for inbound and stored events, event filtering, state
+patches, and patch audit sources. These types keep Event Store and State
+Manager contracts independent of each other while giving later Transport and
+Extraction work a common import surface.

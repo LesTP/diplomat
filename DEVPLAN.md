@@ -2,7 +2,7 @@
 phase: 1
 blocked: false
 state: execute
-steps_remaining: 1
+steps_remaining: 7
 ---
 
 # Diplomat — Development Plan
@@ -19,7 +19,7 @@ steps_remaining: 1
 ## Current Status
 
 - **Phase** — Phase 1 (Event Store + State Manager)
-- **Focus** — Step 1.1: Shared types module
+- **Focus** — Step 1.2: SQLiteEventStore implementation
 - **Blocked/Broken** — None
 
 ## Phase 1: Event Store + State Manager
@@ -28,7 +28,7 @@ steps_remaining: 1
 
 | Step | Description | Status |
 |------|-------------|--------|
-| 1.1 | Shared types: `InboundEvent`, `StoredEvent`, `EventFilter`, `StatePatch`, `PatchSource` in `src/modules/types.py` | ⬜ Not started |
+| 1.1 | Shared types: `InboundEvent`, `StoredEvent`, `EventFilter`, `StatePatch`, `PatchSource` in `src/modules/types.py` | ✅ Complete |
 | 1.2 | SQLiteEventStore: implement `append()` and `query()` with WAL mode in `src/modules/event_store/` | ⬜ Not started |
 | 1.3 | Event Store tests: `tests/test_event_store.py` covering append, query filters, edge cases | ⬜ Not started |
 | 1.4 | State patch JSON schema: `config/schemas/state_patch.json` for faction_state, promises, coalitions, inconsistencies | ⬜ Not started |
@@ -42,4 +42,3 @@ steps_remaining: 1
 - State Manager's `apply_patch()` validates against `state_patch.json` at apply time, writes audit entry to `state_change_log`, then applies changes to domain tables.
 - `get_full_state()` returns a snapshot of all faction_state rows, pending promises, coalitions, and unspent inconsistencies — formatted for the Analyst prompt.
 - All queries parameterised; no raw string interpolation into SQL.
-
