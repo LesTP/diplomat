@@ -170,3 +170,14 @@ Added focused Context Assembler tests covering all five non-INTEL coaching types
 
 Verification:
 - `.venv/bin/python -m pytest -q` — 87 passed
+
+### Step 7.2: Documentation cleanup and regression verification
+
+**Mode:** Build
+**Outcome:** Complete — DEVPLAN status updated, ARCHITECTURE.md updated, regression verified, state transitioned to review
+**Contract changes:** None
+
+Ran full regression after the Context Assembler implementation and confirmed all tests pass. Updated DEVPLAN Current Status to mark Phase 7 ready for review, marked Step 7.2 complete, and updated `ARCHITECTURE.md` Implementation Sequence row 8 from "In progress" to "Phase 7 complete, pending review".
+
+Verification:
+- `.venv/bin/python -m pytest -q` — 87 passed

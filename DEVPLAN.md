@@ -1,8 +1,8 @@
 ---
 phase: 7
 blocked: false
-state: execute
-steps_remaining: 7
+state: review
+steps_remaining: 6
 ---
 
 # Diplomat — Development Plan
@@ -18,8 +18,8 @@ steps_remaining: 7
 
 ## Current Status
 
-- **Phase** — Phase 7: Context Assembler, in progress.
-- **Focus** — Context Assembler implementation complete with tests. Next: run full regression and update project status docs.
+- **Phase** — Phase 7: Context Assembler, ready for review.
+- **Focus** — Context Assembler implementation and documentation cleanup complete. Next: review Phase 7 against `ARCH_context_assembler.md`.
 - **Blocked/Broken** — None.
 
 ## Phase 7: Context Assembler
@@ -28,7 +28,7 @@ Regime: Build. Scope: Pure composition module — no external deps. `CoachingEnt
 
 Steps:
 - [x] 7.1 — Implement `CoachingEntry`, `DecisionContext`, and `DefaultContextAssembler` (with `recent_events_limit=30` default) in `src/modules/context_assembler/__init__.py`. Write `tests/test_context_assembler.py` covering: all five coaching types in output, INTEL exclusion from coaching section, divergences present vs. absent, review_gate enabled vs. disabled instruction text, recent_events_limit truncation applied, metadata fields (event_count, coaching_count), empty coaching queue placeholder, section order matches template. Run full suite (target: 80 + new tests pass).
-- [ ] 7.2 — Run full regression. Update DEVPLAN Current Status, DEVLOG, ARCHITECTURE.md sequence status. Commit.
+- [x] 7.2 — Run full regression. Update DEVPLAN Current Status, DEVLOG, ARCHITECTURE.md sequence status. Commit.
 
 ## Phase 6: Analyst + Divergence
 
