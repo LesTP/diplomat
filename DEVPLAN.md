@@ -1,8 +1,8 @@
 ---
 phase: 4
 blocked: false
-state: review
-steps_remaining: 1
+state: close
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -18,7 +18,7 @@ steps_remaining: 1
 ## Current Status
 
 - **Phase** — Phase 4 in progress.
-- **Focus** — Phase 4 Transport review.
+- **Focus** — Phase 4 Transport close.
 - **Blocked/Broken** — None.
 
 ## Phase 1: Event Store + State Manager

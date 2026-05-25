@@ -142,3 +142,14 @@ Ran the full current regression suite and Python bytecode compilation. Tightened
 Verification:
 - `python3 -m pytest tests/test_transport.py tests/test_coaching.py tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 59 passed
 - `python3 -m compileall -q src` — passed
+
+### 2026-05-25 — Phase 4 Review
+
+**Action:** Phase Review for Transport
+**Outcome:** Complete — DEVPLAN moved to close state
+
+Reviewed Transport implementation against `ARCH_transport.md` and the phase plan. No must-fix or should-fix issues were found. The implementation preserves existing Event Store `InboundEvent` semantics, keeps toolkit access dependency-injected, avoids direct Telegram SDK imports, and has focused fake-client coverage for CLI and Telegram paths.
+
+Verification carried forward from Step 4.6:
+- `python3 -m pytest tests/test_transport.py tests/test_coaching.py tests/test_event_store.py tests/test_state_manager.py tests/test_extraction.py` — 59 passed
+- `python3 -m compileall -q src` — passed
