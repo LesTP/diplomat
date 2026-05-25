@@ -80,3 +80,13 @@ tables are updated.
 Implemented the State Manager API with WAL-backed SQLite table ownership,
 schema validation at patch application time, audit logging before domain writes,
 parameterized get/query operations, and full-state snapshots for Analyst input.
+
+### Step 1.6: State Manager tests
+
+**Mode:** Execute
+**Outcome:** Complete
+**Contract changes:** None
+
+Added pytest coverage for State Manager initialization, WAL mode, patch
+validation, audit logging, domain table upserts, public get/query behavior,
+unknown entity errors, and full-state filtering for pending/unspent records.
