@@ -223,3 +223,16 @@ No new gotchas promoted. No contract changes require propagation — `CoachingEn
 Planned `GenerationResult` and `LLMGenerator` implementation against `ARCH_generation.md`: consume `DecisionContext`, call toolkit-compatible completion dependency, support review-gate JSON output with local parsing, support plain-text mode when review gate is disabled, and cover all behavior with fake-client tests before full regression.
 
 Updated `ARCHITECTURE.md` Implementation Sequence row 9 to `In progress`.
+
+### Step 8.1: Basic generator implementation and tests
+
+**Mode:** Build
+**Outcome:** Complete — implemented the Generation public API and plain-text completion path
+**Contract changes:** Added `GenerationResult` and `LLMGenerator` public exports in `src/modules/generation/__init__.py`
+
+Implemented `LLMGenerator.generate()` as an async wrapper around a toolkit-compatible injected LLM client. It forwards `DecisionContext.system_prompt` and `DecisionContext.user_prompt` as chat messages, passes configured LLM config, tier, and max token settings, reports provider/client exceptions through `GenerationResult.success=False`, rejects blank output, and preserves raw dict responses when the client supplies provider/debug metadata.
+
+Added focused Generation tests for successful plain-text generation, exception failure, prompt forwarding, tier/config/max token forwarding, raw response propagation, and blank output failure.
+
+Verification:
+- `.venv/bin/python -m pytest tests/test_generation.py -q` — 6 passed
