@@ -46,3 +46,26 @@ class StatePatch:
 class PatchSource:
     trigger_type: str
     trigger_ref: str
+
+
+@dataclass(frozen=True)
+class AnalysisResult:
+    success: bool
+    provider_id: str
+    report: dict[str, Any] | None
+    error: str | None
+    timestamp: datetime
+
+    def __post_init__(self) -> None:
+        if self.timestamp.tzinfo is None:
+            object.__setattr__(
+                self, "timestamp", self.timestamp.replace(tzinfo=timezone.utc)
+            )
+
+
+@dataclass(frozen=True)
+class Divergence:
+    field: str
+    primary_value: str
+    secondary_value: str
+    note: str

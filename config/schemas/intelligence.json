@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://diplomat.local/schemas/intelligence.json",
+  "title": "Diplomat Strategic Intelligence Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "threat_level",
+    "key_leverage_points",
+    "coalition_stability"
+  ],
+  "properties": {
+    "threat_level": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "key_leverage_points": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "coalition_stability": {
+      "enum": [
+        "stable",
+        "fragile",
+        "volatile",
+        "unknown"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

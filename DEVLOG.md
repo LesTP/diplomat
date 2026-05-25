@@ -147,3 +147,17 @@ Planned 2-step phase:
 
 DEVPLAN frontmatter: `phase: 6`, `state: execute`, `steps_remaining: 0`.
 
+### Step 6.1: Analyst implementation and divergence detection
+
+**Mode:** Build
+**Outcome:** Complete — implemented LLM analyst, divergence comparison, schema, prompt, and tests
+**Contract changes:** Added `AnalysisResult` and `Divergence` shared dataclasses in `src/modules/types.py`; added Analyst public API in `src/modules/analyst/__init__.py` and `src/modules/analyst/divergence.py`; added `config/schemas/intelligence.json`
+
+Implemented `LLMAnalyst` as a provider-parameterised wrapper around toolkit-compatible `llm_client.complete`, with prompt/schema loading, state/schema prompt assembly, JSON parsing, local JSON Schema validation, timezone-aware result timestamps, and failure reporting through `AnalysisResult(success=False)`.
+
+Implemented pure `compare()` divergence detection that returns no flags for failed analyst results and reports material threat-level gaps, missing leverage points, and coalition-stability mismatches using Phase 6 default thresholds.
+
+Added the analyst prompt and intelligence schema, plus 12 analyst tests covering success, invalid JSON, LLM exception, schema failure, provider propagation, failed-result comparisons, identical reports, threat thresholds, missing leverage items, and coalition-stability mismatches.
+
+Verification:
+- `python3 -m pytest` — 80 passed
