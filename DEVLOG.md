@@ -92,3 +92,16 @@ Added `tests/test_persona.py` covering public exports, missing file handling, fr
 
 Verification:
 - `.venv/bin/python -m pytest` — 68 passed
+
+### Step 5.2: Sample faction persona config
+
+**Mode:** Build
+**Outcome:** Complete — added sample persona config and marked Phase 5 ready for review
+**Contract changes:** `ARCHITECTURE.md` implementation sequence status updated for Persona
+
+Created `config/faction_prompt.txt` with a sample England persona, strategic identity, negotiation rules, behavioral style, and a `## CURRENT ROUND CONTEXT` placeholder section compatible with `FileBasedPersona.get_base_prompt` stripping.
+
+Updated `DEVPLAN.md` to mark both Persona implementation steps complete and transition Phase 5 to review. Updated `ARCHITECTURE.md` implementation status for Persona to ready for review.
+
+Verification:
+- `.venv/bin/python -m pytest` — 68 passed

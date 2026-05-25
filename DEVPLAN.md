@@ -1,8 +1,8 @@
 ---
 phase: 5
 blocked: false
-state: execute
-steps_remaining: 7
+state: review
+steps_remaining: 6
 ---
 
 # Diplomat — Development Plan
@@ -19,7 +19,7 @@ steps_remaining: 7
 ## Current Status
 
 - **Phase** — Phase 5: Persona, in progress.
-- **Focus** — FileBasedPersona and CoachingContext are implemented. Step 5.2 next: add sample persona config and update phase status docs.
+- **Focus** — Phase 5 implementation complete; Persona is ready for review.
 - **Blocked/Broken** — None.
 
 ## Phase 5: Persona
@@ -28,7 +28,7 @@ Regime: Build. Scope: `CoachingContext` dataclass, `FileBasedPersona` (both publ
 
 Steps:
 - [x] 5.1 — Implement `CoachingContext` + `FileBasedPersona` (`get_base_prompt`, `build_round_context`) in `src/modules/persona/__init__.py`. Write `tests/test_persona.py` covering: FileNotFoundError, fresh read, hot-reload on mtime change, no-reload when unchanged, CURRENT ROUND CONTEXT section stripping, `build_round_context` formatting with all fields, empty fields, `rounds_remaining=None`. Run full suite.
-- [ ] 5.2 — Create `config/faction_prompt.txt` with sample faction persona including `## CURRENT ROUND CONTEXT` marker. Run full regression (59 + new persona tests pass). Update DEVPLAN summary, DEVLOG, ARCHITECTURE.md status.
+- [x] 5.2 — Create `config/faction_prompt.txt` with sample faction persona including `## CURRENT ROUND CONTEXT` marker. Run full regression (59 + new persona tests pass). Update DEVPLAN summary, DEVLOG, ARCHITECTURE.md status.
 
 ## Phase 1: Event Store + State Manager
 
