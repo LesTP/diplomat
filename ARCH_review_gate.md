@@ -12,7 +12,7 @@ Human approval workflow. Sends the draft response and adversarial analysis to th
   - adversarial: AdversarialResult — the adversarial analysis (may be empty if adversarial disabled)
   - round_number: int — current round for logging
 - **Returns:** ReviewDecision
-- **Errors:** none — blocks until operator responds or timeout (provisional)
+- **Errors:** none — blocks until operator responds or returns a blocked decision on configured timeout
 
 ## Types
 
@@ -36,8 +36,8 @@ Waits for the next operator command on the coaching channel. Logs the decision t
 
 **AutoApproveReviewGate** — used when `review_gate.enabled: false`. Immediately returns `ReviewDecision(action='approved', final_text=draft.response_text)`. No human interaction.
 
-## Provisional Contract
-Timeout behavior is unspecified. What happens if the operator doesn't respond before the next round boundary? Options: auto-block after N minutes, carry draft forward, alert and wait indefinitely. Resolve during implementation.
+## Timeout Behavior
+`TelegramReviewGate` accepts optional `timeout_seconds`. When unset, `submit()` waits indefinitely for an operator command. When set, timeout returns `ReviewDecision(action='blocked', final_text=None, edit_notes='Review timed out after ... seconds')` and logs the blocked decision through the configured State Manager hook when available.
 
 ## Inputs
 - GenerationResult from Generation module

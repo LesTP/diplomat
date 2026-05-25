@@ -1,8 +1,8 @@
 ---
 phase: 9
 blocked: false
-state: execute
-steps_remaining: 5
+state: review
+steps_remaining: 4
 ---
 
 # Diplomat — Development Plan
@@ -18,8 +18,8 @@ steps_remaining: 5
 
 ## Current Status
 
-- **Phase** — Phase 9: Review Gate, in progress.
-- **Focus** — Implement human approval workflow for generated drafts with approve/edit/block decisions.
+- **Phase** — Phase 9: Review Gate, complete. Ready for phase review.
+- **Focus** — Review Gate implementation against `ARCH_review_gate.md`.
 - **Blocked/Broken** — None.
 
 ## Phase 9: Review Gate
@@ -29,7 +29,9 @@ Regime: Build. Scope: `ReviewDecision` dataclass, `AutoApproveReviewGate`, `Tele
 Steps:
 - [x] 9.1 — Implement `ReviewDecision` and `AutoApproveReviewGate` in `src/modules/review_gate/__init__.py`. `AutoApproveReviewGate.submit()` immediately approves successful drafts, returns blocked decisions for failed/blank drafts, and ignores adversarial input. Add `tests/test_review_gate.py` coverage for approve, failed draft, blank draft, and contract fields. Run focused tests.
 - [x] 9.2 — Implement `TelegramReviewGate.submit()` with dependency-injected Telegram client and state manager. Format the review prompt with draft text, reasoning when present, adversarial analysis or skipped/failed warning, and command instructions; wait for the next operator command on the configured coaching channel; support `/approve`, `/edit: ...`, and `/block`; reject unrelated channel messages and unknown commands while continuing to wait. Log decisions through a narrow state-manager hook when available. Add fake-client tests for formatting, approve/edit/block decisions, command filtering, unknown command retry, and edit-log calls.
-- [ ] 9.3 — Add timeout behavior and documentation cleanup. Resolve the provisional timeout contract as configurable auto-block after `timeout_seconds` when set, and wait indefinitely when unset. Cover timeout auto-block with focused tests, run full regression, update Phase 9 summary/status, mark implementation sequence row 10 as pending review, and transition DEVPLAN to `state: review`.
+- [x] 9.3 — Add timeout behavior and documentation cleanup. Resolve the provisional timeout contract as configurable auto-block after `timeout_seconds` when set, and wait indefinitely when unset. Cover timeout auto-block with focused tests, run full regression, update Phase 9 summary/status, mark implementation sequence row 10 as pending review, and transition DEVPLAN to `state: review`.
+
+Summary: Implemented `ReviewDecision`, `AutoApproveReviewGate`, `TelegramReviewGate`, approve/edit/block command workflow, coaching-channel filtering, unknown-command retry, optional review-decision logging hook, configurable timeout auto-block, and 14 focused Review Gate tests. Full regression: 112 passed. Phase ready for review.
 
 ## Phase 8: Generation
 

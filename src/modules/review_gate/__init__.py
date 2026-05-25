@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
 from inspect import isawaitable
 from typing import Any
@@ -50,10 +51,14 @@ class TelegramReviewGate:
         *,
         coaching_channel_id: str | int,
         state_manager: Any | None = None,
+        timeout_seconds: float | None = None,
     ) -> None:
+        if timeout_seconds is not None and timeout_seconds <= 0:
+            raise ValueError("timeout_seconds must be positive when set")
         self._telegram_client = telegram_client
         self._coaching_channel_id = coaching_channel_id
         self._state_manager = state_manager
+        self._timeout_seconds = timeout_seconds
         self._pending = False
 
     async def submit(
@@ -70,11 +75,28 @@ class TelegramReviewGate:
                     self._format_review_message(draft, adversarial, round_number),
                 )
             )
-            decision = await self._wait_for_decision(draft)
+            decision = await self._wait_with_optional_timeout(draft)
             await self._log_decision(decision, draft, round_number)
             return decision
         finally:
             self._pending = False
+
+    async def _wait_with_optional_timeout(
+        self, draft: GenerationResult
+    ) -> ReviewDecision:
+        if self._timeout_seconds is None:
+            return await self._wait_for_decision(draft)
+        try:
+            return await asyncio.wait_for(
+                self._wait_for_decision(draft),
+                timeout=self._timeout_seconds,
+            )
+        except TimeoutError:
+            return ReviewDecision(
+                action="blocked",
+                final_text=None,
+                edit_notes=f"Review timed out after {self._timeout_seconds} seconds",
+            )
 
     async def _wait_for_decision(self, draft: GenerationResult) -> ReviewDecision:
         while True:

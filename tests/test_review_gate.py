@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
 from modules.generation import GenerationResult
@@ -226,6 +228,41 @@ async def test_telegram_review_gate_formats_adversarial_failure_warning():
     assert "Adversarial:\nFailed: adversarial disabled" in client.sent[0][1]
 
 
+@pytest.mark.asyncio
+async def test_telegram_review_gate_timeout_auto_blocks_and_logs():
+    state_manager = _FakeStateManager()
+    gate = TelegramReviewGate(
+        _NeverUpdateTelegramClient(),
+        coaching_channel_id="coach",
+        state_manager=state_manager,
+        timeout_seconds=0.01,
+    )
+
+    decision = await gate.submit(_draft(), adversarial=None, round_number=3)
+
+    assert decision == ReviewDecision(
+        action="blocked",
+        final_text=None,
+        edit_notes="Review timed out after 0.01 seconds",
+    )
+    assert state_manager.calls == [
+        {
+            "round_number": 3,
+            "decision": decision,
+            "draft_text": "  France, we can coordinate in Belgium.  ",
+        }
+    ]
+
+
+def test_telegram_review_gate_rejects_non_positive_timeout():
+    with pytest.raises(ValueError, match="timeout_seconds"):
+        TelegramReviewGate(
+            _FakeTelegramClient(updates=[]),
+            coaching_channel_id="coach",
+            timeout_seconds=0,
+        )
+
+
 class _FakeTelegramClient:
     def __init__(self, updates: list[object]) -> None:
         self.updates = list(updates)
@@ -238,6 +275,18 @@ class _FakeTelegramClient:
         if not self.updates:
             raise AssertionError("No fake Telegram updates remaining")
         return self.updates.pop(0)
+
+
+class _NeverUpdateTelegramClient:
+    def __init__(self) -> None:
+        self.sent: list[tuple[str | int, str]] = []
+
+    async def send_message(self, chat_id: str | int, content: str) -> None:
+        self.sent.append((chat_id, content))
+
+    async def get_next_update(self):
+        await asyncio.sleep(60)
+        return None
 
 
 class _FakeStateManager:

@@ -118,7 +118,7 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 | 7 | Analyst + Divergence | Two LLM calls + pure comparison. High value — intelligence drives decision quality. | Phase 6 complete |
 | 8 | Context Assembler | Pure composition. Wires persona + intelligence + coaching + events into DecisionContext. | Phase 7 complete |
 | 9 | Generation | LLM call with assembled context. Core output path. | Phase 8 complete |
-| 10 | Review Gate | Human approval workflow via Telegram. Needed before any posting. | In progress |
+| 10 | Review Gate | Human approval workflow via Telegram. Needed before any posting. | Phase 9 complete, pending review |
 | 11 | Adversarial | Optional LLM call. Valuable but skippable — Review Gate catches issues manually. | Not started |
 | 12 | Orchestrator | Wires everything. Event loop, round management, cost accountant, failure handling. Last because it requires all modules. | Not started |
 
@@ -173,5 +173,4 @@ Revisit if: Operator consistently approves without edit.
 
 - **Extraction ↔ toolkit/llm_client structured output** — Resolved during Phase 2. Extraction handles JSON schema enforcement locally: prompt engineering + response parsing + jsonschema validation. No toolkit extension needed. Empty root object (`{}`) is a valid patch.
 - **Orchestrator ↔ toolkit/cost_accountant budget lifecycle** — the Orchestrator creates a CostBudget per round from pipeline.yaml config. Unclear whether the budget should reset per round (strict) or accumulate across rounds (flexible with session cap). Resolve during Module 12.
-- **Review Gate timeout** — what happens if the operator doesn't respond before the next round boundary. Options: auto-block after N minutes, carry draft forward, alert and wait. Resolve during Module 10.
 - **Debounce strategy for Extraction** — pipeline.yaml specifies `debounce_seconds: 2` but the batching semantics (time-window batch vs. per-message cooldown) are unspecified. Resolve during Module 12.

@@ -341,3 +341,17 @@ Expanded `tests/test_review_gate.py` to cover prompt formatting, approve/edit/bl
 
 Verification:
 - `.venv/bin/python -m pytest tests/test_review_gate.py -q` - 12 passed
+
+### Step 9.3: Timeout behavior and review handoff
+
+**Mode:** Build
+**Outcome:** Complete - timeout auto-block implemented, docs updated, full regression verified, state transitioned to review
+**Contract changes:** Resolved Review Gate timeout contract in `ARCH_review_gate.md`; updated `ARCHITECTURE.md` status/provisional contract list
+
+Added configurable `timeout_seconds` to `TelegramReviewGate`. When unset, the gate waits indefinitely for an operator command. When set, the wait is bounded with `asyncio.wait_for`; timeout returns a blocked `ReviewDecision` and still logs through the optional state-manager hook. Non-positive timeout values are rejected at construction.
+
+Updated `ARCH_review_gate.md` with the resolved timeout behavior, removed the resolved Review Gate timeout item from `ARCHITECTURE.md` provisional contracts, marked implementation sequence row 10 as `Phase 9 complete, pending review`, and transitioned DEVPLAN to `state: review`.
+
+Verification:
+- `.venv/bin/python -m pytest tests/test_review_gate.py -q` - 14 passed
+- `.venv/bin/python -m pytest -q` - 112 passed
