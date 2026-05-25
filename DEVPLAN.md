@@ -1,7 +1,7 @@
 ---
 phase: 7
-blocked: true
-state: plan
+blocked: false
+state: execute
 steps_remaining: 0
 ---
 
@@ -18,9 +18,17 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 6: Analyst + Divergence, complete.
-- **Focus** — Phase 6 complete: `AnalysisResult`, `Divergence`, `LLMAnalyst`, divergence comparison, intelligence prompt/schema, and 12 focused analyst tests. 80 total tests pass.
-- **Blocked/Broken** — Phase boundary gate set for human audit.
+- **Phase** — Phase 7: Context Assembler, in progress.
+- **Focus** — Planning complete. Next: implement `CoachingEntry`, `DecisionContext`, `DefaultContextAssembler` with full `assemble()` method and tests.
+- **Blocked/Broken** — None.
+
+## Phase 7: Context Assembler
+
+Regime: Build. Scope: Pure composition module — no external deps. `CoachingEntry` dataclass, `DecisionContext` dataclass, `DefaultContextAssembler` with `assemble()` method assembling all inputs into the Decision Engine context window per the ARCH_context_assembler.md template. Full test coverage.
+
+Steps:
+- [ ] 7.1 — Implement `CoachingEntry`, `DecisionContext`, and `DefaultContextAssembler` (with `recent_events_limit=30` default) in `src/modules/context_assembler/__init__.py`. Write `tests/test_context_assembler.py` covering: all five coaching types in output, INTEL exclusion from coaching section, divergences present vs. absent, review_gate enabled vs. disabled instruction text, recent_events_limit truncation applied, metadata fields (event_count, coaching_count), empty coaching queue placeholder, section order matches template. Run full suite (target: 80 + new tests pass).
+- [ ] 7.2 — Run full regression. Update DEVPLAN Current Status, DEVLOG, ARCHITECTURE.md sequence status. Commit.
 
 ## Phase 6: Analyst + Divergence
 
