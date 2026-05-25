@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
+import json
 
 import pytest
 
 from modules.transport import (
+    CLITransport,
     InboundEvent,
     OutboundMessage,
     Transport,
@@ -19,6 +21,7 @@ from modules.transport import (
 def test_public_exports_include_transport_contract_types():
     import modules.transport as transport
 
+    assert transport.CLITransport is CLITransport
     assert transport.InboundEvent is InboundEvent
     assert transport.OutboundMessage is OutboundMessage
     assert transport.Transport is Transport
@@ -72,6 +75,7 @@ def test_transport_protocol_accepts_send_and_listen_implementation():
     fake = FakeTransport()
 
     assert isinstance(fake, Transport)
+    assert isinstance(CLITransport(_reader([]), _writer([])), Transport)
 
 
 def test_transport_reuses_shared_inbound_event_type():
@@ -124,3 +128,149 @@ def test_normalize_inbound_event_validates_and_uses_shared_type():
             channel="public",
             content="No source",
         )
+
+
+@pytest.mark.asyncio
+async def test_cli_transport_send_writes_json_line():
+    lines: list[str] = []
+    transport = CLITransport(_reader([]), _writer(lines))
+
+    await transport.send(
+        OutboundMessage(
+            content="Support me into Belgium.",
+            channel="private",
+            recipient="france",
+        )
+    )
+
+    assert len(lines) == 1
+    assert lines[0].endswith("\n")
+    assert json.loads(lines[0]) == {
+        "content": "Support me into Belgium.",
+        "channel": "private",
+        "recipient": "france",
+    }
+
+
+@pytest.mark.asyncio
+async def test_cli_transport_listen_yields_inbound_events_from_json_lines():
+    transport = CLITransport(
+        _reader(
+            [
+                "\n",
+                json.dumps(
+                    {
+                        "timestamp": "1901-01-01T12:00:00+00:00",
+                        "sender_faction": "france",
+                        "channel": "private",
+                        "recipient": "england",
+                        "content": "Support me into Belgium.",
+                        "telegram_msg_id": 42,
+                    }
+                ),
+            ]
+        ),
+        _writer([]),
+    )
+
+    events = [event async for event in transport.listen()]
+
+    assert events == [
+        InboundEvent(
+            timestamp=datetime(1901, 1, 1, 12, 0, tzinfo=timezone.utc),
+            sender_faction="france",
+            channel="private",
+            recipient="england",
+            content="Support me into Belgium.",
+            telegram_msg_id=42,
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_cli_transport_listen_uses_clock_when_timestamp_is_absent():
+    now = datetime(1901, 1, 1, 12, 0, tzinfo=timezone.utc)
+    transport = CLITransport(
+        _reader(
+            [
+                json.dumps(
+                    {
+                        "sender_faction": "operator",
+                        "channel": "coaching",
+                        "content": "WATCH: France is stalling.",
+                    }
+                )
+            ]
+        ),
+        _writer([]),
+        now=lambda: now,
+    )
+
+    events = [event async for event in transport.listen()]
+
+    assert events == [
+        InboundEvent(
+            timestamp=now,
+            sender_faction="operator",
+            channel="coaching",
+            content="WATCH: France is stalling.",
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_cli_transport_listen_stops_on_reader_eof():
+    transport = CLITransport(_reader([]), _writer([]))
+
+    assert [event async for event in transport.listen()] == []
+
+
+@pytest.mark.asyncio
+async def test_cli_transport_wraps_writer_and_reader_errors():
+    async def broken_writer(line: str) -> None:
+        raise OSError("pipe closed")
+
+    async def broken_reader() -> AsyncIterator[str]:
+        raise OSError("input closed")
+        yield ""
+
+    with pytest.raises(TransportError, match="CLI send failed"):
+        await CLITransport(_reader([]), broken_writer).send(
+            OutboundMessage(content="Hello", channel="public")
+        )
+
+    with pytest.raises(TransportError, match="CLI listen failed"):
+        [event async for event in CLITransport(broken_reader(), _writer([])).listen()]
+
+
+@pytest.mark.asyncio
+async def test_cli_transport_rejects_malformed_inbound_lines():
+    invalid_payloads = [
+        "not-json",
+        json.dumps(["not", "object"]),
+        json.dumps({"sender_faction": "france", "channel": "public"}),
+        json.dumps(
+            {
+                "sender_faction": "france",
+                "channel": "press",
+                "content": "Wrong channel",
+            }
+        ),
+    ]
+
+    for payload in invalid_payloads:
+        transport = CLITransport(_reader([payload]), _writer([]))
+        with pytest.raises(TransportError, match="CLI inbound line"):
+            [event async for event in transport.listen()]
+
+
+async def _reader(lines: list[str]) -> AsyncIterator[str]:
+    for line in lines:
+        yield line
+
+
+def _writer(lines: list[str]):
+    async def write(line: str) -> None:
+        lines.append(line)
+
+    return write

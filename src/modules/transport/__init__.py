@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import json
+from collections.abc import AsyncIterable, Awaitable, Callable
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import AsyncIterator, Protocol, runtime_checkable
 
 from modules.types import InboundEvent
@@ -35,6 +37,63 @@ class Transport(Protocol):
 
     def listen(self) -> AsyncIterator[InboundEvent]:
         ...
+
+
+class CLITransport:
+    def __init__(
+        self,
+        reader: AsyncIterable[str],
+        writer: Callable[[str], Awaitable[None]],
+        *,
+        now: Callable[[], datetime] | None = None,
+    ) -> None:
+        self._reader = reader
+        self._writer = writer
+        self._now = now or (lambda: datetime.now(timezone.utc))
+
+    async def send(self, message: OutboundMessage) -> None:
+        payload = {
+            "content": message.content,
+            "channel": message.channel,
+            "recipient": message.recipient,
+        }
+        try:
+            await self._writer(json.dumps(payload, sort_keys=True) + "\n")
+        except Exception as exc:
+            raise TransportError(f"CLI send failed: {exc}") from exc
+
+    async def listen(self) -> AsyncIterator[InboundEvent]:
+        try:
+            async for line in self._reader:
+                if not line.strip():
+                    continue
+                yield self._parse_line(line)
+        except TransportError:
+            raise
+        except Exception as exc:
+            raise TransportError(f"CLI listen failed: {exc}") from exc
+
+    def _parse_line(self, line: str) -> InboundEvent:
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise TransportError(f"CLI inbound line is not valid JSON: {exc}") from exc
+
+        if not isinstance(payload, dict):
+            raise TransportError("CLI inbound line must be a JSON object")
+
+        try:
+            timestamp = _parse_timestamp(payload.get("timestamp"), self._now)
+            return normalize_inbound_event(
+                timestamp=timestamp,
+                sender_faction=_required_str(payload, "sender_faction"),
+                channel=_required_str(payload, "channel"),
+                content=_required_str(payload, "content"),
+                recipient=_optional_str(payload, "recipient"),
+                telegram_msg_id=_optional_int(payload, "telegram_msg_id"),
+            )
+        except ValueError as exc:
+            raise TransportError(f"CLI inbound line is invalid: {exc}") from exc
 
 
 def validate_channel(channel: str) -> None:
@@ -71,7 +130,47 @@ def _has_text(value: str | None) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
+def _parse_timestamp(
+    value: object,
+    now: Callable[[], datetime],
+) -> datetime:
+    if value is None:
+        return now()
+    if not isinstance(value, str):
+        raise ValueError("timestamp must be an ISO datetime string")
+    try:
+        return datetime.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError("timestamp must be an ISO datetime string") from exc
+
+
+def _required_str(payload: dict[object, object], key: str) -> str:
+    value = payload.get(key)
+    if not isinstance(value, str):
+        raise ValueError(f"{key} must be a string")
+    return value
+
+
+def _optional_str(payload: dict[object, object], key: str) -> str | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError(f"{key} must be a string")
+    return value
+
+
+def _optional_int(payload: dict[object, object], key: str) -> int | None:
+    value = payload.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, int):
+        raise ValueError(f"{key} must be an integer")
+    return value
+
+
 __all__ = [
+    "CLITransport",
     "InboundEvent",
     "OutboundMessage",
     "Transport",

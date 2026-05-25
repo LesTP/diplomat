@@ -52,7 +52,9 @@ into the shared `InboundEvent` type.
 
 **TelethonUserTransport** — wraps `Telethon` library. Required if bot-to-bot messaging is unavailable. Same interface; different platform client.
 
-**CLITransport** — reads from stdin, writes to stdout. For local testing without a live platform.
+**CLITransport** — reads JSON lines from an async line source and writes JSON
+lines to an async writer. For local testing without a live platform. Inbound
+JSON objects use the shared `InboundEvent` field names.
 
 ## Inputs
 - OutboundMessage objects from Orchestrator (after Review Gate approval)
