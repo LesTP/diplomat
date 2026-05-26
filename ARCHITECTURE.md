@@ -118,7 +118,7 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 | 7 | Analyst + Divergence | Two LLM calls + pure comparison. High value — intelligence drives decision quality. | Phase 6 complete |
 | 8 | Context Assembler | Pure composition. Wires persona + intelligence + coaching + events into DecisionContext. | Phase 7 complete |
 | 9 | Generation | LLM call with assembled context. Core output path. | Phase 8 complete |
-| 10 | Review Gate | Human approval workflow via Telegram. Needed before any posting. | Phase 9 complete, pending review |
+| 10 | Review Gate | Human approval workflow via Telegram. Needed before any posting. | Phase 9 complete |
 | 11 | Adversarial | Optional LLM call. Valuable but skippable — Review Gate catches issues manually. | Not started |
 | 12 | Orchestrator | Wires everything. Event loop, round management, cost accountant, failure handling. Last because it requires all modules. | Not started |
 

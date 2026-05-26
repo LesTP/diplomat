@@ -1,8 +1,8 @@
 ---
 phase: 9
-blocked: false
+blocked: "awaiting-human-audit"
 state: close
-steps_remaining: 1
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -18,9 +18,9 @@ steps_remaining: 1
 
 ## Current Status
 
-- **Phase** — Phase 9: Review Gate, complete. Ready for phase review.
+- **Phase** — Phase 9: Review Gate, complete. Awaiting human audit.
 - **Focus** — Review Gate implementation against `ARCH_review_gate.md`.
-- **Blocked/Broken** — None.
+- **Blocked/Broken** — awaiting-human-audit.
 
 ## Phase 9: Review Gate
 
@@ -31,7 +31,7 @@ Steps:
 - [x] 9.2 — Implement `TelegramReviewGate.submit()` with dependency-injected Telegram client and state manager. Format the review prompt with draft text, reasoning when present, adversarial analysis or skipped/failed warning, and command instructions; wait for the next operator command on the configured coaching channel; support `/approve`, `/edit: ...`, and `/block`; reject unrelated channel messages and unknown commands while continuing to wait. Log decisions through a narrow state-manager hook when available. Add fake-client tests for formatting, approve/edit/block decisions, command filtering, unknown command retry, and edit-log calls.
 - [x] 9.3 — Add timeout behavior and documentation cleanup. Resolve the provisional timeout contract as configurable auto-block after `timeout_seconds` when set, and wait indefinitely when unset. Cover timeout auto-block with focused tests, run full regression, update Phase 9 summary/status, mark implementation sequence row 10 as pending review, and transition DEVPLAN to `state: review`.
 
-Summary: Implemented `ReviewDecision`, `AutoApproveReviewGate`, `TelegramReviewGate`, approve/edit/block command workflow, coaching-channel filtering, unknown-command retry, optional review-decision logging hook, configurable timeout auto-block, and 14 focused Review Gate tests. Full regression: 112 passed. Phase ready for review.
+Summary: Implemented `ReviewDecision`, `AutoApproveReviewGate`, `TelegramReviewGate`, approve/edit/block command workflow, coaching-channel filtering, unknown-command retry, optional review-decision logging hook, configurable timeout auto-block, and 14 focused Review Gate tests. Full regression: 112 passed. Phase Review applied two should-fix items: removed dead `_pending` flag, changed `except TimeoutError` to `except asyncio.TimeoutError` for cross-version correctness. Phase complete, awaiting human audit.
 
 ## Phase 8: Generation
 
