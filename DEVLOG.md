@@ -396,3 +396,16 @@ Phase 10 (Adversarial) is the next module: optional LLM-based draft critique via
 Planned `AdversarialResult` and `LLMAdversarialReader` implementation against `ARCH_adversarial.md`: core reader contract and failure handling first, structured prompt/schema validation second, and documentation/regression cleanup third. All LLM behavior will use toolkit-compatible dependency injection and fake clients in tests.
 
 Updated `ARCHITECTURE.md` Implementation Sequence row 11 to `In progress`.
+
+### Step 10.1: Core adversarial reader
+
+**Mode:** Build
+**Outcome:** Complete - implemented Adversarial result type, core reader contract, and focused tests
+**Contract changes:** Added `AdversarialResult` and `LLMAdversarialReader` public exports in `src/modules/adversarial/__init__.py`
+
+Implemented the Phase 10 reader shell with dependency-injected toolkit-compatible LLM client calls. `LLMAdversarialReader.read()` rejects blank drafts before calling the client, forwards the system prompt, schema, draft, config, and tier to the injected client, reports provider exceptions through `AdversarialResult.success=False`, and remains stateless.
+
+Added `tests/test_adversarial.py` coverage for result contract fields, blank draft handling without client calls, client exception failure, prompt/draft forwarding, and config/tier forwarding.
+
+Verification:
+- `.venv/bin/python -m pytest tests/test_adversarial.py -q` - 5 passed
