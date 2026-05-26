@@ -457,3 +457,20 @@ Verification:
 - `python3 -m pytest tests/test_orchestrator.py -q` - 43 passed
 - `python3 -m py_compile src/main.py src/orchestrator.py` - passed
 - `python3 -m pytest -q` - 164 passed
+
+### Phase 11 Review
+
+**Mode:** Review
+**Outcome:** Phase review complete — 3 should-fix items applied, no must-fix issues found
+
+Reviewed Orchestrator implementation against ARCH_orchestrator.md contract. All seven responsibilities satisfied: startup, event loop, round management, response pipeline, failure handling, cost governance, and command dispatch. 164 tests passed pre-review.
+
+**Should-fix items applied:**
+1. `start()` now prints `DIPLOMAT ONLINE - Round {n} - {faction_id} - session budget ${X.XX}` at startup (ARCH startup sequence step 10).
+2. `_apply_extraction()` now logs extraction failures (ARCH failure table: "Log, skip patch for this batch, continue").
+3. Added `test_generation_double_failure_alerts_operator` — covers the path where both generation retries fail and the operator is alerted.
+
+**Known gap noted (not applied):** Scheduled response time trigger mentioned in step 11.3 spec and ARCH event loop has no pipeline.yaml configuration support and no defined semantics; deferred to a future phase or operator-defined config extension.
+
+Verification:
+- `python3 -m pytest -q` — 165 passed

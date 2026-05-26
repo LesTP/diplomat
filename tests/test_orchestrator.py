@@ -670,6 +670,23 @@ async def test_generation_failure_retries_once(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_generation_double_failure_alerts_operator(tmp_path):
+    generator = FakeGenerator(
+        [_generation(success=False, error="first fail"), _generation(success=False, error="still down")]
+    )
+    orchestrator, _event_store, _state_manager, _extractor, transport = (
+        _pipeline_orchestrator(tmp_path, generator=generator)
+    )
+
+    sent = await orchestrator.run_response_pipeline()
+
+    assert sent is False
+    assert len(generator.calls) == 2
+    operator_messages = [m for m in transport.sent if m.channel == "coaching"]
+    assert any("Generation failed" in m.content for m in operator_messages)
+
+
+@pytest.mark.asyncio
 async def test_adversarial_failure_passed_to_review_gate(tmp_path):
     adversarial_result = AdversarialResult(
         success=False,

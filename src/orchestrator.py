@@ -120,6 +120,11 @@ class Orchestrator:
             setattr(self, name, instance)
 
     async def start(self) -> None:
+        session_budget = float(self.cost_config.get("session_budget_usd", 0.0))
+        print(
+            f"DIPLOMAT ONLINE - Round {self.current_round} - {self.faction_id}"
+            f" - session budget ${session_budget:.2f}"
+        )
         self._running = True
         if self.round_detection["mode"] == "time":
             self._round_timer_task = asyncio.create_task(self._time_round_loop())
@@ -195,7 +200,12 @@ class Orchestrator:
             return
         current_state = await self.state_manager.get_full_state()
         result = await self.extractor.extract(content, current_state, trigger_type)
-        if not getattr(result, "success", False) or result.patch is None:
+        if not getattr(result, "success", False):
+            print(
+                f"Extraction failed ({trigger_type}): {getattr(result, 'error', 'no patch')}"
+            )
+            return
+        if result.patch is None:
             return
         await self.state_manager.apply_patch(
             result.patch,

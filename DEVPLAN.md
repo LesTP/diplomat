@@ -1,8 +1,8 @@
 ---
 phase: 11
 blocked: false
-state: execute
-steps_remaining: 5
+state: close
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
