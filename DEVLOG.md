@@ -355,3 +355,21 @@ Updated `ARCH_review_gate.md` with the resolved timeout behavior, removed the re
 Verification:
 - `.venv/bin/python -m pytest tests/test_review_gate.py -q` - 14 passed
 - `.venv/bin/python -m pytest -q` - 112 passed
+
+### Phase 9 Review: Review Gate
+
+**Mode:** Review
+**Outcome:** Complete — two should-fix items applied, no must-fix items found
+
+Review of `src/modules/review_gate/__init__.py` and `tests/test_review_gate.py` against `ARCH_review_gate.md`.
+
+**Must fix:** None. Contract fully implemented: `ReviewDecision`, `AutoApproveReviewGate`, `TelegramReviewGate.submit()`, formatting, approve/edit/block parsing, channel filtering, unknown-command retry, optional state-manager hook, configurable timeout auto-block.
+
+**Should fix applied:**
+1. Removed `_pending` instance flag — written in `submit()` but never read by any consumer; dead code. ARCH documents it as state but no caller observes it, so removing it is cleaner.
+2. Changed `except TimeoutError` to `except asyncio.TimeoutError` — more explicit and cross-version correct (pre-3.11, `asyncio.TimeoutError` is not a subclass of the built-in `TimeoutError`).
+
+**Optional skipped:** None identified.
+
+Verification:
+- `python3 -m pytest -q` — 112 passed

@@ -59,7 +59,6 @@ class TelegramReviewGate:
         self._coaching_channel_id = coaching_channel_id
         self._state_manager = state_manager
         self._timeout_seconds = timeout_seconds
-        self._pending = False
 
     async def submit(
         self,
@@ -67,19 +66,15 @@ class TelegramReviewGate:
         adversarial: Any,
         round_number: int,
     ) -> ReviewDecision:
-        self._pending = True
-        try:
-            await _maybe_await(
-                self._telegram_client.send_message(
-                    self._coaching_channel_id,
-                    self._format_review_message(draft, adversarial, round_number),
-                )
+        await _maybe_await(
+            self._telegram_client.send_message(
+                self._coaching_channel_id,
+                self._format_review_message(draft, adversarial, round_number),
             )
-            decision = await self._wait_with_optional_timeout(draft)
-            await self._log_decision(decision, draft, round_number)
-            return decision
-        finally:
-            self._pending = False
+        )
+        decision = await self._wait_with_optional_timeout(draft)
+        await self._log_decision(decision, draft, round_number)
+        return decision
 
     async def _wait_with_optional_timeout(
         self, draft: GenerationResult
@@ -91,7 +86,7 @@ class TelegramReviewGate:
                 self._wait_for_decision(draft),
                 timeout=self._timeout_seconds,
             )
-        except TimeoutError:
+        except asyncio.TimeoutError:
             return ReviewDecision(
                 action="blocked",
                 final_text=None,
