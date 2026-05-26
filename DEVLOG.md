@@ -426,3 +426,19 @@ Added command handlers for `/status`, `/state`, `/ledger`, `/intel`, `/divergenc
 Verification:
 - `python3 -m pytest tests/test_orchestrator.py -q` - 30 passed
 - `python3 -m pytest -q` - 151 passed
+
+### Step 11.3: Round management and response pipeline
+
+**Mode:** Build
+**Outcome:** Complete - signal/time round detection, dual-analyst round analysis, response pipeline, and failure-path coverage added
+**Contract changes:** Extended `Orchestrator` behavior with `handle_round_boundary()` and `run_response_pipeline()`
+
+Implemented signal-mode round boundary detection during event processing and time-mode round boundaries via an async timer task. Round boundaries now run primary and secondary analysts concurrently, skip analysis with an operator alert on primary failure, proceed with primary-only analysis on secondary failure, compare divergences when both analysts succeed, persist the intelligence payload, and advance the round counter in `game_state`.
+
+Added direct-address and `/preview` response triggers plus the full response pipeline: persona prompt/context, context assembly, generation with one retry, optional adversarial read with warning-on-failure, review gate submission, public send with three attempts, adversarial-read persistence, and coaching consumption after successful send.
+
+Added focused coverage for signal/time round detection, primary and secondary analyst failure paths, happy-path response generation, direct-address and preview triggers, generation retry, adversarial failure propagation to review, review gate block, and transport retry behavior.
+
+Verification:
+- `python3 -m pytest tests/test_orchestrator.py -q` - 41 passed
+- `python3 -m pytest -q` - 162 passed

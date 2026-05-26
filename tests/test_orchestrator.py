@@ -8,8 +8,11 @@ from datetime import datetime, timezone
 import pytest
 import yaml
 
+from modules.adversarial import AdversarialResult
 from modules.extraction import ExtractionResult
-from modules.types import InboundEvent, StatePatch
+from modules.generation import GenerationResult
+from modules.review_gate import ReviewDecision
+from modules.types import AnalysisResult, Divergence, InboundEvent, StatePatch
 from modules.transport import OutboundMessage
 from modules.analyst import LLMAnalyst
 from modules.context_assembler import DefaultContextAssembler
@@ -46,6 +49,9 @@ class FakeEventStore:
         self.events.append((event_id, event, round_number))
         return event_id
 
+    async def query(self, filters):
+        return []
+
 
 class FakeStateManager:
     def __init__(self):
@@ -56,6 +62,10 @@ class FakeStateManager:
             "intelligence": [],
             "review_gate_edits": [],
         }
+        self.intelligence = []
+        self.game_state = {}
+        self.adversarial_reads = []
+        self.consumed_marked = False
 
     async def get_full_state(self):
         return {"promises": []}
@@ -82,6 +92,26 @@ class FakeStateManager:
         self.coaching.append(row)
         self.rows["coaching"].append(row)
 
+    async def store_intelligence(self, round_number, provider, analysis):
+        row = {
+            "round_number": round_number,
+            "provider": provider,
+            "analysis_json": analysis,
+        }
+        self.intelligence.append(row)
+        self.rows["intelligence"].append(row)
+
+    async def set_game_state(self, key, value):
+        self.game_state[key] = value
+
+    async def store_adversarial_read(self, round_number, analysis):
+        self.adversarial_reads.append(
+            {"round_number": round_number, "analysis": analysis}
+        )
+
+    async def mark_coaching_consumed(self):
+        self.consumed_marked = True
+
 
 class FakeExtractor:
     def __init__(self):
@@ -107,6 +137,92 @@ class FakeTransport:
 
     async def close(self):
         self.closed = True
+
+
+class FailingTransport(FakeTransport):
+    def __init__(self, failures):
+        super().__init__()
+        self.failures = failures
+
+    async def send(self, message):
+        if message.channel == "public" and self.failures > 0:
+            self.failures -= 1
+            raise RuntimeError("send failed")
+        await super().send(message)
+
+
+class FakeAnalyst:
+    def __init__(self, provider_id, success=True):
+        self.provider_id = provider_id
+        self.success = success
+        self.calls = []
+
+    async def analyze(self, state):
+        self.calls.append(state)
+        return AnalysisResult(
+            success=self.success,
+            provider_id=self.provider_id,
+            report={"threat_level": 2, "key_leverage_points": ["Belgium"]}
+            if self.success
+            else None,
+            error=None if self.success else "failed",
+            timestamp=datetime(2026, 5, 26, tzinfo=timezone.utc),
+        )
+
+
+class FakePersona:
+    async def get_base_prompt(self):
+        return "Base persona"
+
+    async def build_round_context(self, round_number, rounds_remaining, coaching_context):
+        return f"Round {round_number}"
+
+
+class FakeAssembler:
+    def __init__(self):
+        self.calls = []
+
+    async def assemble(self, **kwargs):
+        self.calls.append(kwargs)
+        return {"context": "ready"}
+
+
+class FakeGenerator:
+    def __init__(self, results):
+        self.results = list(results)
+        self.calls = []
+
+    async def generate(self, context):
+        self.calls.append(context)
+        return self.results.pop(0)
+
+
+class FakeAdversarial:
+    def __init__(self, result=None):
+        self.result = result or AdversarialResult(
+            success=True,
+            analysis={"reveals": []},
+            error=None,
+        )
+        self.calls = []
+
+    async def read(self, draft):
+        self.calls.append(draft)
+        return self.result
+
+
+class FakeReviewGate:
+    def __init__(self, decision=None):
+        self.decision = decision or ReviewDecision(
+            action="approved",
+            final_text="Final public message.",
+            edit_notes=None,
+        )
+        self.calls = []
+
+    async def submit(self, draft, adversarial, round_number):
+        self.calls.append((draft, adversarial, round_number))
+        return self.decision
 
 
 def _copy_project_config(tmp_path: Path) -> Path:
@@ -164,6 +280,38 @@ def _orchestrator(tmp_path, **overrides):
     )
     orchestrator.message_debounce_seconds = 0
     return orchestrator, event_store, state_manager, extractor, transport
+
+
+def _generation(success=True, text="Draft response.", error=None):
+    return GenerationResult(
+        success=success,
+        response_text=text if success else None,
+        reasoning="Because.",
+        raw_response=None,
+        error=error,
+    )
+
+
+def _pipeline_orchestrator(tmp_path, **overrides):
+    defaults = {
+        "primary_analyst": FakeAnalyst("primary"),
+        "secondary_analyst": FakeAnalyst("secondary"),
+        "divergence": lambda primary, secondary: [
+            Divergence(
+                field="threat_level",
+                primary_value="2",
+                secondary_value="4",
+                note="Disagreement.",
+            )
+        ],
+        "persona": FakePersona(),
+        "context_assembler": FakeAssembler(),
+        "generator": FakeGenerator([_generation()]),
+        "adversarial": FakeAdversarial(),
+        "review_gate": FakeReviewGate(),
+    }
+    defaults.update(overrides)
+    return _orchestrator(tmp_path, **defaults)
 
 
 def test_successful_instantiation_with_fakes(tmp_path, monkeypatch):
@@ -354,3 +502,202 @@ async def test_command_handler_reply_formats(tmp_path, command, expected):
     assert transport.sent
     assert transport.sent[0].channel == "coaching"
     assert transport.sent[0].content.startswith(expected)
+
+
+@pytest.mark.asyncio
+async def test_round_boundary_signal_detection_stores_analysis(tmp_path):
+    orchestrator, _event_store, state_manager, _extractor, _transport = (
+        _pipeline_orchestrator(tmp_path)
+    )
+
+    await orchestrator.process_event(_event(sender_faction="france", content="ROUND 2"))
+
+    assert orchestrator.current_round == 2
+    assert state_manager.game_state["round_number"] == "2"
+    assert state_manager.intelligence[0]["round_number"] == 1
+    assert state_manager.intelligence[0]["analysis_json"]["primary"]["success"] is True
+    assert state_manager.intelligence[0]["analysis_json"]["divergences"][0]["field"] == (
+        "threat_level"
+    )
+
+
+@pytest.mark.asyncio
+async def test_round_boundary_time_mode(tmp_path):
+    config_path = _copy_project_config(tmp_path)
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    config["round_detection"] = {"mode": "time", "interval_seconds": 0.01}
+    config_path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    state_manager = FakeStateManager()
+    transport = FakeTransport()
+    orchestrator = Orchestrator(
+        config_path,
+        base_path=tmp_path,
+        llm_client=FakeLLMClient(),
+        module_overrides={
+            "event_store": FakeEventStore(),
+            "state_manager": state_manager,
+            "extractor": FakeExtractor(),
+            "transport": transport,
+            "primary_analyst": FakeAnalyst("primary"),
+            "secondary_analyst": FakeAnalyst("secondary"),
+            "divergence": lambda primary, secondary: [],
+            "persona": FakePersona(),
+            "context_assembler": FakeAssembler(),
+            "generator": FakeGenerator([_generation()]),
+            "adversarial": FakeAdversarial(),
+            "review_gate": FakeReviewGate(),
+        },
+    )
+
+    orchestrator._running = True
+    task = asyncio.create_task(orchestrator._time_round_loop())
+    await asyncio.sleep(0.02)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+    assert orchestrator.current_round >= 2
+    assert state_manager.intelligence
+
+
+@pytest.mark.asyncio
+async def test_primary_analyst_failure_alerts_and_skips_round_analysis(tmp_path):
+    orchestrator, _event_store, state_manager, _extractor, transport = (
+        _pipeline_orchestrator(
+            tmp_path,
+            primary_analyst=FakeAnalyst("primary", success=False),
+        )
+    )
+
+    await orchestrator.handle_round_boundary()
+
+    assert orchestrator.current_round == 1
+    assert state_manager.intelligence == []
+    assert transport.sent[0].channel == "coaching"
+    assert "Primary analyst failed" in transport.sent[0].content
+
+
+@pytest.mark.asyncio
+async def test_secondary_analyst_failure_proceeds_with_primary_only(tmp_path):
+    orchestrator, _event_store, state_manager, _extractor, transport = (
+        _pipeline_orchestrator(
+            tmp_path,
+            secondary_analyst=FakeAnalyst("secondary", success=False),
+        )
+    )
+
+    await orchestrator.handle_round_boundary()
+
+    assert orchestrator.current_round == 2
+    assert state_manager.intelligence[0]["analysis_json"]["secondary"]["success"] is False
+    assert state_manager.intelligence[0]["analysis_json"]["divergences"] == []
+    assert "Secondary analyst failed" in transport.sent[0].content
+
+
+@pytest.mark.asyncio
+async def test_happy_path_response_pipeline_with_fakes(tmp_path):
+    orchestrator, _event_store, state_manager, _extractor, transport = (
+        _pipeline_orchestrator(tmp_path)
+    )
+
+    sent = await orchestrator.run_response_pipeline()
+
+    assert sent is True
+    assert transport.sent[-1] == OutboundMessage(
+        content="Final public message.",
+        channel="public",
+    )
+    assert state_manager.adversarial_reads
+    assert state_manager.consumed_marked is True
+
+
+@pytest.mark.asyncio
+async def test_direct_address_triggers_response_pipeline(tmp_path):
+    orchestrator, _event_store, _state_manager, _extractor, transport = (
+        _pipeline_orchestrator(tmp_path)
+    )
+
+    await orchestrator.process_event(
+        _event(sender_faction="france", content="England, can we talk?")
+    )
+
+    assert transport.sent[-1].channel == "public"
+
+
+@pytest.mark.asyncio
+async def test_preview_command_triggers_response_pipeline(tmp_path):
+    orchestrator, _event_store, _state_manager, _extractor, transport = (
+        _pipeline_orchestrator(tmp_path)
+    )
+
+    await orchestrator.process_event(_event(content="/preview"))
+
+    assert transport.sent[-1].channel == "public"
+
+
+@pytest.mark.asyncio
+async def test_generation_failure_retries_once(tmp_path):
+    generator = FakeGenerator(
+        [_generation(success=False, error="provider down"), _generation(text="Retry")]
+    )
+    orchestrator, _event_store, _state_manager, _extractor, transport = (
+        _pipeline_orchestrator(tmp_path, generator=generator)
+    )
+
+    sent = await orchestrator.run_response_pipeline()
+
+    assert sent is True
+    assert len(generator.calls) == 2
+    assert transport.sent[-1].channel == "public"
+
+
+@pytest.mark.asyncio
+async def test_adversarial_failure_passed_to_review_gate(tmp_path):
+    adversarial_result = AdversarialResult(
+        success=False,
+        analysis=None,
+        error="bad json",
+    )
+    adversarial = FakeAdversarial(adversarial_result)
+    review_gate = FakeReviewGate()
+    orchestrator, _event_store, _state_manager, _extractor, transport = (
+        _pipeline_orchestrator(
+            tmp_path,
+            adversarial=adversarial,
+            review_gate=review_gate,
+        )
+    )
+
+    sent = await orchestrator.run_response_pipeline()
+
+    assert sent is True
+    assert review_gate.calls[0][1] == adversarial_result
+    assert any(message.channel == "coaching" for message in transport.sent)
+
+
+@pytest.mark.asyncio
+async def test_review_gate_block_prevents_send(tmp_path):
+    review_gate = FakeReviewGate(
+        ReviewDecision(action="blocked", final_text=None, edit_notes="No.")
+    )
+    orchestrator, _event_store, _state_manager, _extractor, transport = (
+        _pipeline_orchestrator(tmp_path, review_gate=review_gate)
+    )
+
+    sent = await orchestrator.run_response_pipeline()
+
+    assert sent is False
+    assert [message for message in transport.sent if message.channel == "public"] == []
+
+
+@pytest.mark.asyncio
+async def test_transport_send_retries_three_times(tmp_path):
+    transport = FailingTransport(failures=2)
+    orchestrator, _event_store, _state_manager, _extractor, _transport = (
+        _pipeline_orchestrator(tmp_path, transport=transport)
+    )
+
+    sent = await orchestrator.run_response_pipeline()
+
+    assert sent is True
+    assert transport.sent[-1].channel == "public"

@@ -8,6 +8,7 @@ import sqlite3
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from dataclasses import asdict, is_dataclass
 from inspect import isawaitable
 from pathlib import Path
 from typing import Any
@@ -15,8 +16,11 @@ from typing import Any
 import yaml
 
 from modules.coaching import CoachingEvent, Command
+from modules.context_assembler import CoachingEntry
+from modules.generation import GenerationResult
+from modules.persona import CoachingContext
 from modules.transport import OutboundMessage
-from modules.types import PatchSource
+from modules.types import Divergence, EventFilter, PatchSource
 from registry import resolve_class
 
 
@@ -99,6 +103,7 @@ class Orchestrator:
         self.current_round = 1
         self._running = False
         self._debounce_task: asyncio.Task[None] | None = None
+        self._round_timer_task: asyncio.Task[None] | None = None
 
         self._initialize_sqlite(self.db_path)
         self.modules = self._build_modules(
@@ -111,6 +116,8 @@ class Orchestrator:
 
     async def start(self) -> None:
         self._running = True
+        if self.round_detection["mode"] == "time":
+            self._round_timer_task = asyncio.create_task(self._time_round_loop())
         try:
             async for event in self.transport.listen():
                 if not self._running:
@@ -125,6 +132,10 @@ class Orchestrator:
             self._debounce_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await self._debounce_task
+        if self._round_timer_task is not None and not self._round_timer_task.done():
+            self._round_timer_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._round_timer_task
 
         close = getattr(self.transport, "close", None)
         if close is None:
@@ -139,6 +150,10 @@ class Orchestrator:
             return event_id
 
         self._enqueue_message_extraction(event, event_id)
+        if await self._check_round_boundary(event):
+            return event_id
+        if self._is_direct_address(event):
+            await self.run_response_pipeline(trigger_event=event)
         return event_id
 
     async def _route_operator_event(self, event: Any, event_id: str) -> None:
@@ -213,6 +228,7 @@ class Orchestrator:
 
     async def _dispatch_command(self, command: Command) -> None:
         handlers = {
+            "preview": self._command_preview,
             "status": self._command_status,
             "state": self._command_state,
             "ledger": self._command_ledger,
@@ -224,7 +240,13 @@ class Orchestrator:
         if handler is None:
             await self._send_operator(f"Unsupported command: /{command.name}")
             return
-        await self._send_operator(await handler(command))
+        reply = await handler(command)
+        if reply is not None:
+            await self._send_operator(reply)
+
+    async def _command_preview(self, _command: Command) -> str | None:
+        await self.run_response_pipeline()
+        return None
 
     async def _command_status(self, _command: Command) -> str:
         coaching_count = len(await self._query_state("coaching", {"consumed": False}))
@@ -280,6 +302,272 @@ class Orchestrator:
 
     async def _send_operator(self, content: str) -> None:
         await self.transport.send(OutboundMessage(content=content, channel="coaching"))
+
+    async def _time_round_loop(self) -> None:
+        interval = float(self.round_detection["interval_seconds"])
+        while self._running:
+            await asyncio.sleep(interval)
+            await self.handle_round_boundary()
+
+    async def _check_round_boundary(self, event: Any) -> bool:
+        if self.round_detection["mode"] != "signal":
+            return False
+        import re
+
+        pattern = self.round_detection["pattern"]
+        if re.search(pattern, event.content):
+            await self.handle_round_boundary()
+            return True
+        return False
+
+    async def handle_round_boundary(self) -> None:
+        state = await self.state_manager.get_full_state()
+        primary_result, secondary_result = await asyncio.gather(
+            self.primary_analyst.analyze(state),
+            self.secondary_analyst.analyze(state),
+        )
+        if not getattr(primary_result, "success", False):
+            await self._send_operator("Primary analyst failed; round analysis skipped.")
+            return
+
+        divergences: list[Divergence] = []
+        if getattr(secondary_result, "success", False):
+            divergences = list(self.divergence(primary_result, secondary_result))
+        else:
+            await self._send_operator(
+                "Secondary analyst failed; proceeding with primary analysis only."
+            )
+
+        await self._store_intelligence(primary_result, secondary_result, divergences)
+        self.current_round += 1
+        await self._set_game_state("round_number", str(self.current_round))
+
+    async def run_response_pipeline(self, trigger_event: Any | None = None) -> bool:
+        persona_prompt = await self.persona.get_base_prompt()
+        round_context = await self.persona.build_round_context(
+            self.current_round,
+            None,
+            await self._coaching_context(),
+        )
+        context = await self.context_assembler.assemble(
+            persona_prompt=persona_prompt,
+            round_context=round_context,
+            intelligence=await self._latest_intelligence(),
+            divergences=await self._latest_divergences(),
+            recent_events=await self._recent_events(),
+            free_coaching=await self._free_coaching_entries(),
+            review_gate_enabled=self.feature_flags["review_gate"]["enabled"],
+        )
+
+        draft = await self.generator.generate(context)
+        if not draft.success:
+            await asyncio.sleep(0)
+            draft = await self.generator.generate(context)
+        if not draft.success:
+            await self._send_operator(f"Generation failed: {draft.error}")
+            return False
+
+        adversarial_result = None
+        if self.feature_flags["adversarial"]["enabled"]:
+            adversarial_result = await self.adversarial.read(draft.response_text or "")
+            if not getattr(adversarial_result, "success", False):
+                await self._send_operator("Adversarial read failed; continuing.")
+        await self._store_adversarial_read(adversarial_result)
+
+        decision = await self.review_gate.submit(
+            draft,
+            adversarial_result,
+            self.current_round,
+        )
+        if getattr(decision, "action", None) == "blocked":
+            return False
+        final_text = getattr(decision, "final_text", None)
+        if not isinstance(final_text, str) or not final_text.strip():
+            await self._send_operator("Review gate returned no sendable text.")
+            return False
+
+        message = OutboundMessage(content=final_text.strip(), channel="public")
+        for attempt in range(3):
+            try:
+                await self.transport.send(message)
+                await self._mark_coaching_consumed()
+                return True
+            except Exception:
+                if attempt == 2:
+                    await self._send_operator("Transport send failed after 3 attempts.")
+                    return False
+                await asyncio.sleep(0)
+        return False
+
+    def _is_direct_address(self, event: Any) -> bool:
+        return (
+            event.channel == "public"
+            and self.faction_id.lower() in event.content.lower()
+        )
+
+    async def _coaching_context(self) -> CoachingContext:
+        rows = await self._query_state("coaching", {"consumed": False})
+        buckets = {
+            "PRIORITY": [],
+            "CONSTRAINT": [],
+            "WATCH": [],
+            "TONE": [],
+        }
+        for row in rows:
+            tag = str(row.get("tag", "")).upper()
+            if tag in buckets:
+                buckets[tag].append(str(row.get("content", "")))
+        return CoachingContext(
+            priorities=buckets["PRIORITY"],
+            constraints=buckets["CONSTRAINT"],
+            watch_items=buckets["WATCH"],
+            tone_notes=buckets["TONE"],
+        )
+
+    async def _latest_intelligence(self) -> dict[str, Any]:
+        rows = await self._query_state("intelligence", {})
+        if not rows:
+            return {}
+        return self._json_from_row(rows[-1], "analysis_json")
+
+    async def _latest_divergences(self) -> list[Divergence]:
+        latest = await self._latest_intelligence()
+        raw = latest.get("divergences")
+        if not isinstance(raw, list):
+            return []
+        divergences: list[Divergence] = []
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            try:
+                divergences.append(
+                    Divergence(
+                        field=str(item.get("field", "")),
+                        primary_value=str(item.get("primary_value", "")),
+                        secondary_value=str(item.get("secondary_value", "")),
+                        note=str(item.get("note", "")),
+                    )
+                )
+            except TypeError:
+                continue
+        return divergences
+
+    async def _recent_events(self) -> list[Any]:
+        query = getattr(self.event_store, "query", None)
+        if query is None:
+            return []
+        return await query(EventFilter(limit=30))
+
+    async def _free_coaching_entries(self) -> list[CoachingEntry]:
+        rows = await self._query_state("coaching", {"consumed": False})
+        entries: list[CoachingEntry] = []
+        now = datetime.now(timezone.utc)
+        for row in rows:
+            entries.append(
+                CoachingEntry(
+                    coaching_type=str(row.get("tag", "FREE")),
+                    content=str(row.get("content", "")),
+                    timestamp=now,
+                )
+            )
+        return entries
+
+    async def _store_intelligence(
+        self,
+        primary_result: Any,
+        secondary_result: Any,
+        divergences: list[Divergence],
+    ) -> None:
+        payload = {
+            "primary": self._public_data(primary_result),
+            "secondary": self._public_data(secondary_result),
+            "divergences": [self._public_data(item) for item in divergences],
+        }
+        store = getattr(self.state_manager, "store_intelligence", None)
+        if store is not None:
+            await _maybe_await(
+                store(
+                    round_number=self.current_round,
+                    provider="orchestrator",
+                    analysis=payload,
+                )
+            )
+            return
+        with sqlite3.connect(getattr(self.state_manager, "db_path", self.db_path)) as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute(
+                """
+                INSERT INTO intelligence (round_number, provider, analysis_json, created_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    self.current_round,
+                    "orchestrator",
+                    json.dumps(payload, sort_keys=True),
+                    datetime.now(timezone.utc).isoformat(),
+                ),
+            )
+
+    async def _set_game_state(self, key: str, value: str) -> None:
+        setter = getattr(self.state_manager, "set_game_state", None)
+        if setter is not None:
+            await _maybe_await(setter(key, value))
+            return
+        with sqlite3.connect(getattr(self.state_manager, "db_path", self.db_path)) as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute(
+                """
+                INSERT INTO game_state (key, value)
+                VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value
+                """,
+                (key, value),
+            )
+
+    async def _store_adversarial_read(self, adversarial_result: Any) -> None:
+        if adversarial_result is None:
+            return
+        payload = self._public_data(adversarial_result)
+        store = getattr(self.state_manager, "store_adversarial_read", None)
+        if store is not None:
+            await _maybe_await(
+                store(round_number=self.current_round, analysis=payload)
+            )
+            return
+        with sqlite3.connect(getattr(self.state_manager, "db_path", self.db_path)) as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute(
+                """
+                INSERT INTO adversarial_reads (round_number, analysis_json, created_at)
+                VALUES (?, ?, ?)
+                """,
+                (
+                    self.current_round,
+                    json.dumps(payload, sort_keys=True),
+                    datetime.now(timezone.utc).isoformat(),
+                ),
+            )
+
+    async def _mark_coaching_consumed(self) -> None:
+        marker = getattr(self.state_manager, "mark_coaching_consumed", None)
+        if marker is not None:
+            await _maybe_await(marker())
+            return
+        with sqlite3.connect(getattr(self.state_manager, "db_path", self.db_path)) as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("UPDATE coaching SET consumed = 1 WHERE consumed = 0")
+
+    @staticmethod
+    def _public_data(value: Any) -> Any:
+        if is_dataclass(value):
+            return Orchestrator._public_data(asdict(value))
+        if isinstance(value, datetime):
+            return value.isoformat()
+        if isinstance(value, dict):
+            return {key: Orchestrator._public_data(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [Orchestrator._public_data(item) for item in value]
+        return value
 
     @staticmethod
     def _format_rows(rows: list[dict[str, Any]]) -> str:
