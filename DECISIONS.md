@@ -83,3 +83,10 @@ Priority: Important
 Decision: Phase 9 will resolve the provisional Review Gate timeout contract with a configurable `timeout_seconds`. When set, `TelegramReviewGate.submit()` auto-blocks after the timeout and logs the blocked decision; when unset, it waits indefinitely for an operator command.
 Rationale: Auto-block is the safest default for a diplomacy agent because it prevents stale or unreviewed drafts from being posted after a round boundary. Keeping the timeout optional preserves local/manual workflows where the operator intentionally wants the gate to wait.
 Revisit if: Orchestrator round management needs carry-forward drafts or explicit operator escalation instead of blocking.
+
+D-12: Adversarial remains optional, stateless, and locally schema-validated
+Date: 2026-05-26 | Status: Closed
+Priority: Important
+Decision: Phase 10 will implement `LLMAdversarialReader` as an independent optional module that validates JSON analysis locally against `config/schemas/adversarial.json`, while leaving skip behavior and persistence to the Orchestrator.
+Rationale: `ARCH_adversarial.md` defines the reader as standalone and optional, and `toolkit/llm_client` returns plain text. Local validation matches the established Extraction, Analyst, and Generation pattern without expanding toolkit contracts or coupling the module to pipeline state.
+Revisit if: toolkit adds portable structured output enforcement or Orchestrator needs adversarial reads to own persistence.

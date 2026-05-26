@@ -382,3 +382,17 @@ Verification:
 Phase 9 (Review Gate) is fully implemented and reviewed. All 14 focused tests pass; full regression 112 passed. Architecture sequence row 10 updated to "Phase 9 complete". DEVPLAN blocked with `awaiting-human-audit`.
 
 Next: Phase 10 — Adversarial module (optional LLM-based draft critique, skippable).
+
+Phase 10 (Adversarial) is the next module: optional LLM-based draft critique via toolkit/llm_client.
+
+## Module 10: Adversarial
+
+### Phase 10 Plan
+
+**Mode:** Discuss
+**Outcome:** Planned - Adversarial phase broken into three Build steps and state transitioned to execute
+**Contract changes:** Confirmed local JSON schema enforcement for adversarial analysis and that skip/persistence behavior remains with Orchestrator
+
+Planned `AdversarialResult` and `LLMAdversarialReader` implementation against `ARCH_adversarial.md`: core reader contract and failure handling first, structured prompt/schema validation second, and documentation/regression cleanup third. All LLM behavior will use toolkit-compatible dependency injection and fake clients in tests.
+
+Updated `ARCHITECTURE.md` Implementation Sequence row 11 to `In progress`.
