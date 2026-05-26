@@ -19,7 +19,7 @@
 #   logs/loop/iteration_NNN.txt    — human-readable summary
 #   logs/loop/summary.log          — one line per iteration
 #
-# Exit: 0=all CONTINUE, 1=ESCALATE, 2=NO_SIGNAL/ERROR
+# Exit: 0=normal, 1=blocked/phase-boundary, 2=error
 #
 # Dependencies: python3 (for JSON parsing), claude CLI or codex CLI
 
@@ -41,7 +41,7 @@ fi
 # ============================================================
 # CUSTOMIZE: Set this to your project's absolute path
 # ============================================================
-PROJECT_DIR="p:/shared/diplomat"
+PROJECT_DIR="/home/claude/workspace/diplomat"
 # ============================================================
 
 LOG_DIR="$PROJECT_DIR/logs/loop"
@@ -93,7 +93,7 @@ PROMPT="MANDATORY FIRST STEP: Read ${ADAPTER_FILE} now. It contains references t
 
 You are a stateless worker. You have no memory of previous iterations. Reconstruct all state from files.
 
-After reading ${ADAPTER_FILE} and its references, determine current state from DEVPLAN.md. Follow the Worker Spec step budget rules."
+After reading ${ADAPTER_FILE} and its references, determine current state from DEVPLAN.md. Follow the Worker Spec main loop (§4) — pseudocode, not interpretation."
 
 # Add multi-step budget to prompt if requested
 if [[ $MULTI_STEP -gt 1 ]]; then
@@ -121,7 +121,7 @@ fi
 PROMPT="$PROMPT
 
 Your final output MUST end with exactly these five lines — no text after:
-LOOP_SIGNAL: CONTINUE | ESCALATE
+EXIT: 0 | 1 | 2
 REASON: <one line — what was done or why stopping>
 ACTION_TYPE: PLAN | EXECUTE | REVIEW | CLOSE
 ACTION_ID: <phase.step>
@@ -209,11 +209,19 @@ while [[ $ITER -le $END_ITER ]]; do
   esac
 
   # Extract signal fields from result text (works for both backends)
-  SIGNAL=$(echo "$RESULT_TEXT" | grep -oP 'LOOP_SIGNAL: \K\w+' || echo "")
+  EXIT_SIGNAL=$(echo "$RESULT_TEXT" | grep -oP 'EXIT: \K[0-2]' || echo "")
   REASON=$(echo "$RESULT_TEXT" | grep -oP 'REASON: \K.+' || echo "")
-  ACTION_TYPE=$(echo "$RESULT_TEXT" | grep -oP 'ACTION_TYPE: \K\w+' || echo "")
+ACTION_TYPE=$(echo "$RESULT_TEXT" | grep -oP 'ACTION_TYPE: \K\w+' || echo "")
   ACTION_ID=$(echo "$RESULT_TEXT" | grep -oP 'ACTION_ID: \K\S+' || echo "")
   STEPS_COMPLETED=$(echo "$RESULT_TEXT" | grep -oP 'STEPS_COMPLETED: \K[0-9]+' || echo "1")
+
+  # Map EXIT code to legacy signal for summary.log compatibility
+  case "$EXIT_SIGNAL" in
+    0) SIGNAL="OK" ;;
+    1) SIGNAL="BLOCKED" ;;
+    2) SIGNAL="ERROR" ;;
+    *) SIGNAL="" ;;
+  esac
 
   # Write summary line
   TIMESTAMP=$(date -Iseconds)
@@ -228,20 +236,27 @@ while [[ $ITER -le $END_ITER ]]; do
   # regardless of whether the loop exits naturally or via break below.
   LAST_RAN=$ITER
 
-  # Decide whether to continue
-  if [[ "$SIGNAL" == "ESCALATE" ]]; then
-    if [[ "$ACTION_TYPE" == "CLOSE" ]]; then
-      echo "=== Phase-boundary at iteration $ITER (awaiting human audit): $REASON ==="
-      FINAL_EXIT=0
-    else
-      echo "=== ESCALATED at iteration $ITER (action=$ACTION_TYPE): $REASON ==="
-      FINAL_EXIT=1
-    fi
-    break
-  elif [[ "$SIGNAL" != "CONTINUE" ]]; then
+  # Decide whether to continue — read DEVPLAN state
+  if [[ -z "$EXIT_SIGNAL" ]]; then
     echo "=== NO SIGNAL at iteration $ITER — ERROR STOP ==="
     FINAL_EXIT=2
     break
+  elif [[ "$EXIT_SIGNAL" == "2" ]]; then
+    echo "=== ERROR at iteration $ITER (action=$ACTION_TYPE): $REASON ==="
+    FINAL_EXIT=2
+    break
+  elif [[ "$EXIT_SIGNAL" == "1" ]]; then
+    echo "=== BLOCKED at iteration $ITER: $REASON ==="
+    FINAL_EXIT=1
+    break
+  else
+    # EXIT 0 — check DEVPLAN for blocked (phase boundary)
+    BLOCKED=$(grep '^blocked:' "$PROJECT_DIR/DEVPLAN.md" | head -1 | sed 's/blocked:[[:space:]]*//')
+    if [[ "$BLOCKED" == "true" ]]; then
+      echo "=== Phase-boundary at iteration $ITER (awaiting human audit): $REASON ==="
+      FINAL_EXIT=0
+      break
+    fi
   fi
 
   echo "=== Iteration $ITER complete ==="
