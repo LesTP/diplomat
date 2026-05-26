@@ -380,3 +380,20 @@ Verification:
 - `.venv/bin/python -m pytest -q` — 121 passed
 
 No new gotchas promoted. No contract changes require propagation beyond the Phase 10 Adversarial API and schema already captured in `ARCH_adversarial.md` and `ARCHITECTURE.md`.
+
+### 2026-05-26 — Phase 11 Plan: Orchestrator
+
+**Action:** Phase Plan
+**Outcome:** 4-step breakdown committed to DEVPLAN
+
+Phase 11 is the final module — Orchestrator wires all 11 prior modules into the live event loop. Steps:
+
+- 11.1: `config/pipeline.yaml` schema + `registry.py` + `Orchestrator.__init__()` with startup sequence tests
+- 11.2: `start()`/`shutdown()` event loop, operator routing (command/INTEL/coaching), game message debounced extraction, all command handlers (/status /state /ledger /intel /divergences /edits)
+- 11.3: Round boundary detection (signal and time modes), dual-analyst + divergence, response pipeline with per-step failure handling (generation retry, adversarial skip, transport retry)
+- 11.4: CostAccountant wiring (per-round budget check), `main.py` entry point, full regression targeting 140+ tests, docs and phase close
+
+Design decisions captured in Gotchas:
+- Debounce: per-message cooldown (cancel+reschedule timer on each new message)
+- Budget lifecycle: per-round reset with CostBudget; session totals in cost_ledger.jsonl
+- CostAccountant role: budget gate at Orchestrator before dispatching each LLM call
