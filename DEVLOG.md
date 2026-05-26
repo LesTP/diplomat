@@ -435,3 +435,13 @@ Aligned the documented adversarial analysis keys with the schema and tests, usin
 Verification:
 - `.venv/bin/python -m pytest tests/test_adversarial.py -q` - 9 passed
 - `.venv/bin/python -m pytest -q` - 121 passed
+
+### Phase 10 Review: Adversarial
+
+**Mode:** Review
+**Outcome:** Passed — no must-fix, no should-fix items
+**Verdict:** Clean. Transitioning to close.
+
+Reviewed `AdversarialResult`, `LLMAdversarialReader`, schema artifacts, and prompt against ARCH_adversarial.md contract. All public API signatures match. Blank draft rejection, client exception handling, JSON parse failures, and schema violations all correctly return `success=False` without raising. Config artifacts (`adversarial.txt`, `adversarial.json`) present with correct structure. `validate_adversarial_analysis` exported in `__all__` mirrors the established extraction module pattern — acceptable.
+
+Full regression: 121 passed.
