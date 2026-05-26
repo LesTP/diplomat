@@ -89,7 +89,7 @@ MVP is the configuration that closes the core loop: messages arrive → state up
 | Orchestrator | Full event loop, round management, cost accountant wiring |
 
 ### Deferred for MVP
-- **Adversarial Reader** — valuable but not blocking; operator catches issues via review gate
+- **Adversarial Reader** — implemented as optional/skippable in Phase 10; Orchestrator decides whether to run it
 - **Secondary Analyst** — dual-provider divergence adds quality but primary alone is functional
 - **Provider rotation** — single provider per role is sufficient for a first game
 - **TelethonUserTransport** — only needed if bot-to-bot is blocked

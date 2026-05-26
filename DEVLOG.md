@@ -302,86 +302,7 @@ No gotchas to promote — the JSON key mismatch was caught and fixed in review. 
 Verification:
 - `python3 -m pytest -q` — 98 passed
 
-Phase 9 (Review Gate) is the next module: human approval workflow via toolkit/telegram_client.
-
-## Module 9: Review Gate
-
-### Phase 9 Plan
-
-**Mode:** Discuss
-**Outcome:** Planned - Review Gate phase broken into three Build steps and state transitioned to execute
-**Contract changes:** Resolved provisional timeout behavior as optional configurable auto-block
-
-Planned `ReviewDecision`, `AutoApproveReviewGate`, and `TelegramReviewGate` implementation against `ARCH_review_gate.md`: auto-approve path first, Telegram approve/edit/block workflow second, and timeout/documentation cleanup third. All Telegram behavior will use toolkit-compatible dependency injection and fake clients in tests.
-
-Updated `ARCHITECTURE.md` Implementation Sequence row 10 to `In progress`.
-
-### Step 9.1: Auto-approve review gate
-
-**Mode:** Build
-**Outcome:** Complete - implemented Review Gate decision type, auto-approve path, and focused tests
-**Contract changes:** Added `ReviewDecision` and `AutoApproveReviewGate` public exports in `src/modules/review_gate/__init__.py`
-
-Implemented `ReviewDecision` as a frozen dataclass matching `ARCH_review_gate.md`, and added `AutoApproveReviewGate.submit()` for `review_gate.enabled: false`. Successful nonblank drafts are approved with stripped final text. Failed or blank drafts return blocked decisions with explanatory edit notes, so the Orchestrator never posts unusable output through the disabled-review path.
-
-Added `tests/test_review_gate.py` coverage for successful auto-approval, failed draft blocking, blank draft blocking, and the `ReviewDecision` field contract.
-
-Verification:
-- `.venv/bin/python -m pytest tests/test_review_gate.py -q` - 4 passed
-
-### Step 9.2: Telegram review workflow
-
-**Mode:** Build
-**Outcome:** Complete - implemented TelegramReviewGate command workflow and fake-client tests
-**Contract changes:** Added `TelegramReviewGate` public export in `src/modules/review_gate/__init__.py`
-
-Implemented `TelegramReviewGate.submit()` with dependency-injected toolkit-compatible Telegram client calls. The gate sends a formatted coaching-channel review prompt containing draft text, optional reasoning, adversarial analysis or failure/skipped warning, and `/approve`, `/edit: ...`, `/block` command instructions. It waits for coaching-channel updates, ignores other channels, accepts approve/edit/block commands, retries after unknown commands, tracks in-memory pending state, and calls an optional `state_manager.log_review_decision(...)` hook when present.
-
-Expanded `tests/test_review_gate.py` to cover prompt formatting, approve/edit/block decisions, other-channel filtering, unknown command retry, optional edit-log hook calls, and adversarial failure formatting.
-
-Verification:
-- `.venv/bin/python -m pytest tests/test_review_gate.py -q` - 12 passed
-
-### Step 9.3: Timeout behavior and review handoff
-
-**Mode:** Build
-**Outcome:** Complete - timeout auto-block implemented, docs updated, full regression verified, state transitioned to review
-**Contract changes:** Resolved Review Gate timeout contract in `ARCH_review_gate.md`; updated `ARCHITECTURE.md` status/provisional contract list
-
-Added configurable `timeout_seconds` to `TelegramReviewGate`. When unset, the gate waits indefinitely for an operator command. When set, the wait is bounded with `asyncio.wait_for`; timeout returns a blocked `ReviewDecision` and still logs through the optional state-manager hook. Non-positive timeout values are rejected at construction.
-
-Updated `ARCH_review_gate.md` with the resolved timeout behavior, removed the resolved Review Gate timeout item from `ARCHITECTURE.md` provisional contracts, marked implementation sequence row 10 as `Phase 9 complete, pending review`, and transitioned DEVPLAN to `state: review`.
-
-Verification:
-- `.venv/bin/python -m pytest tests/test_review_gate.py -q` - 14 passed
-- `.venv/bin/python -m pytest -q` - 112 passed
-
-### Phase 9 Review: Review Gate
-
-**Mode:** Review
-**Outcome:** Complete — two should-fix items applied, no must-fix items found
-
-Review of `src/modules/review_gate/__init__.py` and `tests/test_review_gate.py` against `ARCH_review_gate.md`.
-
-**Must fix:** None. Contract fully implemented: `ReviewDecision`, `AutoApproveReviewGate`, `TelegramReviewGate.submit()`, formatting, approve/edit/block parsing, channel filtering, unknown-command retry, optional state-manager hook, configurable timeout auto-block.
-
-**Should fix applied:**
-1. Removed `_pending` instance flag — written in `submit()` but never read by any consumer; dead code. ARCH documents it as state but no caller observes it, so removing it is cleaner.
-2. Changed `except TimeoutError` to `except asyncio.TimeoutError` — more explicit and cross-version correct (pre-3.11, `asyncio.TimeoutError` is not a subclass of the built-in `TimeoutError`).
-
-**Optional skipped:** None identified.
-
-Verification:
-- `python3 -m pytest -q` — 112 passed
-
-### Phase 9 Complete: Review Gate
-
-**Action:** Phase Complete
-**Outcome:** Complete — audit gate set, DEVPLAN blocked awaiting human review
-
-Phase 9 (Review Gate) is fully implemented and reviewed. All 14 focused tests pass; full regression 112 passed. Architecture sequence row 10 updated to "Phase 9 complete". DEVPLAN blocked with `awaiting-human-audit`.
-
-Next: Phase 10 — Adversarial module (optional LLM-based draft critique, skippable).
+Phase 9 development entries archived to `DEVLOG_archive.md` (2026-05-26).
 
 Phase 10 (Adversarial) is the next module: optional LLM-based draft critique via toolkit/llm_client.
 
@@ -445,3 +366,17 @@ Verification:
 Reviewed `AdversarialResult`, `LLMAdversarialReader`, schema artifacts, and prompt against ARCH_adversarial.md contract. All public API signatures match. Blank draft rejection, client exception handling, JSON parse failures, and schema violations all correctly return `success=False` without raising. Config artifacts (`adversarial.txt`, `adversarial.json`) present with correct structure. `validate_adversarial_analysis` exported in `__all__` mirrors the established extraction module pattern — acceptable.
 
 Full regression: 121 passed.
+
+### 2026-05-26 — Phase 10 Complete
+
+**Action:** Phase Complete for Adversarial
+**Outcome:** Complete — human audit gate set in DEVPLAN frontmatter
+
+Completed `AdversarialResult`, `LLMAdversarialReader`, local JSON parsing and Draft 2020-12 schema validation, `config/prompts/adversarial.txt`, and `config/schemas/adversarial.json`. Phase Review found no must-fix or should-fix items.
+
+All 121 tests pass (9 adversarial tests + 112 regression). Adversarial remains optional and stateless; Orchestrator owns skip behavior and persistence.
+
+Verification:
+- `.venv/bin/python -m pytest -q` — 121 passed
+
+No new gotchas promoted. No contract changes require propagation beyond the Phase 10 Adversarial API and schema already captured in `ARCH_adversarial.md` and `ARCHITECTURE.md`.

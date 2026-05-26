@@ -1,8 +1,8 @@
 ---
 phase: 10
-blocked: false
+blocked: true
 state: close
-steps_remaining: 1
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -18,31 +18,17 @@ steps_remaining: 1
 
 ## Current Status
 
-- **Phase** — Phase 10: Adversarial, implementation complete. Pending review.
-- **Focus** — Adversarial implementation against `ARCH_adversarial.md`.
+- **Phase** — Phase 10: Adversarial complete.
+- **Focus** — Next module: Orchestrator.
 - **Blocked/Broken** — none.
 
 ## Phase 10: Adversarial
 
-Regime: Build. Scope: `AdversarialResult` dataclass, `LLMAdversarialReader.read()`, prompt/schema artifacts, local JSON schema enforcement, failure handling, and focused regression coverage. All LLM access stays behind toolkit-compatible dependency injection; no direct provider SDK imports. The module remains optional and stateless, with Orchestrator later deciding whether to skip it.
-
-Steps:
-- [x] 10.1 — Implement `AdversarialResult` and the core `LLMAdversarialReader` contract in `src/modules/adversarial/__init__.py`. Constructor accepts toolkit-compatible LLM config/client dependency, tier, prompt path, and schema path; `read(draft)` rejects blank drafts without calling the client, loads the system prompt, calls the injected completion client with the draft text, and returns `success=False` for client exceptions. Add `tests/test_adversarial.py` coverage for blank draft handling, client exception failure, prompt/draft forwarding, tier forwarding, and result contract fields. Run focused tests.
-- [x] 10.2 — Add structured adversarial JSON parsing and schema artifacts. Create `config/prompts/adversarial.txt` and `config/schemas/adversarial.json`; validate model responses locally against the schema; reject malformed JSON, schema violations, and schema-shaped failures through `AdversarialResult.success=False`. Cover valid analysis, malformed JSON, missing required keys, wrong value types, and optional/raw provider data preservation where available. Run focused tests plus full regression.
-- [x] 10.3 — Documentation cleanup and regression verification. Verify the full suite, update Phase 10 summary/status, mark implementation sequence row 11 as pending review, and transition DEVPLAN to `state: review`.
-
-Summary: Implemented `AdversarialResult`, `LLMAdversarialReader`, local adversarial JSON parsing and schema validation, `config/prompts/adversarial.txt`, `config/schemas/adversarial.json`, and 9 focused Adversarial tests. Full regression: 121 passed.
+Complete. Implemented `AdversarialResult`, `LLMAdversarialReader`, local adversarial JSON/schema validation, prompt/schema artifacts, and 9 focused tests with 121 total regression tests passing. Phase Review passed with no must-fix or should-fix items. See `DEVLOG.md`.
 
 ## Phase 9: Review Gate
 
-Regime: Build. Scope: `ReviewDecision` dataclass, `AutoApproveReviewGate`, `TelegramReviewGate.submit()`, draft/reasoning/adversarial message formatting, approve/edit/block command parsing, optional timeout handling, edit-log persistence hook, and focused regression coverage. All Telegram access stays behind toolkit-compatible dependency injection; no direct Telegram SDK imports.
-
-Steps:
-- [x] 9.1 — Implement `ReviewDecision` and `AutoApproveReviewGate` in `src/modules/review_gate/__init__.py`. `AutoApproveReviewGate.submit()` immediately approves successful drafts, returns blocked decisions for failed/blank drafts, and ignores adversarial input. Add `tests/test_review_gate.py` coverage for approve, failed draft, blank draft, and contract fields. Run focused tests.
-- [x] 9.2 — Implement `TelegramReviewGate.submit()` with dependency-injected Telegram client and state manager. Format the review prompt with draft text, reasoning when present, adversarial analysis or skipped/failed warning, and command instructions; wait for the next operator command on the configured coaching channel; support `/approve`, `/edit: ...`, and `/block`; reject unrelated channel messages and unknown commands while continuing to wait. Log decisions through a narrow state-manager hook when available. Add fake-client tests for formatting, approve/edit/block decisions, command filtering, unknown command retry, and edit-log calls.
-- [x] 9.3 — Add timeout behavior and documentation cleanup. Resolve the provisional timeout contract as configurable auto-block after `timeout_seconds` when set, and wait indefinitely when unset. Cover timeout auto-block with focused tests, run full regression, update Phase 9 summary/status, mark implementation sequence row 10 as pending review, and transition DEVPLAN to `state: review`.
-
-Summary: Implemented `ReviewDecision`, `AutoApproveReviewGate`, `TelegramReviewGate`, approve/edit/block command workflow, coaching-channel filtering, unknown-command retry, optional review-decision logging hook, configurable timeout auto-block, and 14 focused Review Gate tests. Full regression: 112 passed. Phase Review applied two should-fix items: removed dead `_pending` flag, changed `except TimeoutError` to `except asyncio.TimeoutError` for cross-version correctness. Phase complete, awaiting human audit.
+Complete. Implemented review decisions, auto-approve mode, Telegram approve/edit/block workflow, optional timeout auto-block, and 14 focused tests with 112 total regression tests passing. Phase Review applied two should-fix items. See `DEVLOG_archive.md`.
 
 ## Phase 8: Generation
 
