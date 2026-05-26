@@ -6,9 +6,8 @@ import json
 import os
 import sqlite3
 import uuid
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from datetime import datetime, timezone
-from dataclasses import asdict, is_dataclass
 from inspect import isawaitable
 from pathlib import Path
 from typing import Any
@@ -82,6 +81,8 @@ class Orchestrator:
         module_overrides: dict[str, Any] | None = None,
         llm_client: Any | None = None,
         telegram_client: Any | None = None,
+        cost_accountant: Any | None = None,
+        cost_accountant_factory: Any | None = None,
         base_path: str | Path | None = None,
     ) -> None:
         self.config_path = Path(config_path)
@@ -95,6 +96,9 @@ class Orchestrator:
         self.prompts = self._load_prompt_files(self.paths)
         self.llm_configs = self._build_llm_configs(self.config["llm_providers"])
         self.cost_config = dict(self.config["cost"])
+        self.cost_accountant = cost_accountant or self._build_cost_accountant(
+            cost_accountant_factory
+        )
         self.feature_flags = dict(self.config["feature_flags"])
         self.round_detection = dict(self.config["round_detection"])
         self.message_debounce_seconds = float(
@@ -106,6 +110,7 @@ class Orchestrator:
         self._round_timer_task: asyncio.Task[None] | None = None
 
         self._initialize_sqlite(self.db_path)
+        self._reset_round_budget()
         self.modules = self._build_modules(
             module_overrides=module_overrides or {},
             llm_client=llm_client,
@@ -186,6 +191,8 @@ class Orchestrator:
     async def _apply_extraction(
         self, content: str, trigger_type: str, trigger_ref: str
     ) -> None:
+        if not await self._budget_available(f"extraction:{trigger_type}"):
+            return
         current_state = await self.state_manager.get_full_state()
         result = await self.extractor.extract(content, current_state, trigger_type)
         if not getattr(result, "success", False) or result.patch is None:
@@ -322,6 +329,10 @@ class Orchestrator:
 
     async def handle_round_boundary(self) -> None:
         state = await self.state_manager.get_full_state()
+        if not await self._budget_available("analyst:primary"):
+            return
+        if not await self._budget_available("analyst:secondary"):
+            return
         primary_result, secondary_result = await asyncio.gather(
             self.primary_analyst.analyze(state),
             self.secondary_analyst.analyze(state),
@@ -341,6 +352,7 @@ class Orchestrator:
         await self._store_intelligence(primary_result, secondary_result, divergences)
         self.current_round += 1
         await self._set_game_state("round_number", str(self.current_round))
+        self._reset_round_budget()
 
     async def run_response_pipeline(self, trigger_event: Any | None = None) -> bool:
         persona_prompt = await self.persona.get_base_prompt()
@@ -359,9 +371,13 @@ class Orchestrator:
             review_gate_enabled=self.feature_flags["review_gate"]["enabled"],
         )
 
+        if not await self._budget_available("generation"):
+            return False
         draft = await self.generator.generate(context)
         if not draft.success:
             await asyncio.sleep(0)
+            if not await self._budget_available("generation:retry"):
+                return False
             draft = await self.generator.generate(context)
         if not draft.success:
             await self._send_operator(f"Generation failed: {draft.error}")
@@ -369,6 +385,8 @@ class Orchestrator:
 
         adversarial_result = None
         if self.feature_flags["adversarial"]["enabled"]:
+            if not await self._budget_available("adversarial"):
+                return False
             adversarial_result = await self.adversarial.read(draft.response_text or "")
             if not getattr(adversarial_result, "success", False):
                 await self._send_operator("Adversarial read failed; continuing.")
@@ -404,6 +422,51 @@ class Orchestrator:
             event.channel == "public"
             and self.faction_id.lower() in event.content.lower()
         )
+
+    def _build_cost_accountant(self, factory: Any | None) -> Any | None:
+        if factory is not None:
+            return factory(self.cost_config)
+        try:
+            from toolkit.cost_accountant import CostAccountant
+        except ImportError:
+            return None
+        try:
+            return CostAccountant(
+                per_round_budget_usd=self.cost_config["per_round_budget_usd"],
+                session_budget_usd=self.cost_config["session_budget_usd"],
+                ledger_path=self._path(
+                    self.cost_config.get("ledger_path", "data/cost_ledger.jsonl")
+                ),
+            )
+        except TypeError:
+            return CostAccountant()
+
+    def _reset_round_budget(self) -> None:
+        if self.cost_accountant is None:
+            return
+        for method_name in ("reset_round_budget", "start_round", "reset"):
+            method = getattr(self.cost_accountant, method_name, None)
+            if method is not None:
+                result = method(self.cost_config["per_round_budget_usd"])
+                if isawaitable(result):
+                    raise PipelineConfigError(
+                        f"Cost accountant {method_name} must be synchronous"
+                    )
+                return
+
+    async def _budget_available(self, operation: str) -> bool:
+        if self.cost_accountant is None:
+            return True
+        checker = getattr(self.cost_accountant, "available_budget", None)
+        if checker is None:
+            return True
+        remaining = await _maybe_await(checker())
+        if remaining is None or remaining > 0:
+            return True
+        await self._send_operator(
+            f"Cost budget exceeded before {operation}; skipping LLM call."
+        )
+        return False
 
     async def _coaching_context(self) -> CoachingContext:
         rows = await self._query_state("coaching", {"consumed": False})

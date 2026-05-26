@@ -442,3 +442,18 @@ Added focused coverage for signal/time round detection, primary and secondary an
 Verification:
 - `python3 -m pytest tests/test_orchestrator.py -q` - 41 passed
 - `python3 -m pytest -q` - 162 passed
+
+### Step 11.4: Cost governance, main.py, full regression, and docs
+
+**Mode:** Build
+**Outcome:** Complete - per-call cost gates, entry point, final docs, and full regression verification added
+**Contract changes:** Added `src/main.py`; extended `Orchestrator.__init__()` with cost-accountant injection
+
+Added cost governance hooks around every LLM-backed operation owned by Orchestrator: extraction, primary analyst, secondary analyst, generation, generation retry, and adversarial read. The Orchestrator resets the per-round budget on startup and after each successful round advance, checks `available_budget()` before each LLM call, alerts the operator on exhausted budget, and skips the call as a hard limit.
+
+Implemented `src/main.py` to load `.env`, read `DIPLOMAT_PIPELINE_CONFIG` or default `config/pipeline.yaml`, instantiate Orchestrator with toolkit-backed modules, run `asyncio.run()`, and shut down cleanly on SIGINT/SIGTERM. Updated Phase 11 docs and marked the architecture implementation sequence complete.
+
+Verification:
+- `python3 -m pytest tests/test_orchestrator.py -q` - 43 passed
+- `python3 -m py_compile src/main.py src/orchestrator.py` - passed
+- `python3 -m pytest -q` - 164 passed

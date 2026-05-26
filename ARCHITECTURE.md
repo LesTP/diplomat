@@ -120,7 +120,7 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 | 9 | Generation | LLM call with assembled context. Core output path. | Phase 8 complete |
 | 10 | Review Gate | Human approval workflow via Telegram. Needed before any posting. | Phase 9 complete |
 | 11 | Adversarial | Optional LLM call. Valuable but skippable — Review Gate catches issues manually. | Phase 10 complete |
-| 12 | Orchestrator | Wires everything. Event loop, round management, cost accountant, failure handling. Last because it requires all modules. | Not started |
+| 12 | Orchestrator | Wires everything. Event loop, round management, cost accountant, failure handling. Last because it requires all modules. | Complete |
 
 ## Coupling Notes
 
@@ -172,5 +172,5 @@ Revisit if: Operator consistently approves without edit.
 ## Provisional Contracts
 
 - **Extraction ↔ toolkit/llm_client structured output** — Resolved during Phase 2. Extraction handles JSON schema enforcement locally: prompt engineering + response parsing + jsonschema validation. No toolkit extension needed. Empty root object (`{}`) is a valid patch.
-- **Orchestrator ↔ toolkit/cost_accountant budget lifecycle** — the Orchestrator creates a CostBudget per round from pipeline.yaml config. Unclear whether the budget should reset per round (strict) or accumulate across rounds (flexible with session cap). Resolve during Module 12.
-- **Debounce strategy for Extraction** — pipeline.yaml specifies `debounce_seconds: 2` but the batching semantics (time-window batch vs. per-message cooldown) are unspecified. Resolve during Module 12.
+- **Orchestrator ↔ toolkit/cost_accountant budget lifecycle** — Resolved during Phase 11. The Orchestrator resets a strict per-round budget from `pipeline.yaml` and checks `available_budget()` before every LLM-backed call it owns; session totals remain the cost accountant ledger's responsibility.
+- **Debounce strategy for Extraction** — Resolved during Phase 11. Game-message extraction uses per-message cooldown: each new message cancels and replaces the pending extraction task.

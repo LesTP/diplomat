@@ -225,6 +225,22 @@ class FakeReviewGate:
         return self.decision
 
 
+class FakeCostAccountant:
+    def __init__(self, budgets):
+        self.budgets = list(budgets)
+        self.checks = 0
+        self.resets = []
+
+    def available_budget(self):
+        self.checks += 1
+        if self.budgets:
+            return self.budgets.pop(0)
+        return 1
+
+    def reset_round_budget(self, amount):
+        self.resets.append(amount)
+
+
 def _copy_project_config(tmp_path: Path) -> Path:
     for relative in (
         "config/coaching_routes.yaml",
@@ -265,11 +281,13 @@ def _orchestrator(tmp_path, **overrides):
     state_manager = overrides.pop("state_manager", FakeStateManager())
     extractor = overrides.pop("extractor", FakeExtractor())
     transport = overrides.pop("transport", FakeTransport())
+    cost_accountant = overrides.pop("cost_accountant", None)
     config_path = _copy_project_config(tmp_path)
     orchestrator = Orchestrator(
         config_path,
         base_path=tmp_path,
         llm_client=FakeLLMClient(),
+        cost_accountant=cost_accountant,
         module_overrides={
             "event_store": event_store,
             "state_manager": state_manager,
@@ -701,3 +719,35 @@ async def test_transport_send_retries_three_times(tmp_path):
 
     assert sent is True
     assert transport.sent[-1].channel == "public"
+
+
+@pytest.mark.asyncio
+async def test_cost_budget_blocks_generation_and_alerts_operator(tmp_path):
+    cost_accountant = FakeCostAccountant([0])
+    generator = FakeGenerator([_generation()])
+    orchestrator, _event_store, _state_manager, _extractor, transport = (
+        _pipeline_orchestrator(
+            tmp_path,
+            cost_accountant=cost_accountant,
+            generator=generator,
+        )
+    )
+
+    sent = await orchestrator.run_response_pipeline()
+
+    assert sent is False
+    assert generator.calls == []
+    assert "Cost budget exceeded before generation" in transport.sent[0].content
+
+
+@pytest.mark.asyncio
+async def test_cost_budget_resets_per_round(tmp_path):
+    cost_accountant = FakeCostAccountant([1, 1])
+    orchestrator, _event_store, _state_manager, _extractor, _transport = (
+        _pipeline_orchestrator(tmp_path, cost_accountant=cost_accountant)
+    )
+
+    await orchestrator.handle_round_boundary()
+
+    assert cost_accountant.resets == [1.0, 1.0]
+    assert cost_accountant.checks == 2
