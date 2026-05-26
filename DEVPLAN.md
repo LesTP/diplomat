@@ -1,8 +1,8 @@
 ---
 phase: 10
 blocked: false
-state: execute
-steps_remaining: 5
+state: review
+steps_remaining: 4
 ---
 
 # Diplomat — Development Plan
@@ -18,8 +18,8 @@ steps_remaining: 5
 
 ## Current Status
 
-- **Phase** — Phase 10: Adversarial, in progress.
-- **Focus** — Phase 10 documentation cleanup and regression verification.
+- **Phase** — Phase 10: Adversarial, implementation complete. Pending review.
+- **Focus** — Adversarial implementation against `ARCH_adversarial.md`.
 - **Blocked/Broken** — none.
 
 ## Phase 10: Adversarial
@@ -29,7 +29,9 @@ Regime: Build. Scope: `AdversarialResult` dataclass, `LLMAdversarialReader.read(
 Steps:
 - [x] 10.1 — Implement `AdversarialResult` and the core `LLMAdversarialReader` contract in `src/modules/adversarial/__init__.py`. Constructor accepts toolkit-compatible LLM config/client dependency, tier, prompt path, and schema path; `read(draft)` rejects blank drafts without calling the client, loads the system prompt, calls the injected completion client with the draft text, and returns `success=False` for client exceptions. Add `tests/test_adversarial.py` coverage for blank draft handling, client exception failure, prompt/draft forwarding, tier forwarding, and result contract fields. Run focused tests.
 - [x] 10.2 — Add structured adversarial JSON parsing and schema artifacts. Create `config/prompts/adversarial.txt` and `config/schemas/adversarial.json`; validate model responses locally against the schema; reject malformed JSON, schema violations, and schema-shaped failures through `AdversarialResult.success=False`. Cover valid analysis, malformed JSON, missing required keys, wrong value types, and optional/raw provider data preservation where available. Run focused tests plus full regression.
-- [ ] 10.3 — Documentation cleanup and regression verification. Verify the full suite, update Phase 10 summary/status, mark implementation sequence row 11 as pending review, and transition DEVPLAN to `state: review`.
+- [x] 10.3 — Documentation cleanup and regression verification. Verify the full suite, update Phase 10 summary/status, mark implementation sequence row 11 as pending review, and transition DEVPLAN to `state: review`.
+
+Summary: Implemented `AdversarialResult`, `LLMAdversarialReader`, local adversarial JSON parsing and schema validation, `config/prompts/adversarial.txt`, `config/schemas/adversarial.json`, and 9 focused Adversarial tests. Full regression: 121 passed.
 
 ## Phase 9: Review Gate
 

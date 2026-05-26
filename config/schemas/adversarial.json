@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": [
     "reveals",
-    "commitments",
+    "commits_to",
     "exploitable",
     "counter_moves"
   ],
@@ -18,7 +18,7 @@
         "minLength": 1
       }
     },
-    "commitments": {
+    "commits_to": {
       "type": "array",
       "items": {
         "type": "string",

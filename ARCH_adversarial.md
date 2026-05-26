@@ -29,10 +29,10 @@ class AdversarialResult:
 **LLMAdversarialReader** — calls `toolkit/llm_client.complete()` with provider and tier from pipeline.yaml (default: OpenAI at QUALITY). System prompt from `config/prompts/adversarial.txt`. Response validated against `config/schemas/adversarial.json`.
 
 The analysis dict typically contains:
-- What the message reveals about the faction's position
-- What commitments it makes (explicit and implicit)
-- Where an opponent could exploit ambiguity or inconsistency
-- Suggested counter-moves an opponent might make
+- `reveals`: what the message reveals about the faction's position
+- `commits_to`: commitments it makes, explicit and implicit
+- `exploitable`: where an opponent could exploit ambiguity or inconsistency
+- `counter_moves`: counter-moves an opponent might make
 
 ## Inputs
 - Draft response text from Generation

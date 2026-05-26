@@ -6,7 +6,7 @@ not include markdown, commentary, code fences, or keys outside the schema.
 
 Rules:
 - Identify what the draft reveals about our faction's position or priorities.
-- Identify explicit and implicit commitments the draft creates.
+- Identify explicit and implicit commitments the draft creates in `commits_to`.
 - Identify exploitable ambiguity, inconsistency, overcommitment, or timing risk.
 - Suggest counter-moves an opponent might make after reading the draft.
 - Keep items concise and evidence-based. Use empty arrays when no issue is

@@ -423,3 +423,15 @@ Created the adversarial prompt and schema artifacts for the four analysis bucket
 Verification:
 - `.venv/bin/python -m pytest tests/test_adversarial.py -q` - 9 passed
 - `.venv/bin/python -m pytest -q` - 121 passed
+
+### Step 10.3: Documentation cleanup and review handoff
+
+**Mode:** Build
+**Outcome:** Complete - docs updated, full regression verified, state transitioned to review
+**Contract changes:** Updated `ARCH_adversarial.md` and `ARCHITECTURE.md`
+
+Aligned the documented adversarial analysis keys with the schema and tests, using `commits_to` consistently with the existing ARCH usage example. Updated `ARCH_adversarial.md` to list the concrete schema keys, marked implementation sequence row 11 as `Phase 10 complete, pending review`, added the Phase 10 DEVPLAN summary, and transitioned DEVPLAN to `state: review`.
+
+Verification:
+- `.venv/bin/python -m pytest tests/test_adversarial.py -q` - 9 passed
+- `.venv/bin/python -m pytest -q` - 121 passed

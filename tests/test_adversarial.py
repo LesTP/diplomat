@@ -36,13 +36,13 @@ def schema_path(tmp_path):
                 "additionalProperties": False,
                 "required": [
                     "reveals",
-                    "commitments",
+                    "commits_to",
                     "exploitable",
                     "counter_moves",
                 ],
                 "properties": {
                     "reveals": {"type": "array", "items": {"type": "string"}},
-                    "commitments": {"type": "array", "items": {"type": "string"}},
+                    "commits_to": {"type": "array", "items": {"type": "string"}},
                     "exploitable": {"type": "array", "items": {"type": "string"}},
                     "counter_moves": {"type": "array", "items": {"type": "string"}},
                 },
@@ -56,7 +56,7 @@ def schema_path(tmp_path):
 def _analysis() -> dict:
     return {
         "reveals": ["We want Belgium cooperation."],
-        "commitments": ["Support this round."],
+        "commits_to": ["Support this round."],
         "exploitable": ["Opponent could demand specifics."],
         "counter_moves": ["Ask for a public commitment."],
     }
