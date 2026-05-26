@@ -412,3 +412,17 @@ Added `tests/test_orchestrator.py` coverage for successful construction with fak
 
 Verification:
 - `python3 -m pytest tests/test_orchestrator.py -q` - 19 passed
+
+### Step 11.2: Event loop, operator routing, and command dispatch
+
+**Mode:** Build
+**Outcome:** Complete - async event loop, shutdown, operator routing, debounced game-message extraction, command replies, and regression tests added
+**Contract changes:** Extended `Orchestrator` public behavior with `start()`, `shutdown()`, and `process_event()`
+
+Implemented the live event dispatch layer: `start()` consumes the configured transport listener and appends every event to the event store; `shutdown()` cancels pending debounce work and closes transports with a close hook. Operator messages now route through `TaggedCoachingParser`: slash commands dispatch to handlers, `INTEL` runs extraction with `intel_correction` and applies patches, and other coaching entries are stored unconsumed. Non-operator messages schedule debounced extraction so new messages cancel and replace the pending extraction task.
+
+Added command handlers for `/status`, `/state`, `/ledger`, `/intel`, `/divergences`, and `/edits`, each sending a coaching-channel `OutboundMessage`. Added focused fake-driven tests for listener startup/shutdown, command routing, INTEL patch application, coaching persistence, debounce cancel/reschedule, and command reply formats.
+
+Verification:
+- `python3 -m pytest tests/test_orchestrator.py -q` - 30 passed
+- `python3 -m pytest -q` - 151 passed

@@ -1,13 +1,22 @@
 from __future__ import annotations
 
+import asyncio
+import contextlib
+import json
 import os
 import sqlite3
+import uuid
 from dataclasses import dataclass
+from datetime import datetime, timezone
+from inspect import isawaitable
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from modules.coaching import CoachingEvent, Command
+from modules.transport import OutboundMessage
+from modules.types import PatchSource
 from registry import resolve_class
 
 
@@ -84,7 +93,12 @@ class Orchestrator:
         self.cost_config = dict(self.config["cost"])
         self.feature_flags = dict(self.config["feature_flags"])
         self.round_detection = dict(self.config["round_detection"])
+        self.message_debounce_seconds = float(
+            self.config.get("message_debounce_seconds", 0.5)
+        )
         self.current_round = 1
+        self._running = False
+        self._debounce_task: asyncio.Task[None] | None = None
 
         self._initialize_sqlite(self.db_path)
         self.modules = self._build_modules(
@@ -94,6 +108,197 @@ class Orchestrator:
         )
         for name, instance in self.modules.items():
             setattr(self, name, instance)
+
+    async def start(self) -> None:
+        self._running = True
+        try:
+            async for event in self.transport.listen():
+                if not self._running:
+                    break
+                await self.process_event(event)
+        finally:
+            self._running = False
+
+    async def shutdown(self) -> None:
+        self._running = False
+        if self._debounce_task is not None and not self._debounce_task.done():
+            self._debounce_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._debounce_task
+
+        close = getattr(self.transport, "close", None)
+        if close is None:
+            close = getattr(self.transport, "aclose", None)
+        if close is not None:
+            await _maybe_await(close())
+
+    async def process_event(self, event: Any) -> str:
+        event_id = await self.event_store.append(event, self.current_round)
+        if event.sender_faction == "operator":
+            await self._route_operator_event(event, event_id)
+            return event_id
+
+        self._enqueue_message_extraction(event, event_id)
+        return event_id
+
+    async def _route_operator_event(self, event: Any, event_id: str) -> None:
+        parsed = self.coaching_parser.parse(event.content)
+        if isinstance(parsed, Command):
+            await self._dispatch_command(parsed)
+            return
+        if isinstance(parsed, CoachingEvent) and parsed.route == "state_updater":
+            await self._apply_extraction(parsed.content, "intel_correction", event_id)
+            return
+        if isinstance(parsed, CoachingEvent):
+            await self._store_coaching(parsed)
+            return
+        raise RuntimeError(f"Unsupported coaching parser result: {parsed!r}")
+
+    def _enqueue_message_extraction(self, event: Any, event_id: str) -> None:
+        if self._debounce_task is not None and not self._debounce_task.done():
+            self._debounce_task.cancel()
+        self._debounce_task = asyncio.create_task(
+            self._debounced_message_extraction(event, event_id)
+        )
+
+    async def _debounced_message_extraction(self, event: Any, event_id: str) -> None:
+        try:
+            await asyncio.sleep(self.message_debounce_seconds)
+            await self._apply_extraction(event.content, "message", event_id)
+        except asyncio.CancelledError:
+            raise
+
+    async def _apply_extraction(
+        self, content: str, trigger_type: str, trigger_ref: str
+    ) -> None:
+        current_state = await self.state_manager.get_full_state()
+        result = await self.extractor.extract(content, current_state, trigger_type)
+        if not getattr(result, "success", False) or result.patch is None:
+            return
+        await self.state_manager.apply_patch(
+            result.patch,
+            PatchSource(trigger_type=trigger_type, trigger_ref=trigger_ref),
+        )
+
+    async def _store_coaching(self, event: CoachingEvent) -> str:
+        coaching_id = f"coaching-{uuid.uuid4()}"
+        store = getattr(self.state_manager, "store_coaching", None)
+        if store is not None:
+            await _maybe_await(
+                store(
+                    coaching_id=coaching_id,
+                    tag=event.coaching_type,
+                    content=event.content,
+                    consumed=False,
+                )
+            )
+            return coaching_id
+
+        db_path = getattr(self.state_manager, "db_path", self.db_path)
+        with sqlite3.connect(db_path) as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute(
+                """
+                INSERT INTO coaching (coaching_id, tag, content, consumed, created_at)
+                VALUES (?, ?, ?, 0, ?)
+                """,
+                (
+                    coaching_id,
+                    event.coaching_type,
+                    event.content,
+                    datetime.now(timezone.utc).isoformat(),
+                ),
+            )
+        return coaching_id
+
+    async def _dispatch_command(self, command: Command) -> None:
+        handlers = {
+            "status": self._command_status,
+            "state": self._command_state,
+            "ledger": self._command_ledger,
+            "intel": self._command_intel,
+            "divergences": self._command_divergences,
+            "edits": self._command_edits,
+        }
+        handler = handlers.get(command.name)
+        if handler is None:
+            await self._send_operator(f"Unsupported command: /{command.name}")
+            return
+        await self._send_operator(await handler(command))
+
+    async def _command_status(self, _command: Command) -> str:
+        coaching_count = len(await self._query_state("coaching", {"consumed": False}))
+        return "\n".join(
+            [
+                "Status",
+                f"Faction: {self.faction_id}",
+                f"Round: {self.current_round}",
+                f"State: running={self._running}",
+                f"Unconsumed coaching: {coaching_count}",
+            ]
+        )
+
+    async def _command_state(self, _command: Command) -> str:
+        state = await self.state_manager.get_full_state()
+        return "State\n" + json.dumps(state, indent=2, sort_keys=True)
+
+    async def _command_ledger(self, _command: Command) -> str:
+        return "\n".join(
+            [
+                "Ledger",
+                f"Per-round budget: ${self.cost_config['per_round_budget_usd']:.2f}",
+                f"Session budget: ${self.cost_config['session_budget_usd']:.2f}",
+            ]
+        )
+
+    async def _command_intel(self, _command: Command) -> str:
+        rows = await self._query_state("intelligence", {})
+        return "Intelligence\n" + self._format_rows(rows)
+
+    async def _command_divergences(self, _command: Command) -> str:
+        rows = await self._query_state("intelligence", {})
+        divergences: list[Any] = []
+        for row in rows:
+            analysis = self._json_from_row(row, "analysis_json")
+            if isinstance(analysis.get("divergences"), list):
+                divergences.extend(analysis["divergences"])
+        if not divergences:
+            return "Divergences\n(none)"
+        return "Divergences\n" + json.dumps(divergences, indent=2, sort_keys=True)
+
+    async def _command_edits(self, _command: Command) -> str:
+        rows = await self._query_state("review_gate_edits", {})
+        return "Review Edits\n" + self._format_rows(rows)
+
+    async def _query_state(
+        self, entity_type: str, filters: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        try:
+            return await self.state_manager.query(entity_type, filters)
+        except Exception:
+            return []
+
+    async def _send_operator(self, content: str) -> None:
+        await self.transport.send(OutboundMessage(content=content, channel="coaching"))
+
+    @staticmethod
+    def _format_rows(rows: list[dict[str, Any]]) -> str:
+        if not rows:
+            return "(none)"
+        return json.dumps(rows, indent=2, sort_keys=True)
+
+    @staticmethod
+    def _json_from_row(row: dict[str, Any], key: str) -> dict[str, Any]:
+        value = row.get(key)
+        if isinstance(value, dict):
+            return value
+        if isinstance(value, str):
+            try:
+                parsed = json.loads(value)
+            except json.JSONDecodeError:
+                return {}
+            return parsed if isinstance(parsed, dict) else {}
+        return {}
 
     def _load_config(self, config_path: Path) -> dict[str, Any]:
         try:
@@ -400,6 +605,12 @@ class Orchestrator:
 
 async def _noop_writer(_line: str) -> None:
     return None
+
+
+async def _maybe_await(value: Any) -> Any:
+    if isawaitable(value):
+        return await value
+    return value
 
 
 __all__ = ["Orchestrator", "PipelineConfigError", "PipelinePaths"]

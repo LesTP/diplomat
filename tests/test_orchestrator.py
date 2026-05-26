@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import asyncio
 import shutil
 from pathlib import Path
+from datetime import datetime, timezone
 
 import pytest
 import yaml
 
+from modules.extraction import ExtractionResult
+from modules.types import InboundEvent, StatePatch
+from modules.transport import OutboundMessage
 from modules.analyst import LLMAnalyst
 from modules.context_assembler import DefaultContextAssembler
 from modules.coaching import TaggedCoachingParser
@@ -32,6 +37,78 @@ class FakeTelegramClient:
         return None
 
 
+class FakeEventStore:
+    def __init__(self):
+        self.events = []
+
+    async def append(self, event, round_number):
+        event_id = f"event-{len(self.events) + 1}"
+        self.events.append((event_id, event, round_number))
+        return event_id
+
+
+class FakeStateManager:
+    def __init__(self):
+        self.patches = []
+        self.coaching = []
+        self.rows = {
+            "coaching": [],
+            "intelligence": [],
+            "review_gate_edits": [],
+        }
+
+    async def get_full_state(self):
+        return {"promises": []}
+
+    async def apply_patch(self, patch, source):
+        self.patches.append((patch, source))
+
+    async def query(self, entity_type, filters=None):
+        rows = list(self.rows.get(entity_type, []))
+        filters = filters or {}
+        return [
+            row
+            for row in rows
+            if all(row.get(key) == value for key, value in filters.items())
+        ]
+
+    async def store_coaching(self, coaching_id, tag, content, consumed):
+        row = {
+            "coaching_id": coaching_id,
+            "tag": tag,
+            "content": content,
+            "consumed": consumed,
+        }
+        self.coaching.append(row)
+        self.rows["coaching"].append(row)
+
+
+class FakeExtractor:
+    def __init__(self):
+        self.calls = []
+
+    async def extract(self, input_text, current_state, trigger_type):
+        self.calls.append((input_text, current_state, trigger_type))
+        return ExtractionResult(success=True, patch=StatePatch({}), error=None)
+
+
+class FakeTransport:
+    def __init__(self, events=None):
+        self.events = list(events or [])
+        self.sent = []
+        self.closed = False
+
+    async def send(self, message):
+        self.sent.append(message)
+
+    async def listen(self):
+        for event in self.events:
+            yield event
+
+    async def close(self):
+        self.closed = True
+
+
 def _copy_project_config(tmp_path: Path) -> Path:
     for relative in (
         "config/coaching_routes.yaml",
@@ -56,6 +133,37 @@ def _copy_project_config(tmp_path: Path) -> Path:
     config_path = tmp_path / "config/pipeline.yaml"
     config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
     return config_path
+
+
+def _event(sender_faction="operator", content="/status"):
+    return InboundEvent(
+        timestamp=datetime(2026, 5, 26, tzinfo=timezone.utc),
+        sender_faction=sender_faction,
+        channel="coaching" if sender_faction == "operator" else "public",
+        content=content,
+    )
+
+
+def _orchestrator(tmp_path, **overrides):
+    event_store = overrides.pop("event_store", FakeEventStore())
+    state_manager = overrides.pop("state_manager", FakeStateManager())
+    extractor = overrides.pop("extractor", FakeExtractor())
+    transport = overrides.pop("transport", FakeTransport())
+    config_path = _copy_project_config(tmp_path)
+    orchestrator = Orchestrator(
+        config_path,
+        base_path=tmp_path,
+        llm_client=FakeLLMClient(),
+        module_overrides={
+            "event_store": event_store,
+            "state_manager": state_manager,
+            "extractor": extractor,
+            "transport": transport,
+            **overrides,
+        },
+    )
+    orchestrator.message_debounce_seconds = 0
+    return orchestrator, event_store, state_manager, extractor, transport
 
 
 def test_successful_instantiation_with_fakes(tmp_path, monkeypatch):
@@ -130,3 +238,119 @@ def test_registry_lookup_for_each_module_type(name, expected):
 def test_registry_lookup_unknown_target_raises():
     with pytest.raises(RegistryLookupError, match="Unable to resolve"):
         resolve_class("missing.module.Target")
+
+
+@pytest.mark.asyncio
+async def test_start_listens_and_shutdown_closes_transport(tmp_path):
+    transport = FakeTransport([_event(content="/status")])
+    orchestrator, event_store, _state_manager, _extractor, _transport = _orchestrator(
+        tmp_path,
+        transport=transport,
+    )
+
+    await orchestrator.start()
+    await orchestrator.shutdown()
+
+    assert event_store.events[0][1].content == "/status"
+    assert transport.sent[0].channel == "coaching"
+    assert "Status" in transport.sent[0].content
+    assert transport.closed is True
+
+
+@pytest.mark.asyncio
+async def test_operator_command_routes_to_command_handler(tmp_path):
+    orchestrator, _event_store, _state_manager, _extractor, transport = _orchestrator(
+        tmp_path
+    )
+
+    await orchestrator.process_event(_event(content="/ledger"))
+
+    assert transport.sent == [
+        OutboundMessage(
+            content="Ledger\nPer-round budget: $1.00\nSession budget: $10.00",
+            channel="coaching",
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_operator_intel_runs_extraction_and_applies_patch(tmp_path):
+    orchestrator, _event_store, state_manager, extractor, _transport = _orchestrator(
+        tmp_path
+    )
+
+    await orchestrator.process_event(_event(content="INTEL: France broke a promise."))
+
+    assert extractor.calls == [
+        ("France broke a promise.", {"promises": []}, "intel_correction")
+    ]
+    assert len(state_manager.patches) == 1
+    assert state_manager.patches[0][1].trigger_type == "intel_correction"
+    assert state_manager.patches[0][1].trigger_ref == "event-1"
+
+
+@pytest.mark.asyncio
+async def test_operator_coaching_is_stored_unconsumed(tmp_path):
+    orchestrator, _event_store, state_manager, _extractor, _transport = _orchestrator(
+        tmp_path
+    )
+
+    await orchestrator.process_event(_event(content="WATCH: Germany is stalling."))
+
+    assert state_manager.coaching[0]["tag"] == "WATCH"
+    assert state_manager.coaching[0]["content"] == "Germany is stalling."
+    assert state_manager.coaching[0]["consumed"] is False
+
+
+@pytest.mark.asyncio
+async def test_game_message_debounce_cancels_and_reschedules(tmp_path):
+    orchestrator, _event_store, state_manager, extractor, _transport = _orchestrator(
+        tmp_path
+    )
+    orchestrator.message_debounce_seconds = 0.01
+
+    await orchestrator.process_event(_event(sender_faction="france", content="first"))
+    first_task = orchestrator._debounce_task
+    await orchestrator.process_event(_event(sender_faction="germany", content="second"))
+    await asyncio.sleep(0)
+
+    assert first_task.cancelled() or first_task.done()
+    await orchestrator._debounce_task
+    assert extractor.calls == [("second", {"promises": []}, "message")]
+    assert state_manager.patches[0][1].trigger_type == "message"
+    assert state_manager.patches[0][1].trigger_ref == "event-2"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("command", "expected"),
+    [
+        ("/status", "Status\nFaction: england\nRound: 1"),
+        ("/state", "State\n{"),
+        ("/ledger", "Ledger\nPer-round budget: $1.00"),
+        ("/intel", "Intelligence\n"),
+        ("/divergences", "Divergences\n"),
+        ("/edits", "Review Edits\n"),
+    ],
+)
+async def test_command_handler_reply_formats(tmp_path, command, expected):
+    state_manager = FakeStateManager()
+    state_manager.rows["intelligence"] = [
+        {
+            "id": 1,
+            "analysis_json": '{"divergences": [{"field": "threat_level"}]}',
+        }
+    ]
+    state_manager.rows["review_gate_edits"] = [
+        {"id": 1, "decision": "edited", "edit_text": "Softer."}
+    ]
+    orchestrator, _event_store, _state_manager, _extractor, transport = _orchestrator(
+        tmp_path,
+        state_manager=state_manager,
+    )
+
+    await orchestrator.process_event(_event(content=command))
+
+    assert transport.sent
+    assert transport.sent[0].channel == "coaching"
+    assert transport.sent[0].content.startswith(expected)
