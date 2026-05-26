@@ -409,3 +409,17 @@ Added `tests/test_adversarial.py` coverage for result contract fields, blank dra
 
 Verification:
 - `.venv/bin/python -m pytest tests/test_adversarial.py -q` - 5 passed
+
+### Step 10.2: Structured adversarial JSON
+
+**Mode:** Build
+**Outcome:** Complete - schema-validated adversarial analysis, prompt/schema artifacts, and regression coverage added
+**Contract changes:** Added `config/prompts/adversarial.txt`, `config/schemas/adversarial.json`, and `validate_adversarial_analysis`
+
+Implemented local JSON parsing and Draft 2020-12 schema validation for adversarial reads. Successful reads now return the validated analysis dict; malformed JSON, schema violations, non-text LLM responses, blank drafts, and provider exceptions all return `AdversarialResult.success=False` without raising to callers.
+
+Created the adversarial prompt and schema artifacts for the four analysis buckets: revealed position, commitments, exploitable issues, and likely counter-moves. Expanded focused coverage for valid analysis, malformed JSON, missing required keys, wrong value types, and non-text provider responses.
+
+Verification:
+- `.venv/bin/python -m pytest tests/test_adversarial.py -q` - 9 passed
+- `.venv/bin/python -m pytest -q` - 121 passed

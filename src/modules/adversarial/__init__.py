@@ -6,7 +6,9 @@ from inspect import isawaitable
 from pathlib import Path
 from typing import Any
 
-from modules.extraction import load_prompt, load_schema
+from jsonschema import Draft202012Validator, ValidationError
+
+from modules.extraction import load_prompt, load_schema, parse_json_object
 
 
 @dataclass(frozen=True)
@@ -35,11 +37,15 @@ class LLMAdversarialReader:
         try:
             if not draft.strip():
                 raise ValueError("Draft must not be blank")
-            await self._complete(self._build_messages(draft))
+            response_text = await self._complete(self._build_messages(draft))
+            analysis = validate_adversarial_analysis(
+                parse_json_object(response_text),
+                self.schema,
+            )
         except Exception as exc:
             return AdversarialResult(success=False, analysis=None, error=str(exc))
 
-        return AdversarialResult(success=True, analysis={}, error=None)
+        return AdversarialResult(success=True, analysis=analysis, error=None)
 
     async def _complete(self, messages: list[dict[str, str]]) -> str:
         response = self.llm_client.complete(
@@ -68,4 +74,22 @@ class LLMAdversarialReader:
         ]
 
 
-__all__ = ["AdversarialResult", "LLMAdversarialReader"]
+def validate_adversarial_analysis(
+    analysis_data: dict[str, Any], schema: dict[str, Any]
+) -> dict[str, Any]:
+    try:
+        Draft202012Validator(schema).validate(analysis_data)
+    except ValidationError as exc:
+        path = ".".join(str(part) for part in exc.absolute_path)
+        location = f" at {path}" if path else ""
+        raise ValueError(
+            f"Adversarial analysis failed schema validation{location}: {exc.message}"
+        ) from exc
+    return analysis_data
+
+
+__all__ = [
+    "AdversarialResult",
+    "LLMAdversarialReader",
+    "validate_adversarial_analysis",
+]

@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://diplomat.local/schemas/adversarial.json",
+  "title": "Diplomat Adversarial Draft Analysis",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "reveals",
+    "commitments",
+    "exploitable",
+    "counter_moves"
+  ],
+  "properties": {
+    "reveals": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "commitments": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "exploitable": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "counter_moves": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
