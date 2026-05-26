@@ -397,3 +397,18 @@ Design decisions captured in Gotchas:
 - Debounce: per-message cooldown (cancel+reschedule timer on each new message)
 - Budget lifecycle: per-round reset with CostBudget; session totals in cost_ledger.jsonl
 - CostAccountant role: budget gate at Orchestrator before dispatching each LLM call
+
+### Step 11.1: Config, registry, and Orchestrator init
+
+**Mode:** Build
+**Outcome:** Complete - pipeline config, registry resolution, Orchestrator startup wiring, and focused tests added
+**Contract changes:** Added `config/pipeline.yaml`, `src/registry.py`, and `Orchestrator` startup API in `src/orchestrator.py`
+
+Created the Orchestrator pipeline configuration with transport, LLM provider, module selection, cost, round detection, feature flag, prompt, and schema sections. Added registry lookup for every module implementation used by the pipeline, including the divergence comparator callable.
+
+Implemented `Orchestrator.__init__()` to load and validate `pipeline.yaml`, resolve paths relative to the project root, initialize SQLite with WAL mode, load prompt/config artifacts fail-fast, build LLM config dictionaries from provider entries, and instantiate module objects from the registry with injectable LLM/Telegram clients for test and production wiring.
+
+Added `tests/test_orchestrator.py` coverage for successful construction with fakes, bad config path, missing required config key, and registry lookup for every module type.
+
+Verification:
+- `python3 -m pytest tests/test_orchestrator.py -q` - 19 passed
