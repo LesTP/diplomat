@@ -441,3 +441,83 @@ Promoted gotchas:
 - Before deployment, install `../toolkit` editable and run the Orchestrator dependency probe specs against real `llm_client`, `telegram_client`, and `cost_accountant`; fake-driven tests cannot validate those sibling-library interfaces here.
 
 No contract changes require propagation beyond the Phase 11 Orchestrator API, `pipeline.yaml`, and resolved budget/debounce contracts already captured in `ARCHITECTURE.md`, `DEVPLAN.md`, and `PROJECT.md`.
+
+## Post-Phase 11: Toolkit Integration Probes and Adapter Fixes
+
+### 2026-05-27 — Dependency probe (source-level)
+
+**Mode:** Debug
+**Outcome:** Three integration mismatches identified between Diplomat's fakes and real toolkit APIs
+
+Toolkit was not importable in the worker's environment, but the source is accessible on the shared filesystem at `../toolkit/src/toolkit/`. Read the real type definitions and function signatures to compare against Diplomat's fakes and Orchestrator wiring.
+
+**Probe 1: `toolkit.llm_client`** — MISMATCH
+- Diplomat modules call `llm_client.complete(messages=[dict], config=dict, tier=str)` expecting `str` back
+- Toolkit's `complete()` expects `list[Message]`, `LLMConfig` (with `models` dict, not single `model`), `ModelTier` enum; returns `LLMResponse` (need `.content`)
+- Four sub-mismatches: message type, config type, tier type, return type
+
+**Probe 2: `toolkit.telegram_client`** — MISMATCH
+- `main.py` tried factory functions (`build_client_from_env`, `create_client_from_env`, `create_client`) — none exist
+- Real API: `TelegramClient(bot_token=str)` constructed directly
+- Transport method signatures (send_message, start_polling, get_next_update) match
+
+**Probe 3: `toolkit.cost_accountant`** — MISMATCH
+- Orchestrator used `available_budget()` / `reset_round_budget()` — neither exists
+- Real API: `CostAccountant(ledger_path=Path)` with `complete()` wrapping `llm_client.complete()` and `CostBudget` per call
+- Architectural pattern differs: toolkit wraps LLM calls, Diplomat gates before LLM calls
+
+Root cause: Worker built fakes from ARCH prose descriptions ("calls toolkit/llm_client.complete()") without reading the real toolkit source. Recorded as D-13 in DECISIONS.md.
+
+### 2026-05-27 — Adapter implementation
+
+**Mode:** Code
+**Outcome:** Three adapter fixes applied; all 165 tests pass
+**Contract changes:** `config/pipeline.yaml` `llm_providers` section, `src/orchestrator.py` exports, `src/main.py` rewrite
+
+**Fix 1: `ToolkitLLMAdapter`** (in `src/orchestrator.py`)
+Wraps toolkit's real `complete()` into the interface Diplomat modules expect:
+- Accepts `messages` as `list[dict]`, wraps into `toolkit.llm_client.Message`
+- Accepts `config` as dict, maps to `toolkit.llm_client.LLMConfig` with `models` dict
+- Accepts `tier` as str, maps to `toolkit.llm_client.ModelTier` enum
+- Returns `response.content` (plain str) instead of `LLMResponse`
+
+**Fix 2: `main.py` telegram client construction**
+Replaced factory function search with direct `TelegramClient(bot_token=os.getenv("TELEGRAM_BOT_TOKEN"))`.
+
+**Fix 3: `DiplomatCostGate`** (in `src/orchestrator.py`)
+Wraps toolkit's `CostAccountant` with the `available_budget()` / `reset_round_budget()` API that Orchestrator's existing budget-gate pattern expects. Preserves all existing cost governance tests unchanged.
+
+**Config change:** `pipeline.yaml` `llm_providers.*.model` (single string) changed to `llm_providers.*.models` (tier→model dict). `_build_llm_configs()` handles both formats for backward compatibility.
+
+Existing tests unaffected — modules still call `llm_client.complete()` with the same interface; adapters only run in production.
+
+### 2026-05-27 — Adapter verification on Pi
+
+**Mode:** Debug
+**Outcome:** All probes confirmed; adapters match real toolkit APIs
+
+Ran verification inside the Incus container where toolkit is importable:
+- Fixed `.pth` file path for editable toolkit install (container uses `/home/claude/workspace/`, not `/mnt/passport/shared/`)
+- `python -m pytest -q` — 165 passed (all existing tests)
+- Toolkit import probe confirmed:
+  - `Message` fields: `['role', 'content']` — adapter wraps correctly
+  - `LLMConfig` fields: `['provider', 'api_key', 'models', 'max_tokens', 'temperature']` — adapter builds correctly
+  - `LLMResponse` fields: `['content', 'model', 'provider', 'token_usage']` — adapter extracts `.content`
+  - `ModelTier` values: `['quality', 'default', 'commodity']` — adapter maps str to enum
+  - `CostAccountant.__init__`: `(self, ledger_path: Path, pricing: dict | None)` — `DiplomatCostGate` wraps correctly
+  - `TelegramClient.__init__`: `(self, bot_token: str, ...)` — `main.py` constructs correctly
+
+Verification:
+- `incus exec claude-code -- bash -c "cd /home/claude/workspace/diplomat && .venv/bin/python -m pytest -q"` — 165 passed
+- Toolkit probe script — all three modules confirmed matching
+
+## Phase 12: Orchestrator Refactor Plan
+
+### 2026-05-27 — Phase plan
+
+**Mode:** Discuss
+**Outcome:** Phase 12 plan recorded for adapter extraction, State Manager persistence API expansion, and Orchestrator SQLite fallback removal
+
+Phase 12 is a Build-regime refactor, not a feature phase. The planned work splits misplaced Orchestrator concerns into their owning modules: toolkit adapters move to `src/adapters.py`, persistence helpers move into `SQLiteStateManager`, and Orchestrator calls those explicit APIs directly.
+
+The cross-module State Manager/Orchestrator contract expansion is intentional phase scope, documented in DEVPLAN and DECISIONS, so workers should not escalate it as emergent contract drift.

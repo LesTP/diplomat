@@ -97,3 +97,10 @@ Priority: Critical
 Decision: When a module depends on an external library (toolkit, etc.), test fakes must match the real library's type signatures — not the ARCH file's prose description. If the library is not importable in the worker's environment, the worker must read the library's source files (ARCH docs, type definitions, function signatures) from the shared filesystem to derive correct fakes. Unverified fakes must be logged as warnings in DEVLOG.
 Rationale: Phases 2–11 built fakes from ARCH prose ("calls toolkit/llm_client.complete()") without verifying the real function signature. This produced three integration mismatches: Message objects vs dicts, LLMConfig vs plain dict, LLMResponse vs plain str. All 165 unit tests passed against incorrect fakes. The mismatches were only caught during the post-implementation dependency probe — after 11 phases of code had been written against the wrong interface. An adapter layer (ToolkitLLMAdapter, DiplomatCostGate) was required to bridge the gap.
 Revisit if: The governance framework adds a structural mechanism (interface snapshot files, cross-project contract tests) that makes this rule redundant.
+
+D-14: Phase 12 moves Orchestrator persistence fallbacks into State Manager
+Date: 2026-05-27 | Status: Closed
+Priority: Important
+Decision: Phase 12 will expand `SQLiteStateManager` with explicit persistence methods for coaching, intelligence, game-state key/value updates, adversarial reads, and coaching consumption, then remove the Orchestrator's raw SQLite fallback code for those operations.
+Rationale: The Orchestrator should compose modules, not own persistence details for State Manager tables. Making these operations public State Manager APIs keeps table ownership in one module, removes duplicate SQLite write paths, and makes Orchestrator tests use the same contract production code uses.
+Revisit if: State Manager persistence needs become large enough to justify a separate repository/service boundary rather than a module API expansion.

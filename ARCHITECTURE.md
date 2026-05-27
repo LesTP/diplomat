@@ -132,7 +132,8 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 - **Generation ↔ Context Assembler:** tight — Generation consumes DecisionContext directly. Changes to context structure affect both.
 - **Review Gate ↔ Transport:** moderate — Review Gate uses toolkit/telegram_client for its own UI (sending drafts, receiving commands). Separate from the main Transport instance.
 - **Orchestrator ↔ all modules:** tight by design — it is the composition layer. Changes to pipeline topology affect only the Orchestrator.
-- **All LLM modules ↔ toolkit:** one-way — Extraction, Analyst, Generation, Adversarial import from toolkit/llm_client. Toolkit never imports from Diplomat.
+- **All LLM modules ↔ toolkit:** one-way via adapter — Extraction, Analyst, Generation, Adversarial call `llm_client.complete(messages=list[dict], config=dict, tier=str)` expecting plain str back. In production, `ToolkitLLMAdapter` (in orchestrator.py) wraps this into toolkit's real `complete(list[Message], LLMConfig, ModelTier) → LLMResponse`. In tests, fakes implement the same dict/str interface directly. Modules never import from toolkit.
+- **Orchestrator ↔ toolkit/cost_accountant:** via `DiplomatCostGate` — wraps toolkit's `CostAccountant(ledger_path)` with `available_budget()` / `reset_round_budget()` API that Orchestrator's budget-gate pattern expects. Toolkit's accountant is a `complete()` wrapper; the gate adapts it to a check-before-call pattern.
 - **Extension: new Transport implementation** → additive (new class, config change). No other modules affected.
 - **Extension: new LLM provider** → toolkit config change only. No Diplomat code changes.
 - **Extension: different game domain** → replace config/ directory. No code changes.
