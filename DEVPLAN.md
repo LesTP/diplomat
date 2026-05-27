@@ -2,7 +2,7 @@
 phase: 17
 blocked: false
 state: execute
-steps_remaining: 6
+steps_remaining: 5
 ---
 
 # Diplomat — Development Plan
@@ -49,7 +49,7 @@ Steps:
   - `json_path_exists(data, path) -> bool` and `json_path_get(data, path) -> Any` helpers for dotted-bracket path navigation (e.g., `patch.data.promises[0].status`)
   Add unit tests for the path helpers in `tests/test_prompt_regression_types.py`. Run full regression.
 
-- [ ] 17.2 — **LLM-as-judge module.** Create `tests/prompt_regression/judge.py` with:
+- [x] 17.2 — **LLM-as-judge module.** Create `tests/prompt_regression/judge.py` with:
   - `JudgeResult` dataclass: `verdict` (PASS/FAIL), `explanation`, `criteria`
   - `LLMJudge` class: constructor accepts `llm_client` and `llm_config: dict` and `tier: str = "commodity"`; `async evaluate(response_text, criteria, pass_instruction, fail_instruction, context="") -> JudgeResult`
   - The evaluate prompt asks the LLM to return `PASS|explanation` or `FAIL|explanation`; parser splits on `|`

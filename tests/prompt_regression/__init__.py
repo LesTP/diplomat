@@ -10,8 +10,11 @@ from tests.prompt_regression.types import (
     load_scenario,
     load_scenarios,
 )
+from tests.prompt_regression.judge import JudgeResult, LLMJudge
 
 __all__ = [
+    "JudgeResult",
+    "LLMJudge",
     "PropertyCheck",
     "PropertyResult",
     "RunReport",

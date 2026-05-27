@@ -857,3 +857,19 @@ Verification:
 - `python3 -m pytest -q` — 201 passed
 
 Next step: 17.2 adds the LLM-as-judge module.
+
+### Step 17.2: LLM-as-judge module
+
+**Mode:** Build
+**Outcome:** Complete — adapter-compatible LLM judge and parsing tests added
+**Contract changes:** None
+
+Added `tests.prompt_regression.judge` with `JudgeResult` and `LLMJudge`. The judge builds a strict evaluation prompt, calls the injected `llm_client.complete(messages=..., config=..., tier=...)`, and parses only `PASS|explanation` or `FAIL|explanation` responses.
+
+Added fake-client tests for PASS parsing/request forwarding, FAIL parsing, and malformed judge output rejection.
+
+Verification:
+- `python3 -m pytest tests/test_prompt_regression_judge.py -q` — 3 passed
+- `python3 -m pytest -q` — 204 passed
+
+Next step: 17.3 builds the scenario runner.
