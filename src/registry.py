@@ -18,6 +18,7 @@ REGISTRY: dict[str, str] = {
     "TelegramBotTransport": "modules.transport:TelegramBotTransport",
     "FileBasedPersona": "modules.persona:FileBasedPersona",
     "LLMAnalyst": "modules.analyst:LLMAnalyst",
+    "StubAnalyst": "tests.helpers.stub_analyst:StubAnalyst",
     "DefaultContextAssembler": (
         "modules.context_assembler:DefaultContextAssembler"
     ),

@@ -633,3 +633,19 @@ Key constraints carried into the plan:
 - Existing 170 unit tests remain part of every regression checkpoint.
 
 Next step: 13.1 builds the reusable test helpers and fixture artifacts.
+
+### Step 13.1: Test infrastructure helpers and fixtures
+
+**Mode:** Build
+**Outcome:** Complete — reusable integration helper package, StubAnalyst fixture path, and registry entry added
+**Contract changes:** `src/registry.py` now includes `StubAnalyst` for test pipeline resolution
+
+Created `tests/helpers/` with `TestTransport`, `StubAnalyst`, and helper factories for inbound events, round-end events, fake LLM completions, and fake cost accounting. Added `tests/integration/` plus fixture data for a valid intelligence report and minimal persona prompt.
+
+`TestTransport` implements the transport contract directly over `asyncio.Queue` and exposes injection/output helpers for background Orchestrator integration tests. `StubAnalyst` loads fixture JSON into an `AnalysisResult`, avoiding LLM calls in integration coverage.
+
+Verification:
+- `python3 -c "from tests.helpers.test_transport import TestTransport"` — passed
+- `python3 -m pytest` — 170 passed
+
+Next step: 13.2 creates `config/pipeline_test.yaml` and the integration `pipeline` fixture.

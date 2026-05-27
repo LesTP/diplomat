@@ -2,7 +2,7 @@
 phase: 13
 blocked: false
 state: execute
-steps_remaining: 7
+steps_remaining: 6
 ---
 
 # Diplomat — Development Plan
@@ -40,7 +40,7 @@ Regime: Build. Scope: Build the test infrastructure needed for integration tests
 
 Steps:
 
-- [ ] 13.1 — **Test infrastructure: TestTransport + StubAnalyst + factories.** Create `tests/helpers/__init__.py`, `tests/helpers/test_transport.py` (TestTransport with inject/send/listen/get_output/clear_output via asyncio.Queue), `tests/helpers/stub_analyst.py` (StubAnalyst loading fixture JSON → AnalysisResult), and `tests/helpers/factories.py` (make_event, make_round_end_event, FakeLLMClient, FakeCostAccountant helper functions). Register `StubAnalyst` in `src/registry.py`. Create `tests/integration/__init__.py` and `tests/integration/fixtures/` with `intelligence_stub.json` (valid against `config/schemas/intelligence.json`) and `test_persona.txt` (minimal faction persona). Verify `python3 -c "from tests.helpers.test_transport import TestTransport"` imports cleanly. Run full regression.
+- [x] 13.1 — **Test infrastructure: TestTransport + StubAnalyst + factories.** Create `tests/helpers/__init__.py`, `tests/helpers/test_transport.py` (TestTransport with inject/send/listen/get_output/clear_output via asyncio.Queue), `tests/helpers/stub_analyst.py` (StubAnalyst loading fixture JSON → AnalysisResult), and `tests/helpers/factories.py` (make_event, make_round_end_event, FakeLLMClient, FakeCostAccountant helper functions). Register `StubAnalyst` in `src/registry.py`. Create `tests/integration/__init__.py` and `tests/integration/fixtures/` with `intelligence_stub.json` (valid against `config/schemas/intelligence.json`) and `test_persona.txt` (minimal faction persona). Verify `python3 -c "from tests.helpers.test_transport import TestTransport"` imports cleanly. Run full regression.
 
 - [ ] 13.2 — **Test pipeline config + integration conftest.** Create `config/pipeline_test.yaml` matching the real `pipeline.yaml` schema but with `CLITransport`, `RuleBasedExtractor`, `StubAnalyst`, `AutoApproveReviewGate`, and `test_persona.txt` paths. Create `tests/integration/conftest.py` with a `pipeline` fixture that constructs Orchestrator with `pipeline_test.yaml`, passes TestTransport + FakeLLMClient + FakeCostAccountant via module_overrides, runs `start()` in a background task, and tears down with `shutdown()` + task cancel in cleanup. Verify the fixture constructs and starts without error. Run full regression.
 
