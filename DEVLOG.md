@@ -841,3 +841,19 @@ Confirmed the Build-regime plan for a module-scoped prompt regression framework:
 Verification:
 - Planning docs reviewed
 - No tests run; planning-only action
+
+### Step 17.1: Scenario format and result types
+
+**Mode:** Build
+**Outcome:** Complete — prompt regression type helpers and unit coverage added
+**Contract changes:** None
+
+Created the `tests.prompt_regression` package with dataclasses for property checks/results, scenario results, and run reports. Added scenario JSON loading/validation plus dotted/bracket JSON-path helpers for structural assertions such as `patch.data.promises[0].status`.
+
+Added focused unit tests for JSON-path navigation, falsey existing values, missing keys/indexes, invalid path syntax, type mismatches, scenario validation, and recursive scenario loading.
+
+Verification:
+- `python3 -m pytest tests/test_prompt_regression_types.py -q` — 8 passed
+- `python3 -m pytest -q` — 201 passed
+
+Next step: 17.2 adds the LLM-as-judge module.

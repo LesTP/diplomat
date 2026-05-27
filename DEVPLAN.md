@@ -2,7 +2,7 @@
 phase: 17
 blocked: false
 state: execute
-steps_remaining: 7
+steps_remaining: 6
 ---
 
 # Diplomat — Development Plan
@@ -40,7 +40,7 @@ Regime: Build. Scope: Create the prompt regression testing framework — scenari
 
 Steps:
 
-- [ ] 17.1 — **Scenario format and result types.** Create `tests/prompt_regression/__init__.py` and `tests/prompt_regression/types.py` with:
+- [x] 17.1 — **Scenario format and result types.** Create `tests/prompt_regression/__init__.py` and `tests/prompt_regression/types.py` with:
   - `PropertyCheck` dataclass: `type` (json_path_exists | json_path_equals | llm_judge), `path`/`value`/`criteria`/`pass_instruction`/`fail_instruction`, `description`
   - `PropertyResult` dataclass: `passed`, `description`, `expected`, `actual`, `judge_explanation`
   - `ScenarioResult` dataclass: `scenario_id`, `description`, `properties: list[PropertyResult]`, `passed`
