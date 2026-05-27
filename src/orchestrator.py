@@ -450,16 +450,17 @@ class Orchestrator:
             from toolkit.cost_accountant import CostAccountant
         except ImportError:
             return None
-        try:
-            return CostAccountant(
-                per_round_budget_usd=self.cost_config["per_round_budget_usd"],
-                session_budget_usd=self.cost_config["session_budget_usd"],
-                ledger_path=self._path(
-                    self.cost_config.get("ledger_path", "data/cost_ledger.jsonl")
-                ),
-            )
-        except TypeError:
-            return CostAccountant()
+        from adapters import DiplomatCostGate
+
+        accountant = CostAccountant(
+            ledger_path=self._path(
+                self.cost_config.get("ledger_path", "data/cost_ledger.jsonl")
+            ),
+        )
+        return DiplomatCostGate(
+            accountant,
+            per_round_budget_usd=self.cost_config["per_round_budget_usd"],
+        )
 
     def _reset_round_budget(self) -> None:
         if self.cost_accountant is None:

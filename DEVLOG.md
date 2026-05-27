@@ -832,3 +832,18 @@ Verification:
 - `python3 -m pytest -q` — 193 passed
 
 Phase 16 is ready for review.
+
+### Phase 16 Review
+
+**Mode:** Review
+**Outcome:** One must-fix found and applied — full regression passes.
+
+**Must-fix applied:**
+- `_build_cost_accountant` in `src/orchestrator.py` was calling `CostAccountant(per_round_budget_usd=..., session_budget_usd=..., ledger_path=...)` but the toolkit's `CostAccountant` only accepts `ledger_path` and `pricing`. The try/except fallback `CostAccountant()` also failed because `ledger_path` is a required positional argument. Fixed by calling `CostAccountant(ledger_path=...)` and wrapping it in `DiplomatCostGate(accountant, per_round_budget_usd=...)` as the adapter pattern requires. This caused 26 test failures in the local environment (tests that didn't inject a fake cost_accountant).
+
+**Should-fix:** None.
+
+**Optional:** None.
+
+Verification:
+- `python3 -m pytest -q` — 193 passed
