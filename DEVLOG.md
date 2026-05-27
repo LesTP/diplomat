@@ -697,3 +697,16 @@ Verification:
 - `python3 -m pytest` — 182 passed
 
 Next step: 13.5 performs documentation cleanup and final regression verification.
+
+### Step 13.5: Documentation cleanup and regression verification
+
+**Mode:** Build (cleanup)
+**Outcome:** Complete — Phase 13 summary recorded, Layer 3 testing guide status updated, phase ready for review
+**Contract changes:** None
+
+Updated `DEVPLAN.md` to mark all Phase 13 steps complete and summarize the Layer 3 integration test work. Updated `diplomat-testing-doc.md` to mark Pipeline integration as complete with 12 tests and 182 total regression tests.
+
+Verification:
+- `python3 -m pytest` — 182 passed
+
+Phase 13 is ready for review.

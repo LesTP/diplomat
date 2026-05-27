@@ -1,8 +1,8 @@
 ---
 phase: 13
 blocked: false
-state: execute
-steps_remaining: 3
+state: review
+steps_remaining: 2
 ---
 
 # Diplomat — Development Plan
@@ -23,7 +23,7 @@ steps_remaining: 3
 ## Current Status
 
 - **Phase** — Phase 13: Layer 3 pipeline integration tests.
-- **Focus** — Build test infrastructure (TestTransport, StubAnalyst, pipeline_test.yaml) and integration tests that exercise cross-module data flow with fakes.
+- **Focus** — Phase 13 implementation complete; ready for Layer 3 integration test review.
 - **Blocked/Broken** — none.
 
 ## Phase 13: Layer 3 — Pipeline Integration Tests
@@ -48,7 +48,9 @@ Steps:
 
 - [x] 13.4 — **Failure handling tests.** Create `tests/integration/test_failure_handling.py` with tests: (1) extraction failure → pipeline continues running + event still in store, (2) secondary analyst failure → intelligence stored with primary only, (3) adversarial failure → response still posted with warning, (4) double generation failure → operator alerted on coaching channel, (5) transport send failure after 3 retries → operator alerted. Use monkeypatch to inject failures into specific module methods. Run focused + full regression.
 
-- [ ] 13.5 — **Documentation cleanup and regression.** Verify full test suite (170 existing + new integration tests). Update DEVPLAN Phase 13 summary. Append DEVLOG entry. Update `diplomat-testing-doc.md` Layer 3 status to "Complete" with test count. Transition to `state: review`.
+- [x] 13.5 — **Documentation cleanup and regression.** Verify full test suite (170 existing + new integration tests). Update DEVPLAN Phase 13 summary. Append DEVLOG entry. Update `diplomat-testing-doc.md` Layer 3 status to "Complete" with test count. Transition to `state: review`.
+
+Summary: Implemented Layer 3 pipeline integration infrastructure and tests: `TestTransport`, `StubAnalyst`, shared fake factories, `pipeline_test.yaml`, async integration pipeline fixture, fixture smoke test, six core pipeline flow tests, and five failure-handling tests. Full regression: 182 passed (170 pre-existing tests + 12 integration tests). Phase ready for review.
 
 ## Phase 12: Orchestrator Refactor
 
