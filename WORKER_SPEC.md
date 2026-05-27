@@ -43,7 +43,7 @@ LOOP:
   6. commit changes, update DEVLOG and DEVPLAN
   7. write state=$NEXT to DEVPLAN frontmatter:
      sed -i "s/^state:.*/state: $NEXT/" DEVPLAN.md
-  8. goto LOOP
+  8. goto 1
 ```
 
 | ACTION | What the worker does |

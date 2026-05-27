@@ -150,6 +150,12 @@ while [[ $ITER -le $END_ITER ]]; do
 
   echo "=== Iteration $ITER ($BACKEND) — $(date -Iseconds) ==="
 
+  # Reset steps_remaining so state_machine.sh reinitializes from STEP_BUDGET.
+  # Without this, a stale value from a previous invocation or manual edit
+  # overrides the --multi-step budget (state_machine.sh only initializes
+  # steps_remaining when it is empty, not when it is 0).
+  sed -i 's/^steps_remaining:.*/steps_remaining:/' "$PROJECT_DIR/DEVPLAN.md"
+
   case $BACKEND in
     claude)
       claude -p "$PROMPT" \

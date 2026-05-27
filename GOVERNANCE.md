@@ -221,6 +221,8 @@ blocked: false
 
 Projects using autonomous execution add a `state` field — see WORKER_SPEC.md.
 
+**`steps_remaining`:** This field is managed by the state machine at runtime and must **not** be pre-populated in DEVPLAN. Leave it empty (e.g., `steps_remaining:` with no value) or omit it. The state machine initializes it from the `STEP_BUDGET` environment variable set by `run-iteration.sh --multi-step N`. Pre-populating a value causes `--multi-step` to be silently ignored.
+
 **Cold Start Summary** (stable — update on major shifts):
 - **What this is** — one-sentence scope
 - **Key constraints** — non-obvious technical limits
