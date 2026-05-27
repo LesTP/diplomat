@@ -244,6 +244,71 @@ class SQLiteStateManager:
             "inconsistencies": await self.query("inconsistencies", {"spent": False}),
         }
 
+    async def store_coaching(
+        self, coaching_id: str, tag: str, content: str, consumed: bool
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO coaching (coaching_id, tag, content, consumed, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (coaching_id, tag, content, int(consumed), self._now()),
+            )
+
+    async def store_intelligence(
+        self, round_number: int, provider: str, analysis: dict[str, Any]
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO intelligence (
+                    round_number,
+                    provider,
+                    analysis_json,
+                    created_at
+                )
+                VALUES (?, ?, ?, ?)
+                """,
+                (
+                    round_number,
+                    provider,
+                    json.dumps(analysis, sort_keys=True),
+                    self._now(),
+                ),
+            )
+
+    async def set_game_state(self, key: str, value: str) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO game_state (key, value)
+                VALUES (?, ?)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value
+                """,
+                (key, value),
+            )
+
+    async def store_adversarial_read(
+        self, round_number: int, analysis: dict[str, Any]
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO adversarial_reads (
+                    round_number,
+                    analysis_json,
+                    created_at
+                )
+                VALUES (?, ?, ?)
+                """,
+                (round_number, json.dumps(analysis, sort_keys=True), self._now()),
+            )
+
+    async def mark_coaching_consumed(self) -> None:
+        with self._connect() as conn:
+            conn.execute("UPDATE coaching SET consumed = 1 WHERE consumed = 0")
+
     def _upsert_faction_state(
         self, conn: sqlite3.Connection, item: dict[str, Any], updated_at: str
     ) -> None:

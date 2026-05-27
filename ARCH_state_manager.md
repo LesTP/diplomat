@@ -37,6 +37,36 @@ Structured domain state for the game. Owns all domain tables: factions, promises
 - **Returns:** dict — serialised snapshot of all current entity states (all faction_state rows, all pending promises, all coalitions, all unspent inconsistencies). Format matches what the Analyst prompt expects.
 - **Errors:** none
 
+### store_coaching
+- **Signature:** `async def store_coaching(self, coaching_id: str, tag: str, content: str, consumed: bool) -> None`
+- **Parameters:** coaching_id, tag, content, consumed flag
+- **Returns:** None
+- **Errors:** sqlite3.OperationalError on database write failure
+
+### store_intelligence
+- **Signature:** `async def store_intelligence(self, round_number: int, provider: str, analysis: dict) -> None`
+- **Parameters:** round_number, provider id, analysis payload
+- **Returns:** None
+- **Errors:** sqlite3.OperationalError on database write failure
+
+### set_game_state
+- **Signature:** `async def set_game_state(self, key: str, value: str) -> None`
+- **Parameters:** key, value
+- **Returns:** None
+- **Errors:** sqlite3.OperationalError on database write failure
+
+### store_adversarial_read
+- **Signature:** `async def store_adversarial_read(self, round_number: int, analysis: dict) -> None`
+- **Parameters:** round_number, adversarial analysis payload
+- **Returns:** None
+- **Errors:** sqlite3.OperationalError on database write failure
+
+### mark_coaching_consumed
+- **Signature:** `async def mark_coaching_consumed(self) -> None`
+- **Parameters:** none
+- **Returns:** None
+- **Errors:** sqlite3.OperationalError on database write failure
+
 ## Types
 
 ```python

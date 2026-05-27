@@ -535,3 +535,19 @@ Verification:
 - `python3 -m pytest` — 165 passed
 
 Next step: 12.2 expands `SQLiteStateManager` with the five persistence APIs now planned for direct Orchestrator calls.
+
+### Step 12.2: Expand State Manager API with persistence methods
+
+**Mode:** Build
+**Outcome:** Complete — five persistence methods added, documented, and covered by focused tests
+**Contract changes:** `SQLiteStateManager` public API now includes `store_coaching`, `store_intelligence`, `set_game_state`, `store_adversarial_read`, and `mark_coaching_consumed`; `ARCH_state_manager.md` updated
+
+Added explicit State Manager write helpers for coaching entries, intelligence records, game state key/value updates, adversarial read records, and coaching consumption. Each method uses the existing SQLite connection helper, State Manager-owned tables, and `_now()` timestamps where the table records creation time.
+
+Focused tests verify row insertion/update behavior, JSON round-tripping with sorted dumps for persisted analysis payloads, and coaching consumed-state updates. The full suite now includes 170 tests.
+
+Verification:
+- `python3 -m pytest tests/test_state_manager.py` — 10 passed
+- `python3 -m pytest` — 170 passed
+
+Next step: 12.3 removes Orchestrator raw SQLite fallbacks and calls the new State Manager API directly.

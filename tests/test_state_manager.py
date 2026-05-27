@@ -124,6 +124,75 @@ async def test_get_query_and_full_state_filter_current_entities(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_store_coaching_inserts_consumed_flag_and_content(tmp_path):
+    sm = manager(tmp_path)
+
+    await sm.store_coaching("coach-1", "WATCH", "Germany is stalling.", False)
+
+    rows = await sm.query("coaching", {"coaching_id": "coach-1"})
+    assert len(rows) == 1
+    assert rows[0]["tag"] == "WATCH"
+    assert rows[0]["content"] == "Germany is stalling."
+    assert rows[0]["consumed"] is False
+    assert rows[0]["created_at"]
+
+
+@pytest.mark.asyncio
+async def test_store_intelligence_inserts_sorted_json_payload(tmp_path):
+    sm = manager(tmp_path)
+    analysis = {"secondary": {"success": True}, "primary": {"success": True}}
+
+    await sm.store_intelligence(3, "primary", analysis)
+
+    rows = await sm.query("intelligence", {"provider": "primary"})
+    assert len(rows) == 1
+    assert rows[0]["round_number"] == 3
+    assert json.loads(rows[0]["analysis_json"]) == analysis
+    assert rows[0]["analysis_json"] == json.dumps(analysis, sort_keys=True)
+    assert rows[0]["created_at"]
+
+
+@pytest.mark.asyncio
+async def test_set_game_state_inserts_and_updates_value(tmp_path):
+    sm = manager(tmp_path)
+
+    await sm.set_game_state("round_number", "1")
+    await sm.set_game_state("round_number", "2")
+
+    row = await sm.get("game_state", "round_number")
+    assert row == {"key": "round_number", "value": "2"}
+
+
+@pytest.mark.asyncio
+async def test_store_adversarial_read_inserts_sorted_json_payload(tmp_path):
+    sm = manager(tmp_path)
+    analysis = {"risks": ["overcommitment"], "score": 4}
+
+    await sm.store_adversarial_read(4, analysis)
+
+    rows = await sm.query("adversarial_reads", {"round_number": 4})
+    assert len(rows) == 1
+    assert json.loads(rows[0]["analysis_json"]) == analysis
+    assert rows[0]["analysis_json"] == json.dumps(analysis, sort_keys=True)
+    assert rows[0]["created_at"]
+
+
+@pytest.mark.asyncio
+async def test_mark_coaching_consumed_marks_only_unconsumed_rows(tmp_path):
+    sm = manager(tmp_path)
+    await sm.store_coaching("coach-1", "WATCH", "Watch Germany.", False)
+    await sm.store_coaching("coach-2", "TONE", "Be warmer.", True)
+
+    await sm.mark_coaching_consumed()
+
+    rows = await sm.query("coaching", {})
+    by_id = {row["coaching_id"]: row for row in rows}
+    assert by_id["coach-1"]["consumed"] is True
+    assert by_id["coach-2"]["consumed"] is True
+    assert len(rows) == 2
+
+
+@pytest.mark.asyncio
 async def test_apply_patch_rejects_invalid_patch_without_audit_row(tmp_path):
     sm = manager(tmp_path)
 
