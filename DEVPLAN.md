@@ -2,7 +2,7 @@
 phase: 13
 blocked: false
 state: execute
-steps_remaining: 4
+steps_remaining: 3
 ---
 
 # Diplomat — Development Plan
@@ -46,7 +46,7 @@ Steps:
 
 - [x] 13.3 — **Core pipeline flow tests.** Create `tests/integration/test_pipeline_flow.py` with tests: (1) game message ingested → event stored + extraction runs, (2) operator PRIORITY coaching → stored in coaching table as unconsumed, (3) operator INTEL coaching → state_change_log entry with trigger_type=intel_correction, (4) round boundary signal `[ROUND END]` → intelligence table populated with analysis_json, (5) direct address to faction_id → public response generated and sent, (6) `/preview` command → response pipeline runs. Each test injects events via TestTransport.inject() and asserts on state_manager.query() results after an asyncio.sleep for processing. Run focused + full regression.
 
-- [ ] 13.4 — **Failure handling tests.** Create `tests/integration/test_failure_handling.py` with tests: (1) extraction failure → pipeline continues running + event still in store, (2) secondary analyst failure → intelligence stored with primary only, (3) adversarial failure → response still posted with warning, (4) double generation failure → operator alerted on coaching channel, (5) transport send failure after 3 retries → operator alerted. Use monkeypatch to inject failures into specific module methods. Run focused + full regression.
+- [x] 13.4 — **Failure handling tests.** Create `tests/integration/test_failure_handling.py` with tests: (1) extraction failure → pipeline continues running + event still in store, (2) secondary analyst failure → intelligence stored with primary only, (3) adversarial failure → response still posted with warning, (4) double generation failure → operator alerted on coaching channel, (5) transport send failure after 3 retries → operator alerted. Use monkeypatch to inject failures into specific module methods. Run focused + full regression.
 
 - [ ] 13.5 — **Documentation cleanup and regression.** Verify full test suite (170 existing + new integration tests). Update DEVPLAN Phase 13 summary. Append DEVLOG entry. Update `diplomat-testing-doc.md` Layer 3 status to "Complete" with test count. Transition to `state: review`.
 

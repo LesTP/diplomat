@@ -681,3 +681,19 @@ Verification:
 - `python3 -m pytest` — 177 passed
 
 Next step: 13.4 adds failure-handling integration tests.
+
+### Step 13.4: Failure handling integration tests
+
+**Mode:** Build
+**Outcome:** Complete — five Orchestrator failure-handling integration tests added
+**Contract changes:** None
+
+Added `tests/integration/test_failure_handling.py` covering extraction failure continuity, secondary analyst failure with primary intelligence persistence, adversarial failure warning with public post continuation, double generation failure operator alerting, and public transport send retry exhaustion.
+
+The tests monkeypatch targeted module methods on the integration fixture while preserving the real background Orchestrator loop, real event store, real state manager, and `TestTransport` output capture.
+
+Verification:
+- `python3 -m pytest tests/integration/test_failure_handling.py -q` — 5 passed
+- `python3 -m pytest` — 182 passed
+
+Next step: 13.5 performs documentation cleanup and final regression verification.
