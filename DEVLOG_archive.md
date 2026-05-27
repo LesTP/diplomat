@@ -600,3 +600,36 @@ Phase Review applied one should-fix: move the round-boundary regex import to mod
 
 Verification:
 - `python3 -m pytest` — 170 passed
+
+---
+
+## Archived 2026-05-27 — Phase 15: Live Smoke Test Environment Setup
+
+### 2026-05-27 — Phase 15 Planned
+
+**Action:** Phase Plan for Live Smoke Test — Environment Setup
+**Outcome:** Complete — Phase 15 plan accepted and ready for execution
+
+Planned the live smoke-test preparation phase around environment artifacts and Pi validation:
+- `.env.template` for Telegram and provider credentials
+- `config/pipeline_smoke.yaml` using OpenAI `gpt-4.1-mini`, tight budgets, live review gate, and adversarial disabled
+- Pi startup validation for toolkit imports, config validation, Telegram connection, and online banner
+- human-driven Telegram smoke checklist from `diplomat-testing-doc.md` §5b
+
+Scope decision logged in `DECISIONS.md` as D-17. Next step: 15.1 creates `.env.template` and `config/pipeline_smoke.yaml`.
+
+### Step 15.1: Smoke environment artifacts
+
+**Mode:** Build
+**Outcome:** Complete — `.env.template` and OpenAI-only smoke pipeline config added
+**Contract changes:** None
+
+Created `.env.template` with placeholders and comments for Telegram bot token, public/coaching channel IDs, operator user IDs, OpenAI API key, and optional Anthropic API key.
+
+Added `config/pipeline_smoke.yaml` as a dedicated live-smoke config copied from the production pipeline shape with `gpt-4.1-mini` for both primary and secondary OpenAI providers, `RuleBasedExtractor`, `TelegramReviewGate`, review gate enabled, adversarial disabled, and budgets set to `$0.50` per round / `$2.00` per session.
+
+Verification:
+- `python3 -m py_compile src/main.py` — passed
+- `python3 -m pytest -q` — 187 passed
+
+Next step: 15.2 validates startup on the Pi with real `.env` values and toolkit installed.

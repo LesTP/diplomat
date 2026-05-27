@@ -1,8 +1,8 @@
 ---
 phase: 16
-blocked: false
+blocked: true
 state: close
-steps_remaining: 1
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -22,47 +22,13 @@ steps_remaining: 1
 
 ## Current Status
 
-- **Phase** — Phase 16 implementation complete: Deployment Readiness.
-- **Focus** — Ready for phase review.
-- **Blocked/Broken** — none.
+- **Phase** — Phase 16 complete: Deployment Readiness.
+- **Focus** — Human audit gate before any next phase.
+- **Blocked/Broken** — blocked for audit after phase close.
 
 ## Phase 16: Deployment Readiness
 
-Regime: Build. Scope: Fix the regression tests broken by smoke test changes, set up two-channel Telegram configuration, add systemd service for long-running operation, and verify full test suite on Pi. No game-specific tuning — this phase makes the system deployable; game rules and faction prompt are configured at deploy time.
-
-**Prerequisites resolved during Phase 15:**
-- Toolkit installed in venv on Pi
-- `.env.template` and `pipeline_smoke.yaml` exist
-- Bot connects to Telegram and responds to commands
-- LLM API calls work through ToolkitLLMAdapter
-
-Steps:
-
-- [x] 16.1 — **Fix transport and review gate test coverage.** The smoke test applied three code changes that existing unit tests don't cover:
-  - Transport `listen()` now runs `start_polling()` as a background task and continues on `None` updates — update `tests/test_transport.py` fakes and add a test for the background polling behavior.
-  - Transport and Review Gate content lookup now includes `message_text` — update test fakes to use `message_text` attribute and verify it's found.
-  - Orchestrator `/commands` handler and `/block` acknowledgement — add tests in `tests/test_orchestrator.py`.
-  Run full regression on Pi. Target: all 187+ tests pass.
-
-- [x] 16.2 — **Two-channel Telegram setup guide.** Create a deployment section in `diplomat-testing-doc.md` §5b (or a new `DEPLOYMENT.md`) documenting:
-  - Create a Telegram group for game messages → use its chat ID as `DIPLOMAT_PUBLIC_CHANNEL_ID`
-  - Keep the private bot chat for coaching → use its chat ID as `DIPLOMAT_COACHING_CHANNEL_ID`
-  - Add the bot to the game group
-  - Map other players' Telegram user IDs to faction names in `pipeline.yaml` `transport.faction_map`
-  - Verify game messages route as non-operator (triggering extraction) and coaching messages route as operator
-
-- [x] 16.3 — **Systemd service file.** Create `config/diplomat.service` (a systemd unit file) for running the bot as a background service on the Pi:
-  - `ExecStart` pointing to the venv Python + `src/main.py` with `PYTHONPATH=src`
-  - `WorkingDirectory` set to project root
-  - `EnvironmentFile` pointing to `.env`
-  - `Restart=on-failure` with reasonable delay
-  - Document install/start/stop/logs commands in `DEPLOYMENT.md` or the testing doc
-
-- [x] 16.4 — **Remove debug prints from transport.** Remove the `[DEBUG transport]` print statements added during smoke test. They were useful for debugging but shouldn't run in production.
-
-- [x] 16.5 — **Documentation and regression.** Run full regression on Pi. Update DEVPLAN Phase 16 summary. Append DEVLOG entry. Transition to `state: review`.
-
-Summary: Restored regression coverage for live-smoke fixes, including background Telegram polling, `message_text` update parsing, `/commands`, and `/block` acknowledgement. Documented two-channel Telegram deployment in `diplomat-testing-doc.md` §5b, added `config/diplomat.service` for Raspberry Pi systemd operation, removed temporary `[DEBUG transport]` prints, and verified the full regression suite: 193 passed. Phase 16 is ready for review.
+Complete. Restored regression coverage for live-smoke fixes, documented two-channel Telegram deployment, added `config/diplomat.service`, removed temporary transport debug prints, fixed the CostAccountant adapter construction found during review, and verified 193 passing tests. See `DEVLOG.md`.
 
 ## Phase 15: Live Smoke Test — Environment Setup
 
@@ -73,7 +39,7 @@ Complete. Created `.env.template` and `config/pipeline_smoke.yaml`. Validated st
 4. Orchestrator: added `/commands` handler listing all commands and coaching tags
 5. Orchestrator: added `/block` acknowledgement message
 
-All fixes committed. See `DEVLOG.md`.
+All fixes committed. See `DEVLOG_archive.md`.
 
 ## Phase 14: Layer 3 — Transcript Replay Tests
 
