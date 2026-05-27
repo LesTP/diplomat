@@ -90,3 +90,10 @@ Priority: Important
 Decision: Phase 10 will implement `LLMAdversarialReader` as an independent optional module that validates JSON analysis locally against `config/schemas/adversarial.json`, while leaving skip behavior and persistence to the Orchestrator.
 Rationale: `ARCH_adversarial.md` defines the reader as standalone and optional, and `toolkit/llm_client` returns plain text. Local validation matches the established Extraction, Analyst, and Generation pattern without expanding toolkit contracts or coupling the module to pipeline state.
 Revisit if: toolkit adds portable structured output enforcement or Orchestrator needs adversarial reads to own persistence.
+
+D-13: External dependency fakes must be derived from source, not from prose
+Date: 2026-05-27 | Status: Closed
+Priority: Critical
+Decision: When a module depends on an external library (toolkit, etc.), test fakes must match the real library's type signatures — not the ARCH file's prose description. If the library is not importable in the worker's environment, the worker must read the library's source files (ARCH docs, type definitions, function signatures) from the shared filesystem to derive correct fakes. Unverified fakes must be logged as warnings in DEVLOG.
+Rationale: Phases 2–11 built fakes from ARCH prose ("calls toolkit/llm_client.complete()") without verifying the real function signature. This produced three integration mismatches: Message objects vs dicts, LLMConfig vs plain dict, LLMResponse vs plain str. All 165 unit tests passed against incorrect fakes. The mismatches were only caught during the post-implementation dependency probe — after 11 phases of code had been written against the wrong interface. An adapter layer (ToolkitLLMAdapter, DiplomatCostGate) was required to bridge the gap.
+Revisit if: The governance framework adds a structural mechanism (interface snapshot files, cross-project contract tests) that makes this rule redundant.
