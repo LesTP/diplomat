@@ -1,0 +1,18 @@
+[Unit]
+Description=Diplomat Telegram game agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=claude
+WorkingDirectory=/home/claude/workspace/diplomat
+EnvironmentFile=/home/claude/workspace/diplomat/.env
+Environment=PYTHONPATH=/home/claude/workspace/diplomat/src
+Environment=DIPLOMAT_PIPELINE_CONFIG=config/pipeline.yaml
+ExecStart=/home/claude/workspace/diplomat/.venv/bin/python /home/claude/workspace/diplomat/src/main.py
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

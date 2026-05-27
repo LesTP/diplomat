@@ -790,3 +790,18 @@ Verification:
 - Python regression not run; documentation-only change
 
 Next step: 16.3 adds the systemd service file and service management docs.
+
+### Step 16.3: Systemd service file
+
+**Mode:** Build
+**Outcome:** Complete — Pi service unit and management commands documented
+**Contract changes:** None
+
+Created `config/diplomat.service` for running the bot under systemd with the project root as `WorkingDirectory`, `.env` as `EnvironmentFile`, `PYTHONPATH` pointing at `src`, `.venv/bin/python` executing `src/main.py`, and `Restart=on-failure` with a 10-second delay.
+
+Updated `diplomat-testing-doc.md` §5b with install, start, status, log, restart, and stop commands, plus a note to edit service paths if the Pi checkout location or user differs.
+
+Verification:
+- `systemd-analyze verify config/diplomat.service` — passed for the Diplomat unit; command also reported an unrelated existing `/etc/systemd/system/codexbot.service` warning
+
+Next step: 16.4 removes temporary transport debug prints.

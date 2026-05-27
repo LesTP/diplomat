@@ -2,7 +2,7 @@
 phase: 16
 blocked: false
 state: execute
-steps_remaining: 5
+steps_remaining: 4
 ---
 
 # Diplomat — Development Plan
@@ -23,7 +23,7 @@ steps_remaining: 5
 ## Current Status
 
 - **Phase** — Phase 16 planned: Deployment Readiness.
-- **Focus** — Next: add systemd service support, then remove temporary transport debug output.
+- **Focus** — Next: remove temporary transport debug output, then run final documentation cleanup and regression.
 - **Blocked/Broken** — none.
 
 ## Phase 16: Deployment Readiness
@@ -51,7 +51,7 @@ Steps:
   - Map other players' Telegram user IDs to faction names in `pipeline.yaml` `transport.faction_map`
   - Verify game messages route as non-operator (triggering extraction) and coaching messages route as operator
 
-- [ ] 16.3 — **Systemd service file.** Create `config/diplomat.service` (a systemd unit file) for running the bot as a background service on the Pi:
+- [x] 16.3 — **Systemd service file.** Create `config/diplomat.service` (a systemd unit file) for running the bot as a background service on the Pi:
   - `ExecStart` pointing to the venv Python + `src/main.py` with `PYTHONPATH=src`
   - `WorkingDirectory` set to project root
   - `EnvironmentFile` pointing to `.env`

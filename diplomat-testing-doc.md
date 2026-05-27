@@ -1017,6 +1017,32 @@ Routing verification:
 - Send `/state` from the public group only as a negative check. Operator commands belong in the coaching chat; if the public sender is not in `DIPLOMAT_OPERATOR_USER_IDS`, the message should be treated as game traffic.
 - If every public sender appears as `system`, fill in `transport.faction_map` with the real Telegram user IDs for the other players.
 
+### Systemd Service
+
+`config/diplomat.service` runs the bot as a long-lived Pi service. It assumes the project lives at `/home/claude/workspace/diplomat`, the venv Python is `.venv/bin/python`, and `.env` lives in the project root. If the checkout path or user differs, edit `User=`, `WorkingDirectory=`, `EnvironmentFile=`, `PYTHONPATH`, and `ExecStart` before installing.
+
+Install and start:
+
+```bash
+sudo install -m 0644 config/diplomat.service /etc/systemd/system/diplomat.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now diplomat.service
+```
+
+Inspect status and logs:
+
+```bash
+systemctl status diplomat.service
+journalctl -u diplomat.service -f
+```
+
+Restart or stop:
+
+```bash
+sudo systemctl restart diplomat.service
+sudo systemctl stop diplomat.service
+```
+
 ### Cheapest Configuration
 
 To minimize cost, update `config/pipeline.yaml` for the smoke test:
