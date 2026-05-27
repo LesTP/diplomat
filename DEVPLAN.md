@@ -2,7 +2,7 @@
 phase: 15
 blocked: false
 state: execute
-steps_remaining: 1
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -36,7 +36,7 @@ Regime: Build (steps 1–3) + Explore (step 4 — manual testing, fix what break
 
 Steps:
 
-- [ ] 15.1 — **Create `.env.template` and `config/pipeline_smoke.yaml`.** Create `.env.template` listing all required environment variables with placeholder values and comments:
+- [x] 15.1 — **Create `.env.template` and `config/pipeline_smoke.yaml`.** Create `.env.template` listing all required environment variables with placeholder values and comments:
   - `TELEGRAM_BOT_TOKEN` — from @BotFather
   - `DIPLOMAT_PUBLIC_CHANNEL_ID` — numeric Telegram chat ID for game messages
   - `DIPLOMAT_COACHING_CHANNEL_ID` — numeric Telegram chat ID for operator commands

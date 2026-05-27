@@ -735,3 +735,19 @@ Planned the live smoke-test preparation phase around environment artifacts and P
 - human-driven Telegram smoke checklist from `diplomat-testing-doc.md` §5b
 
 Scope decision logged in `DECISIONS.md` as D-17. Next step: 15.1 creates `.env.template` and `config/pipeline_smoke.yaml`.
+
+### Step 15.1: Smoke environment artifacts
+
+**Mode:** Build
+**Outcome:** Complete — `.env.template` and OpenAI-only smoke pipeline config added
+**Contract changes:** None
+
+Created `.env.template` with placeholders and comments for Telegram bot token, public/coaching channel IDs, operator user IDs, OpenAI API key, and optional Anthropic API key.
+
+Added `config/pipeline_smoke.yaml` as a dedicated live-smoke config copied from the production pipeline shape with `gpt-4.1-mini` for both primary and secondary OpenAI providers, `RuleBasedExtractor`, `TelegramReviewGate`, review gate enabled, adversarial disabled, and budgets set to `$0.50` per round / `$2.00` per session.
+
+Verification:
+- `python3 -m py_compile src/main.py` — passed
+- `python3 -m pytest -q` — 187 passed
+
+Next step: 15.2 validates startup on the Pi with real `.env` values and toolkit installed.

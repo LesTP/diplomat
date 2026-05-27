@@ -1,0 +1,92 @@
+faction_id: england
+
+database:
+  path: data/game.db
+
+transport:
+  type: telegram_bot
+  class: TelegramBotTransport
+  public_channel_id_env: DIPLOMAT_PUBLIC_CHANNEL_ID
+  coaching_channel_id_env: DIPLOMAT_COACHING_CHANNEL_ID
+  operator_user_ids_env: DIPLOMAT_OPERATOR_USER_IDS
+  private_channel_ids: {}
+  faction_map: {}
+
+llm_providers:
+  primary:
+    provider: openai
+    models:
+      quality: gpt-4.1-mini
+      default: gpt-4.1-mini
+      commodity: gpt-4.1-mini
+    api_key_env: OPENAI_API_KEY
+  secondary:
+    provider: openai
+    models:
+      quality: gpt-4.1-mini
+      default: gpt-4.1-mini
+      commodity: gpt-4.1-mini
+    api_key_env: OPENAI_API_KEY
+
+modules:
+  event_store:
+    class: SQLiteEventStore
+  state_manager:
+    class: SQLiteStateManager
+  extractor:
+    class: RuleBasedExtractor
+    provider: primary
+  coaching_parser:
+    class: TaggedCoachingParser
+  transport:
+    class: TelegramBotTransport
+  persona:
+    class: FileBasedPersona
+  primary_analyst:
+    class: LLMAnalyst
+    provider: primary
+  secondary_analyst:
+    class: LLMAnalyst
+    provider: secondary
+  divergence:
+    class: modules.analyst.divergence.compare
+  context_assembler:
+    class: DefaultContextAssembler
+  generator:
+    class: LLMGenerator
+    provider: primary
+    max_tokens: 1024
+    tier: quality
+  adversarial:
+    class: LLMAdversarialReader
+    provider: secondary
+    tier: quality
+  review_gate:
+    class: TelegramReviewGate
+
+cost:
+  per_round_budget_usd: 0.50
+  session_budget_usd: 2.00
+
+round_detection:
+  mode: signal
+  pattern: "^ROUND\\s+(?P<round>\\d+)"
+
+feature_flags:
+  adversarial:
+    enabled: false
+  review_gate:
+    enabled: true
+
+paths:
+  coaching_routes: config/coaching_routes.yaml
+  faction_prompt: config/faction_prompt.txt
+  prompts:
+    state_updater: config/prompts/state_updater.txt
+    analyst: config/prompts/analyst.txt
+    generation: config/prompts/generation.txt
+    adversarial: config/prompts/adversarial.txt
+  schemas:
+    state_patch: config/schemas/state_patch.json
+    intelligence: config/schemas/intelligence.json
+    adversarial: config/schemas/adversarial.json
