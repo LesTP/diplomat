@@ -2,7 +2,7 @@
 phase: 12
 blocked: false
 state: execute
-steps_remaining: 1
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -45,7 +45,7 @@ Steps:
 
   Add focused tests for each new method in `tests/test_state_manager.py`: verify row insertion/update, verify data round-trips correctly, verify `mark_coaching_consumed` only marks unconsumed rows. Update `ARCH_state_manager.md` Public API section with the 5 new method signatures. Run full regression.
 
-- [ ] 12.3 — **Remove SQLite fallbacks from Orchestrator; type InboundEvent.** In `src/orchestrator.py`:
+- [x] 12.3 — **Remove SQLite fallbacks from Orchestrator; type InboundEvent.** In `src/orchestrator.py`:
   - Replace `_store_coaching` body: remove the `getattr` check and raw `sqlite3` fallback; call `await self.state_manager.store_coaching(coaching_id, event.coaching_type, event.content, False)` directly.
   - Replace `_store_intelligence` body: remove the `getattr` check and raw `sqlite3` fallback; call `await self.state_manager.store_intelligence(round_number, provider, payload)` directly.
   - Replace `_set_game_state` body: remove the `getattr` check and raw `sqlite3` fallback; call `await self.state_manager.set_game_state(key, value)` directly.

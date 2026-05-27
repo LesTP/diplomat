@@ -4,7 +4,7 @@ import asyncio
 import contextlib
 import json
 import os
-import sqlite3
+import sqlite3  # Used only for pre-flight database initialization.
 import uuid
 from dataclasses import asdict, dataclass, is_dataclass
 from datetime import datetime, timezone
@@ -19,7 +19,7 @@ from modules.context_assembler import CoachingEntry
 from modules.generation import GenerationResult
 from modules.persona import CoachingContext
 from modules.transport import OutboundMessage
-from modules.types import Divergence, EventFilter, PatchSource
+from modules.types import Divergence, EventFilter, InboundEvent, PatchSource
 from registry import resolve_class
 
 
@@ -153,7 +153,7 @@ class Orchestrator:
         if close is not None:
             await _maybe_await(close())
 
-    async def process_event(self, event: Any) -> str:
+    async def process_event(self, event: InboundEvent) -> str:
         event_id = await self.event_store.append(event, self.current_round)
         if event.sender_faction == "operator":
             await self._route_operator_event(event, event_id)
@@ -214,33 +214,12 @@ class Orchestrator:
 
     async def _store_coaching(self, event: CoachingEvent) -> str:
         coaching_id = f"coaching-{uuid.uuid4()}"
-        store = getattr(self.state_manager, "store_coaching", None)
-        if store is not None:
-            await _maybe_await(
-                store(
-                    coaching_id=coaching_id,
-                    tag=event.coaching_type,
-                    content=event.content,
-                    consumed=False,
-                )
-            )
-            return coaching_id
-
-        db_path = getattr(self.state_manager, "db_path", self.db_path)
-        with sqlite3.connect(db_path) as conn:
-            conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute(
-                """
-                INSERT INTO coaching (coaching_id, tag, content, consumed, created_at)
-                VALUES (?, ?, ?, 0, ?)
-                """,
-                (
-                    coaching_id,
-                    event.coaching_type,
-                    event.content,
-                    datetime.now(timezone.utc).isoformat(),
-                ),
-            )
+        await self.state_manager.store_coaching(
+            coaching_id,
+            event.coaching_type,
+            event.content,
+            False,
+        )
         return coaching_id
 
     async def _dispatch_command(self, command: Command) -> None:
@@ -364,7 +343,9 @@ class Orchestrator:
         await self._set_game_state("round_number", str(self.current_round))
         self._reset_round_budget()
 
-    async def run_response_pipeline(self, trigger_event: Any | None = None) -> bool:
+    async def run_response_pipeline(
+        self, trigger_event: InboundEvent | None = None
+    ) -> bool:
         persona_prompt = await self.persona.get_base_prompt()
         round_context = await self.persona.build_round_context(
             self.current_round,
@@ -556,79 +537,23 @@ class Orchestrator:
             "secondary": self._public_data(secondary_result),
             "divergences": [self._public_data(item) for item in divergences],
         }
-        store = getattr(self.state_manager, "store_intelligence", None)
-        if store is not None:
-            await _maybe_await(
-                store(
-                    round_number=self.current_round,
-                    provider="orchestrator",
-                    analysis=payload,
-                )
-            )
-            return
-        with sqlite3.connect(getattr(self.state_manager, "db_path", self.db_path)) as conn:
-            conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute(
-                """
-                INSERT INTO intelligence (round_number, provider, analysis_json, created_at)
-                VALUES (?, ?, ?, ?)
-                """,
-                (
-                    self.current_round,
-                    "orchestrator",
-                    json.dumps(payload, sort_keys=True),
-                    datetime.now(timezone.utc).isoformat(),
-                ),
-            )
+        await self.state_manager.store_intelligence(
+            self.current_round,
+            "orchestrator",
+            payload,
+        )
 
     async def _set_game_state(self, key: str, value: str) -> None:
-        setter = getattr(self.state_manager, "set_game_state", None)
-        if setter is not None:
-            await _maybe_await(setter(key, value))
-            return
-        with sqlite3.connect(getattr(self.state_manager, "db_path", self.db_path)) as conn:
-            conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute(
-                """
-                INSERT INTO game_state (key, value)
-                VALUES (?, ?)
-                ON CONFLICT(key) DO UPDATE SET value = excluded.value
-                """,
-                (key, value),
-            )
+        await self.state_manager.set_game_state(key, value)
 
     async def _store_adversarial_read(self, adversarial_result: Any) -> None:
         if adversarial_result is None:
             return
         payload = self._public_data(adversarial_result)
-        store = getattr(self.state_manager, "store_adversarial_read", None)
-        if store is not None:
-            await _maybe_await(
-                store(round_number=self.current_round, analysis=payload)
-            )
-            return
-        with sqlite3.connect(getattr(self.state_manager, "db_path", self.db_path)) as conn:
-            conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute(
-                """
-                INSERT INTO adversarial_reads (round_number, analysis_json, created_at)
-                VALUES (?, ?, ?)
-                """,
-                (
-                    self.current_round,
-                    json.dumps(payload, sort_keys=True),
-                    datetime.now(timezone.utc).isoformat(),
-                ),
-            )
+        await self.state_manager.store_adversarial_read(self.current_round, payload)
 
     async def _mark_coaching_consumed(self) -> None:
-        marker = getattr(self.state_manager, "mark_coaching_consumed", None)
-        if marker is not None:
-            await _maybe_await(marker())
-            return
-        with sqlite3.connect(getattr(self.state_manager, "db_path", self.db_path)) as conn:
-            conn.execute("PRAGMA journal_mode=WAL")
-            conn.execute("UPDATE coaching SET consumed = 1 WHERE consumed = 0")
+        await self.state_manager.mark_coaching_consumed()
 
     @staticmethod
     def _public_data(value: Any) -> Any:

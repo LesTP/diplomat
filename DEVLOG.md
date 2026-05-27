@@ -551,3 +551,19 @@ Verification:
 - `python3 -m pytest` — 170 passed
 
 Next step: 12.3 removes Orchestrator raw SQLite fallbacks and calls the new State Manager API directly.
+
+### Step 12.3: Remove SQLite fallbacks from Orchestrator
+
+**Mode:** Build
+**Outcome:** Complete — Orchestrator now calls State Manager persistence APIs directly and event parameters use `InboundEvent`
+**Contract changes:** Orchestrator now requires the expanded State Manager persistence API from Step 12.2
+
+Removed raw SQLite fallback write paths from `_store_coaching`, `_store_intelligence`, `_set_game_state`, `_store_adversarial_read`, and `_mark_coaching_consumed`. Those helpers now call the State Manager methods directly, keeping table ownership inside the State Manager. `sqlite3` remains in Orchestrator only for pre-flight database initialization.
+
+Typed `process_event()` and `run_response_pipeline()` with `InboundEvent` where they previously accepted `Any`. The existing Orchestrator fake state manager already implements the expanded persistence API, so the behavior tests continue to exercise the production contract.
+
+Verification:
+- `python3 -m pytest tests/test_orchestrator.py` — 44 passed
+- `python3 -m pytest` — 170 passed
+
+Next step: 12.4 performs architecture/doc cleanup and final regression verification before review.
