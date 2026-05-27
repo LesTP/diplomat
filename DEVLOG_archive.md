@@ -577,3 +577,15 @@ Verification:
 - `.venv/bin/python -m pytest -q` — 121 passed
 
 No new gotchas promoted. No contract changes require propagation beyond the Phase 10 Adversarial API and schema already captured in `ARCH_adversarial.md` and `ARCHITECTURE.md`.
+
+---
+
+## Archived 2026-05-27 — Module 12 Phase 11: Orchestrator and Adapter Probes
+
+Phase 11 implemented the final Orchestrator module: `config/pipeline.yaml`, registry lookup, startup validation, event loop, operator command routing, debounced extraction, round boundaries, dual-analyst intelligence persistence, response pipeline, per-call cost gates, and `src/main.py`. Phase Review applied three should-fix items and found no must-fix issues. Full regression reached 165 passing tests.
+
+Post-phase source-level toolkit probes found integration mismatches between earlier fakes and real toolkit APIs. Adapter fixes introduced `ToolkitLLMAdapter` and `DiplomatCostGate`, corrected Telegram client construction, updated `pipeline.yaml` LLM provider shape, and were verified on the Pi with real toolkit imports. This produced D-13: external dependency fakes must be derived from source, not prose.
+
+Verification:
+- `python3 -m pytest` — 165 passed
+- Pi toolkit probe — `llm_client`, `telegram_client`, and `cost_accountant` signatures confirmed

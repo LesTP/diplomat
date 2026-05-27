@@ -597,3 +597,22 @@ Verification:
 - `python3 -m pytest` — 170 passed
 
 Phase 12 ready for human audit. Transitioning to `state: close`.
+
+### 2026-05-27 — Phase 12 Complete
+
+**Action:** Phase Complete for Orchestrator Refactor
+**Outcome:** Complete — human audit gate set in DEVPLAN frontmatter
+
+Closed Phase 12 after adapter extraction, State Manager persistence API expansion, Orchestrator SQLite fallback removal, and public `InboundEvent` typing. Phase Review applied one should-fix and found no must-fix issues.
+
+Integration check:
+- Orchestrator now writes coaching, intelligence, game state, adversarial reads, and coaching consumption through State Manager's public methods.
+- No module imports the orchestration layer; module coupling remains through shared types and configured dependencies.
+- No bridge logic is needed between Orchestrator and State Manager beyond the new public State Manager methods documented in `ARCH_state_manager.md` and `ARCHITECTURE.md`.
+
+Verification:
+- `python3 -m pytest -q` — 170 passed
+
+Phase 11 development and post-phase adapter probe entries archived to `DEVLOG_archive.md` (2026-05-27).
+
+No new gotchas promoted. Contract changes are already propagated to `ARCH_state_manager.md`, `ARCH_orchestrator.md`, and `ARCHITECTURE.md`.

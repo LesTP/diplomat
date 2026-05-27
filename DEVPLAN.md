@@ -1,6 +1,6 @@
 ---
 phase: 12
-blocked: false
+blocked: true
 state: close
 steps_remaining: 0
 ---
@@ -22,44 +22,13 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 12: Orchestrator refactor — adapter extraction, State Manager contract expansion, SQLite fallback removal.
-- **Focus** — Reduce Orchestrator complexity by moving misplaced concerns to their proper modules.
-- **Blocked/Broken** — none.
+- **Phase** — Phase 12 complete; project is blocked for human audit.
+- **Focus** — Audit and deployment readiness.
+- **Blocked/Broken** — Human audit gate after phase close.
 
 ## Phase 12: Orchestrator Refactor
 
-Regime: Build. Scope: Extract adapter classes to their own module, expand the State Manager's public API to cover persistence operations currently handled by Orchestrator SQLite fallbacks, remove all fallback persistence code from the Orchestrator, and type the event parameter correctly. No new features — pure refactor with full regression verification.
-
-**Cross-module note:** This phase intentionally modifies both State Manager and Orchestrator as a planned contract expansion. The State Manager gains 5 new methods; the Orchestrator drops its fallback implementations and calls the State Manager directly. Both sides are specified below. This is not an emergent scope change — do not escalate under WORKER_SPEC §5 "contract change would affect other modules."
-
-Steps:
-
-- [x] 12.1 — **Extract adapters to `src/adapters.py`.** Move `ToolkitLLMAdapter` and `DiplomatCostGate` classes from `src/orchestrator.py` to a new `src/adapters.py`. Remove them from `orchestrator.py`'s `__all__`. Update `src/main.py` to import from `adapters` instead of `orchestrator`. Run `python3 -m py_compile src/adapters.py src/orchestrator.py src/main.py` and full regression.
-
-- [x] 12.2 — **Expand State Manager API with 5 persistence methods.** Add the following async methods to `SQLiteStateManager` in `src/modules/state_manager/__init__.py`, each using the existing `self._connect()` helper and `self._now()` timestamp:
-  - `store_coaching(self, coaching_id: str, tag: str, content: str, consumed: bool) -> None` — INSERT into coaching table
-  - `store_intelligence(self, round_number: int, provider: str, analysis: dict) -> None` — INSERT into intelligence table with `json.dumps(analysis, sort_keys=True)` for analysis_json
-  - `set_game_state(self, key: str, value: str) -> None` — INSERT OR UPDATE into game_state table
-  - `store_adversarial_read(self, round_number: int, analysis: dict) -> None` — INSERT into adversarial_reads table with `json.dumps(analysis, sort_keys=True)` for analysis_json
-  - `mark_coaching_consumed(self) -> None` — UPDATE coaching SET consumed=1 WHERE consumed=0
-
-  Add focused tests for each new method in `tests/test_state_manager.py`: verify row insertion/update, verify data round-trips correctly, verify `mark_coaching_consumed` only marks unconsumed rows. Update `ARCH_state_manager.md` Public API section with the 5 new method signatures. Run full regression.
-
-- [x] 12.3 — **Remove SQLite fallbacks from Orchestrator; type InboundEvent.** In `src/orchestrator.py`:
-  - Replace `_store_coaching` body: remove the `getattr` check and raw `sqlite3` fallback; call `await self.state_manager.store_coaching(coaching_id, event.coaching_type, event.content, False)` directly.
-  - Replace `_store_intelligence` body: remove the `getattr` check and raw `sqlite3` fallback; call `await self.state_manager.store_intelligence(round_number, provider, payload)` directly.
-  - Replace `_set_game_state` body: remove the `getattr` check and raw `sqlite3` fallback; call `await self.state_manager.set_game_state(key, value)` directly.
-  - Replace `_store_adversarial_read` body: remove the `getattr` check and raw `sqlite3` fallback; call `await self.state_manager.store_adversarial_read(round_number, payload)` directly. Keep the `if adversarial_result is None: return` guard.
-  - Replace `_mark_coaching_consumed` body: remove the `getattr` check and raw `sqlite3` fallback; call `await self.state_manager.mark_coaching_consumed()` directly.
-  - Remove `import sqlite3` if `_initialize_sqlite` is the only remaining usage — check first. If `_initialize_sqlite` still needs it, keep the import but add a comment noting it's only for pre-flight DB init.
-  - Type `process_event(self, event: Any)` → `process_event(self, event: InboundEvent)`. Add `InboundEvent` to the imports from `modules.types`.
-  - Type `run_response_pipeline(self, trigger_event: Any | None = None)` → `run_response_pipeline(self, trigger_event: InboundEvent | None = None)`.
-  - Update Orchestrator test fakes in `tests/test_orchestrator.py`: the fake state manager must implement `store_coaching`, `store_intelligence`, `set_game_state`, `store_adversarial_read`, and `mark_coaching_consumed` (simple in-memory implementations that store to lists/dicts). Verify existing Orchestrator tests still pass — the fake methods replace the `sqlite3` fallback paths that tests previously exercised.
-  - Run full regression.
-
-- [x] 12.4 — **Documentation cleanup and regression verification.** Update `ARCHITECTURE.md` coupling notes: remove the "via adapter" note from the existing adapter bullet (already in `src/adapters.py` now) and update the State Manager coupling note to reflect the expanded API. Verify full test suite passes. Update DEVPLAN Phase 12 summary. Append DEVLOG entry. Transition to `state: review`.
-
-Summary: Extracted `ToolkitLLMAdapter` and `DiplomatCostGate` to `src/adapters.py`, expanded State Manager API with 5 persistence methods (`store_coaching`, `store_intelligence`, `set_game_state`, `store_adversarial_read`, `mark_coaching_consumed`), removed all sqlite3 fallbacks from Orchestrator (now delegates to State Manager directly), typed `InboundEvent` parameters on `process_event` and `run_response_pipeline`, and updated ARCHITECTURE.md coupling notes. Full regression: 170 passed.
+Complete. Extracted `ToolkitLLMAdapter` and `DiplomatCostGate` to `src/adapters.py`, expanded State Manager with 5 persistence APIs, removed Orchestrator sqlite3 fallbacks, typed `InboundEvent` on public event/pipeline methods, and verified 170 regression tests. See `DEVLOG.md`.
 
 ## Phase 11: Orchestrator
 
