@@ -1,0 +1,89 @@
+{
+  "description": "Cooperative three-round game with two promises and one coalition.",
+  "events": [
+    {
+      "sender_faction": "faction_atlas",
+      "channel": "public",
+      "content": "Atlas opens the summit by asking for stable trade routes.",
+      "timestamp": "2026-01-01T10:00:00+00:00",
+      "is_round_end": false
+    },
+    {
+      "sender_faction": "faction_atlas",
+      "channel": "public",
+      "content": "Atlas promises Beacon to support the river access proposal.",
+      "timestamp": "2026-01-01T10:05:00+00:00",
+      "is_round_end": false
+    },
+    {
+      "sender_faction": "system",
+      "channel": "public",
+      "content": "[ROUND END]",
+      "timestamp": "2026-01-01T10:30:00+00:00",
+      "is_round_end": true
+    },
+    {
+      "sender_faction": "faction_beacon",
+      "channel": "public",
+      "content": "Beacon thanks Atlas and asks Harbor to keep markets open.",
+      "timestamp": "2026-01-01T11:00:00+00:00",
+      "is_round_end": false
+    },
+    {
+      "sender_faction": "faction_beacon",
+      "channel": "public",
+      "content": "Beacon and Harbor formed a coalition.",
+      "timestamp": "2026-01-01T11:10:00+00:00",
+      "is_round_end": false
+    },
+    {
+      "sender_faction": "system",
+      "channel": "public",
+      "content": "[ROUND END]",
+      "timestamp": "2026-01-01T11:30:00+00:00",
+      "is_round_end": true
+    },
+    {
+      "sender_faction": "faction_harbor",
+      "channel": "public",
+      "content": "Harbor proposes a shared schedule for the final vote.",
+      "timestamp": "2026-01-01T12:00:00+00:00",
+      "is_round_end": false
+    },
+    {
+      "sender_faction": "faction_harbor",
+      "channel": "public",
+      "content": "Harbor promises Atlas to share early warning reports.",
+      "timestamp": "2026-01-01T12:08:00+00:00",
+      "is_round_end": false
+    },
+    {
+      "sender_faction": "system",
+      "channel": "public",
+      "content": "[ROUND END]",
+      "timestamp": "2026-01-01T12:30:00+00:00",
+      "is_round_end": true
+    }
+  ],
+  "expected_final_state": {
+    "promises": [
+      {
+        "from_faction": "Atlas",
+        "to_faction": "Beacon",
+        "status": "pending"
+      },
+      {
+        "from_faction": "Harbor",
+        "to_faction": "Atlas",
+        "status": "pending"
+      }
+    ],
+    "coalitions": [
+      {
+        "faction_a": "Beacon",
+        "faction_b": "Harbor"
+      }
+    ],
+    "inconsistencies": []
+  }
+}

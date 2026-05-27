@@ -643,3 +643,19 @@ No new gotchas promoted. Contract changes are already reflected in `diplomat-tes
 Confirmed Phase 14 scope: add deterministic synthetic transcript fixtures, replay them through the existing fake-backed Orchestrator integration pipeline, and assert final promise/coalition/inconsistency/intelligence state. The phase remains Layer 3 only: no real API calls, no prompt-quality assertions, and no Telegram dependencies.
 
 Scope decision logged in `DECISIONS.md` as D-16. Next step: 14.1 creates the cooperative 3-round transcript fixture.
+
+### Step 14.1: Cooperative 3-round transcript fixture
+
+**Mode:** Build
+**Outcome:** Complete — deterministic cooperative replay fixture added
+**Contract changes:** None
+
+Created `tests/integration/fixtures/transcripts/cooperative_3round.json` with nine timestamped events across three rounds. The transcript includes two promise messages and one coalition message that match `RuleBasedExtractor` patterns, plus three `[ROUND END]` signals for later replay tests.
+
+The fixture records expected final state for two pending promises (`Atlas` to `Beacon`, `Harbor` to `Atlas`) and one coalition (`Beacon` with `Harbor`).
+
+Verification:
+- `python3 -m json.tool tests/integration/fixtures/transcripts/cooperative_3round.json >/dev/null` — passed
+- `python3 -m pytest -q` — 182 passed
+
+Next step: 14.2 creates the betrayal arc transcript fixture.
