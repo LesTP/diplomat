@@ -1,8 +1,8 @@
 ---
 phase: 17
 blocked: false
-state: execute
-steps_remaining: 2
+state: review
+steps_remaining: 1
 ---
 
 # Diplomat — Development Plan
@@ -75,7 +75,9 @@ Steps:
   2. `persona_consistency.json` — response matches faction persona tone (llm_judge: response uses appropriate diplomatic framing)
   These require real LLM calls for both generation and judging. Document expected cost per run. Run full regression.
 
-- [ ] 17.6 — **Documentation and regression.** Verify full test suite (193 existing + new type/runner tests). Update DEVPLAN Phase 17 summary. Update `diplomat-testing-doc.md` Layer 2 status. Append DEVLOG entry. Transition to `state: review`.
+- [x] 17.6 — **Documentation and regression.** Verify full test suite (193 existing + new type/runner tests). Update DEVPLAN Phase 17 summary. Update `diplomat-testing-doc.md` Layer 2 status. Append DEVLOG entry. Transition to `state: review`.
+
+Summary: Implemented Layer 2 prompt regression infrastructure: scenario/result dataclasses, scenario JSON validation, dotted/bracket JSON-path helpers, LLM-as-judge evaluation, a module-builder based scenario runner with CLI, 15 focused prompt-regression unit tests, 4 free Extraction scenarios, 2 LLM-backed Generation scenarios, and cost documentation for paid generation runs. Free extraction scenario suite passes 4/4 locally; full regression passes 207 tests. Generation scenarios are authored but require a live injected LLM client on the Pi to execute.
 
 ## Phase 16: Deployment Readiness
 

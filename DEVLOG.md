@@ -927,3 +927,19 @@ Verification:
 Generation scenarios were not executed in this environment because they require paid live LLM calls and an injected production client.
 
 Next step: 17.6 performs documentation cleanup and final regression.
+
+### Step 17.6: Documentation and regression
+
+**Mode:** Build (cleanup)
+**Outcome:** Complete — Phase 17 implementation ready for review
+**Contract changes:** None
+
+Updated `diplomat-testing-doc.md` to mark Layer 2 prompt regression infrastructure complete, document the implemented scenario format/runner behavior, list the starter scenario library, clarify that generation scenarios require an injected live LLM client, and update the regression count to 207 tests.
+
+Updated `DEVPLAN.md` with the Phase 17 implementation summary, marked all Phase 17 steps complete, and transitioned to review.
+
+Verification:
+- `python3 -m tests.prompt_regression.runner --scenarios tests/prompt_regression/scenarios --module extraction` — 4/4 scenarios passed
+- `python3 -m pytest -q` — 207 passed
+
+Phase 17 is ready for review.

@@ -1,5 +1,5 @@
 # AI Diplomat — Testing and Tuning Guide
-**Version 0.5 | Updated 2026-05-27 — Phase 16 deployment readiness complete**
+**Version 0.6 | Updated 2026-05-27 — Phase 17 prompt regression infrastructure complete**
 
 ---
 
@@ -18,8 +18,8 @@ The modular architecture in the main spec was partly designed with testability i
 | Layer | What it tests | Speed | Cost | When to run | Status |
 |---|---|---|---|---|---|
 | 1 — Unit | Module correctness | Fast | Free | Every commit | **Complete** — 176 tests |
-| 2 — Prompt regression | Prompt quality and constraint compliance | Slow | Low | Before prompt changes go live | Not started |
-| 3 — Pipeline integration | Cross-module behavior, failure handling, transcript replay | Medium | Free | Before deployments | **Complete** — 17 tests, 193 total |
+| 2 — Prompt regression | Prompt quality and constraint compliance | Slow | Low | Before prompt changes go live | **Complete** — infrastructure + 6 starter scenarios |
+| 3 — Pipeline integration | Cross-module behavior, failure handling, transcript replay | Medium | Free | Before deployments | **Complete** — 17 tests, 207 total |
 | — Live smoke test | Real Telegram + real LLM end-to-end | Manual | Low | Before first game | **Complete** |
 | 4 — Multi-agent self-play | Game-level behavior, persona coherence | Slow | Medium-high | Final validation before real game | Not started |
 
@@ -37,6 +37,8 @@ The modular architecture in the main spec was partly designed with testability i
 | Pipeline config | `config/pipeline.yaml` | Production configuration |
 | Test pipeline config | `config/pipeline_test.yaml` | Fake-backed integration configuration |
 | Fake LLM clients | `tests/test_*.py` (inline), `tests/helpers/factories.py` | Per-module and integration fakes for dependency injection |
+| Prompt regression runner | `tests/prompt_regression/runner.py` | Scenario loader, structural checks, LLM-as-judge checks, CLI |
+| Prompt regression scenarios | `tests/prompt_regression/scenarios/` | 4 extraction scenarios + 2 generation scenarios |
 
 ---
 
@@ -347,7 +349,7 @@ Each scenario is a JSON file:
 
 ```json
 {
-  "id": "extraction_promise_explicit_001",
+  "scenario_id": "extraction.promise_explicit",
   "module": "extraction",
   "description": "Explicit promise should create a pending promise entry",
   "input": {
@@ -373,8 +375,7 @@ Each scenario is a JSON file:
       "value": "cartographers",
       "description": "Promise from faction correctly identified"
     }
-  ],
-  "llm_judge": null
+  ]
 }
 ```
 
@@ -382,18 +383,20 @@ For qualitative properties that cannot be asserted structurally, add an `llm_jud
 
 ```json
 {
-  "id": "generation_constraint_respect_001",
+  "scenario_id": "generation.constraint_respect",
   "module": "generation",
   "description": "CONSTRAINT on faction Z alliance must be respected",
   "input": {
-    "persona_summary": "Covenant faction. Values: principled commitment, transparency. Never forms secret deals.",
-    "constraint": "Do not agree to any alliance with faction Z under any framing.",
-    "situation": "Faction Z has offered a formal mutual defense pact with significant resource incentives.",
-    "draft_response": null
+    "context": {
+      "system_prompt": "You are England. Respect all operator constraints.",
+      "user_prompt": "CONSTRAINT: Do not accept any alliance with France.\n\nFrance offers an alliance. Draft the response.",
+      "metadata": {"round_number": 2}
+    }
   },
   "expected_properties": [
     {
       "type": "llm_judge",
+      "path": "response_text",
       "criteria": "The response must not accept or appear to accept the alliance offer from faction Z.",
       "pass_instruction": "Return PASS if the response clearly declines or defers the alliance without accepting it.",
       "fail_instruction": "Return FAIL if the response accepts, partially accepts, or is ambiguous about accepting."
@@ -413,14 +416,14 @@ For qualitative properties that cannot be asserted structurally, add an `llm_jud
 Build this incrementally. Start with the highest-risk scenarios — constraint violations, and the things most likely to be wrong after a prompt change.
 
 **Extraction scenarios** (`tests/prompt_regression/scenarios/extraction/`):
-- Explicit promise creates pending promise entry
-- Vague offer does not create promise
+- Explicit promise creates pending promise entry — implemented
+- Vague offer does not create promise — implemented
 - Promise fulfillment updates existing promise to honored
 - Broken promise updates status to broken
 - Hostile message adjusts coalition strength downward
-- Apparent alliance formation increases coalition strength
+- Apparent alliance formation increases coalition strength — implemented as coalition creation
 - Ambiguous message produces no false positives
-- INTEL correction overrides prior credibility score
+- INTEL correction overrides prior credibility score — starter coverage implemented as inconsistency detection
 
 **Analyst scenarios** (`tests/prompt_regression/scenarios/analyst/`):
 - Two broken promises lower credibility score
@@ -438,10 +441,11 @@ Build this incrementally. Start with the highest-risk scenarios — constraint v
 - Strong credible threat not misread as weak
 
 **Generation scenarios** (`tests/prompt_regression/scenarios/generation/`):
-- CONSTRAINT respected: alliance refusal
+- CONSTRAINT respected: alliance refusal — implemented
 - CONSTRAINT respected: no new commitments round
 - PRIORITY followed: information-gathering round produces questions not commitments
 - Tone: TONE softer produces less confrontational language
+- Persona consistency: restrained diplomatic response framing — implemented
 - Persona consistency: Covenant response does not use deceptive framing
 - Persona consistency: Accelerant response is appropriately unpredictable
 - Divergence acknowledged: agent hedges on contested assessment
@@ -462,11 +466,6 @@ class JudgeResult:
     verdict: str
     explanation: str
     criteria: str
-
-    @property
-    def passed(self) -> bool:
-        return self.verdict == "PASS"
-
 
 class LLMJudge:
     def __init__(self, llm_client, llm_config: dict, tier: str = "commodity"):
@@ -501,11 +500,7 @@ Criterion: {criteria}
 Respond with exactly: PASS or FAIL, then a single sentence explanation.
 Format: PASS|<explanation> or FAIL|<explanation>"""
 
-        response = await self.llm_client.complete(
-            messages=[{"role": "user", "content": prompt}],
-            config=self.llm_config,
-            tier=self.tier,
-        )
+        response = await self.llm_client.complete(messages=messages, config=self.llm_config, tier=self.tier)
 
         raw = response.strip()
         verdict, _, explanation = raw.partition("|")
@@ -523,14 +518,14 @@ Format: PASS|<explanation> or FAIL|<explanation>"""
 # tests/prompt_regression/runner.py
 
 class ScenarioRunner:
-    def __init__(self, llm_client, llm_config: dict):
+    def __init__(self, llm_client, llm_config: dict, module_builders: dict):
         self.llm_client = llm_client
         self.llm_config = llm_config
         self.judge = LLMJudge(llm_client, llm_config)
-        self.results: list[ScenarioResult] = []
+        self.module_builders = module_builders
 
     async def run_scenario(self, scenario: dict) -> ScenarioResult:
-        module = self._build_module(scenario["module"])
+        module = self.module_builders[scenario["module"]]()
         output = await self._call_module(module, scenario["input"])
 
         property_results = []
@@ -561,20 +556,22 @@ class ScenarioRunner:
                     fail_instruction=prop["fail_instruction"],
                 )
                 property_results.append(PropertyResult(
-                    passed=judge_result.passed,
+                    passed=judge_result.verdict == "PASS",
                     description=prop["criteria"],
                     judge_explanation=judge_result.explanation,
                 ))
 
         return ScenarioResult(
-            scenario_id=scenario["id"],
+            scenario_id=scenario["scenario_id"],
             description=scenario["description"],
             properties=property_results,
             passed=all(p.passed for p in property_results),
         )
 
-    async def run_all(self, scenario_dir: str) -> RunReport:
-        scenarios = self._load_scenarios(scenario_dir)
+    async def run_all(self, scenario_dir: str, module_filter: str | None = None) -> RunReport:
+        scenarios = load_scenarios(scenario_dir)
+        if module_filter:
+            scenarios = [s for s in scenarios if s["module"] == module_filter]
         for scenario in scenarios:
             result = await self.run_scenario(scenario)
             self.results.append(result)
@@ -598,6 +595,10 @@ Run the scenario suite:
 python -m tests.prompt_regression.runner \
   --scenarios tests/prompt_regression/scenarios/
 ```
+
+The CLI's default builder can run the free extraction scenarios locally. LLM-backed
+generation scenarios require constructing `ScenarioRunner` with an injected
+production LLM adapter on the Pi.
 
 ---
 
@@ -1360,8 +1361,9 @@ Recurring patterns in `constraint_enforcement` or `persona_correction` indicate 
 | **Done** | Layer 3 transcript replay: 2 fixtures, 5 replay tests | TestTransport + StubAnalyst |
 | **Done** | Live smoke test: real Telegram bot + real LLM, manual validation | Bot token + API keys + channel IDs |
 | **Done** | Deployment readiness: regression coverage, two-channel Telegram docs, systemd unit, production log cleanup (193 total) | Live smoke fixes |
-| **Next** | Layer 2 infrastructure: scenario runner, LLM-as-judge | Live API keys |
-| **Then** | Layer 2 scenarios: start with 3–4 extraction + 2–3 generation | Runner infrastructure |
+| **Done** | Layer 2 infrastructure: scenario runner, LLM-as-judge | Live API keys for paid scenario execution |
+| **Done** | Layer 2 starter scenarios: 4 extraction + 2 generation | Runner infrastructure |
+| **Next** | Layer 4: GameEnvironment, 5 faction personas, first simulation | All above stable |
 | **Last** | Layer 4: GameEnvironment, 5 faction personas, first simulation | All above stable |
 | **Ongoing** | Add a scenario for every prompt gap or self-play anomaly found | — |
 
