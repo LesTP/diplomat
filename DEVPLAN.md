@@ -1,8 +1,8 @@
 ---
-phase: 14
-blocked: true
-state: close
-steps_remaining: 0
+phase: 15
+blocked: false
+state: execute
+steps_remaining: 1
 ---
 
 # Diplomat — Development Plan
@@ -22,9 +22,62 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 14 complete. All planned phases done; awaiting next phase definition.
-- **Focus** — Transcript replay Layer 3 tests complete. 187 total regression tests passing.
-- **Blocked/Broken** — awaiting human audit to open next phase.
+- **Phase** — Phase 15: Live smoke test — environment setup and real Telegram + LLM validation.
+- **Focus** — Prepare deployment config, .env template, and cheap pipeline config for manual smoke testing on Pi.
+- **Blocked/Broken** — none.
+
+## Phase 15: Live Smoke Test — Environment Setup
+
+Regime: Build (steps 1–3) + Explore (step 4 — manual testing, fix what breaks). Scope: Create the deployment environment artifacts needed to run `python src/main.py` on the Pi with a real Telegram bot and real LLM provider, then validate the full pipeline end-to-end. Reference: `diplomat-testing-doc.md` §5b.
+
+**Key difference from prior phases:** Step 4 is manual and interactive. The worker prepares the environment and validates that the system starts; the human operator runs the actual Telegram smoke test. The worker fixes any issues found during startup or the initial import/config validation.
+
+**Cost strategy:** Use the cheapest viable model for all LLM roles. `RuleBasedExtractor` is already config'd (free). Set tight budgets (`per_round_budget_usd: 0.50`, `session_budget_usd: 2.00`). If Claude API tokens are depleted, use OpenAI for all providers.
+
+Steps:
+
+- [ ] 15.1 — **Create `.env.template` and `config/pipeline_smoke.yaml`.** Create `.env.template` listing all required environment variables with placeholder values and comments:
+  - `TELEGRAM_BOT_TOKEN` — from @BotFather
+  - `DIPLOMAT_PUBLIC_CHANNEL_ID` — numeric Telegram chat ID for game messages
+  - `DIPLOMAT_COACHING_CHANNEL_ID` — numeric Telegram chat ID for operator commands
+  - `DIPLOMAT_OPERATOR_USER_IDS` — comma-separated operator Telegram user IDs
+  - `OPENAI_API_KEY` — OpenAI API key
+  - `ANTHROPIC_API_KEY` — Anthropic API key (optional if using OpenAI only)
+
+  Create `config/pipeline_smoke.yaml` copied from `pipeline.yaml` with these modifications:
+  - Both `primary` and `secondary` providers set to `openai` with `gpt-4.1-mini` for all tiers (cheapest config, single API key needed)
+  - `cost.per_round_budget_usd: 0.50`
+  - `cost.session_budget_usd: 2.00`
+  - `modules.extractor.class: RuleBasedExtractor` (already the case)
+  - `modules.review_gate.class: TelegramReviewGate` (live review gate, not auto-approve)
+  - `feature_flags.review_gate.enabled: true`
+  - `feature_flags.adversarial.enabled: false` (skip adversarial to reduce LLM calls during smoke test)
+
+  Run `python3 -m py_compile src/main.py` and full regression to confirm nothing broken.
+
+- [ ] 15.2 — **Validate startup on Pi.** On the Pi (inside the Incus container where toolkit is installed), copy `.env.template` to `.env` and fill in real values (bot token, channel IDs, operator user IDs, API key). Run:
+  ```
+  cd /home/claude/workspace/diplomat
+  DIPLOMAT_PIPELINE_CONFIG=config/pipeline_smoke.yaml .venv/bin/python src/main.py
+  ```
+  Verify:
+  - No import errors (`toolkit.llm_client`, `toolkit.telegram_client`, `toolkit.cost_accountant` all resolve)
+  - Config validation passes (no `PipelineConfigError`)
+  - Bot prints `DIPLOMAT ONLINE - Round 1 - england - session budget $2.00`
+  - Bot connects to Telegram (no `TelegramClient` connection errors)
+
+  If startup fails, fix the issue and re-run. Document any adapter or config fixes in DEVLOG. Run full regression after any code changes.
+
+- [ ] 15.3 — **Manual smoke test (human-driven).** With the bot running, the human operator performs the smoke test checklist from `diplomat-testing-doc.md` §5b:
+  1. Game message → extraction → `/state` shows promise
+  2. Operator coaching (`PRIORITY:`, `INTEL:`) → `/status` shows coaching
+  3. Round boundary → `/intel` shows analysis
+  4. Direct address or `/preview` → review gate sends draft → `/approve` posts response
+  5. `/ledger` shows cost tracking
+
+  The worker’s role during this step: monitor console output, fix any runtime errors (Telegram update parsing, channel routing, LLM response parsing), and document findings. Each fix gets a test + DEVLOG entry.
+
+- [ ] 15.4 — **Documentation and regression.** Document smoke test results in DEVLOG: what worked, what broke, what was fixed. Update DEVPLAN Phase 15 summary. If any code changed, run full regression. Transition to `state: review`.
 
 ## Phase 14: Layer 3 — Transcript Replay Tests
 

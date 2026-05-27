@@ -118,3 +118,10 @@ Priority: Important
 Decision: Phase 14 will add synthetic JSON transcripts that intentionally match `RuleBasedExtractor` regex patterns, replay them through the Phase 13 fake-backed Orchestrator integration fixture, and assert on persisted final state rather than generated prose quality.
 Rationale: Transcript replay should validate full-pipeline state accumulation across round boundaries without introducing live API calls, prompt variability, or Telegram dependencies. Keeping fixture text aligned to deterministic rule-based extraction makes failures actionable and keeps Layer 3 regression tests stable.
 Revisit if: Layer 3 replay needs to validate LLM extraction quality rather than pipeline state flow; that belongs in Layer 2 prompt regression or a separately costed integration suite.
+
+D-17: Phase 15 smoke setup uses OpenAI-only cheap config first
+Date: 2026-05-27 | Status: Closed
+Priority: Important
+Decision: Phase 15 will prepare a dedicated smoke-test pipeline config that uses OpenAI `gpt-4.1-mini` for primary and secondary LLM roles, keeps `RuleBasedExtractor`, enables the live Telegram review gate, disables adversarial review, and applies tight per-round/session budgets.
+Rationale: The smoke test needs to validate real Telegram, toolkit imports, LLM calls, and review-gate wiring with the smallest practical credential and cost surface. A separate config preserves the production-oriented `pipeline.yaml` while giving the Pi operator a low-cost startup path.
+Revisit if: OpenAI credentials are unavailable during deployment or the cheapest model fails required response quality for smoke validation.

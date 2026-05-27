@@ -722,3 +722,16 @@ Verification:
 - `python3 -m pytest -q` — 187 passed
 
 No new gotchas promoted. No contract changes require propagation.
+
+### 2026-05-27 — Phase 15 Planned
+
+**Action:** Phase Plan for Live Smoke Test — Environment Setup
+**Outcome:** Complete — Phase 15 plan accepted and ready for execution
+
+Planned the live smoke-test preparation phase around environment artifacts and Pi validation:
+- `.env.template` for Telegram and provider credentials
+- `config/pipeline_smoke.yaml` using OpenAI `gpt-4.1-mini`, tight budgets, live review gate, and adversarial disabled
+- Pi startup validation for toolkit imports, config validation, Telegram connection, and online banner
+- human-driven Telegram smoke checklist from `diplomat-testing-doc.md` §5b
+
+Scope decision logged in `DECISIONS.md` as D-17. Next step: 15.1 creates `.env.template` and `config/pipeline_smoke.yaml`.
