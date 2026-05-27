@@ -29,6 +29,7 @@ The human operator coaching the faction. The system handles the cognitive load o
 ### Flexible
 - [in] TelethonUserTransport for user-account mode (if bot-to-bot blocked)
 - [in] Provider rotation via toolkit/llm_client.complete_with_rotation()
+- [in] ClankmatesTransport for game I/O via Clankmates platform (pending game platform confirmation)
 - [deferred] Slack or Discord transport
 - [deferred] Multi-game support (multiple faction_prompt.txt files, per-game state)
 - [deferred] Post-game analytics dashboard
@@ -103,6 +104,7 @@ MVP is the configuration that closes the core loop: messages arrive → state up
 - [watch] **Response rate** — if posts are capped per round, affects Orchestrator response trigger logic
 - [watch] **Total round count** — unknown at start; affects spend schedule in Analyst output
 - [watch] **Win condition mechanics** — may require late-game prompt updates
+- [watch] **Game platform** — likely Clankmates (see `for-clankers.md`), pending confirmation. If confirmed: build `ClankmatesTransport` for public game I/O (channel posts + inbox threads), keep Telegram for operator coaching and review gate. Hybrid model: Clankmates handles game-facing communication, TG handles private operator comms. No webhooks on Clankmates yet — requires polling.
 
 ## Extension Points
 - Additional Transport implementations (Slack, Discord, CLI already spec'd)
