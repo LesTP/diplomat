@@ -2,7 +2,7 @@
 phase: 16
 blocked: false
 state: execute
-steps_remaining: 4
+steps_remaining: 3
 ---
 
 # Diplomat — Development Plan
@@ -23,7 +23,7 @@ steps_remaining: 4
 ## Current Status
 
 - **Phase** — Phase 16 planned: Deployment Readiness.
-- **Focus** — Next: remove temporary transport debug output, then run final documentation cleanup and regression.
+- **Focus** — Next: run final documentation cleanup and regression.
 - **Blocked/Broken** — none.
 
 ## Phase 16: Deployment Readiness
@@ -58,7 +58,7 @@ Steps:
   - `Restart=on-failure` with reasonable delay
   - Document install/start/stop/logs commands in `DEPLOYMENT.md` or the testing doc
 
-- [ ] 16.4 — **Remove debug prints from transport.** Remove the `[DEBUG transport]` print statements added during smoke test. They were useful for debugging but shouldn't run in production.
+- [x] 16.4 — **Remove debug prints from transport.** Remove the `[DEBUG transport]` print statements added during smoke test. They were useful for debugging but shouldn't run in production.
 
 - [ ] 16.5 — **Documentation and regression.** Run full regression on Pi. Update DEVPLAN Phase 16 summary. Append DEVLOG entry. Transition to `state: review`.
 

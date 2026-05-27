@@ -181,13 +181,10 @@ class TelegramBotTransport:
                     elif polling_task is not None:
                         continue
                     return
-                print(f"[DEBUG transport] got update: {update}")
                 try:
                     event = self._event_from_update(update)
-                except Exception as exc:
-                    print(f"[DEBUG transport] _event_from_update failed: {exc}")
+                except Exception:
                     continue
-                print(f"[DEBUG transport] yielding event: sender={event.sender_faction} channel={event.channel} content={event.content[:80]}")
                 yield event
         except TransportError:
             raise

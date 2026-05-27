@@ -805,3 +805,17 @@ Verification:
 - `systemd-analyze verify config/diplomat.service` — passed for the Diplomat unit; command also reported an unrelated existing `/etc/systemd/system/codexbot.service` warning
 
 Next step: 16.4 removes temporary transport debug prints.
+
+### Step 16.4: Remove transport debug prints
+
+**Mode:** Build (cleanup)
+**Outcome:** Complete — temporary transport debug output removed
+**Contract changes:** None
+
+Removed the `[DEBUG transport]` print statements from `TelegramBotTransport.listen()` while preserving invalid-update skip behavior.
+
+Verification:
+- `grep -RIn "\\[DEBUG transport\\]" src tests || true` — no matches
+- `python3 -m pytest tests/test_transport.py -q` — 24 passed
+
+Next step: 16.5 runs final regression and phase documentation cleanup.
