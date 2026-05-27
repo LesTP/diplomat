@@ -182,5 +182,38 @@ async def test_run_all_loads_scenarios_filters_and_returns_report(tmp_path):
 
     report = await runner.run_all(tmp_path, module_filter="extraction")
 
-    assert report == RunReport(results=report.results, total=1, passed=1)
+    assert report.total == 1
+    assert report.passed == 1
+    assert len(report.results) == 1
     assert report.results[0].scenario_id == "extraction.promise_explicit"
+    assert report.results[0].passed is True
+
+
+@pytest.mark.asyncio
+async def test_run_scenario_failing_structural_check():
+    """A json_path_equals mismatch should produce ScenarioResult.passed=False."""
+    runner = ScenarioRunner(
+        llm_client=FakeLLMClient(),
+        llm_config={},
+        module_builders={"extraction": FakeExtractor},
+    )
+    scenario = {
+        "scenario_id": "extraction.wrong_status",
+        "description": "Status mismatch should fail.",
+        "module": "extraction",
+        "input": {"text": "England promises France support."},
+        "expected_properties": [
+            {
+                "type": "json_path_equals",
+                "description": "Promise status should be kept (but it is pending).",
+                "path": "patch.data.promises[0].status",
+                "value": "kept",
+            }
+        ],
+    }
+    result = await runner.run_scenario(scenario)
+    assert result.passed is False
+    assert len(result.properties) == 1
+    assert result.properties[0].passed is False
+    assert result.properties[0].expected == "kept"
+    assert result.properties[0].actual == "pending"
