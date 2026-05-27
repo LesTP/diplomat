@@ -521,3 +521,17 @@ Verification:
 Phase 12 is a Build-regime refactor, not a feature phase. The planned work splits misplaced Orchestrator concerns into their owning modules: toolkit adapters move to `src/adapters.py`, persistence helpers move into `SQLiteStateManager`, and Orchestrator calls those explicit APIs directly.
 
 The cross-module State Manager/Orchestrator contract expansion is intentional phase scope, documented in DEVPLAN and DECISIONS, so workers should not escalate it as emergent contract drift.
+
+### Step 12.1: Extract adapters to src/adapters.py
+
+**Mode:** Build
+**Outcome:** Complete — adapter classes moved out of Orchestrator; compile check and full regression passed
+**Contract changes:** `src/adapters.py` now owns `ToolkitLLMAdapter` and `DiplomatCostGate`; `src/orchestrator.py` no longer exports them
+
+Moved `ToolkitLLMAdapter` and `DiplomatCostGate` into the new `src/adapters.py` module and updated `src/main.py` to import adapters from there. Removed both adapter names and class definitions from `src/orchestrator.py` so Orchestrator returns to composition/event-loop responsibility.
+
+Verification:
+- `python3 -m py_compile src/adapters.py src/orchestrator.py src/main.py` — passed
+- `python3 -m pytest` — 165 passed
+
+Next step: 12.2 expands `SQLiteStateManager` with the five persistence APIs now planned for direct Orchestrator calls.

@@ -2,7 +2,7 @@
 phase: 12
 blocked: false
 state: execute
-steps_remaining: 3
+steps_remaining: 2
 ---
 
 # Diplomat — Development Plan
@@ -34,7 +34,7 @@ Regime: Build. Scope: Extract adapter classes to their own module, expand the St
 
 Steps:
 
-- [ ] 12.1 — **Extract adapters to `src/adapters.py`.** Move `ToolkitLLMAdapter` and `DiplomatCostGate` classes from `src/orchestrator.py` to a new `src/adapters.py`. Remove them from `orchestrator.py`'s `__all__`. Update `src/main.py` to import from `adapters` instead of `orchestrator`. Run `python3 -m py_compile src/adapters.py src/orchestrator.py src/main.py` and full regression.
+- [x] 12.1 — **Extract adapters to `src/adapters.py`.** Move `ToolkitLLMAdapter` and `DiplomatCostGate` classes from `src/orchestrator.py` to a new `src/adapters.py`. Remove them from `orchestrator.py`'s `__all__`. Update `src/main.py` to import from `adapters` instead of `orchestrator`. Run `python3 -m py_compile src/adapters.py src/orchestrator.py src/main.py` and full regression.
 
 - [ ] 12.2 — **Expand State Manager API with 5 persistence methods.** Add the following async methods to `SQLiteStateManager` in `src/modules/state_manager/__init__.py`, each using the existing `self._connect()` helper and `self._now()` timestamp:
   - `store_coaching(self, coaching_id: str, tag: str, content: str, consumed: bool) -> None` — INSERT into coaching table

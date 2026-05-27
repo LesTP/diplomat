@@ -9,12 +9,8 @@ from typing import Any
 
 from dotenv import load_dotenv
 
-from orchestrator import (
-    DiplomatCostGate,
-    Orchestrator,
-    PipelineConfigError,
-    ToolkitLLMAdapter,
-)
+from adapters import DiplomatCostGate, ToolkitLLMAdapter
+from orchestrator import Orchestrator, PipelineConfigError
 
 
 def main() -> None:
