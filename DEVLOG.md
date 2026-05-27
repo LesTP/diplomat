@@ -830,3 +830,14 @@ Verification:
 - `.venv/bin/python -m pytest -q` — 193 passed
 
 No new gotchas promoted. No contract changes require propagation beyond the deployment documentation, CostAccountant adapter fix, and testing-status updates already captured in project docs.
+
+### 2026-05-27 — Phase 17 Plan
+
+**Action:** Phase Plan for Layer 2 prompt regression infrastructure
+**Outcome:** Complete — Phase 17 scope confirmed and architecture status marked in progress
+
+Confirmed the Build-regime plan for a module-scoped prompt regression framework: scenario JSON loading, dotted/bracket JSON-path structural assertions, LLM-as-judge evaluation through the existing injected LLM adapter shape, a runner with CLI support, and starter Extraction/Generation scenario libraries. The phase intentionally avoids full-pipeline replay and direct toolkit/provider SDK imports.
+
+Verification:
+- Planning docs reviewed
+- No tests run; planning-only action

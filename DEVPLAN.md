@@ -1,8 +1,8 @@
 ---
-phase: 16
-blocked: true
-state: close
-steps_remaining: 0
+phase: 17
+blocked: false
+state: execute
+steps_remaining: 7
 ---
 
 # Diplomat — Development Plan
@@ -22,9 +22,60 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 16 complete: Deployment Readiness.
-- **Focus** — Human audit gate before any next phase.
-- **Blocked/Broken** — blocked for audit after phase close.
+- **Phase** — Phase 17: Layer 2 prompt regression infrastructure.
+- **Focus** — Build the scenario runner, LLM-as-judge, and initial scenario library for prompt quality validation.
+- **Blocked/Broken** — none.
+
+## Phase 17: Layer 2 — Prompt Regression Infrastructure
+
+Regime: Build. Scope: Create the prompt regression testing framework — scenario JSON format, scenario runner, LLM-as-judge evaluator, and a starter set of scenarios for Extraction and Generation modules. This infrastructure validates that prompt changes don’t break expected behavior. Reference: `diplomat-testing-doc.md` §4.
+
+**Design constraints:**
+- Scenarios are JSON files with structural assertions (`json_path_exists`, `json_path_equals`) and/or LLM-as-judge qualitative evaluations
+- The LLM-as-judge uses the same adapter interface as all Diplomat modules (injected `llm_client`, plain dicts in, plain str out) — no direct toolkit imports
+- The scenario runner calls real LLM APIs for the module under test and (optionally) for judge evaluations — **this costs money**. Use `commodity` tier models for judging.
+- Scenarios target individual modules (extraction, generation, analyst, adversarial), not the full pipeline
+- All existing 193 unit/integration tests must continue to pass
+- Runner must work on the Pi where toolkit is installed; scenarios can be authored anywhere
+
+Steps:
+
+- [ ] 17.1 — **Scenario format and result types.** Create `tests/prompt_regression/__init__.py` and `tests/prompt_regression/types.py` with:
+  - `PropertyCheck` dataclass: `type` (json_path_exists | json_path_equals | llm_judge), `path`/`value`/`criteria`/`pass_instruction`/`fail_instruction`, `description`
+  - `PropertyResult` dataclass: `passed`, `description`, `expected`, `actual`, `judge_explanation`
+  - `ScenarioResult` dataclass: `scenario_id`, `description`, `properties: list[PropertyResult]`, `passed`
+  - `RunReport` dataclass: `results: list[ScenarioResult]`, `total`, `passed`
+  - `load_scenario(path) -> dict` and `load_scenarios(directory) -> list[dict]` helpers that read and validate scenario JSON files
+  - `json_path_exists(data, path) -> bool` and `json_path_get(data, path) -> Any` helpers for dotted-bracket path navigation (e.g., `patch.data.promises[0].status`)
+  Add unit tests for the path helpers in `tests/test_prompt_regression_types.py`. Run full regression.
+
+- [ ] 17.2 — **LLM-as-judge module.** Create `tests/prompt_regression/judge.py` with:
+  - `JudgeResult` dataclass: `verdict` (PASS/FAIL), `explanation`, `criteria`
+  - `LLMJudge` class: constructor accepts `llm_client` and `llm_config: dict` and `tier: str = "commodity"`; `async evaluate(response_text, criteria, pass_instruction, fail_instruction, context="") -> JudgeResult`
+  - The evaluate prompt asks the LLM to return `PASS|explanation` or `FAIL|explanation`; parser splits on `|`
+  - Add a unit test with a fake LLM client that returns canned `PASS|reason` and `FAIL|reason` to verify parsing
+  Run full regression.
+
+- [ ] 17.3 — **Scenario runner.** Create `tests/prompt_regression/runner.py` with:
+  - `ScenarioRunner` class: constructor accepts `llm_client`, `llm_config: dict`, and module builder callables
+  - `async run_scenario(scenario: dict) -> ScenarioResult`: calls the appropriate module (extraction/generation/analyst/adversarial) with the scenario input, then evaluates each `expected_properties` entry using structural checks or LLM-as-judge
+  - `async run_all(scenario_dir: str) -> RunReport`: loads all scenarios, runs each, prints per-scenario PASS/FAIL, prints summary
+  - CLI entry point: `python -m tests.prompt_regression.runner --scenarios <dir>` with optional `--module <name>` filter
+  Add a smoke test with a fake LLM client and one inline scenario dict to verify the runner produces a `RunReport`. Run full regression.
+
+- [ ] 17.4 — **Starter scenarios: extraction.** Create `tests/prompt_regression/scenarios/extraction/` with 4 JSON scenarios:
+  1. `promise_explicit.json` — explicit promise creates pending promise entry (structural: `json_path_exists` on `patch.data.promises[0]`, `json_path_equals` on status=pending)
+  2. `promise_vague.json` — vague offer does NOT create promise (structural: promises array empty or absent)
+  3. `coalition_formation.json` — alliance announcement creates coalition entry
+  4. `inconsistency_detection.json` — contradiction creates inconsistency entry
+  These scenarios use `RuleBasedExtractor` (free, no API calls) so they double as structural validation. Run full regression.
+
+- [ ] 17.5 — **Starter scenarios: generation.** Create `tests/prompt_regression/scenarios/generation/` with 2 JSON scenarios:
+  1. `constraint_respect.json` — CONSTRAINT coaching must be respected (llm_judge: response does not accept forbidden alliance)
+  2. `persona_consistency.json` — response matches faction persona tone (llm_judge: response uses appropriate diplomatic framing)
+  These require real LLM calls for both generation and judging. Document expected cost per run. Run full regression.
+
+- [ ] 17.6 — **Documentation and regression.** Verify full test suite (193 existing + new type/runner tests). Update DEVPLAN Phase 17 summary. Update `diplomat-testing-doc.md` Layer 2 status. Append DEVLOG entry. Transition to `state: review`.
 
 ## Phase 16: Deployment Readiness
 

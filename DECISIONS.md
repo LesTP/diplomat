@@ -132,3 +132,10 @@ Priority: Important
 Decision: Phase 16 will limit work to regression coverage for smoke-test fixes, two-channel Telegram deployment documentation, a Raspberry Pi systemd unit, production log cleanup, and final regression verification. It will not tune game rules, faction strategy, round mechanics, or prompt content.
 Rationale: The live smoke test proved the core pipeline works. The remaining gap before deployment is operational readiness and test coverage for the fixes found during smoke testing; game-specific configuration should stay a deployment-time concern.
 Revisit if: Deployment reveals a runtime failure that cannot be fixed without changing pipeline contracts or game-specific behavior.
+
+D-19: Phase 17 prompt regression stays module-scoped and adapter-compatible
+Date: 2026-05-27 | Status: Closed
+Priority: Important
+Decision: Phase 17 will build Layer 2 prompt regression infrastructure around module-level scenarios, structural JSON-path checks, and optional LLM-as-judge checks that use the same injected `llm_client.complete(messages, config, tier)` adapter shape as Diplomat modules. It will not exercise the full Orchestrator pipeline or import provider SDKs/toolkit directly.
+Rationale: Prompt regression needs to catch prompt-quality regressions with a smaller, more targeted surface than Layer 3 pipeline replay. Keeping the harness module-scoped makes failures actionable, while reusing the adapter shape preserves the no-direct-SDK contract and lets the suite run on the Pi where toolkit is installed.
+Revisit if: Prompt regressions primarily arise from cross-module context assembly rather than individual module behavior.
