@@ -1,5 +1,5 @@
 # AI Diplomat — Testing and Tuning Guide
-**Version 0.5 | Updated 2026-05-27 — Phase 14 complete, live smoke test outlined**
+**Version 0.5 | Updated 2026-05-27 — Phase 16 deployment readiness in progress**
 
 ---
 
@@ -986,6 +986,36 @@ The live smoke test validates the full system in a real environment before game 
 | Operator user ID | Your numeric Telegram user ID (get from @userinfobot), set `DIPLOMAT_OPERATOR_USER_IDS` |
 | LLM API key | `OPENAI_API_KEY` and/or `ANTHROPIC_API_KEY` in `.env` |
 | Toolkit installed | `pip install -e ../toolkit` in diplomat venv (already done on Pi) |
+
+### Two-Channel Telegram Setup
+
+Use two Telegram chats so public game traffic and private operator coaching cannot be confused:
+
+1. Create or choose the Telegram group where game messages will appear.
+2. Add the bot created with @BotFather to that group.
+3. Get the group's numeric chat ID and set it as `DIPLOMAT_PUBLIC_CHANNEL_ID` in `.env`.
+4. Keep a separate private bot chat, or a small private operator group, for coaching and review commands.
+5. Get that coaching chat's numeric chat ID and set it as `DIPLOMAT_COACHING_CHANNEL_ID` in `.env`.
+6. Get each operator's numeric Telegram user ID and put the comma-separated list in `DIPLOMAT_OPERATOR_USER_IDS`.
+7. In `config/pipeline.yaml`, map other players' Telegram user IDs to faction names under `transport.faction_map`.
+
+Example:
+
+```yaml
+transport:
+  public_channel_id_env: DIPLOMAT_PUBLIC_CHANNEL_ID
+  coaching_channel_id_env: DIPLOMAT_COACHING_CHANNEL_ID
+  operator_user_ids_env: DIPLOMAT_OPERATOR_USER_IDS
+  faction_map:
+    "123456789": france
+    "987654321": germany
+```
+
+Routing verification:
+- Send a normal diplomacy message from a non-operator account in the public group. It should route as a game message, append to the event store, and trigger extraction after the debounce window.
+- Send `/status` or `PRIORITY: ...` from an operator account in the coaching chat. It should route as operator input and never trigger normal game-message extraction.
+- Send `/state` from the public group only as a negative check. Operator commands belong in the coaching chat; if the public sender is not in `DIPLOMAT_OPERATOR_USER_IDS`, the message should be treated as game traffic.
+- If every public sender appears as `system`, fill in `transport.faction_map` with the real Telegram user IDs for the other players.
 
 ### Cheapest Configuration
 

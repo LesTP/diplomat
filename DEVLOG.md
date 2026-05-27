@@ -776,3 +776,17 @@ Verification:
 - `python3 -m pytest -q` — 193 passed
 
 Next step: 16.2 documents two-channel Telegram deployment setup.
+
+### Step 16.2: Two-channel Telegram setup guide
+
+**Mode:** Build (documentation)
+**Outcome:** Complete — deployment routing setup documented in `diplomat-testing-doc.md` §5b
+**Contract changes:** None
+
+Added a two-channel Telegram setup section covering the public game group, private coaching chat, bot membership, `.env` channel/user ID variables, `pipeline.yaml` `transport.faction_map`, and routing verification checks for non-operator game messages versus operator coaching commands.
+
+Verification:
+- Documentation diff reviewed
+- Python regression not run; documentation-only change
+
+Next step: 16.3 adds the systemd service file and service management docs.

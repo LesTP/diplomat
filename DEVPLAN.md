@@ -2,7 +2,7 @@
 phase: 16
 blocked: false
 state: execute
-steps_remaining: 6
+steps_remaining: 5
 ---
 
 # Diplomat — Development Plan
@@ -23,7 +23,7 @@ steps_remaining: 6
 ## Current Status
 
 - **Phase** — Phase 16 planned: Deployment Readiness.
-- **Focus** — Next: document two-channel Telegram deployment, then add systemd service support and remove temporary transport debug output.
+- **Focus** — Next: add systemd service support, then remove temporary transport debug output.
 - **Blocked/Broken** — none.
 
 ## Phase 16: Deployment Readiness
@@ -44,7 +44,7 @@ Steps:
   - Orchestrator `/commands` handler and `/block` acknowledgement — add tests in `tests/test_orchestrator.py`.
   Run full regression on Pi. Target: all 187+ tests pass.
 
-- [ ] 16.2 — **Two-channel Telegram setup guide.** Create a deployment section in `diplomat-testing-doc.md` §5b (or a new `DEPLOYMENT.md`) documenting:
+- [x] 16.2 — **Two-channel Telegram setup guide.** Create a deployment section in `diplomat-testing-doc.md` §5b (or a new `DEPLOYMENT.md`) documenting:
   - Create a Telegram group for game messages → use its chat ID as `DIPLOMAT_PUBLIC_CHANNEL_ID`
   - Keep the private bot chat for coaching → use its chat ID as `DIPLOMAT_COACHING_CHANNEL_ID`
   - Add the bot to the game group
