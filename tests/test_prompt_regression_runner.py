@@ -106,6 +106,55 @@ async def test_run_scenario_evaluates_llm_judge_property():
 
 
 @pytest.mark.asyncio
+async def test_run_scenario_raises_for_missing_module_builder():
+    runner = ScenarioRunner(
+        llm_client=FakeLLMClient(),
+        llm_config={},
+        module_builders={"extraction": FakeExtractor},
+    )
+
+    with pytest.raises(ValueError, match="No module builder"):
+        await runner.run_scenario(
+            {
+                "scenario_id": "generation.missing",
+                "description": "No builder for this module.",
+                "module": "generation",
+                "input": {},
+                "expected_properties": [],
+            }
+        )
+
+
+@pytest.mark.asyncio
+async def test_run_scenario_raises_for_invalid_judge_path():
+    runner = ScenarioRunner(
+        llm_client=FakeLLMClient(),
+        llm_config={},
+        module_builders={"extraction": FakeExtractor},
+    )
+
+    with pytest.raises(ValueError, match="Cannot extract judge response text"):
+        await runner.run_scenario(
+            {
+                "scenario_id": "extraction.bad_path",
+                "description": "Bad path raises clear error.",
+                "module": "extraction",
+                "input": {"text": "England promises support."},
+                "expected_properties": [
+                    {
+                        "type": "llm_judge",
+                        "description": "Judge sees response.",
+                        "path": "nonexistent.field",
+                        "criteria": "Something.",
+                        "pass_instruction": "Pass.",
+                        "fail_instruction": "Fail.",
+                    }
+                ],
+            }
+        )
+
+
+@pytest.mark.asyncio
 async def test_run_all_loads_scenarios_filters_and_returns_report(tmp_path):
     scenario = {
         "scenario_id": "extraction.promise_explicit",

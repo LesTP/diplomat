@@ -71,3 +71,31 @@ async def test_llm_judge_rejects_malformed_response():
             pass_instruction="Pass when decisive.",
             fail_instruction="Fail when unclear.",
         )
+
+
+@pytest.mark.asyncio
+async def test_llm_judge_strips_whitespace_and_normalises_case():
+    judge = LLMJudge(FakeLLMClient("  pass  |  explanation with spaces  "), {})
+
+    result = await judge.evaluate(
+        response_text="anything",
+        criteria="c",
+        pass_instruction="p",
+        fail_instruction="f",
+    )
+
+    assert result.verdict == "PASS"
+    assert result.explanation == "explanation with spaces"
+
+
+@pytest.mark.asyncio
+async def test_llm_judge_rejects_blank_explanation():
+    judge = LLMJudge(FakeLLMClient("PASS|   "), {})
+
+    with pytest.raises(ValueError, match="explanation"):
+        await judge.evaluate(
+            response_text="anything",
+            criteria="c",
+            pass_instruction="p",
+            fail_instruction="f",
+        )

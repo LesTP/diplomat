@@ -167,7 +167,15 @@ def _normalize_output(value: Any) -> dict[str, Any]:
 
 def _judge_response_text(property_data: dict[str, Any], output: dict[str, Any]) -> str:
     path = property_data.get("path")
-    value = json_path_get(output, path) if path else output.get("response_text", output)
+    if path:
+        try:
+            value = json_path_get(output, path)
+        except (KeyError, IndexError, TypeError, ValueError) as exc:
+            raise ValueError(
+                f"Cannot extract judge response text from path '{path}': {exc}"
+            ) from exc
+    else:
+        value = output.get("response_text", output)
     if isinstance(value, str):
         return value
     return json.dumps(value, sort_keys=True, default=str)
