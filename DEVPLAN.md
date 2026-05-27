@@ -1,8 +1,8 @@
 ---
 phase: 16
 blocked: false
-state: execute
-steps_remaining: 3
+state: review
+steps_remaining: 2
 ---
 
 # Diplomat — Development Plan
@@ -22,8 +22,8 @@ steps_remaining: 3
 
 ## Current Status
 
-- **Phase** — Phase 16 planned: Deployment Readiness.
-- **Focus** — Next: run final documentation cleanup and regression.
+- **Phase** — Phase 16 implementation complete: Deployment Readiness.
+- **Focus** — Ready for phase review.
 - **Blocked/Broken** — none.
 
 ## Phase 16: Deployment Readiness
@@ -60,7 +60,9 @@ Steps:
 
 - [x] 16.4 — **Remove debug prints from transport.** Remove the `[DEBUG transport]` print statements added during smoke test. They were useful for debugging but shouldn't run in production.
 
-- [ ] 16.5 — **Documentation and regression.** Run full regression on Pi. Update DEVPLAN Phase 16 summary. Append DEVLOG entry. Transition to `state: review`.
+- [x] 16.5 — **Documentation and regression.** Run full regression on Pi. Update DEVPLAN Phase 16 summary. Append DEVLOG entry. Transition to `state: review`.
+
+Summary: Restored regression coverage for live-smoke fixes, including background Telegram polling, `message_text` update parsing, `/commands`, and `/block` acknowledgement. Documented two-channel Telegram deployment in `diplomat-testing-doc.md` §5b, added `config/diplomat.service` for Raspberry Pi systemd operation, removed temporary `[DEBUG transport]` prints, and verified the full regression suite: 193 passed. Phase 16 is ready for review.
 
 ## Phase 15: Live Smoke Test — Environment Setup
 

@@ -17,17 +17,17 @@ The modular architecture in the main spec was partly designed with testability i
 
 | Layer | What it tests | Speed | Cost | When to run | Status |
 |---|---|---|---|---|---|
-| 1 — Unit | Module correctness | Fast | Free | Every commit | **Complete** — 170 tests |
+| 1 — Unit | Module correctness | Fast | Free | Every commit | **Complete** — 176 tests |
 | 2 — Prompt regression | Prompt quality and constraint compliance | Slow | Low | Before prompt changes go live | Not started |
-| 3 — Pipeline integration | Cross-module behavior, failure handling, transcript replay | Medium | Free | Before deployments | **Complete** — 17 tests, 187 total |
-| — Live smoke test | Real Telegram + real LLM end-to-end | Manual | Low | Before first game | **Next** |
+| 3 — Pipeline integration | Cross-module behavior, failure handling, transcript replay | Medium | Free | Before deployments | **Complete** — 17 tests, 193 total |
+| — Live smoke test | Real Telegram + real LLM end-to-end | Manual | Low | Before first game | **Complete** |
 | 4 — Multi-agent self-play | Game-level behavior, persona coherence | Slow | Medium-high | Final validation before real game | Not started |
 
 ### What Already Exists
 
 | Artifact | Location | Notes |
 |---|---|---|
-| 12 unit test files | `tests/test_*.py` | One per module, 170 tests total |
+| 12 unit test files | `tests/test_*.py` | One per module, 176 tests total |
 | Pipeline integration tests | `tests/integration/` | 12 flow/failure tests + 5 transcript replay tests |
 | Transcript fixtures | `tests/integration/fixtures/transcripts/` | cooperative_3round.json, betrayal_arc.json |
 | CLITransport | `src/modules/transport/__init__.py` | JSON reader/writer, no inject() |
@@ -1353,13 +1353,14 @@ Recurring patterns in `constraint_enforcement` or `persona_correction` indicate 
 
 | Phase | What to build | Depends on |
 |---|---|---|
-| **Done** | Layer 1 unit tests (170 tests) | — |
+| **Done** | Layer 1 unit tests (176 tests) | — |
 | **Done** | Phase 12: Orchestrator refactor (adapters, State Manager expansion) | — |
 | **Done** | Layer 3 infrastructure: TestTransport, StubAnalyst, pipeline_test.yaml | Phase 12 |
 | **Done** | Layer 3 tests: pipeline flow and failure handling | TestTransport + StubAnalyst |
-| **Done** | Layer 3 transcript replay: 2 fixtures, 5 replay tests (187 total) | TestTransport + StubAnalyst |
-| **Next** | Live smoke test: real Telegram bot + real LLM, manual validation | Bot token + API keys + channel IDs |
-| **Then** | Layer 2 infrastructure: scenario runner, LLM-as-judge | Live API keys |
+| **Done** | Layer 3 transcript replay: 2 fixtures, 5 replay tests | TestTransport + StubAnalyst |
+| **Done** | Live smoke test: real Telegram bot + real LLM, manual validation | Bot token + API keys + channel IDs |
+| **Done** | Deployment readiness: regression coverage, two-channel Telegram docs, systemd unit, production log cleanup (193 total) | Live smoke fixes |
+| **Next** | Layer 2 infrastructure: scenario runner, LLM-as-judge | Live API keys |
 | **Then** | Layer 2 scenarios: start with 3–4 extraction + 2–3 generation | Runner infrastructure |
 | **Last** | Layer 4: GameEnvironment, 5 faction personas, first simulation | All above stable |
 | **Ongoing** | Add a scenario for every prompt gap or self-play anomaly found | — |

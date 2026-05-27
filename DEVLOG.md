@@ -819,3 +819,16 @@ Verification:
 - `python3 -m pytest tests/test_transport.py -q` — 24 passed
 
 Next step: 16.5 runs final regression and phase documentation cleanup.
+
+### Step 16.5: Documentation and regression
+
+**Mode:** Build (cleanup)
+**Outcome:** Complete — Phase 16 implementation ready for review
+**Contract changes:** None
+
+Updated `diplomat-testing-doc.md` test counts and build-order status to reflect Phase 16 deployment readiness work. Updated `DEVPLAN.md` with the Phase 16 summary, marked all Phase 16 steps complete, and transitioned to review.
+
+Verification:
+- `python3 -m pytest -q` — 193 passed
+
+Phase 16 is ready for review.
