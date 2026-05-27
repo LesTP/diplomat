@@ -16,16 +16,16 @@ llm_providers:
   primary:
     provider: openai
     models:
-      quality: gpt-5.4-nano
-      default: gpt-5.4-nano
-      commodity: gpt-5.4-nano
+      quality: gpt-5.4-mini
+      default: gpt-5.4-mini
+      commodity: gpt-5.4-mini
     api_key_env: OPENAI_API_KEY
   secondary:
     provider: openai
     models:
-      quality: gpt-5.4-nano
-      default: gpt-5.4-nano
-      commodity: gpt-5.4-nano
+      quality: gpt-5.4-mini
+      default: gpt-5.4-mini
+      commodity: gpt-5.4-mini
     api_key_env: OPENAI_API_KEY
 
 modules:

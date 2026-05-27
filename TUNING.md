@@ -26,7 +26,7 @@ Configuration file: `config/pipeline.yaml` (production) or `config/pipeline_smok
 | **Primary Analyst** | OpenAI | gpt-5.5 | Strong reasoning, reliable structured output |
 | **Secondary Analyst** | Anthropic | claude-sonnet-4-6 | Different perspective for divergence detection |
 | **Adversarial** | OpenAI | gpt-5.4-mini | Deliberately different provider from generator; cheap model sufficient for pattern matching |
-| **Extractor** | OpenAI | gpt-5.4-nano | Structured extraction is straightforward; cheapest model is sufficient |
+| **Extractor** | OpenAI | gpt-5.4-mini | Structured extraction is straightforward; cheap model is sufficient |
 
 ### Available Providers
 
@@ -48,11 +48,29 @@ llm_providers:
   primary:
     provider: openai
     models:
-      quality: gpt-5.5             # flagship — generation, analysis
-      default: gpt-5.4-mini        # balanced — most tasks
-      commodity: gpt-5.4-nano      # cheapest — judging, extraction, bulk
+      quality: gpt-5.5             # flagship — generation, analysis ($5/$30 per MTok)
+      default: gpt-5.4             # balanced — most tasks ($2.50/$15 per MTok)
+      commodity: gpt-5.4-mini      # cheapest — judging, extraction ($0.75/$4.50 per MTok)
     api_key_env: OPENAI_API_KEY
 ```
+
+### Model Pricing Reference
+
+**OpenAI:**
+
+| Model | Input $/MTok | Output $/MTok | Context | Notes |
+|---|---|---|---|---|
+| gpt-5.5 | $5.00 | $30.00 | 1M | Flagship, best reasoning |
+| gpt-5.4 | $2.50 | $15.00 | 1M | Good balance of quality and cost |
+| gpt-5.4-mini | $0.75 | $4.50 | 400K | Best cost/quality ratio for routine tasks |
+
+**Anthropic:**
+
+| Model | Input $/MTok | Output $/MTok | Context | Notes |
+|---|---|---|---|---|
+| claude-opus-4-7 | $5.00 | $25.00 | 1M | Strongest, best for complex analysis |
+| claude-sonnet-4-6 | $3.00 | $15.00 | 1M | Best balance — strong persona, good reasoning |
+| claude-haiku-4-5 | $1.00 | $5.00 | 200K | Fast and cheap, sufficient for simple tasks |
 
 Modules specify their tier: `tier: quality` for generation, `tier: commodity` for judge evaluations. The Orchestrator maps tier → model at call time.
 
@@ -160,11 +178,11 @@ All prompts live in `config/`. Each is loaded at startup by the Orchestrator and
 
 | Call | Model | Est. tokens | Est. cost |
 |---|---|---|---|
-| Primary Analyst | gpt-4.1 | ~2K in, ~1K out | ~$0.02 |
-| Secondary Analyst | claude-3-5-sonnet | ~2K in, ~1K out | ~$0.02 |
-| Generation | gpt-4.1 | ~3K in, ~1K out | ~$0.03 |
-| Adversarial | claude-3-5-sonnet | ~1K in, ~500 out | ~$0.01 |
-| **Total per round** | | | **~$0.08** |
+| Primary Analyst | gpt-5.5 | ~2K in, ~1K out | ~$0.04 |
+| Secondary Analyst | claude-sonnet-4-6 | ~2K in, ~1K out | ~$0.02 |
+| Generation | gpt-5.5 | ~3K in, ~1K out | ~$0.05 |
+| Adversarial | claude-sonnet-4-6 | ~1K in, ~500 out | ~$0.01 |
+| **Total per round** | | | **~$0.12** |
 
 Extraction is free (RuleBasedExtractor). Direct-address responses add another generation call (~$0.03 each).
 
@@ -177,11 +195,11 @@ cost:
   session_budget_usd: 10.00     # hard cap per session
 ```
 
-At ~$0.08/round, the per-round budget of $1.00 allows ~12 generation calls per round before the gate trips. The session budget of $10.00 supports ~125 rounds — more than any reasonable game.
+At ~$0.12/round, the per-round budget of $1.00 allows ~8 generation calls per round before the gate trips. The session budget of $10.00 supports ~80 rounds.
 
 ### Smoke test config
 
-In `pipeline_smoke.yaml`: both providers set to OpenAI `gpt-4.1-mini`, budgets halved ($0.50/round, $2.00/session), adversarial disabled. Cost per round: ~$0.01.
+In `pipeline_smoke.yaml`: both providers set to OpenAI `gpt-5.4-mini`, budgets halved ($0.50/round, $2.00/session), adversarial disabled. Cost per round: ~$0.01.
 
 ---
 

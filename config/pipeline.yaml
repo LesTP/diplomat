@@ -17,8 +17,8 @@ llm_providers:
     provider: openai
     models:
       quality: gpt-5.5
-      default: gpt-5.4-mini
-      commodity: gpt-5.4-nano
+      default: gpt-5.4
+      commodity: gpt-5.4-mini
     api_key_env: OPENAI_API_KEY
   secondary:
     provider: anthropic
