@@ -16,15 +16,15 @@ llm_providers:
   primary:
     provider: openai
     models:
-      quality: gpt-4.1
-      default: gpt-4.1
-      commodity: gpt-4.1-mini
+      quality: gpt-5.5
+      default: gpt-5.4-mini
+      commodity: gpt-5.4-nano
     api_key_env: OPENAI_API_KEY
   secondary:
     provider: anthropic
     models:
-      quality: claude-3-5-sonnet-latest
-      default: claude-3-5-sonnet-latest
+      quality: claude-sonnet-4-6
+      default: claude-sonnet-4-6
       commodity: claude-haiku-4-5
     api_key_env: ANTHROPIC_API_KEY
 

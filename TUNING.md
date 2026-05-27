@@ -12,21 +12,21 @@ Configuration file: `config/pipeline.yaml` (production) or `config/pipeline_smok
 
 | Module | Provider | Tier | Model | Rationale |
 |---|---|---|---|---|
-| **Generator** | primary (OpenAI) | quality | gpt-4.1 | Public-facing output; needs strong diplomatic language |
-| **Primary Analyst** | primary (OpenAI) | quality | gpt-4.1 | Strategic reasoning; good structured JSON output |
-| **Secondary Analyst** | secondary (Anthropic) | quality | claude-3-5-sonnet | Different provider for divergence value |
-| **Adversarial** | secondary (Anthropic) | quality | claude-3-5-sonnet | Different provider from generator to catch blind spots |
+| **Generator** | primary (OpenAI) | quality | gpt-5.5 | Public-facing output; needs strong diplomatic language |
+| **Primary Analyst** | primary (OpenAI) | quality | gpt-5.5 | Strategic reasoning; good structured JSON output |
+| **Secondary Analyst** | secondary (Anthropic) | quality | claude-sonnet-4-6 | Different provider for divergence value |
+| **Adversarial** | secondary (Anthropic) | quality | claude-sonnet-4-6 | Different provider from generator to catch blind spots |
 | **Extractor** | — | — | RuleBasedExtractor | Regex-based, no LLM cost. Switch to OpenAIStructuredExtractor for better quality |
 
 ### Recommended Assignment (game deployment)
 
 | Module | Provider | Model | Why |
 |---|---|---|---|
-| **Generator** | Anthropic | claude-sonnet-4 | Best persona adherence, nuanced diplomatic tone, strong constraint following |
-| **Primary Analyst** | OpenAI | gpt-4.1 | Strong reasoning, reliable structured output |
-| **Secondary Analyst** | Anthropic | claude-sonnet-4 | Different perspective for divergence detection |
-| **Adversarial** | OpenAI | gpt-4.1 | Deliberately different provider from generator — catches what generator's "thinking style" misses |
-| **Extractor** | OpenAI | gpt-4.1-mini | Structured extraction is straightforward; cheap model is sufficient |
+| **Generator** | Anthropic | claude-sonnet-4-6 | Best persona adherence, nuanced diplomatic tone, strong constraint following |
+| **Primary Analyst** | OpenAI | gpt-5.5 | Strong reasoning, reliable structured output |
+| **Secondary Analyst** | Anthropic | claude-sonnet-4-6 | Different perspective for divergence detection |
+| **Adversarial** | OpenAI | gpt-5.4-mini | Deliberately different provider from generator; cheap model sufficient for pattern matching |
+| **Extractor** | OpenAI | gpt-5.4-nano | Structured extraction is straightforward; cheapest model is sufficient |
 
 ### Available Providers
 
@@ -48,9 +48,9 @@ llm_providers:
   primary:
     provider: openai
     models:
-      quality: gpt-4.1          # best available — generation, analysis
-      default: gpt-4.1          # standard — most tasks
-      commodity: gpt-4.1-mini   # cheapest — judging, adversarial, bulk
+      quality: gpt-5.5             # flagship — generation, analysis
+      default: gpt-5.4-mini        # balanced — most tasks
+      commodity: gpt-5.4-nano      # cheapest — judging, extraction, bulk
     api_key_env: OPENAI_API_KEY
 ```
 
