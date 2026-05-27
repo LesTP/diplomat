@@ -2,7 +2,7 @@
 phase: 14
 blocked: false
 state: execute
-steps_remaining: 6
+steps_remaining: 5
 ---
 
 # Diplomat — Development Plan
@@ -45,7 +45,7 @@ Steps:
 
 - [x] 14.1 — **Create transcript fixture: cooperative 3-round game.** Create `tests/integration/fixtures/transcripts/` directory and `cooperative_3round.json`. Write a 3-round transcript with ~8-10 events covering: one promise (round 1), one coalition formation (round 2), and a second promise (round 3), each using `RuleBasedExtractor` regex patterns. Include `expected_final_state` with 2 promises (both pending) and 1 coalition. Include 3 `[ROUND END]` signals. Validate the fixture parses cleanly. Run full regression.
 
-- [ ] 14.2 — **Create transcript fixture: betrayal arc.** Create `betrayal_arc.json`. Write a 3-round transcript where: faction A promises faction B (round 1), faction A contradicts that promise (round 2, matching `_INCONSISTENCY_RE`), and faction A forms a coalition with faction C (round 3). Include `expected_final_state` with the promise, 1 inconsistency, and 1 coalition. Run full regression.
+- [x] 14.2 — **Create transcript fixture: betrayal arc.** Create `betrayal_arc.json`. Write a 3-round transcript where: faction A promises faction B (round 1), faction A contradicts that promise (round 2, matching `_INCONSISTENCY_RE`), and faction A forms a coalition with faction C (round 3). Include `expected_final_state` with the promise, 1 inconsistency, and 1 coalition. Run full regression.
 
 - [ ] 14.3 — **Implement replay test module.** Create `tests/integration/test_replay.py` with:
   - A `replay_transcript(pipeline, fixture_path)` helper that loads the JSON, injects each event via `TestTransport.inject()` with appropriate sleep intervals (short for regular messages, longer after round boundaries for analysis), and returns the final state.

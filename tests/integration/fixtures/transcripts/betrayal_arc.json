@@ -1,0 +1,89 @@
+{
+  "description": "Three-round betrayal arc with a promise, contradiction, and new coalition.",
+  "events": [
+    {
+      "sender_faction": "faction_crown",
+      "channel": "public",
+      "content": "Crown asks Delta to coordinate on border security.",
+      "timestamp": "2026-01-02T10:00:00+00:00",
+      "is_round_end": false
+    },
+    {
+      "sender_faction": "faction_crown",
+      "channel": "public",
+      "content": "Crown promises Delta to support the border security pact.",
+      "timestamp": "2026-01-02T10:06:00+00:00",
+      "is_round_end": false
+    },
+    {
+      "sender_faction": "system",
+      "channel": "public",
+      "content": "[ROUND END]",
+      "timestamp": "2026-01-02T10:30:00+00:00",
+      "is_round_end": true
+    },
+    {
+      "sender_faction": "faction_delta",
+      "channel": "public",
+      "content": "Delta asks Crown to confirm the pact before votes open.",
+      "timestamp": "2026-01-02T11:00:00+00:00",
+      "is_round_end": false
+    },
+    {
+      "sender_faction": "faction_crown",
+      "channel": "public",
+      "content": "Crown contradicts the border security pact.",
+      "timestamp": "2026-01-02T11:12:00+00:00",
+      "is_round_end": false
+    },
+    {
+      "sender_faction": "system",
+      "channel": "public",
+      "content": "[ROUND END]",
+      "timestamp": "2026-01-02T11:30:00+00:00",
+      "is_round_end": true
+    },
+    {
+      "sender_faction": "faction_ember",
+      "channel": "public",
+      "content": "Ember offers Crown a replacement route through the southern pass.",
+      "timestamp": "2026-01-02T12:00:00+00:00",
+      "is_round_end": false
+    },
+    {
+      "sender_faction": "faction_crown",
+      "channel": "public",
+      "content": "Crown and Ember formed a coalition.",
+      "timestamp": "2026-01-02T12:11:00+00:00",
+      "is_round_end": false
+    },
+    {
+      "sender_faction": "system",
+      "channel": "public",
+      "content": "[ROUND END]",
+      "timestamp": "2026-01-02T12:30:00+00:00",
+      "is_round_end": true
+    }
+  ],
+  "expected_final_state": {
+    "promises": [
+      {
+        "from_faction": "Crown",
+        "to_faction": "Delta",
+        "status": "pending"
+      }
+    ],
+    "coalitions": [
+      {
+        "faction_a": "Crown",
+        "faction_b": "Ember"
+      }
+    ],
+    "inconsistencies": [
+      {
+        "faction_id": "Crown",
+        "description": "the border security pact"
+      }
+    ]
+  }
+}

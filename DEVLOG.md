@@ -659,3 +659,19 @@ Verification:
 - `python3 -m pytest -q` — 182 passed
 
 Next step: 14.2 creates the betrayal arc transcript fixture.
+
+### Step 14.2: Betrayal arc transcript fixture
+
+**Mode:** Build
+**Outcome:** Complete — deterministic betrayal replay fixture added
+**Contract changes:** None
+
+Created `tests/integration/fixtures/transcripts/betrayal_arc.json` with nine timestamped events across three rounds. The transcript covers `Crown` promising `Delta`, later contradicting the pact, and then forming a coalition with `Ember`, using text that matches the rule-based promise, inconsistency, and coalition patterns.
+
+The fixture records expected final state for one pending promise, one inconsistency, and one coalition.
+
+Verification:
+- `python3 -m json.tool tests/integration/fixtures/transcripts/betrayal_arc.json >/dev/null` — passed
+- `python3 -m pytest -q` — 182 passed
+
+Next step: 14.3 implements the replay test module.
