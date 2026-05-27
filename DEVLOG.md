@@ -511,111 +511,16 @@ Verification:
 - `incus exec claude-code -- bash -c "cd /home/claude/workspace/diplomat && .venv/bin/python -m pytest -q"` — 165 passed
 - Toolkit probe script — all three modules confirmed matching
 
-## Phase 12: Orchestrator Refactor Plan
+## Phase 12: Orchestrator Refactor
 
-### 2026-05-27 — Phase plan
-
-**Mode:** Discuss
-**Outcome:** Phase 12 plan recorded for adapter extraction, State Manager persistence API expansion, and Orchestrator SQLite fallback removal
-
-Phase 12 is a Build-regime refactor, not a feature phase. The planned work splits misplaced Orchestrator concerns into their owning modules: toolkit adapters move to `src/adapters.py`, persistence helpers move into `SQLiteStateManager`, and Orchestrator calls those explicit APIs directly.
-
-The cross-module State Manager/Orchestrator contract expansion is intentional phase scope, documented in DEVPLAN and DECISIONS, so workers should not escalate it as emergent contract drift.
-
-### Step 12.1: Extract adapters to src/adapters.py
-
-**Mode:** Build
-**Outcome:** Complete — adapter classes moved out of Orchestrator; compile check and full regression passed
-**Contract changes:** `src/adapters.py` now owns `ToolkitLLMAdapter` and `DiplomatCostGate`; `src/orchestrator.py` no longer exports them
-
-Moved `ToolkitLLMAdapter` and `DiplomatCostGate` into the new `src/adapters.py` module and updated `src/main.py` to import adapters from there. Removed both adapter names and class definitions from `src/orchestrator.py` so Orchestrator returns to composition/event-loop responsibility.
-
-Verification:
-- `python3 -m py_compile src/adapters.py src/orchestrator.py src/main.py` — passed
-- `python3 -m pytest` — 165 passed
-
-Next step: 12.2 expands `SQLiteStateManager` with the five persistence APIs now planned for direct Orchestrator calls.
-
-### Step 12.2: Expand State Manager API with persistence methods
-
-**Mode:** Build
-**Outcome:** Complete — five persistence methods added, documented, and covered by focused tests
-**Contract changes:** `SQLiteStateManager` public API now includes `store_coaching`, `store_intelligence`, `set_game_state`, `store_adversarial_read`, and `mark_coaching_consumed`; `ARCH_state_manager.md` updated
-
-Added explicit State Manager write helpers for coaching entries, intelligence records, game state key/value updates, adversarial read records, and coaching consumption. Each method uses the existing SQLite connection helper, State Manager-owned tables, and `_now()` timestamps where the table records creation time.
-
-Focused tests verify row insertion/update behavior, JSON round-tripping with sorted dumps for persisted analysis payloads, and coaching consumed-state updates. The full suite now includes 170 tests.
-
-Verification:
-- `python3 -m pytest tests/test_state_manager.py` — 10 passed
-- `python3 -m pytest` — 170 passed
-
-Next step: 12.3 removes Orchestrator raw SQLite fallbacks and calls the new State Manager API directly.
-
-### Step 12.3: Remove SQLite fallbacks from Orchestrator
-
-**Mode:** Build
-**Outcome:** Complete — Orchestrator now calls State Manager persistence APIs directly and event parameters use `InboundEvent`
-**Contract changes:** Orchestrator now requires the expanded State Manager persistence API from Step 12.2
-
-Removed raw SQLite fallback write paths from `_store_coaching`, `_store_intelligence`, `_set_game_state`, `_store_adversarial_read`, and `_mark_coaching_consumed`. Those helpers now call the State Manager methods directly, keeping table ownership inside the State Manager. `sqlite3` remains in Orchestrator only for pre-flight database initialization.
-
-Typed `process_event()` and `run_response_pipeline()` with `InboundEvent` where they previously accepted `Any`. The existing Orchestrator fake state manager already implements the expanded persistence API, so the behavior tests continue to exercise the production contract.
-
-Verification:
-- `python3 -m pytest tests/test_orchestrator.py` — 44 passed
-- `python3 -m pytest` — 170 passed
-
-Next step: 12.4 performs architecture/doc cleanup and final regression verification before review.
-
-### Step 12.4: Documentation cleanup and regression verification
-
-**Mode:** Build (cleanup)
-**Outcome:** Complete — ARCHITECTURE.md coupling notes updated, full regression passes, phase ready for review
-
-Updated `ARCHITECTURE.md` coupling notes:
-- `ToolkitLLMAdapter` reference now points to `src/adapters.py` (was `orchestrator.py`)
-- `DiplomatCostGate` reference now points to `src/adapters.py`
-- Added explicit `Orchestrator ↔ State Manager` write-path coupling note documenting the 5 persistence methods
-
-Verification:
-- `python3 -m pytest` — 170 passed
-
-Phase 12 complete: adapter extraction, State Manager API expansion, and Orchestrator fallback removal all verified. State transitions to review.
-
-### 2026-05-27 — Phase 12 Review
-
-**Action:** Phase Review for Phase 12 (Orchestrator Refactor)
-**Outcome:** Complete — one should-fix applied; no must-fix items
-
-Review findings:
-- **Must fix:** None.
-- **Should fix (applied):** `import re` was a local import inside `_check_round_boundary`; moved to module level alongside other stdlib imports.
-- **Optional (skipped):** `_store_coaching` returns `coaching_id` but caller never captures it; private helpers `_route_operator_event`/`_enqueue_message_extraction`/`_debounced_message_extraction` still use `event: Any` (spec only required typing the two public methods).
-
-Verification:
-- `python3 -m pytest` — 170 passed
-
-Phase 12 ready for human audit. Transitioning to `state: close`.
+Phase 12 development entries archived to `DEVLOG_archive.md` (2026-05-27).
 
 ### 2026-05-27 — Phase 12 Complete
 
 **Action:** Phase Complete for Orchestrator Refactor
 **Outcome:** Complete — human audit gate set in DEVPLAN frontmatter
 
-Closed Phase 12 after adapter extraction, State Manager persistence API expansion, Orchestrator SQLite fallback removal, and public `InboundEvent` typing. Phase Review applied one should-fix and found no must-fix issues.
-
-Integration check:
-- Orchestrator now writes coaching, intelligence, game state, adversarial reads, and coaching consumption through State Manager's public methods.
-- No module imports the orchestration layer; module coupling remains through shared types and configured dependencies.
-- No bridge logic is needed between Orchestrator and State Manager beyond the new public State Manager methods documented in `ARCH_state_manager.md` and `ARCHITECTURE.md`.
-
-Verification:
-- `python3 -m pytest -q` — 170 passed
-
-Phase 11 development and post-phase adapter probe entries archived to `DEVLOG_archive.md` (2026-05-27).
-
-No new gotchas promoted. Contract changes are already propagated to `ARCH_state_manager.md`, `ARCH_orchestrator.md`, and `ARCHITECTURE.md`.
+Completed adapter extraction to `src/adapters.py`, State Manager persistence API expansion, Orchestrator SQLite fallback removal, and public `InboundEvent` typing. Phase Review applied one should-fix and found no must-fix issues. Full regression: 170 passed.
 
 ## Phase 13: Layer 3 Pipeline Integration Tests
 
@@ -710,3 +615,22 @@ Verification:
 - `python3 -m pytest` — 182 passed
 
 Phase 13 is ready for review.
+
+### 2026-05-27 — Phase 13 Complete
+
+**Action:** Phase Complete for Layer 3 Pipeline Integration Tests
+**Outcome:** Complete — human audit gate set in DEVPLAN frontmatter
+
+Closed Phase 13 after fake-backed Layer 3 integration infrastructure and tests were completed. The suite now includes `TestTransport`, `StubAnalyst`, shared fake factories, `config/pipeline_test.yaml`, an async integration pipeline fixture, one fixture smoke test, six core pipeline flow tests, and five failure-handling tests.
+
+Integration check:
+- Orchestrator pipeline flow is covered end to end with real Event Store and State Manager instances, fake transport, fake LLM client, fake cost accountant, and stub analysts.
+- No real API calls are made by Layer 3 integration tests.
+- No cross-module production contract changes were introduced during Phase 13 beyond test-only `StubAnalyst` registry resolution.
+
+Verification:
+- `python3 -m pytest -q` — 182 passed
+
+Phase 12 development entries archived to `DEVLOG_archive.md` (2026-05-27).
+
+No new gotchas promoted. Contract changes are already reflected in `diplomat-testing-doc.md`, `ARCHITECTURE.md`, and `DEVPLAN.md`.

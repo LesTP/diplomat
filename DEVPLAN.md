@@ -1,8 +1,8 @@
 ---
 phase: 13
-blocked: false
+blocked: true
 state: close
-steps_remaining: 1
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -23,34 +23,12 @@ steps_remaining: 1
 ## Current Status
 
 - **Phase** — Phase 13: Layer 3 pipeline integration tests.
-- **Focus** — Phase 13 implementation complete; ready for Layer 3 integration test review.
-- **Blocked/Broken** — none.
+- **Focus** — Phase 13 complete; Layer 3 pipeline integration coverage is in place.
+- **Blocked/Broken** — blocked for human audit after phase close.
 
 ## Phase 13: Layer 3 — Pipeline Integration Tests
 
-Regime: Build. Scope: Build the test infrastructure needed for integration tests (TestTransport, StubAnalyst, test pipeline config, shared fixtures), then implement integration tests that exercise the full Orchestrator pipeline with fake LLM clients and no real API calls. Reference: `diplomat-testing-doc.md` §2, §5.
-
-**Design constraints:**
-- No real API calls — all LLM modules use a `FakeLLMClient` that returns canned responses via `module_overrides`
-- No `:memory:` SQLite — use `tmp_path` fixtures (SQLiteStateManager creates new connections per call; `:memory:` gives a fresh empty DB each time)
-- TestTransport implements `send()`/`listen()` directly via asyncio.Queue — not a CLITransport wrapper
-- StubAnalyst returns fixture-loaded `AnalysisResult` — no LLM call
-- Orchestrator.start() blocks on listen, so integration tests run it in a background `asyncio.create_task` and inject events via TestTransport
-- All existing 170 unit tests must continue to pass
-
-Steps:
-
-- [x] 13.1 — **Test infrastructure: TestTransport + StubAnalyst + factories.** Create `tests/helpers/__init__.py`, `tests/helpers/test_transport.py` (TestTransport with inject/send/listen/get_output/clear_output via asyncio.Queue), `tests/helpers/stub_analyst.py` (StubAnalyst loading fixture JSON → AnalysisResult), and `tests/helpers/factories.py` (make_event, make_round_end_event, FakeLLMClient, FakeCostAccountant helper functions). Register `StubAnalyst` in `src/registry.py`. Create `tests/integration/__init__.py` and `tests/integration/fixtures/` with `intelligence_stub.json` (valid against `config/schemas/intelligence.json`) and `test_persona.txt` (minimal faction persona). Verify `python3 -c "from tests.helpers.test_transport import TestTransport"` imports cleanly. Run full regression.
-
-- [x] 13.2 — **Test pipeline config + integration conftest.** Create `config/pipeline_test.yaml` matching the real `pipeline.yaml` schema but with `CLITransport`, `RuleBasedExtractor`, `StubAnalyst`, `AutoApproveReviewGate`, and `test_persona.txt` paths. Create `tests/integration/conftest.py` with a `pipeline` fixture that constructs Orchestrator with `pipeline_test.yaml`, passes TestTransport + FakeLLMClient + FakeCostAccountant via module_overrides, runs `start()` in a background task, and tears down with `shutdown()` + task cancel in cleanup. Verify the fixture constructs and starts without error. Run full regression.
-
-- [x] 13.3 — **Core pipeline flow tests.** Create `tests/integration/test_pipeline_flow.py` with tests: (1) game message ingested → event stored + extraction runs, (2) operator PRIORITY coaching → stored in coaching table as unconsumed, (3) operator INTEL coaching → state_change_log entry with trigger_type=intel_correction, (4) round boundary signal `[ROUND END]` → intelligence table populated with analysis_json, (5) direct address to faction_id → public response generated and sent, (6) `/preview` command → response pipeline runs. Each test injects events via TestTransport.inject() and asserts on state_manager.query() results after an asyncio.sleep for processing. Run focused + full regression.
-
-- [x] 13.4 — **Failure handling tests.** Create `tests/integration/test_failure_handling.py` with tests: (1) extraction failure → pipeline continues running + event still in store, (2) secondary analyst failure → intelligence stored with primary only, (3) adversarial failure → response still posted with warning, (4) double generation failure → operator alerted on coaching channel, (5) transport send failure after 3 retries → operator alerted. Use monkeypatch to inject failures into specific module methods. Run focused + full regression.
-
-- [x] 13.5 — **Documentation cleanup and regression.** Verify full test suite (170 existing + new integration tests). Update DEVPLAN Phase 13 summary. Append DEVLOG entry. Update `diplomat-testing-doc.md` Layer 3 status to "Complete" with test count. Transition to `state: review`.
-
-Summary: Implemented Layer 3 pipeline integration infrastructure and tests: `TestTransport`, `StubAnalyst`, shared fake factories, `pipeline_test.yaml`, async integration pipeline fixture, fixture smoke test, six core pipeline flow tests, and five failure-handling tests. Full regression: 182 passed (170 pre-existing tests + 12 integration tests). Phase ready for review.
+Complete. Implemented fake-backed Layer 3 integration infrastructure and 12 tests covering fixture startup, core Orchestrator flow, and failure handling. Full regression: 182 passed. See `DEVLOG.md`.
 
 ## Phase 12: Orchestrator Refactor
 

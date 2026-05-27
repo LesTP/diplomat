@@ -122,6 +122,15 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 | 11 | Adversarial | Optional LLM call. Valuable but skippable — Review Gate catches issues manually. | Phase 10 complete |
 | 12 | Orchestrator | Wires everything. Event loop, round management, cost accountant, failure handling. Last because it requires all modules. | Complete |
 
+## Testing Status
+
+| Layer | Status |
+|-------|--------|
+| Unit tests | Complete — 170 module tests |
+| Pipeline integration | Complete — 12 fake-backed Orchestrator integration tests, 182 total regression tests |
+| Prompt regression | Not started |
+| Multi-agent self-play | Not started |
+
 ## Coupling Notes
 
 - **Event Store ↔ State Manager:** loose — both use the same SQLite file but own separate tables. No code dependency. Event Store writes messages; State Manager writes domain tables.

@@ -589,3 +589,14 @@ Post-phase source-level toolkit probes found integration mismatches between earl
 Verification:
 - `python3 -m pytest` — 165 passed
 - Pi toolkit probe — `llm_client`, `telegram_client`, and `cost_accountant` signatures confirmed
+
+---
+
+## Archived 2026-05-27 — Module 12 Phase 12: Orchestrator Refactor
+
+Phase 12 extracted `ToolkitLLMAdapter` and `DiplomatCostGate` into `src/adapters.py`, expanded `SQLiteStateManager` with public persistence APIs for coaching, intelligence, game state, adversarial reads, and coaching consumption, and removed Orchestrator raw SQLite fallback writes. It also typed public Orchestrator event/pipeline methods with `InboundEvent`.
+
+Phase Review applied one should-fix: move the round-boundary regex import to module scope. No must-fix items were found.
+
+Verification:
+- `python3 -m pytest` — 170 passed
