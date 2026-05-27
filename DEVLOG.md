@@ -582,3 +582,18 @@ Verification:
 - `python3 -m pytest` — 170 passed
 
 Phase 12 complete: adapter extraction, State Manager API expansion, and Orchestrator fallback removal all verified. State transitions to review.
+
+### 2026-05-27 — Phase 12 Review
+
+**Action:** Phase Review for Phase 12 (Orchestrator Refactor)
+**Outcome:** Complete — one should-fix applied; no must-fix items
+
+Review findings:
+- **Must fix:** None.
+- **Should fix (applied):** `import re` was a local import inside `_check_round_boundary`; moved to module level alongside other stdlib imports.
+- **Optional (skipped):** `_store_coaching` returns `coaching_id` but caller never captures it; private helpers `_route_operator_event`/`_enqueue_message_extraction`/`_debounced_message_extraction` still use `event: Any` (spec only required typing the two public methods).
+
+Verification:
+- `python3 -m pytest` — 170 passed
+
+Phase 12 ready for human audit. Transitioning to `state: close`.

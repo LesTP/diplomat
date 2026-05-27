@@ -4,6 +4,7 @@ import asyncio
 import contextlib
 import json
 import os
+import re
 import sqlite3  # Used only for pre-flight database initialization.
 import uuid
 from dataclasses import asdict, dataclass, is_dataclass
@@ -308,8 +309,6 @@ class Orchestrator:
     async def _check_round_boundary(self, event: Any) -> bool:
         if self.round_detection["mode"] != "signal":
             return False
-        import re
-
         pattern = self.round_detection["pattern"]
         if re.search(pattern, event.content):
             await self.handle_round_boundary()
