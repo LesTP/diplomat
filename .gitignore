@@ -11,8 +11,11 @@ venv/
 # Data
 data/*.db
 data/*.jsonl
+src/data/
 
-# Logs
+# Config secrets
+config/.env
+.env
 logs/loop/*.jsonl
 logs/loop/*.txt
 logs/loop/*.log
