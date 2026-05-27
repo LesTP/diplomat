@@ -1,8 +1,8 @@
 ---
 phase: 14
 blocked: false
-state: execute
-steps_remaining: 4
+state: review
+steps_remaining: 3
 ---
 
 # Diplomat — Development Plan
@@ -23,7 +23,7 @@ steps_remaining: 4
 ## Current Status
 
 - **Phase** — Phase 14: Layer 3 transcript replay tests.
-- **Focus** — Write synthetic game transcripts that exercise RuleBasedExtractor patterns, replay them through the full pipeline, assert on final state.
+- **Focus** — Phase 14 implementation complete; transcript replay fixtures and tests are ready for review.
 - **Blocked/Broken** — none.
 
 ## Phase 14: Layer 3 — Transcript Replay Tests
@@ -56,7 +56,9 @@ Steps:
   - `test_betrayal_arc_promise_and_coalition` — replays same transcript, asserts the promise and coalition are both present.
   Run focused + full regression.
 
-- [ ] 14.4 — **Documentation cleanup and regression.** Verify full test suite. Update DEVPLAN Phase 14 summary. Append DEVLOG entry. Update `diplomat-testing-doc.md` build order table to mark transcript replay as complete. Transition to `state: review`.
+- [x] 14.4 — **Documentation cleanup and regression.** Verify full test suite. Update DEVPLAN Phase 14 summary. Append DEVLOG entry. Update `diplomat-testing-doc.md` build order table to mark transcript replay as complete. Transition to `state: review`.
+
+Summary: Implemented deterministic Layer 3 transcript replay coverage with two JSON fixtures (`cooperative_3round.json`, `betrayal_arc.json`) and five integration tests. Replay coverage now verifies multi-round promise, coalition, inconsistency, and intelligence persistence through the fake-backed Orchestrator pipeline. Full regression: 187 passed. Phase ready for review.
 
 ## Phase 13: Layer 3 — Pipeline Integration Tests
 

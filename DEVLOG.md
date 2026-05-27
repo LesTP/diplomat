@@ -691,3 +691,16 @@ Verification:
 - `python3 -m pytest -q` — 187 passed
 
 Next step: 14.4 performs documentation cleanup and final regression.
+
+### Step 14.4: Documentation cleanup and regression
+
+**Mode:** Build (cleanup)
+**Outcome:** Complete — Phase 14 implementation ready for review
+**Contract changes:** None
+
+Verified the full suite after transcript replay implementation and updated `DEVPLAN.md` with the Phase 14 summary. Updated `diplomat-testing-doc.md` build order to mark Layer 3 transcript replay complete with two fixtures, five replay tests, and 187 total regression tests.
+
+Verification:
+- `python3 -m pytest -q` — 187 passed
+
+Phase 14 is ready for review.

@@ -1222,7 +1222,7 @@ Recurring patterns in `constraint_enforcement` or `persona_correction` indicate 
 | **Phase 12** | Orchestrator refactor (adapters, State Manager expansion) | — |
 | **Done** | Layer 3 infrastructure: TestTransport, StubAnalyst, pipeline_test.yaml | Phase 12 |
 | **Done** | Layer 3 tests: pipeline flow and failure handling | TestTransport + StubAnalyst |
-| **Future** | Layer 3 transcript replay | TestTransport + StubAnalyst |
+| **Done** | Layer 3 transcript replay: 2 transcript fixtures and 5 replay tests, 187 total regression tests | TestTransport + StubAnalyst |
 | **Then** | Layer 2 infrastructure: scenario runner, LLM-as-judge | Live API keys |
 | **Then** | Layer 2 scenarios: start with 3–4 extraction + 2–3 generation | Runner infrastructure |
 | **Last** | Layer 4: GameEnvironment, 5 faction personas, first simulation | All above stable |
