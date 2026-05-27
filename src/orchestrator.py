@@ -781,14 +781,29 @@ class Orchestrator:
                 raise PipelineConfigError(
                     f"Pipeline config llm_providers.{provider_id} must be a mapping"
                 )
-            for key in ("provider", "model", "api_key_env"):
+            for key in ("provider", "api_key_env"):
                 if not self._has_text(provider_config.get(key)):
                     raise PipelineConfigError(
                         f"Pipeline config requires llm_providers.{provider_id}.{key}"
                     )
+            models = provider_config.get("models")
+            if isinstance(models, dict):
+                models_dict = dict(models)
+            elif self._has_text(provider_config.get("model")):
+                single_model = str(provider_config["model"])
+                models_dict = {
+                    "quality": single_model,
+                    "default": single_model,
+                    "commodity": single_model,
+                }
+            else:
+                raise PipelineConfigError(
+                    f"Pipeline config requires llm_providers.{provider_id}.models "
+                    f"(dict of tier->model) or .model (single model string)"
+                )
             configs[str(provider_id)] = {
                 "provider": provider_config["provider"],
-                "model": provider_config["model"],
+                "models": models_dict,
                 "api_key_env": provider_config["api_key_env"],
                 "api_key": os.getenv(provider_config["api_key_env"]),
             }
@@ -974,4 +989,82 @@ async def _maybe_await(value: Any) -> Any:
     return value
 
 
-__all__ = ["Orchestrator", "PipelineConfigError", "PipelinePaths"]
+__all__ = ["Orchestrator", "PipelineConfigError", "PipelinePaths",
+           "ToolkitLLMAdapter", "DiplomatCostGate"]
+
+
+class ToolkitLLMAdapter:
+    """Adapts toolkit.llm_client.complete() to the interface Diplomat modules expect.
+
+    Diplomat modules call: llm_client.complete(messages=[dict], config=dict, tier=str)
+    and expect a plain str back.
+
+    Toolkit provides: complete(messages=[Message], config=LLMConfig, tier=ModelTier)
+    returning LLMResponse with .content.
+
+    This adapter bridges the gap so modules remain toolkit-agnostic in tests
+    while using real toolkit in production.
+    """
+
+    def __init__(self, toolkit_llm: Any) -> None:
+        self._toolkit = toolkit_llm
+
+    def complete(self, *, messages: list[dict[str, str]],
+                 config: dict[str, Any], tier: Any = None,
+                 max_tokens: int | None = None, **kwargs: Any) -> str:
+        Message = self._toolkit.Message
+        LLMConfig = self._toolkit.LLMConfig
+        ModelTier = self._toolkit.ModelTier
+
+        tk_messages = [Message(role=m["role"], content=m["content"])
+                       for m in messages]
+
+        models = config.get("models", {})
+        if not models and "model" in config:
+            single = config["model"]
+            models = {"quality": single, "default": single, "commodity": single}
+
+        tk_config = LLMConfig(
+            provider=config["provider"],
+            api_key=config.get("api_key") or "",
+            models=models,
+            max_tokens=max_tokens or 4096,
+        )
+
+        tier_str = tier.value if hasattr(tier, "value") else str(tier or "default")
+        try:
+            tk_tier = ModelTier(tier_str)
+        except ValueError:
+            tk_tier = ModelTier.DEFAULT
+
+        response = self._toolkit.complete(
+            messages=tk_messages, config=tk_config, tier=tk_tier,
+        )
+        return response.content
+
+
+class DiplomatCostGate:
+    """Wraps toolkit.cost_accountant.CostAccountant to expose the budget-gate
+    API that Diplomat's Orchestrator expects (available_budget / reset_round_budget).
+
+    Internally tracks per-round spend using toolkit's estimate_cost().
+    """
+
+    def __init__(self, accountant: Any, per_round_budget_usd: float) -> None:
+        self._accountant = accountant
+        self._per_round_budget_usd = per_round_budget_usd
+        self._round_spend = 0.0
+
+    def available_budget(self) -> float:
+        return max(0.0, self._per_round_budget_usd - self._round_spend)
+
+    def reset_round_budget(self, amount: float) -> None:
+        self._per_round_budget_usd = amount
+        self._round_spend = 0.0
+
+    def record_spend(self, cost_usd: float) -> None:
+        self._round_spend += cost_usd
+
+    @property
+    def session_total(self) -> float:
+        return getattr(self._accountant, "session_total", 0.0)

@@ -15,11 +15,17 @@ transport:
 llm_providers:
   primary:
     provider: openai
-    model: gpt-4.1
+    models:
+      quality: gpt-4.1
+      default: gpt-4.1
+      commodity: gpt-4.1-mini
     api_key_env: OPENAI_API_KEY
   secondary:
     provider: anthropic
-    model: claude-3-5-sonnet-latest
+    models:
+      quality: claude-3-5-sonnet-latest
+      default: claude-3-5-sonnet-latest
+      commodity: claude-haiku-4-5
     api_key_env: ANTHROPIC_API_KEY
 
 modules:
