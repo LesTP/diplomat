@@ -163,12 +163,22 @@ class TelegramBotTransport:
             if start_polling is not None:
                 polling_task = asyncio.create_task(start_polling())
                 await asyncio.sleep(0.1)  # Let polling loop start
+                if polling_task.done():
+                    exc = polling_task.exception()
+                    if exc is not None:
+                        raise TransportError(f"Telegram listen failed: {exc}") from exc
 
             while True:
                 update = await _maybe_await(self._client.get_next_update())
                 if update is None:
                     # Only exit if polling has stopped; otherwise keep waiting
-                    if polling_task is not None and not polling_task.done():
+                    if polling_task is not None and polling_task.done():
+                        exc = polling_task.exception()
+                        if exc is not None:
+                            raise TransportError(
+                                f"Telegram listen failed: {exc}"
+                            ) from exc
+                    elif polling_task is not None:
                         continue
                     return
                 print(f"[DEBUG transport] got update: {update}")

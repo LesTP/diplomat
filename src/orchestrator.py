@@ -233,6 +233,7 @@ class Orchestrator:
             "divergences": self._command_divergences,
             "edits": self._command_edits,
             "commands": self._command_commands,
+            "block": self._command_block,
         }
         handler = handlers.get(command.name)
         if handler is None:
@@ -313,6 +314,9 @@ class Orchestrator:
             "WATCH: — attention direction",
             "(untagged) — free coaching",
         ])
+
+    async def _command_block(self, _command: Command) -> str:
+        return "Block received. Pending review drafts should be blocked in the review gate."
 
     async def _query_state(
         self, entity_type: str, filters: dict[str, Any]

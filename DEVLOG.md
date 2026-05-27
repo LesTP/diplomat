@@ -760,3 +760,19 @@ Next step: 15.2 validates startup on the Pi with real `.env` values and toolkit 
 Confirmed Phase 16 scope: restore regression coverage for smoke-test fixes, document two-channel Telegram deployment, add a Raspberry Pi systemd service file, remove temporary transport debug prints, and run final regression. The phase remains deployment hardening only: no game-rule tuning, faction prompt changes, or round-mechanics changes.
 
 Scope decision logged in `DECISIONS.md` as D-18. Next step: 16.1 fixes transport, review gate, and orchestrator test coverage.
+
+### Step 16.1: Transport and review gate regression coverage
+
+**Mode:** Build
+**Outcome:** Complete — smoke-test fixes are covered by regression tests
+**Contract changes:** None
+
+Updated transport tests for background polling behavior, `None` update resilience, invalid-update skipping, and `message_text` content lookup. Updated review gate tests to verify object-style `message_text` command lookup. Added orchestrator coverage for `/commands` output and `/block` acknowledgement.
+
+Fixed one transport edge case found by the new coverage: if background `start_polling()` fails before an update arrives, `TelegramBotTransport.listen()` now raises `TransportError` instead of silently ending after a `None` update.
+
+Verification:
+- `python3 -m pytest tests/test_transport.py tests/test_review_gate.py tests/test_orchestrator.py -q` — 85 passed
+- `python3 -m pytest -q` — 193 passed
+
+Next step: 16.2 documents two-channel Telegram deployment setup.

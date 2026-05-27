@@ -175,6 +175,23 @@ async def test_telegram_review_gate_filters_other_channels():
 
 
 @pytest.mark.asyncio
+async def test_telegram_review_gate_reads_message_text_command():
+    update = type(
+        "TelegramUpdate",
+        (),
+        {"chat_id": "coach", "message_text": "/approve"},
+    )()
+    gate = TelegramReviewGate(
+        _FakeTelegramClient(updates=[update]),
+        coaching_channel_id="coach",
+    )
+
+    decision = await gate.submit(_draft(), adversarial=None, round_number=3)
+
+    assert decision.action == "approved"
+
+
+@pytest.mark.asyncio
 async def test_telegram_review_gate_unknown_command_retries():
     client = _FakeTelegramClient(
         updates=[

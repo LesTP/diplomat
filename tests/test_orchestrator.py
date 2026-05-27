@@ -497,6 +497,7 @@ async def test_game_message_debounce_cancels_and_reschedules(tmp_path):
         ("/intel", "Intelligence\n"),
         ("/divergences", "Divergences\n"),
         ("/edits", "Review Edits\n"),
+        ("/commands", "Commands\n/commands"),
     ],
 )
 async def test_command_handler_reply_formats(tmp_path, command, expected):
@@ -520,6 +521,22 @@ async def test_command_handler_reply_formats(tmp_path, command, expected):
     assert transport.sent
     assert transport.sent[0].channel == "coaching"
     assert transport.sent[0].content.startswith(expected)
+
+
+@pytest.mark.asyncio
+async def test_block_command_acknowledges_review_gate_action(tmp_path):
+    orchestrator, _event_store, _state_manager, _extractor, transport = _orchestrator(
+        tmp_path
+    )
+
+    await orchestrator.process_event(_event(content="/block"))
+
+    assert transport.sent == [
+        OutboundMessage(
+            content="Block received. Pending review drafts should be blocked in the review gate.",
+            channel="coaching",
+        )
+    ]
 
 
 @pytest.mark.asyncio

@@ -2,7 +2,7 @@
 phase: 16
 blocked: false
 state: execute
-steps_remaining: 7
+steps_remaining: 6
 ---
 
 # Diplomat — Development Plan
@@ -23,7 +23,7 @@ steps_remaining: 7
 ## Current Status
 
 - **Phase** — Phase 16 planned: Deployment Readiness.
-- **Focus** — Restore regression coverage for smoke-test fixes, document two-channel Telegram deployment, add systemd service support, and remove temporary transport debug output.
+- **Focus** — Next: document two-channel Telegram deployment, then add systemd service support and remove temporary transport debug output.
 - **Blocked/Broken** — none.
 
 ## Phase 16: Deployment Readiness
@@ -38,7 +38,7 @@ Regime: Build. Scope: Fix the regression tests broken by smoke test changes, set
 
 Steps:
 
-- [ ] 16.1 — **Fix transport and review gate test coverage.** The smoke test applied three code changes that existing unit tests don't cover:
+- [x] 16.1 — **Fix transport and review gate test coverage.** The smoke test applied three code changes that existing unit tests don't cover:
   - Transport `listen()` now runs `start_polling()` as a background task and continues on `None` updates — update `tests/test_transport.py` fakes and add a test for the background polling behavior.
   - Transport and Review Gate content lookup now includes `message_text` — update test fakes to use `message_text` attribute and verify it's found.
   - Orchestrator `/commands` handler and `/block` acknowledgement — add tests in `tests/test_orchestrator.py`.

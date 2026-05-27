@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 import json
@@ -465,6 +466,70 @@ async def test_telegram_transport_listen_normalizes_public_private_and_coaching_
 
 
 @pytest.mark.asyncio
+async def test_telegram_transport_listen_reads_message_text_updates():
+    client = _FakeTelegramClient(
+        updates=[
+            {
+                "chat_id": "public-chat",
+                "user_id": "200",
+                "message_text": "Support me into Belgium.",
+                "message_id": 10,
+            }
+        ]
+    )
+    transport = _telegram_transport(client)
+
+    events = [event async for event in transport.listen()]
+
+    assert events == [
+        InboundEvent(
+            timestamp=datetime(1901, 1, 1, 12, 0, tzinfo=timezone.utc),
+            sender_faction="france",
+            channel="public",
+            content="Support me into Belgium.",
+            telegram_msg_id=10,
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_telegram_transport_listen_keeps_polling_after_none_update():
+    class BackgroundPollingClient(_FakeTelegramClient):
+        def __init__(self) -> None:
+            super().__init__(updates=[])
+            self.polling_released = False
+            self._calls = 0
+
+        async def start_polling(self) -> None:
+            self.polling_started = True
+            while not self.polling_released:
+                await asyncio.sleep(0)
+
+        async def get_next_update(self):
+            self._calls += 1
+            if self._calls == 1:
+                return None
+            self.polling_released = True
+            return {
+                "chat_id": "public-chat",
+                "user_id": "200",
+                "text": "Delayed update",
+            }
+
+    client = BackgroundPollingClient()
+    transport = _telegram_transport(client)
+
+    events = []
+    async for event in transport.listen():
+        events.append(event)
+        break
+
+    assert client.polling_started is True
+    assert client._calls == 2
+    assert events[0].content == "Delayed update"
+
+
+@pytest.mark.asyncio
 async def test_telegram_transport_listen_uses_fallback_sources_and_clock():
     client = _FakeTelegramClient(
         updates=[
@@ -499,7 +564,7 @@ async def test_telegram_transport_listen_uses_fallback_sources_and_clock():
 
 
 @pytest.mark.asyncio
-async def test_telegram_transport_listen_wraps_polling_and_update_errors():
+async def test_telegram_transport_listen_raises_for_polling_failure():
     class BrokenPollingClient(_FakeTelegramClient):
         async def start_polling(self) -> None:
             raise OSError("polling failed")
@@ -507,6 +572,9 @@ async def test_telegram_transport_listen_wraps_polling_and_update_errors():
     with pytest.raises(TransportError, match="Telegram listen failed"):
         [event async for event in _telegram_transport(BrokenPollingClient()).listen()]
 
+
+@pytest.mark.asyncio
+async def test_telegram_transport_listen_skips_invalid_updates():
     unknown_chat = _FakeTelegramClient(
         updates=[
             {
@@ -515,8 +583,7 @@ async def test_telegram_transport_listen_wraps_polling_and_update_errors():
             }
         ]
     )
-    with pytest.raises(TransportError, match="No Telegram channel configured"):
-        [event async for event in _telegram_transport(unknown_chat).listen()]
+    assert [event async for event in _telegram_transport(unknown_chat).listen()] == []
 
     malformed = _FakeTelegramClient(
         updates=[
@@ -526,5 +593,4 @@ async def test_telegram_transport_listen_wraps_polling_and_update_errors():
             }
         ]
     )
-    with pytest.raises(TransportError, match="Telegram update is invalid"):
-        [event async for event in _telegram_transport(malformed).listen()]
+    assert [event async for event in _telegram_transport(malformed).listen()] == []
