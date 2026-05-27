@@ -1,0 +1,29 @@
+{
+  "scenario_id": "extraction.inconsistency_detection",
+  "description": "A contradiction creates an inconsistency entry.",
+  "module": "extraction",
+  "input": {
+    "text": "Germany contradicts the neutrality promise to Russia.",
+    "current_state": {},
+    "trigger_type": "intel_correction"
+  },
+  "expected_properties": [
+    {
+      "type": "json_path_exists",
+      "description": "The first inconsistency entry exists.",
+      "path": "patch.data.inconsistencies[0]"
+    },
+    {
+      "type": "json_path_equals",
+      "description": "The inconsistency is attributed to Germany.",
+      "path": "patch.data.inconsistencies[0].faction_id",
+      "value": "Germany"
+    },
+    {
+      "type": "json_path_equals",
+      "description": "The inconsistency has not been spent.",
+      "path": "patch.data.inconsistencies[0].spent",
+      "value": false
+    }
+  ]
+}

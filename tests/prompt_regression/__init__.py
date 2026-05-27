@@ -11,7 +11,6 @@ from tests.prompt_regression.types import (
     load_scenarios,
 )
 from tests.prompt_regression.judge import JudgeResult, LLMJudge
-from tests.prompt_regression.runner import ScenarioRunner
 
 __all__ = [
     "JudgeResult",
@@ -19,7 +18,6 @@ __all__ = [
     "PropertyCheck",
     "PropertyResult",
     "RunReport",
-    "ScenarioRunner",
     "ScenarioResult",
     "json_path_exists",
     "json_path_get",

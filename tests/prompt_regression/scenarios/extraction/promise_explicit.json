@@ -1,0 +1,23 @@
+{
+  "scenario_id": "extraction.promise_explicit",
+  "description": "An explicit promise creates a pending promise entry.",
+  "module": "extraction",
+  "input": {
+    "text": "England promises France support into Belgium.",
+    "current_state": {},
+    "trigger_type": "message"
+  },
+  "expected_properties": [
+    {
+      "type": "json_path_exists",
+      "description": "The first promise entry exists.",
+      "path": "patch.data.promises[0]"
+    },
+    {
+      "type": "json_path_equals",
+      "description": "The promise status is pending.",
+      "path": "patch.data.promises[0].status",
+      "value": "pending"
+    }
+  ]
+}

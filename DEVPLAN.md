@@ -2,7 +2,7 @@
 phase: 17
 blocked: false
 state: execute
-steps_remaining: 4
+steps_remaining: 3
 ---
 
 # Diplomat — Development Plan
@@ -63,7 +63,7 @@ Steps:
   - CLI entry point: `python -m tests.prompt_regression.runner --scenarios <dir>` with optional `--module <name>` filter
   Add a smoke test with a fake LLM client and one inline scenario dict to verify the runner produces a `RunReport`. Run full regression.
 
-- [ ] 17.4 — **Starter scenarios: extraction.** Create `tests/prompt_regression/scenarios/extraction/` with 4 JSON scenarios:
+- [x] 17.4 — **Starter scenarios: extraction.** Create `tests/prompt_regression/scenarios/extraction/` with 4 JSON scenarios:
   1. `promise_explicit.json` — explicit promise creates pending promise entry (structural: `json_path_exists` on `patch.data.promises[0]`, `json_path_equals` on status=pending)
   2. `promise_vague.json` — vague offer does NOT create promise (structural: promises array empty or absent)
   3. `coalition_formation.json` — alliance announcement creates coalition entry

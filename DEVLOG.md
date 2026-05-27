@@ -893,3 +893,19 @@ Verification:
 Note: Two earlier full-suite attempts hit different existing async integration timing failures; both failed tests passed when rerun in isolation before the final clean full-suite pass.
 
 Next step: 17.4 adds starter extraction scenarios.
+
+### Step 17.4: Starter extraction scenarios
+
+**Mode:** Build
+**Outcome:** Complete — four free extraction prompt-regression scenarios added
+**Contract changes:** None
+
+Added `tests/prompt_regression/scenarios/extraction/` with scenarios for explicit promises, vague non-promises, coalition formation, and inconsistency detection. These use structural checks only and run through the CLI's default `RuleBasedExtractor`, so they do not call paid APIs.
+
+Adjusted the prompt-regression package initializer so `python -m tests.prompt_regression.runner` runs without an eager-import `runpy` warning.
+
+Verification:
+- `python3 -m tests.prompt_regression.runner --scenarios tests/prompt_regression/scenarios --module extraction` — 4/4 scenarios passed
+- `python3 -m pytest -q` — 207 passed
+
+Next step: 17.5 adds starter generation scenarios.

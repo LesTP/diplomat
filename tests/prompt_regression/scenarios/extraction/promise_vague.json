@@ -1,0 +1,18 @@
+{
+  "scenario_id": "extraction.promise_vague",
+  "description": "A vague offer does not create a promise entry.",
+  "module": "extraction",
+  "input": {
+    "text": "England says it may be helpful to France if the board develops well.",
+    "current_state": {},
+    "trigger_type": "message"
+  },
+  "expected_properties": [
+    {
+      "type": "json_path_equals",
+      "description": "No structured patch is produced for vague language.",
+      "path": "patch.data",
+      "value": {}
+    }
+  ]
+}

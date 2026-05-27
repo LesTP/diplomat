@@ -1,0 +1,29 @@
+{
+  "scenario_id": "extraction.coalition_formation",
+  "description": "An alliance announcement creates a coalition entry.",
+  "module": "extraction",
+  "input": {
+    "text": "England and France form a coalition against Germany.",
+    "current_state": {},
+    "trigger_type": "message"
+  },
+  "expected_properties": [
+    {
+      "type": "json_path_exists",
+      "description": "The first coalition entry exists.",
+      "path": "patch.data.coalitions[0]"
+    },
+    {
+      "type": "json_path_equals",
+      "description": "The coalition includes England.",
+      "path": "patch.data.coalitions[0].faction_a",
+      "value": "England"
+    },
+    {
+      "type": "json_path_equals",
+      "description": "The coalition includes France.",
+      "path": "patch.data.coalitions[0].faction_b",
+      "value": "France"
+    }
+  ]
+}
