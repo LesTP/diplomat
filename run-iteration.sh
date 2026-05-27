@@ -99,7 +99,7 @@ After reading ${ADAPTER_FILE} and its references, enter the main loop from WORKE
 export STEP_BUDGET=$MULTI_STEP
 if [[ $STEP_BUDGET -lt 1 ]]; then STEP_BUDGET=1; fi
 export STEP_BUDGET
-export STOP_BEFORE_REVIEW
+export STOP_BEFORE_REVIEW="$TO_REVIEW"
 export DEVPLAN_PATH="$PROJECT_DIR/DEVPLAN.md"
 
 # Add STEP_BUDGET and STOP_BEFORE_REVIEW to prompt so the worker knows
