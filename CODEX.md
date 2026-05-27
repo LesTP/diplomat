@@ -116,36 +116,37 @@ cat ARCH_module.md && echo '---SPLIT---' && cat src/modules/module/impl.py
 
 ## Action Instructions
 
-WORKER_SPEC.md defines four allowed actions. Here is how to execute each one
-in Codex. Perform **exactly one** per iteration unless `steps_remaining` > 0
-(see WORKER_SPEC.md §4 for multi-step budget).
+Follow the main loop from WORKER_SPEC.md §3:
 
-### Phase Plan
-**When:** No active phase for the current module.
-1. Read `.claude/commands/phase-plan.md` and follow its instructions.
-2. Commit with message: `phase-plan: <module>.<phase> — <summary>`.
-3. Emit exit signal and stop (or continue to first step if steps_remaining > 0).
+```
+LOOP:
+  1. output=$(bash tools/state_machine.sh)
+  2. ACTION = parse "ACTION:" from output
+     NEXT   = parse "NEXT:" from output
+  3. if ACTION == "EXIT" → emit exit signal, stop
+  4. perform the action (see below)
+  5. if error → emit exit signal with EXIT 2, stop
+  6. commit, update DEVLOG/DEVPLAN
+  7. sed -i "s/^state:.*/state: $NEXT/" DEVPLAN.md
+  8. goto LOOP
+```
 
-### Step Execution
-**When:** A phase is in progress with remaining steps.
-1. Pick the next step from DEVPLAN. Do all file read/write work.
-2. Run builds, tests, and git operations as needed.
-3. Read `.claude/commands/step-done.md` and follow its instructions.
-4. Emit exit signal and stop. Do **not** start the next step unless `steps_remaining > 0`.
+### PLAN
+Read `.claude/commands/phase-plan.md` and follow its instructions.
 
-### Phase Review
-**When:** All steps in the current phase are complete.
-1. Read `.claude/commands/phase-review.md` and follow its instructions.
-2. Emit exit signal and stop.
+### EXECUTE
+Pick the next unchecked step from DEVPLAN. Do the work, run tests.
+Read `.claude/commands/step-done.md` and follow its instructions.
 
-### Phase Complete
-**When:** Review is done and fixes (if any) are applied.
-1. Read `.claude/commands/phase-complete.md` and follow its instructions.
-2. Emit exit signal and stop.
+### REVIEW
+Read `.claude/commands/phase-review.md` and follow its instructions.
+
+### CLOSE
+Read `.claude/commands/phase-complete.md` and follow its instructions.
 
 ## Output Contract
 
-End every iteration with exactly these five lines — no additional text after:
+End every invocation with exactly these five lines — no additional text after:
 
 ```
 EXIT: 0 | 1 | 2
@@ -161,4 +162,4 @@ When invoked in autonomous mode, execute the action and emit the exit signal
 without waiting for human input. In supervised mode, surface proposed changes
 for approval before committing.
 
-See WORKER_SPEC.md §8 for full mode definitions.
+See WORKER_SPEC.md §7 for full mode definitions.
