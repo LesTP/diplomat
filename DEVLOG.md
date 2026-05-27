@@ -873,3 +873,23 @@ Verification:
 - `python3 -m pytest -q` — 204 passed
 
 Next step: 17.3 builds the scenario runner.
+
+### Step 17.3: Scenario runner
+
+**Mode:** Build
+**Outcome:** Complete — scenario runner, CLI entry point, and smoke coverage added
+**Contract changes:** None
+
+Added `tests.prompt_regression.runner` with `ScenarioRunner.run_scenario()` and `run_all()`. The runner invokes module builders for extraction, generation, analyst, and adversarial scenarios, normalizes dataclass/dict results into structural output, evaluates `json_path_exists`, `json_path_equals`, and `llm_judge` properties, prints per-scenario PASS/FAIL lines, and returns a `RunReport`.
+
+Added a CLI entry point for `python -m tests.prompt_regression.runner --scenarios <dir>` with optional `--module <name>` filtering. The default CLI can run free extraction scenarios through `RuleBasedExtractor`; LLM-backed scenarios should construct `ScenarioRunner` with an injected client.
+
+Added smoke tests for structural property evaluation, LLM-judge property evaluation with a fake client, and `run_all()` loading/filtering behavior.
+
+Verification:
+- `python3 -m pytest tests/test_prompt_regression_runner.py -q` — 3 passed
+- `python3 -m pytest -q` — 207 passed
+
+Note: Two earlier full-suite attempts hit different existing async integration timing failures; both failed tests passed when rerun in isolation before the final clean full-suite pass.
+
+Next step: 17.4 adds starter extraction scenarios.

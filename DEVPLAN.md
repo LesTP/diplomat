@@ -2,7 +2,7 @@
 phase: 17
 blocked: false
 state: execute
-steps_remaining: 5
+steps_remaining: 4
 ---
 
 # Diplomat — Development Plan
@@ -56,7 +56,7 @@ Steps:
   - Add a unit test with a fake LLM client that returns canned `PASS|reason` and `FAIL|reason` to verify parsing
   Run full regression.
 
-- [ ] 17.3 — **Scenario runner.** Create `tests/prompt_regression/runner.py` with:
+- [x] 17.3 — **Scenario runner.** Create `tests/prompt_regression/runner.py` with:
   - `ScenarioRunner` class: constructor accepts `llm_client`, `llm_config: dict`, and module builder callables
   - `async run_scenario(scenario: dict) -> ScenarioResult`: calls the appropriate module (extraction/generation/analyst/adversarial) with the scenario input, then evaluates each `expected_properties` entry using structural checks or LLM-as-judge
   - `async run_all(scenario_dir: str) -> RunReport`: loads all scenarios, runs each, prints per-scenario PASS/FAIL, prints summary
