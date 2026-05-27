@@ -1,8 +1,8 @@
 ---
 phase: 17
-blocked: false
-state: review
-steps_remaining: 1
+blocked: true
+state: close
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -19,12 +19,13 @@ steps_remaining: 1
   - Cost governance resolved (11.4): CostBudget resets per round (strict per-round cap); session totals tracked in cost_ledger.jsonl by CostAccountant
   - CostAccountant is a thin wrapper around the module-level llm_client call: Orchestrator checks budget before dispatching each LLM call and alerts operator on over-budget
   - Before deployment, install `../toolkit` editable and run live probes for `llm_client`, `telegram_client`, and `cost_accountant`; this environment cannot import `toolkit`, so Phase 11 close recorded probe specs rather than live matches
+  - Prompt regression runner: `_judge_response_text()` JSON path extraction must be wrapped in try-catch — if a scenario's `path` does not exist in module output, the raw KeyError propagates and crashes the runner. Fixed in Phase 17 review; always validate extraction paths before production scenario runs.
 
 ## Current Status
 
-- **Phase** — Phase 17: Layer 2 prompt regression infrastructure.
-- **Focus** — Build the scenario runner, LLM-as-judge, and initial scenario library for prompt quality validation.
-- **Blocked/Broken** — none.
+- **Phase** — Phase 17 complete. Awaiting human audit before next phase.
+- **Focus** — Layer 2 prompt regression infrastructure complete; 211 tests pass.
+- **Blocked/Broken** — audit gate set.
 
 ## Phase 17: Layer 2 — Prompt Regression Infrastructure
 
@@ -77,7 +78,7 @@ Steps:
 
 - [x] 17.6 — **Documentation and regression.** Verify full test suite (193 existing + new type/runner tests). Update DEVPLAN Phase 17 summary. Update `diplomat-testing-doc.md` Layer 2 status. Append DEVLOG entry. Transition to `state: review`.
 
-Summary: Implemented Layer 2 prompt regression infrastructure: scenario/result dataclasses, scenario JSON validation, dotted/bracket JSON-path helpers, LLM-as-judge evaluation, a module-builder based scenario runner with CLI, 15 focused prompt-regression unit tests, 4 free Extraction scenarios, 2 LLM-backed Generation scenarios, and cost documentation for paid generation runs. Free extraction scenario suite passes 4/4 locally; full regression passes 207 tests. Generation scenarios are authored but require a live injected LLM client on the Pi to execute.
+Summary: Implemented Layer 2 prompt regression infrastructure: scenario/result dataclasses, scenario JSON validation, dotted/bracket JSON-path helpers, LLM-as-judge evaluation, a module-builder based scenario runner with CLI, 15 focused prompt-regression unit tests, 4 free Extraction scenarios, 2 LLM-backed Generation scenarios, and cost documentation for paid generation runs. Phase Review applied 1 must-fix (wrapped `_judge_response_text()` path extraction in try-catch) and added 4 edge-case tests (judge whitespace/blank-explanation handling, runner missing-builder and invalid-path errors). Full regression: 211 tests pass. Generation scenarios require a live injected LLM client on the Pi to execute. See `DEVLOG.md`.
 
 ## Phase 16: Deployment Readiness
 

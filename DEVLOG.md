@@ -943,3 +943,35 @@ Verification:
 - `python3 -m pytest -q` — 207 passed
 
 Phase 17 is ready for review.
+
+### Phase 17 Review
+
+**Mode:** Review
+**Outcome:** One must-fix applied, two should-fix test additions — full regression passes.
+
+**Must-fix applied:**
+- `_judge_response_text()` in `tests/prompt_regression/runner.py` called `json_path_get(output, path)` without a try-catch. If a scenario specified a path not present in module output, the raw `KeyError`/`IndexError` propagated uncaught and crashed the runner with no context. Fixed by wrapping in try-except and raising `ValueError(f"Cannot extract judge response text from path '{path}': ...")`.
+
+**Should-fix applied (test additions):**
+- `test_prompt_regression_judge.py`: added whitespace/case normalisation test (`"  pass  | explanation  "` → verdict `"PASS"`, explanation stripped) and blank-explanation rejection test (`"PASS|   "` raises `ValueError`).
+- `test_prompt_regression_runner.py`: added missing-module-builder error test (raises `ValueError` with `"No module builder"`) and invalid-judge-path error test (raises `ValueError` with `"Cannot extract judge response text"`).
+
+**Optional (skipped, logged):** Hardcoded module dispatch (`if module_name == "extraction"`) is an if-elif chain that will need extension for new modules. Acceptable for Phase 17 (4 modules) — table-driven refactor deferred to a future phase.
+
+Verification:
+- `python3 -m pytest -q` — 211 passed
+
+### 2026-05-27 — Phase 17 Complete
+
+**Action:** Phase Complete for Layer 2 Prompt Regression Infrastructure
+**Outcome:** Complete — human audit gate set in DEVPLAN frontmatter
+
+Completed Layer 2 testing framework: `tests.prompt_regression` package with scenario/result dataclasses, dotted/bracket JSON-path helpers, LLM-as-judge evaluation, a module-builder based scenario runner with CLI, 4 free Extraction scenarios, 2 LLM-backed Generation scenarios, and comprehensive unit coverage. Phase Review applied one must-fix (safe path extraction for judge properties) and added 4 edge-case tests.
+
+Testing Status: 211 total tests (14 prompt-regression unit tests + 197 other regression). Extraction prompt-regression scenarios pass free (via `RuleBasedExtractor`). Generation scenarios require a live injected client on the Pi.
+
+Verification:
+- `python3 -m pytest -q` — 211 passed
+- `python3 -m tests.prompt_regression.runner --scenarios tests/prompt_regression/scenarios --module extraction` — 4/4 passed
+
+No contract changes require propagation — Phase 17 is test infrastructure only. Architecture Testing Status table updated to "Phase 17 complete".
