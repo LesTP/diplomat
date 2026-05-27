@@ -665,3 +665,19 @@ Verification:
 - `python3 -m pytest` — 171 passed
 
 Next step: 13.3 adds core pipeline flow tests against the integration fixture.
+
+### Step 13.3: Core pipeline flow tests
+
+**Mode:** Build
+**Outcome:** Complete — six fake-backed Orchestrator integration flow tests added
+**Contract changes:** None
+
+Added `tests/integration/test_pipeline_flow.py` covering game-message ingestion and extraction, PRIORITY coaching persistence, INTEL coaching state changes, `[ROUND END]` intelligence persistence, direct-address response generation, and `/preview` response generation.
+
+The tests inject `InboundEvent` objects through `TestTransport`, let the background Orchestrator process them, and assert against real `SQLiteEventStore`, real `SQLiteStateManager`, and captured outbound transport messages.
+
+Verification:
+- `python3 -m pytest tests/integration/test_pipeline_flow.py -q` — 6 passed
+- `python3 -m pytest` — 177 passed
+
+Next step: 13.4 adds failure-handling integration tests.
