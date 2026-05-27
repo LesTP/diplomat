@@ -1,5 +1,5 @@
 # AI Diplomat — Testing and Tuning Guide
-**Version 0.4 | Updated 2026-05-27 to match post-Phase 12 codebase**
+**Version 0.5 | Updated 2026-05-27 — Phase 14 complete, live smoke test outlined**
 
 ---
 
@@ -19,7 +19,8 @@ The modular architecture in the main spec was partly designed with testability i
 |---|---|---|---|---|---|
 | 1 — Unit | Module correctness | Fast | Free | Every commit | **Complete** — 170 tests |
 | 2 — Prompt regression | Prompt quality and constraint compliance | Slow | Low | Before prompt changes go live | Not started |
-| 3 — Pipeline integration | Cross-module behavior, failure handling | Medium | Free | Before deployments | **Complete** — 12 tests, 182 total regression tests |
+| 3 — Pipeline integration | Cross-module behavior, failure handling, transcript replay | Medium | Free | Before deployments | **Complete** — 17 tests, 187 total |
+| — Live smoke test | Real Telegram + real LLM end-to-end | Manual | Low | Before first game | **Next** |
 | 4 — Multi-agent self-play | Game-level behavior, persona coherence | Slow | Medium-high | Final validation before real game | Not started |
 
 ### What Already Exists
@@ -27,7 +28,8 @@ The modular architecture in the main spec was partly designed with testability i
 | Artifact | Location | Notes |
 |---|---|---|
 | 12 unit test files | `tests/test_*.py` | One per module, 170 tests total |
-| Pipeline integration tests | `tests/integration/` | 12 tests covering fixture startup, core flow, and failure handling |
+| Pipeline integration tests | `tests/integration/` | 12 flow/failure tests + 5 transcript replay tests |
+| Transcript fixtures | `tests/integration/fixtures/transcripts/` | cooperative_3round.json, betrayal_arc.json |
 | CLITransport | `src/modules/transport/__init__.py` | JSON reader/writer, no inject() |
 | TestTransport | `tests/helpers/test_transport.py` | Queue-backed event injection and output capture |
 | AutoApproveReviewGate | `src/modules/review_gate/__init__.py` | Approves all drafts |
@@ -970,6 +972,83 @@ Generate these transcripts using an LLM to write plausible diplomatic exchanges.
 
 ---
 
+## 5b. Live Smoke Test — Real Telegram + Real LLM
+
+The live smoke test validates the full system in a real environment before game deployment. It exercises the Telegram transport, toolkit adapters, LLM API calls, review gate workflow, and cost governance — all the integration seams that fake-backed tests cannot cover.
+
+### Prerequisites
+
+| Item | How to get it |
+|---|---|
+| Telegram bot token | Create via @BotFather, set `TELEGRAM_BOT_TOKEN` in `.env` |
+| Public channel ID | Create a Telegram group for "game" messages, add the bot, set `DIPLOMAT_PUBLIC_CHANNEL_ID` |
+| Coaching channel ID | Create a separate Telegram chat for operator commands, set `DIPLOMAT_COACHING_CHANNEL_ID` |
+| Operator user ID | Your numeric Telegram user ID (get from @userinfobot), set `DIPLOMAT_OPERATOR_USER_IDS` |
+| LLM API key | `OPENAI_API_KEY` and/or `ANTHROPIC_API_KEY` in `.env` |
+| Toolkit installed | `pip install -e ../toolkit` in diplomat venv (already done on Pi) |
+
+### Cheapest Configuration
+
+To minimize cost, update `config/pipeline.yaml` for the smoke test:
+- **Extractor:** `RuleBasedExtractor` (already set — no LLM cost)
+- **Primary analyst:** Use cheapest model (e.g., `gpt-4.1-mini` or `claude-haiku-4-5`)
+- **Secondary analyst:** Same provider/model as primary (avoids needing two API keys)
+- **Generator:** Same cheap model
+- **Cost cap:** `per_round_budget_usd: 0.50`, `session_budget_usd: 2.00`
+
+Alternatively, use only OpenAI if your Claude tokens are depleted — set both `primary` and `secondary` providers to `openai` in `pipeline.yaml`.
+
+### Smoke Test Checklist
+
+Run `python src/main.py` on the Pi, then manually test each path:
+
+**1. Bot comes online**
+- [ ] Bot prints `DIPLOMAT ONLINE - Round 1 - england - session budget $X.XX`
+- [ ] No import errors or config validation failures
+
+**2. Game message → extraction → state update**
+- [ ] Send a message in the public channel: `"Alpha promises England to support the vote."`
+- [ ] Verify the event appears in the console log / event store
+- [ ] Check state with `/state` command in coaching channel — promise should be recorded
+
+**3. Operator coaching**
+- [ ] Send `PRIORITY: Focus on information gathering` in coaching channel
+- [ ] Send `/status` — should show `Unconsumed coaching: 1`
+- [ ] Send `INTEL: Alpha contradicts their neutrality claim` — should trigger intel extraction
+
+**4. Round boundary → analysis**
+- [ ] Send `ROUND 1` (or whatever matches `round_detection.pattern`) in public channel
+- [ ] Wait for analyst calls to complete
+- [ ] Send `/intel` in coaching channel — should show intelligence report
+- [ ] Send `/divergences` — should show divergence results (or none if same provider)
+
+**5. Response pipeline → review gate**
+- [ ] Send a message addressing the faction: `"Hey england, what is your position?"`
+- [ ] Or send `/preview` in coaching channel
+- [ ] Bot should send a draft + adversarial analysis to coaching channel
+- [ ] Reply with `/approve` — response should be posted to public channel
+- [ ] Test `/edit: Modified response text` — edited text should be posted
+- [ ] Test `/block` — no response posted
+
+**6. Cost governance**
+- [ ] Send `/ledger` — should show budget remaining
+- [ ] After a few LLM calls, verify budget decrements
+- [ ] If budget exhausted, bot should alert operator and skip LLM calls
+
+### What Can Go Wrong
+
+| Issue | Likely cause | Fix |
+|---|---|---|
+| `ModuleNotFoundError: toolkit` | Toolkit not installed in venv | `pip install -e ../toolkit` |
+| `TELEGRAM_BOT_TOKEN is required` | Missing `.env` file or missing var | Create `.env` with all required vars |
+| Bot receives messages but doesn't process | Channel ID mismatch | Verify IDs match the actual Telegram chat numeric IDs |
+| All senders show as "system" | `faction_map` empty in `pipeline.yaml` | Add user ID → faction mappings, or accept "system" for smoke test |
+| `TelegramBotTransport` update parsing fails | Real Telegram update format differs from fakes | Check `_event_from_update()` field paths against real update objects |
+| Review gate timeout | No `timeout_seconds` set, gate waits forever | Set `timeout_seconds` in pipeline.yaml or respond promptly |
+| Cost budget exceeded immediately | Budget too low for chosen model | Increase `per_round_budget_usd` or use cheaper model |
+
+---
+
 ## 6. Layer 4 — Multi-Agent Self-Play
 
 Self-play runs multiple agent instances against each other in a simulated environment. It is the final validation before real deployment and the most expensive test to run.
@@ -1219,10 +1298,11 @@ Recurring patterns in `constraint_enforcement` or `persona_correction` indicate 
 | Phase | What to build | Depends on |
 |---|---|---|
 | **Done** | Layer 1 unit tests (170 tests) | — |
-| **Phase 12** | Orchestrator refactor (adapters, State Manager expansion) | — |
+| **Done** | Phase 12: Orchestrator refactor (adapters, State Manager expansion) | — |
 | **Done** | Layer 3 infrastructure: TestTransport, StubAnalyst, pipeline_test.yaml | Phase 12 |
 | **Done** | Layer 3 tests: pipeline flow and failure handling | TestTransport + StubAnalyst |
-| **Done** | Layer 3 transcript replay: 2 transcript fixtures and 5 replay tests, 187 total regression tests | TestTransport + StubAnalyst |
+| **Done** | Layer 3 transcript replay: 2 fixtures, 5 replay tests (187 total) | TestTransport + StubAnalyst |
+| **Next** | Live smoke test: real Telegram bot + real LLM, manual validation | Bot token + API keys + channel IDs |
 | **Then** | Layer 2 infrastructure: scenario runner, LLM-as-judge | Live API keys |
 | **Then** | Layer 2 scenarios: start with 3–4 extraction + 2–3 generation | Runner infrastructure |
 | **Last** | Layer 4: GameEnvironment, 5 faction personas, first simulation | All above stable |

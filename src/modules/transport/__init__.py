@@ -155,20 +155,44 @@ class TelegramBotTransport:
         raise TransportError(f"Telegram send failed: {last_error}") from last_error
 
     async def listen(self) -> AsyncIterator[InboundEvent]:
+        import asyncio
+
+        polling_task = None
         try:
             start_polling = getattr(self._client, "start_polling", None)
             if start_polling is not None:
-                await _maybe_await(start_polling())
+                polling_task = asyncio.create_task(start_polling())
+                await asyncio.sleep(0.1)  # Let polling loop start
 
             while True:
                 update = await _maybe_await(self._client.get_next_update())
                 if update is None:
+                    # Only exit if polling has stopped; otherwise keep waiting
+                    if polling_task is not None and not polling_task.done():
+                        continue
                     return
-                yield self._event_from_update(update)
+                print(f"[DEBUG transport] got update: {update}")
+                try:
+                    event = self._event_from_update(update)
+                except Exception as exc:
+                    print(f"[DEBUG transport] _event_from_update failed: {exc}")
+                    continue
+                print(f"[DEBUG transport] yielding event: sender={event.sender_faction} channel={event.channel} content={event.content[:80]}")
+                yield event
         except TransportError:
             raise
         except Exception as exc:
             raise TransportError(f"Telegram listen failed: {exc}") from exc
+        finally:
+            if polling_task is not None and not polling_task.done():
+                stop_polling = getattr(self._client, "stop_polling", None)
+                if stop_polling is not None:
+                    await _maybe_await(stop_polling())
+                polling_task.cancel()
+                try:
+                    await polling_task
+                except asyncio.CancelledError:
+                    pass
 
     def _chat_id_for(self, message: OutboundMessage) -> ChatId:
         if message.channel == "public":
@@ -202,7 +226,7 @@ class TelegramBotTransport:
                 ),
                 sender_faction=sender_faction,
                 channel=channel,
-                content=_required_update_str(update, "content", "text", "message"),
+                content=_required_update_str(update, "content", "text", "message_text", "message"),
                 telegram_msg_id=_optional_update_int(
                     update,
                     "telegram_msg_id",

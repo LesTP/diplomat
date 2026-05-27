@@ -107,6 +107,7 @@ class TelegramReviewGate:
                 update,
                 "content",
                 "text",
+                "message_text",
                 "message",
                 default="",
             )

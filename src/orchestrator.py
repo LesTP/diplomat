@@ -232,6 +232,7 @@ class Orchestrator:
             "intel": self._command_intel,
             "divergences": self._command_divergences,
             "edits": self._command_edits,
+            "commands": self._command_commands,
         }
         handler = handlers.get(command.name)
         if handler is None:
@@ -288,6 +289,30 @@ class Orchestrator:
     async def _command_edits(self, _command: Command) -> str:
         rows = await self._query_state("review_gate_edits", {})
         return "Review Edits\n" + self._format_rows(rows)
+
+    async def _command_commands(self, _command: Command) -> str:
+        return "\n".join([
+            "Commands",
+            "/commands — show this list",
+            "/preview — generate a response draft",
+            "/status — faction, round, coaching count",
+            "/state — current game state (JSON)",
+            "/ledger — cost budget info",
+            "/intel — latest intelligence report",
+            "/divergences — analyst disagreements",
+            "/edits — review gate edit log",
+            "/approve — approve pending draft",
+            "/edit: <text> — approve with modified text",
+            "/block — reject pending draft",
+            "",
+            "Coaching tags:",
+            "PRIORITY: — set compass for next round",
+            "CONSTRAINT: — hard boundary",
+            "INTEL: — factual correction → state update",
+            "TONE: — behavioral adjustment",
+            "WATCH: — attention direction",
+            "(untagged) — free coaching",
+        ])
 
     async def _query_state(
         self, entity_type: str, filters: dict[str, Any]
@@ -388,6 +413,7 @@ class Orchestrator:
             self.current_round,
         )
         if getattr(decision, "action", None) == "blocked":
+            await self._send_operator("Draft blocked.")
             return False
         final_text = getattr(decision, "final_text", None)
         if not isinstance(final_text, str) or not final_text.strip():
