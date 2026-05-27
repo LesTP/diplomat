@@ -1,0 +1,96 @@
+faction_id: england
+
+database:
+  path: data/pipeline_test.db
+
+transport:
+  type: cli
+  class: CLITransport
+  public_channel_id_env: DIPLOMAT_PUBLIC_CHANNEL_ID
+  coaching_channel_id_env: DIPLOMAT_COACHING_CHANNEL_ID
+  operator_user_ids_env: DIPLOMAT_OPERATOR_USER_IDS
+  private_channel_ids: {}
+  faction_map: {}
+
+llm_providers:
+  primary:
+    provider: fake
+    models:
+      quality: fake-quality
+      default: fake-default
+      commodity: fake-commodity
+    api_key_env: FAKE_OPENAI_API_KEY
+  secondary:
+    provider: fake
+    models:
+      quality: fake-quality
+      default: fake-default
+      commodity: fake-commodity
+    api_key_env: FAKE_ANTHROPIC_API_KEY
+
+modules:
+  event_store:
+    class: SQLiteEventStore
+  state_manager:
+    class: SQLiteStateManager
+  extractor:
+    class: RuleBasedExtractor
+    provider: primary
+  coaching_parser:
+    class: TaggedCoachingParser
+  transport:
+    class: CLITransport
+  persona:
+    class: FileBasedPersona
+  primary_analyst:
+    class: StubAnalyst
+    provider: primary
+    fixture_path: tests/integration/fixtures/intelligence_stub.json
+  secondary_analyst:
+    class: StubAnalyst
+    provider: secondary
+    fixture_path: tests/integration/fixtures/intelligence_stub.json
+  divergence:
+    class: modules.analyst.divergence.compare
+  context_assembler:
+    class: DefaultContextAssembler
+  generator:
+    class: LLMGenerator
+    provider: primary
+    max_tokens: 1024
+    tier: quality
+  adversarial:
+    class: LLMAdversarialReader
+    provider: secondary
+    tier: quality
+  review_gate:
+    class: AutoApproveReviewGate
+
+cost:
+  per_round_budget_usd: 1.00
+  session_budget_usd: 10.00
+
+round_detection:
+  mode: signal
+  pattern: "^\\[ROUND END\\]$"
+
+message_debounce_seconds: 0.01
+
+feature_flags:
+  adversarial:
+    enabled: true
+  review_gate:
+    enabled: true
+
+paths:
+  coaching_routes: config/coaching_routes.yaml
+  faction_prompt: tests/integration/fixtures/test_persona.txt
+  prompts:
+    state_updater: config/prompts/state_updater.txt
+    analyst: config/prompts/analyst.txt
+    generation: config/prompts/generation.txt
+    adversarial: config/prompts/adversarial.txt
+  schemas:
+    state_patch: config/schemas/state_patch.json
+    intelligence: config/schemas/intelligence.json
+    adversarial: config/schemas/adversarial.json

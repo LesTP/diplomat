@@ -806,6 +806,11 @@ class Orchestrator:
             return cls(self.paths.faction_prompt)
         if name in {"primary_analyst", "secondary_analyst"}:
             provider_id = self._provider_id(config)
+            if class_name == "StubAnalyst":
+                return cls(
+                    self._path(config["fixture_path"]),
+                    provider_id=provider_id,
+                )
             return cls(
                 llm_client,
                 self.llm_configs[provider_id],

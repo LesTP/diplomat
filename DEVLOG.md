@@ -649,3 +649,19 @@ Verification:
 - `python3 -m pytest` — 170 passed
 
 Next step: 13.2 creates `config/pipeline_test.yaml` and the integration `pipeline` fixture.
+
+### Step 13.2: Test pipeline config and integration fixture
+
+**Mode:** Build
+**Outcome:** Complete — test pipeline config, async pipeline fixture, and fixture smoke test added
+**Contract changes:** `Orchestrator` can instantiate `StubAnalyst` from a configured fixture path for test-only pipeline configs
+
+Added `config/pipeline_test.yaml` with CLI transport wiring, `RuleBasedExtractor`, `StubAnalyst` primary/secondary analysts, `AutoApproveReviewGate`, test persona path, signal-based `[ROUND END]` detection, and fake provider config.
+
+Added `tests/integration/conftest.py` with a `pipeline` fixture that builds a real Orchestrator over a tmp_path SQLite database, injects `TestTransport`, `FakeLLMClient`, and `FakeCostAccountant`, starts `Orchestrator.start()` in the background, and tears down with `shutdown()` plus task cancellation. A smoke test verifies the fixture starts and creates the database.
+
+Verification:
+- `python3 -m pytest tests/integration/test_pipeline_fixture.py -q` — 1 passed
+- `python3 -m pytest` — 171 passed
+
+Next step: 13.3 adds core pipeline flow tests against the integration fixture.
