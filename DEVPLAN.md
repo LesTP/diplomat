@@ -1,8 +1,8 @@
 ---
 phase: 11
-blocked: false
+blocked: true
 state: close
-steps_remaining:
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -18,28 +18,21 @@ steps_remaining:
   - Debounce strategy resolved (11.2): per-message cooldown — each new message cancels and reschedules the extraction timer; avoids redundant LLM calls under burst traffic
   - Cost governance resolved (11.4): CostBudget resets per round (strict per-round cap); session totals tracked in cost_ledger.jsonl by CostAccountant
   - CostAccountant is a thin wrapper around the module-level llm_client call: Orchestrator checks budget before dispatching each LLM call and alerts operator on over-budget
+  - Before deployment, install `../toolkit` editable and run live probes for `llm_client`, `telegram_client`, and `cost_accountant`; this environment cannot import `toolkit`, so Phase 11 close recorded probe specs rather than live matches
 
 ## Current Status
 
-- **Phase** — Phase 11: Orchestrator (execution complete, review boundary).
-- **Focus** — Phase Review pending. `STOP_BEFORE_REVIEW=true` kept `state: execute` for handoff.
+- **Phase** — Phase 11: Orchestrator complete.
+- **Focus** — All planned modules are implemented; human audit gate is set before deployment follow-up.
 - **Blocked/Broken** — none.
 
 ## Phase 11: Orchestrator
 
-Regime: Build. Scope: `pipeline.yaml` wiring config, `registry.py` module lookup, `Orchestrator` class with full event loop, round management, response pipeline, operator command dispatch, and cost governance. Entry point `main.py`. No direct provider SDK imports; all LLM calls behind toolkit-injected fakes in tests.
-
-Steps:
-- [x] 11.1 — Config, registry, and Orchestrator init. Create `config/pipeline.yaml` with transport config (type, channel IDs, operator IDs), LLM provider entries (id, model, env var names), module selections, cost section (per_round_budget_usd, session_budget_usd), round_detection (mode: signal|time, pattern or interval_seconds), and feature flags (adversarial.enabled, review_gate.enabled). Implement `src/registry.py` mapping class name strings to importable implementations. Implement `Orchestrator.__init__()`: load+validate pipeline.yaml, build module instances from registry using injected factories (or direct imports for tests), initialize SQLite (WAL), load prompt files (fail fast on missing). Write `tests/test_orchestrator.py` covering: successful instantiation with fakes, bad config path, missing required key, and registry lookup for each module type. Run focused tests.
-- [x] 11.2 — Event loop, operator routing, and command dispatch. Implement `start()` async event loop (listen → dispatch) and `shutdown()` (cancel tasks, close transport). On InboundEvent from source==operator: parse with TaggedCoachingParser; if Command dispatch to command handler; if CoachingEvent route==state_updater run extraction+apply_patch; else store coaching entry as unconsumed. On game message: enqueue for debounced extraction (per-message cooldown via asyncio task cancel+reschedule). Implement all command handlers (/status, /state, /ledger, /intel, /divergences, /edits) — each formats a reply and calls Transport.send() on coaching channel. Tests: operator routing (command, INTEL, coaching), game message routing, debounce task cancel/reschedule, each command handler reply format. Run focused + regression.
-- [x] 11.3 — Round management and response pipeline. Implement round boundary detection: signal mode (scan event content for round_detection.pattern regex and advance round counter + trigger analysis); time mode (asyncio task sleeping interval_seconds). On round boundary: run primary+secondary LLMAnalyst concurrently (asyncio.gather), call divergence.compare(), store intelligence record in state_manager intelligence table, increment round counter (game_state key). Implement response trigger: direct address (faction_id mention in public message), /preview command, scheduled time. Implement full response pipeline with per-step failure handling per ARCH table: get_base_prompt+build_round_context → assemble → generate [retry once] → adversarial read [log+empty on failure] → review_gate.submit → transport.send [3 retries]. Tests: happy-path pipeline with fakes, generation failure+retry, adversarial failure (empty result passed), review gate block (no send), round boundary signal detection, round boundary time mode, primary analyst failure (alert, skip round analysis), secondary analyst failure (proceed with primary only). Run focused + regression.
-- [x] 11.4 — Cost governance, main.py, full regression, and docs. Inject CostAccountant fake into tests; in production Orchestrator create CostBudget per round and check available_budget() before each LLM call — if zero/negative log and alert operator and return early (skip the LLM call). Implement `src/main.py`: load .env (python-dotenv), load pipeline.yaml path from env or default, instantiate Orchestrator, run `asyncio.run(orch.start())` with SIGTERM/SIGINT shutdown hook. Run full regression suite targeting 140+ tests passing. Update DEVPLAN Phase 11 summary, append DEVLOG entry, update ARCHITECTURE.md implementation sequence row 12 → Complete. Transition DEVPLAN to `state: review`.
-
-Summary: Implemented `config/pipeline.yaml`, registry lookup, Orchestrator startup validation, async event dispatch, operator command routing, debounced game-message extraction, signal/time round boundaries, dual-analyst intelligence persistence, response pipeline, per-call cost budget gates, `src/main.py`, and 43 focused Orchestrator tests. Full regression: 164 passed. Execution is complete; review is pending.
+Complete. Implemented `pipeline.yaml`, registry lookup, Orchestrator startup/event-loop/round-management/response-pipeline/cost-governance wiring, `src/main.py`, and 44 focused Orchestrator tests with 165 total regression tests passing. Phase Review applied three should-fix items and no must-fix items. See `DEVLOG.md`.
 
 ## Phase 10: Adversarial
 
-Complete. Implemented `AdversarialResult`, `LLMAdversarialReader`, local adversarial JSON/schema validation, prompt/schema artifacts, and 9 focused tests with 121 total regression tests passing. Phase Review passed with no must-fix or should-fix items. See `DEVLOG.md`.
+Complete. Implemented `AdversarialResult`, `LLMAdversarialReader`, local adversarial JSON/schema validation, prompt/schema artifacts, and 9 focused tests with 121 total regression tests passing. Phase Review passed with no must-fix or should-fix items. See `DEVLOG_archive.md`.
 
 ## Phase 9: Review Gate
 

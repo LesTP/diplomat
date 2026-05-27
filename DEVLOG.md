@@ -304,82 +304,7 @@ Verification:
 
 Phase 9 development entries archived to `DEVLOG_archive.md` (2026-05-26).
 
-Phase 10 (Adversarial) is the next module: optional LLM-based draft critique via toolkit/llm_client.
-
-## Module 10: Adversarial
-
-### Phase 10 Plan
-
-**Mode:** Discuss
-**Outcome:** Planned - Adversarial phase broken into three Build steps and state transitioned to execute
-**Contract changes:** Confirmed local JSON schema enforcement for adversarial analysis and that skip/persistence behavior remains with Orchestrator
-
-Planned `AdversarialResult` and `LLMAdversarialReader` implementation against `ARCH_adversarial.md`: core reader contract and failure handling first, structured prompt/schema validation second, and documentation/regression cleanup third. All LLM behavior will use toolkit-compatible dependency injection and fake clients in tests.
-
-Updated `ARCHITECTURE.md` Implementation Sequence row 11 to `In progress`.
-
-### Step 10.1: Core adversarial reader
-
-**Mode:** Build
-**Outcome:** Complete - implemented Adversarial result type, core reader contract, and focused tests
-**Contract changes:** Added `AdversarialResult` and `LLMAdversarialReader` public exports in `src/modules/adversarial/__init__.py`
-
-Implemented the Phase 10 reader shell with dependency-injected toolkit-compatible LLM client calls. `LLMAdversarialReader.read()` rejects blank drafts before calling the client, forwards the system prompt, schema, draft, config, and tier to the injected client, reports provider exceptions through `AdversarialResult.success=False`, and remains stateless.
-
-Added `tests/test_adversarial.py` coverage for result contract fields, blank draft handling without client calls, client exception failure, prompt/draft forwarding, and config/tier forwarding.
-
-Verification:
-- `.venv/bin/python -m pytest tests/test_adversarial.py -q` - 5 passed
-
-### Step 10.2: Structured adversarial JSON
-
-**Mode:** Build
-**Outcome:** Complete - schema-validated adversarial analysis, prompt/schema artifacts, and regression coverage added
-**Contract changes:** Added `config/prompts/adversarial.txt`, `config/schemas/adversarial.json`, and `validate_adversarial_analysis`
-
-Implemented local JSON parsing and Draft 2020-12 schema validation for adversarial reads. Successful reads now return the validated analysis dict; malformed JSON, schema violations, non-text LLM responses, blank drafts, and provider exceptions all return `AdversarialResult.success=False` without raising to callers.
-
-Created the adversarial prompt and schema artifacts for the four analysis buckets: revealed position, commitments, exploitable issues, and likely counter-moves. Expanded focused coverage for valid analysis, malformed JSON, missing required keys, wrong value types, and non-text provider responses.
-
-Verification:
-- `.venv/bin/python -m pytest tests/test_adversarial.py -q` - 9 passed
-- `.venv/bin/python -m pytest -q` - 121 passed
-
-### Step 10.3: Documentation cleanup and review handoff
-
-**Mode:** Build
-**Outcome:** Complete - docs updated, full regression verified, state transitioned to review
-**Contract changes:** Updated `ARCH_adversarial.md` and `ARCHITECTURE.md`
-
-Aligned the documented adversarial analysis keys with the schema and tests, using `commits_to` consistently with the existing ARCH usage example. Updated `ARCH_adversarial.md` to list the concrete schema keys, marked implementation sequence row 11 as `Phase 10 complete, pending review`, added the Phase 10 DEVPLAN summary, and transitioned DEVPLAN to `state: review`.
-
-Verification:
-- `.venv/bin/python -m pytest tests/test_adversarial.py -q` - 9 passed
-- `.venv/bin/python -m pytest -q` - 121 passed
-
-### Phase 10 Review: Adversarial
-
-**Mode:** Review
-**Outcome:** Passed — no must-fix, no should-fix items
-**Verdict:** Clean. Transitioning to close.
-
-Reviewed `AdversarialResult`, `LLMAdversarialReader`, schema artifacts, and prompt against ARCH_adversarial.md contract. All public API signatures match. Blank draft rejection, client exception handling, JSON parse failures, and schema violations all correctly return `success=False` without raising. Config artifacts (`adversarial.txt`, `adversarial.json`) present with correct structure. `validate_adversarial_analysis` exported in `__all__` mirrors the established extraction module pattern — acceptable.
-
-Full regression: 121 passed.
-
-### 2026-05-26 — Phase 10 Complete
-
-**Action:** Phase Complete for Adversarial
-**Outcome:** Complete — human audit gate set in DEVPLAN frontmatter
-
-Completed `AdversarialResult`, `LLMAdversarialReader`, local JSON parsing and Draft 2020-12 schema validation, `config/prompts/adversarial.txt`, and `config/schemas/adversarial.json`. Phase Review found no must-fix or should-fix items.
-
-All 121 tests pass (9 adversarial tests + 112 regression). Adversarial remains optional and stateless; Orchestrator owns skip behavior and persistence.
-
-Verification:
-- `.venv/bin/python -m pytest -q` — 121 passed
-
-No new gotchas promoted. No contract changes require propagation beyond the Phase 10 Adversarial API and schema already captured in `ARCH_adversarial.md` and `ARCHITECTURE.md`.
+Phase 10 development entries archived to `DEVLOG_archive.md` (2026-05-27).
 
 ### 2026-05-26 — Phase 11 Plan: Orchestrator
 
@@ -474,3 +399,45 @@ Reviewed Orchestrator implementation against ARCH_orchestrator.md contract. All 
 
 Verification:
 - `python3 -m pytest -q` — 165 passed
+
+### Step 11.5: Dependency Probe — Orchestrator
+
+**Mode:** Probe
+**Outcome:** 0 matches, 0 mismatches, 3 unknown
+**Contract changes:** None
+
+#### toolkit.llm_client
+- **Fake location:** `tests/test_orchestrator.py`, plus focused LLM-module fake clients in `tests/test_extraction.py`, `tests/test_analyst.py`, `tests/test_generation.py`, and `tests/test_adversarial.py`
+- **Status:** Unknown
+- **Probe result:** `python3` could not import `toolkit.llm_client` in this environment (`ModuleNotFoundError: No module named 'toolkit'`).
+- **Probe spec:** After installing `../toolkit` editable, import `toolkit.llm_client`, confirm `LLMConfig` construction supports the provider/model/API-key-env fields used by `config/pipeline.yaml`, and confirm `complete(messages=..., config=..., tier=..., max_tokens=...)` returns plain text or a dict with a text-like payload compatible with the module parsers.
+
+#### toolkit.telegram_client
+- **Fake location:** `tests/test_orchestrator.py`, `tests/test_transport.py`, and `tests/test_review_gate.py`
+- **Status:** Unknown
+- **Probe result:** `python3` could not import `toolkit.telegram_client` in this environment (`ModuleNotFoundError: No module named 'toolkit'`).
+- **Probe spec:** After installing `../toolkit` editable, import `toolkit.telegram_client`, confirm one of `build_client_from_env`, `create_client_from_env`, or `create_client` is present, and confirm the returned client supports the send/listen/update methods assumed by `TelegramBotTransport` and `TelegramReviewGate`.
+
+#### toolkit.cost_accountant
+- **Fake location:** `tests/test_orchestrator.py::FakeCostAccountant`
+- **Status:** Unknown
+- **Probe result:** `python3` could not import `toolkit.cost_accountant` in this environment (`ModuleNotFoundError: No module named 'toolkit'`).
+- **Probe spec:** After installing `../toolkit` editable, import `CostAccountant`, confirm it can be initialized with `per_round_budget_usd` and `session_budget_usd`, and confirm it exposes `reset_round_budget(...)` or compatible reset behavior plus `available_budget()` returning a numeric remaining budget.
+
+### 2026-05-27 — Phase 11 Complete
+
+**Action:** Phase Complete for Orchestrator
+**Outcome:** Complete — human audit gate set in DEVPLAN frontmatter
+
+Completed the final planned module: `config/pipeline.yaml`, registry lookup, Orchestrator startup validation, async event loop, operator command routing, debounced game-message extraction, signal/time round boundaries, dual-analyst intelligence persistence, response pipeline, per-call cost gates, and `src/main.py`. Phase Review applied three should-fix items and found no must-fix issues.
+
+All 165 tests pass (44 Orchestrator tests + 121 regression). `toolkit` was not importable in this environment, so the close dependency probe produced executable probe specs rather than live interface matches.
+
+Verification:
+- `python3 -m pytest` — 165 passed
+- `python3` toolkit import probe — unknown, `toolkit` not installed
+
+Promoted gotchas:
+- Before deployment, install `../toolkit` editable and run the Orchestrator dependency probe specs against real `llm_client`, `telegram_client`, and `cost_accountant`; fake-driven tests cannot validate those sibling-library interfaces here.
+
+No contract changes require propagation beyond the Phase 11 Orchestrator API, `pipeline.yaml`, and resolved budget/debounce contracts already captured in `ARCHITECTURE.md`, `DEVPLAN.md`, and `PROJECT.md`.

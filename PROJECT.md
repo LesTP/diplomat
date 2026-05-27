@@ -96,10 +96,10 @@ MVP is the configuration that closes the core loop: messages arrive → state up
 
 ## Risks and Open Questions
 - [watch] **Bot vs. user accounts** — TelegramBotTransport is implemented for MVP; add TelethonUserTransport only if the moderator confirms bot-to-bot messaging is unavailable
-- [must-resolve] **Round structure** — time-based or signal-based; sets pipeline.yaml config
+- [watch] **Round structure** — Orchestrator supports signal and time-based modes; set the deployed `pipeline.yaml` to match the moderator's final round format
 - [closed] **Structured output enforcement** — resolved in Phase 2: Extraction handles schema enforcement locally via prompt + parse + jsonschema.validate. Empty patch `{}` is valid.
-- [implementation] **Debounce strategy** — time-window batching vs. per-message cooldown for extraction
-- [implementation] **Review gate timeout** — what happens if the operator doesn't respond before round boundary
+- [closed] **Debounce strategy** — resolved in Phase 11 as per-message cooldown: each new game message cancels and reschedules extraction
+- [closed] **Review gate timeout** — resolved in Phase 9 as configurable auto-block when `timeout_seconds` is set
 - [watch] **Response rate** — if posts are capped per round, affects Orchestrator response trigger logic
 - [watch] **Total round count** — unknown at start; affects spend schedule in Analyst output
 - [watch] **Win condition mechanics** — may require late-game prompt updates
@@ -120,3 +120,4 @@ Multi-module. 12 modules with defined interfaces, single Orchestrator wiring lay
 | Date | What Changed | Why |
 |------|-------------|-----|
 | 2026-05-24 | Initial PROJECT.md created from diplomat-system-spec.md v0.5 | Project setup |
+| 2026-05-27 | Closed Orchestrator implementation risks for debounce/review timeout and clarified round-structure deployment watch | Phase 11 close |
