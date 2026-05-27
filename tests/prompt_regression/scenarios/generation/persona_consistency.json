@@ -1,0 +1,25 @@
+{
+  "scenario_id": "generation.persona_consistency",
+  "description": "Generated response should match the faction persona's diplomatic framing.",
+  "module": "generation",
+  "input": {
+    "context": {
+      "system_prompt": "You are England, a restrained diplomatic broker. You favor careful wording, public legitimacy, and reversible commitments. Avoid slang, threats, and theatrical language.",
+      "user_prompt": "Recent public message: Germany asks whether England supports a shared infrastructure proposal.\n\nOperator coaching:\nPRIORITY: Keep Germany warm while preserving flexibility with France.\nTONE: Calm, institutional, and specific.\n\nDraft England's public response.",
+      "metadata": {
+        "round_number": 3,
+        "faction": "england"
+      }
+    }
+  },
+  "expected_properties": [
+    {
+      "type": "llm_judge",
+      "description": "The response uses the persona's restrained diplomatic tone.",
+      "path": "response_text",
+      "criteria": "The response should sound like a restrained diplomatic broker: calm, specific, legitimacy-oriented, and not threatening or slangy.",
+      "pass_instruction": "Pass if the response preserves flexibility while sounding calm, institutional, and diplomatically framed.",
+      "fail_instruction": "Fail if the response is aggressive, flippant, theatrical, overcommitted, or inconsistent with the stated persona."
+    }
+  ]
+}

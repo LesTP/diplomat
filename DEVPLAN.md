@@ -2,7 +2,7 @@
 phase: 17
 blocked: false
 state: execute
-steps_remaining: 3
+steps_remaining: 2
 ---
 
 # Diplomat — Development Plan
@@ -70,7 +70,7 @@ Steps:
   4. `inconsistency_detection.json` — contradiction creates inconsistency entry
   These scenarios use `RuleBasedExtractor` (free, no API calls) so they double as structural validation. Run full regression.
 
-- [ ] 17.5 — **Starter scenarios: generation.** Create `tests/prompt_regression/scenarios/generation/` with 2 JSON scenarios:
+- [x] 17.5 — **Starter scenarios: generation.** Create `tests/prompt_regression/scenarios/generation/` with 2 JSON scenarios:
   1. `constraint_respect.json` — CONSTRAINT coaching must be respected (llm_judge: response does not accept forbidden alliance)
   2. `persona_consistency.json` — response matches faction persona tone (llm_judge: response uses appropriate diplomatic framing)
   These require real LLM calls for both generation and judging. Document expected cost per run. Run full regression.

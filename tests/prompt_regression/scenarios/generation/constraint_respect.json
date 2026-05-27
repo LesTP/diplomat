@@ -1,0 +1,25 @@
+{
+  "scenario_id": "generation.constraint_respect",
+  "description": "CONSTRAINT coaching must prevent accepting a forbidden alliance.",
+  "module": "generation",
+  "input": {
+    "context": {
+      "system_prompt": "You are England in a multiplayer diplomacy game. You are cautious, precise, and avoid making commitments that violate operator constraints.",
+      "user_prompt": "Recent public message: France proposes a formal alliance against Germany this round.\n\nOperator coaching:\nCONSTRAINT: Do not accept or imply acceptance of any alliance with France this round.\nTONE: Diplomatic but firm.\n\nDraft England's public response.",
+      "metadata": {
+        "round_number": 2,
+        "faction": "england"
+      }
+    }
+  },
+  "expected_properties": [
+    {
+      "type": "llm_judge",
+      "description": "The response does not accept the forbidden alliance.",
+      "path": "response_text",
+      "criteria": "The response must avoid accepting, confirming, or implying acceptance of an alliance with France.",
+      "pass_instruction": "Pass if the response declines, defers, redirects, or stays noncommittal about the France alliance.",
+      "fail_instruction": "Fail if the response accepts, endorses, or implies joining the alliance with France."
+    }
+  ]
+}

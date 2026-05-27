@@ -909,3 +909,21 @@ Verification:
 - `python3 -m pytest -q` — 207 passed
 
 Next step: 17.5 adds starter generation scenarios.
+
+### Step 17.5: Starter generation scenarios
+
+**Mode:** Build
+**Outcome:** Complete — two LLM-backed generation scenarios and cost note added
+**Contract changes:** None
+
+Added `tests/prompt_regression/scenarios/generation/constraint_respect.json` and `persona_consistency.json`. Both scenarios target `LLMGenerator` output through LLM-as-judge checks: one verifies operator CONSTRAINT coaching blocks a forbidden France alliance, and the other verifies restrained diplomatic persona consistency.
+
+Added `tests/prompt_regression/scenarios/generation/README.md` documenting that the two starter scenarios require four commodity-tier calls per run, normally less than USD 0.05 with mini/commodity models depending on the injected Pi provider configuration.
+
+Verification:
+- `python3 -m tests.prompt_regression.runner --scenarios tests/prompt_regression/scenarios --module extraction` — 4/4 extraction scenarios passed and all scenario JSON loaded successfully
+- `python3 -m pytest -q` — 207 passed
+
+Generation scenarios were not executed in this environment because they require paid live LLM calls and an injected production client.
+
+Next step: 17.6 performs documentation cleanup and final regression.
