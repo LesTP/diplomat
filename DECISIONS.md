@@ -125,3 +125,10 @@ Priority: Important
 Decision: Phase 15 will prepare a dedicated smoke-test pipeline config that uses OpenAI `gpt-4.1-mini` for primary and secondary LLM roles, keeps `RuleBasedExtractor`, enables the live Telegram review gate, disables adversarial review, and applies tight per-round/session budgets.
 Rationale: The smoke test needs to validate real Telegram, toolkit imports, LLM calls, and review-gate wiring with the smallest practical credential and cost surface. A separate config preserves the production-oriented `pipeline.yaml` while giving the Pi operator a low-cost startup path.
 Revisit if: OpenAI credentials are unavailable during deployment or the cheapest model fails required response quality for smoke validation.
+
+D-18: Phase 16 deployment readiness is operational hardening only
+Date: 2026-05-27 | Status: Closed
+Priority: Important
+Decision: Phase 16 will limit work to regression coverage for smoke-test fixes, two-channel Telegram deployment documentation, a Raspberry Pi systemd unit, production log cleanup, and final regression verification. It will not tune game rules, faction strategy, round mechanics, or prompt content.
+Rationale: The live smoke test proved the core pipeline works. The remaining gap before deployment is operational readiness and test coverage for the fixes found during smoke testing; game-specific configuration should stay a deployment-time concern.
+Revisit if: Deployment reveals a runtime failure that cannot be fixed without changing pipeline contracts or game-specific behavior.

@@ -1,8 +1,8 @@
 ---
-phase: 15
+phase: 16
 blocked: false
 state: execute
-steps_remaining: 0
+steps_remaining: 7
 ---
 
 # Diplomat — Development Plan
@@ -22,62 +22,56 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 15: Live smoke test — environment setup and real Telegram + LLM validation.
-- **Focus** — Prepare deployment config, .env template, and cheap pipeline config for manual smoke testing on Pi.
+- **Phase** — Phase 16 planned: Deployment Readiness.
+- **Focus** — Restore regression coverage for smoke-test fixes, document two-channel Telegram deployment, add systemd service support, and remove temporary transport debug output.
 - **Blocked/Broken** — none.
 
-## Phase 15: Live Smoke Test — Environment Setup
+## Phase 16: Deployment Readiness
 
-Regime: Build (steps 1–3) + Explore (step 4 — manual testing, fix what breaks). Scope: Create the deployment environment artifacts needed to run `python src/main.py` on the Pi with a real Telegram bot and real LLM provider, then validate the full pipeline end-to-end. Reference: `diplomat-testing-doc.md` §5b.
+Regime: Build. Scope: Fix the regression tests broken by smoke test changes, set up two-channel Telegram configuration, add systemd service for long-running operation, and verify full test suite on Pi. No game-specific tuning — this phase makes the system deployable; game rules and faction prompt are configured at deploy time.
 
-**Key difference from prior phases:** Step 4 is manual and interactive. The worker prepares the environment and validates that the system starts; the human operator runs the actual Telegram smoke test. The worker fixes any issues found during startup or the initial import/config validation.
-
-**Cost strategy:** Use the cheapest viable model for all LLM roles. `RuleBasedExtractor` is already config'd (free). Set tight budgets (`per_round_budget_usd: 0.50`, `session_budget_usd: 2.00`). If Claude API tokens are depleted, use OpenAI for all providers.
+**Prerequisites resolved during Phase 15:**
+- Toolkit installed in venv on Pi
+- `.env.template` and `pipeline_smoke.yaml` exist
+- Bot connects to Telegram and responds to commands
+- LLM API calls work through ToolkitLLMAdapter
 
 Steps:
 
-- [x] 15.1 — **Create `.env.template` and `config/pipeline_smoke.yaml`.** Create `.env.template` listing all required environment variables with placeholder values and comments:
-  - `TELEGRAM_BOT_TOKEN` — from @BotFather
-  - `DIPLOMAT_PUBLIC_CHANNEL_ID` — numeric Telegram chat ID for game messages
-  - `DIPLOMAT_COACHING_CHANNEL_ID` — numeric Telegram chat ID for operator commands
-  - `DIPLOMAT_OPERATOR_USER_IDS` — comma-separated operator Telegram user IDs
-  - `OPENAI_API_KEY` — OpenAI API key
-  - `ANTHROPIC_API_KEY` — Anthropic API key (optional if using OpenAI only)
+- [ ] 16.1 — **Fix transport and review gate test coverage.** The smoke test applied three code changes that existing unit tests don't cover:
+  - Transport `listen()` now runs `start_polling()` as a background task and continues on `None` updates — update `tests/test_transport.py` fakes and add a test for the background polling behavior.
+  - Transport and Review Gate content lookup now includes `message_text` — update test fakes to use `message_text` attribute and verify it's found.
+  - Orchestrator `/commands` handler and `/block` acknowledgement — add tests in `tests/test_orchestrator.py`.
+  Run full regression on Pi. Target: all 187+ tests pass.
 
-  Create `config/pipeline_smoke.yaml` copied from `pipeline.yaml` with these modifications:
-  - Both `primary` and `secondary` providers set to `openai` with `gpt-4.1-mini` for all tiers (cheapest config, single API key needed)
-  - `cost.per_round_budget_usd: 0.50`
-  - `cost.session_budget_usd: 2.00`
-  - `modules.extractor.class: RuleBasedExtractor` (already the case)
-  - `modules.review_gate.class: TelegramReviewGate` (live review gate, not auto-approve)
-  - `feature_flags.review_gate.enabled: true`
-  - `feature_flags.adversarial.enabled: false` (skip adversarial to reduce LLM calls during smoke test)
+- [ ] 16.2 — **Two-channel Telegram setup guide.** Create a deployment section in `diplomat-testing-doc.md` §5b (or a new `DEPLOYMENT.md`) documenting:
+  - Create a Telegram group for game messages → use its chat ID as `DIPLOMAT_PUBLIC_CHANNEL_ID`
+  - Keep the private bot chat for coaching → use its chat ID as `DIPLOMAT_COACHING_CHANNEL_ID`
+  - Add the bot to the game group
+  - Map other players' Telegram user IDs to faction names in `pipeline.yaml` `transport.faction_map`
+  - Verify game messages route as non-operator (triggering extraction) and coaching messages route as operator
 
-  Run `python3 -m py_compile src/main.py` and full regression to confirm nothing broken.
+- [ ] 16.3 — **Systemd service file.** Create `config/diplomat.service` (a systemd unit file) for running the bot as a background service on the Pi:
+  - `ExecStart` pointing to the venv Python + `src/main.py` with `PYTHONPATH=src`
+  - `WorkingDirectory` set to project root
+  - `EnvironmentFile` pointing to `.env`
+  - `Restart=on-failure` with reasonable delay
+  - Document install/start/stop/logs commands in `DEPLOYMENT.md` or the testing doc
 
-- [ ] 15.2 — **Validate startup on Pi.** On the Pi (inside the Incus container where toolkit is installed), copy `.env.template` to `.env` and fill in real values (bot token, channel IDs, operator user IDs, API key). Run:
-  ```
-  cd /home/claude/workspace/diplomat
-  DIPLOMAT_PIPELINE_CONFIG=config/pipeline_smoke.yaml .venv/bin/python src/main.py
-  ```
-  Verify:
-  - No import errors (`toolkit.llm_client`, `toolkit.telegram_client`, `toolkit.cost_accountant` all resolve)
-  - Config validation passes (no `PipelineConfigError`)
-  - Bot prints `DIPLOMAT ONLINE - Round 1 - england - session budget $2.00`
-  - Bot connects to Telegram (no `TelegramClient` connection errors)
+- [ ] 16.4 — **Remove debug prints from transport.** Remove the `[DEBUG transport]` print statements added during smoke test. They were useful for debugging but shouldn't run in production.
 
-  If startup fails, fix the issue and re-run. Document any adapter or config fixes in DEVLOG. Run full regression after any code changes.
+- [ ] 16.5 — **Documentation and regression.** Run full regression on Pi. Update DEVPLAN Phase 16 summary. Append DEVLOG entry. Transition to `state: review`.
 
-- [ ] 15.3 — **Manual smoke test (human-driven).** With the bot running, the human operator performs the smoke test checklist from `diplomat-testing-doc.md` §5b:
-  1. Game message → extraction → `/state` shows promise
-  2. Operator coaching (`PRIORITY:`, `INTEL:`) → `/status` shows coaching
-  3. Round boundary → `/intel` shows analysis
-  4. Direct address or `/preview` → review gate sends draft → `/approve` posts response
-  5. `/ledger` shows cost tracking
+## Phase 15: Live Smoke Test — Environment Setup
 
-  The worker’s role during this step: monitor console output, fix any runtime errors (Telegram update parsing, channel routing, LLM response parsing), and document findings. Each fix gets a test + DEVLOG entry.
+Complete. Created `.env.template` and `config/pipeline_smoke.yaml`. Validated startup on Pi with real toolkit imports. Manual smoke test confirmed: Telegram transport receives messages, operator commands (`/status`, `/state`, `/ledger`, `/commands`) respond correctly, `/preview` triggers LLM generation, review gate (`/approve`, `/block`) works. Five integration fixes applied during smoke test:
+1. Transport: added `message_text` to content field lookup (TelegramUpdate compatibility)
+2. Transport: changed `start_polling()` from blocking await to background task with race condition fix
+3. Review Gate: added `message_text` to content field lookup
+4. Orchestrator: added `/commands` handler listing all commands and coaching tags
+5. Orchestrator: added `/block` acknowledgement message
 
-- [ ] 15.4 — **Documentation and regression.** Document smoke test results in DEVLOG: what worked, what broke, what was fixed. Update DEVPLAN Phase 15 summary. If any code changed, run full regression. Transition to `state: review`.
+All fixes committed. See `DEVLOG.md`.
 
 ## Phase 14: Layer 3 — Transcript Replay Tests
 

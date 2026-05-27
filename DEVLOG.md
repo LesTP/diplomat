@@ -751,3 +751,12 @@ Verification:
 - `python3 -m pytest -q` — 187 passed
 
 Next step: 15.2 validates startup on the Pi with real `.env` values and toolkit installed.
+
+### 2026-05-27 — Phase 16 Planned
+
+**Action:** Phase Plan for Deployment Readiness
+**Outcome:** Complete — Phase 16 build steps are ready for execution
+
+Confirmed Phase 16 scope: restore regression coverage for smoke-test fixes, document two-channel Telegram deployment, add a Raspberry Pi systemd service file, remove temporary transport debug prints, and run final regression. The phase remains deployment hardening only: no game-rule tuning, faction prompt changes, or round-mechanics changes.
+
+Scope decision logged in `DECISIONS.md` as D-18. Next step: 16.1 fixes transport, review gate, and orchestrator test coverage.
