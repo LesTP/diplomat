@@ -10,6 +10,7 @@ import yaml
 
 from orchestrator import Orchestrator
 from tests.helpers.factories import FakeCostAccountant, FakeLLMClient
+from tests.helpers.stub_analyst import StubAnalyst
 from tests.helpers.test_transport import TestTransport
 
 
@@ -42,11 +43,16 @@ async def pipeline(tmp_path: Path) -> PipelineHarness:
         ]
     )
     cost_accountant = FakeCostAccountant()
+    fixture_path = Path("tests/integration/fixtures/intelligence_stub.json")
     orchestrator = Orchestrator(
         config_path,
         llm_client=llm_client,
         cost_accountant=cost_accountant,
-        module_overrides={"transport": transport},
+        module_overrides={
+            "transport": transport,
+            "primary_analyst": StubAnalyst(fixture_path, provider_id="primary"),
+            "secondary_analyst": StubAnalyst(fixture_path, provider_id="secondary"),
+        },
     )
     task = asyncio.create_task(orchestrator.start())
     await asyncio.sleep(0)
