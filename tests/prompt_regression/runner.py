@@ -134,13 +134,22 @@ class ScenarioRunner:
 
         if check_type == "llm_judge":
             response_text = _judge_response_text(property_data, output)
-            judge_result = await self.judge.evaluate(
-                response_text=response_text,
-                criteria=property_data["criteria"],
-                pass_instruction=property_data["pass_instruction"],
-                fail_instruction=property_data["fail_instruction"],
-                context=json.dumps(output, sort_keys=True, default=str),
-            )
+            try:
+                judge_result = await self.judge.evaluate(
+                    response_text=response_text,
+                    criteria=property_data["criteria"],
+                    pass_instruction=property_data["pass_instruction"],
+                    fail_instruction=property_data["fail_instruction"],
+                    context=json.dumps(output, sort_keys=True, default=str),
+                )
+            except Exception as exc:
+                return PropertyResult(
+                    passed=False,
+                    description=description,
+                    expected="PASS",
+                    actual=f"judge error: {type(exc).__name__}: {exc}",
+                    judge_explanation=None,
+                )
             return PropertyResult(
                 passed=judge_result.verdict == "PASS",
                 description=description,
