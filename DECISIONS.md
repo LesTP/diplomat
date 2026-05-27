@@ -104,3 +104,10 @@ Priority: Important
 Decision: Phase 12 will expand `SQLiteStateManager` with explicit persistence methods for coaching, intelligence, game-state key/value updates, adversarial reads, and coaching consumption, then remove the Orchestrator's raw SQLite fallback code for those operations.
 Rationale: The Orchestrator should compose modules, not own persistence details for State Manager tables. Making these operations public State Manager APIs keeps table ownership in one module, removes duplicate SQLite write paths, and makes Orchestrator tests use the same contract production code uses.
 Revisit if: State Manager persistence needs become large enough to justify a separate repository/service boundary rather than a module API expansion.
+
+D-15: Phase 13 integration tests use injected fakes only
+Date: 2026-05-27 | Status: Closed
+Priority: Important
+Decision: Phase 13 pipeline integration tests will exercise cross-module Diplomat behavior through Orchestrator wiring while injecting `TestTransport`, `FakeLLMClient`, `FakeCostAccountant`, and `StubAnalyst`; they will not call real toolkit providers or Telegram APIs.
+Rationale: Layer 3 tests should prove Diplomat's pipeline data flow, persistence effects, and failure handling deterministically. Real provider and Telegram compatibility is already covered by adapter probes and belongs to deployment/integration validation, not the core regression suite.
+Revisit if: A stable local toolkit simulator becomes available and can run without credentials or network access.

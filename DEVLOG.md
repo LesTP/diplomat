@@ -616,3 +616,20 @@ Verification:
 Phase 11 development and post-phase adapter probe entries archived to `DEVLOG_archive.md` (2026-05-27).
 
 No new gotchas promoted. Contract changes are already propagated to `ARCH_state_manager.md`, `ARCH_orchestrator.md`, and `ARCHITECTURE.md`.
+
+## Phase 13: Layer 3 Pipeline Integration Tests
+
+### 2026-05-27 — Phase plan
+
+**Mode:** Discuss
+**Outcome:** Phase 13 plan recorded for fake-backed pipeline integration coverage
+
+Phase 13 is a Build-regime testing phase. Scope is limited to shared integration test infrastructure and Layer 3 tests for the Orchestrator pipeline: TestTransport, StubAnalyst, fake LLM/cost helpers, test pipeline config, happy-path pipeline flow tests, failure-handling tests, and documentation cleanup.
+
+Key constraints carried into the plan:
+- No real API calls; all LLM and cost behavior is injected through fakes.
+- SQLite tests use `tmp_path` database files, not `:memory:`.
+- `Orchestrator.start()` runs in background tasks during integration tests.
+- Existing 170 unit tests remain part of every regression checkpoint.
+
+Next step: 13.1 builds the reusable test helpers and fixture artifacts.
