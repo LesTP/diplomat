@@ -675,3 +675,19 @@ Verification:
 - `python3 -m pytest -q` — 182 passed
 
 Next step: 14.3 implements the replay test module.
+
+### Step 14.3: Transcript replay tests
+
+**Mode:** Build
+**Outcome:** Complete — replay helper and five integration tests added
+**Contract changes:** None
+
+Created `tests/integration/test_replay.py` with `replay_transcript()`, which loads transcript JSON fixtures, injects each event through `TestTransport`, waits for debounce/round-boundary processing, and returns persisted state from `SQLiteStateManager`.
+
+Added replay assertions for cooperative promises, cooperative coalition state, one intelligence record per round boundary, betrayal-arc inconsistency state, and betrayal-arc promise plus coalition state. The helper uses a conservative per-event settle interval so sequential transcript events do not cancel pending debounced extraction.
+
+Verification:
+- `python3 -m pytest tests/integration/test_replay.py -q` — 5 passed
+- `python3 -m pytest -q` — 187 passed
+
+Next step: 14.4 performs documentation cleanup and final regression.

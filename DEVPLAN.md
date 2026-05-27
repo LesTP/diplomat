@@ -2,7 +2,7 @@
 phase: 14
 blocked: false
 state: execute
-steps_remaining: 5
+steps_remaining: 4
 ---
 
 # Diplomat — Development Plan
@@ -47,7 +47,7 @@ Steps:
 
 - [x] 14.2 — **Create transcript fixture: betrayal arc.** Create `betrayal_arc.json`. Write a 3-round transcript where: faction A promises faction B (round 1), faction A contradicts that promise (round 2, matching `_INCONSISTENCY_RE`), and faction A forms a coalition with faction C (round 3). Include `expected_final_state` with the promise, 1 inconsistency, and 1 coalition. Run full regression.
 
-- [ ] 14.3 — **Implement replay test module.** Create `tests/integration/test_replay.py` with:
+- [x] 14.3 — **Implement replay test module.** Create `tests/integration/test_replay.py` with:
   - A `replay_transcript(pipeline, fixture_path)` helper that loads the JSON, injects each event via `TestTransport.inject()` with appropriate sleep intervals (short for regular messages, longer after round boundaries for analysis), and returns the final state.
   - `test_cooperative_3round_promises` — replays `cooperative_3round.json`, asserts 2 pending promises exist with correct from/to factions.
   - `test_cooperative_3round_coalition` — replays same transcript, asserts 1 coalition exists with correct factions.
