@@ -111,3 +111,10 @@ Priority: Important
 Decision: Phase 13 pipeline integration tests will exercise cross-module Diplomat behavior through Orchestrator wiring while injecting `TestTransport`, `FakeLLMClient`, `FakeCostAccountant`, and `StubAnalyst`; they will not call real toolkit providers or Telegram APIs.
 Rationale: Layer 3 tests should prove Diplomat's pipeline data flow, persistence effects, and failure handling deterministically. Real provider and Telegram compatibility is already covered by adapter probes and belongs to deployment/integration validation, not the core regression suite.
 Revisit if: A stable local toolkit simulator becomes available and can run without credentials or network access.
+
+D-16: Phase 14 transcript replay stays deterministic and fake-backed
+Date: 2026-05-27 | Status: Closed
+Priority: Important
+Decision: Phase 14 will add synthetic JSON transcripts that intentionally match `RuleBasedExtractor` regex patterns, replay them through the Phase 13 fake-backed Orchestrator integration fixture, and assert on persisted final state rather than generated prose quality.
+Rationale: Transcript replay should validate full-pipeline state accumulation across round boundaries without introducing live API calls, prompt variability, or Telegram dependencies. Keeping fixture text aligned to deterministic rule-based extraction makes failures actionable and keeps Layer 3 regression tests stable.
+Revisit if: Layer 3 replay needs to validate LLM extraction quality rather than pipeline state flow; that belongs in Layer 2 prompt regression or a separately costed integration suite.

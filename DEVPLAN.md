@@ -1,8 +1,8 @@
 ---
-phase: 13
-blocked: true
-state: close
-steps_remaining: 0
+phase: 14
+blocked: false
+state: execute
+steps_remaining: 7
 ---
 
 # Diplomat — Development Plan
@@ -22,9 +22,41 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 13: Layer 3 pipeline integration tests.
-- **Focus** — Phase 13 complete; Layer 3 pipeline integration coverage is in place.
-- **Blocked/Broken** — blocked for human audit after phase close.
+- **Phase** — Phase 14: Layer 3 transcript replay tests.
+- **Focus** — Write synthetic game transcripts that exercise RuleBasedExtractor patterns, replay them through the full pipeline, assert on final state.
+- **Blocked/Broken** — none.
+
+## Phase 14: Layer 3 — Transcript Replay Tests
+
+Regime: Build. Scope: Create synthetic game transcript fixtures that use `RuleBasedExtractor` regex patterns for deterministic extraction, implement a transcript replay test module, and verify that multi-round pipeline execution accumulates correct promise/coalition/inconsistency state. Reference: `diplomat-testing-doc.md` §5.4.
+
+**Design constraints:**
+- No real API calls — reuses Phase 13 integration infrastructure (TestTransport, FakeLLMClient, StubAnalyst, FakeCostAccountant, conftest.py `pipeline` fixture)
+- Transcript messages must match `RuleBasedExtractor` regex patterns for deterministic state changes:
+  - Promise: `"{Faction} promises {Faction} {content}."` (faction names must start with uppercase)
+  - Coalition: `"{Faction} and {Faction} formed a coalition."`
+  - Inconsistency: `"{Faction} contradicts {description}."`
+- Round boundaries use `[ROUND END]` signal (matching `pipeline_test.yaml` round detection pattern)
+- Each transcript is a JSON file in `tests/integration/fixtures/transcripts/` with events + expected final state
+- Replay tests inject events via TestTransport, allow processing time after each event and round boundary, then assert on `state_manager.query()` results
+- Existing 182 tests must continue to pass
+
+Steps:
+
+- [ ] 14.1 — **Create transcript fixture: cooperative 3-round game.** Create `tests/integration/fixtures/transcripts/` directory and `cooperative_3round.json`. Write a 3-round transcript with ~8-10 events covering: one promise (round 1), one coalition formation (round 2), and a second promise (round 3), each using `RuleBasedExtractor` regex patterns. Include `expected_final_state` with 2 promises (both pending) and 1 coalition. Include 3 `[ROUND END]` signals. Validate the fixture parses cleanly. Run full regression.
+
+- [ ] 14.2 — **Create transcript fixture: betrayal arc.** Create `betrayal_arc.json`. Write a 3-round transcript where: faction A promises faction B (round 1), faction A contradicts that promise (round 2, matching `_INCONSISTENCY_RE`), and faction A forms a coalition with faction C (round 3). Include `expected_final_state` with the promise, 1 inconsistency, and 1 coalition. Run full regression.
+
+- [ ] 14.3 — **Implement replay test module.** Create `tests/integration/test_replay.py` with:
+  - A `replay_transcript(pipeline, fixture_path)` helper that loads the JSON, injects each event via `TestTransport.inject()` with appropriate sleep intervals (short for regular messages, longer after round boundaries for analysis), and returns the final state.
+  - `test_cooperative_3round_promises` — replays `cooperative_3round.json`, asserts 2 pending promises exist with correct from/to factions.
+  - `test_cooperative_3round_coalition` — replays same transcript, asserts 1 coalition exists with correct factions.
+  - `test_cooperative_3round_intelligence` — replays same transcript, asserts 3 intelligence records (one per round boundary).
+  - `test_betrayal_arc_inconsistency` — replays `betrayal_arc.json`, asserts 1 inconsistency exists.
+  - `test_betrayal_arc_promise_and_coalition` — replays same transcript, asserts the promise and coalition are both present.
+  Run focused + full regression.
+
+- [ ] 14.4 — **Documentation cleanup and regression.** Verify full test suite. Update DEVPLAN Phase 14 summary. Append DEVLOG entry. Update `diplomat-testing-doc.md` build order table to mark transcript replay as complete. Transition to `state: review`.
 
 ## Phase 13: Layer 3 — Pipeline Integration Tests
 

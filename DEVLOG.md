@@ -634,3 +634,12 @@ Verification:
 Phase 12 development entries archived to `DEVLOG_archive.md` (2026-05-27).
 
 No new gotchas promoted. Contract changes are already reflected in `diplomat-testing-doc.md`, `ARCHITECTURE.md`, and `DEVPLAN.md`.
+
+### 2026-05-27 — Phase 14 Planned
+
+**Action:** Phase Plan for Layer 3 Transcript Replay Tests
+**Outcome:** Complete — Phase 14 build steps are ready for execution
+
+Confirmed Phase 14 scope: add deterministic synthetic transcript fixtures, replay them through the existing fake-backed Orchestrator integration pipeline, and assert final promise/coalition/inconsistency/intelligence state. The phase remains Layer 3 only: no real API calls, no prompt-quality assertions, and no Telegram dependencies.
+
+Scope decision logged in `DECISIONS.md` as D-16. Next step: 14.1 creates the cooperative 3-round transcript fixture.
