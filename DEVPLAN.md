@@ -1,7 +1,7 @@
 ---
 phase: 12
 blocked: false
-state: execute
+state: review
 steps_remaining: 0
 ---
 
@@ -57,7 +57,9 @@ Steps:
   - Update Orchestrator test fakes in `tests/test_orchestrator.py`: the fake state manager must implement `store_coaching`, `store_intelligence`, `set_game_state`, `store_adversarial_read`, and `mark_coaching_consumed` (simple in-memory implementations that store to lists/dicts). Verify existing Orchestrator tests still pass — the fake methods replace the `sqlite3` fallback paths that tests previously exercised.
   - Run full regression.
 
-- [ ] 12.4 — **Documentation cleanup and regression verification.** Update `ARCHITECTURE.md` coupling notes: remove the "via adapter" note from the existing adapter bullet (already in `src/adapters.py` now) and update the State Manager coupling note to reflect the expanded API. Verify full test suite passes. Update DEVPLAN Phase 12 summary. Append DEVLOG entry. Transition to `state: review`.
+- [x] 12.4 — **Documentation cleanup and regression verification.** Update `ARCHITECTURE.md` coupling notes: remove the "via adapter" note from the existing adapter bullet (already in `src/adapters.py` now) and update the State Manager coupling note to reflect the expanded API. Verify full test suite passes. Update DEVPLAN Phase 12 summary. Append DEVLOG entry. Transition to `state: review`.
+
+Summary: Extracted `ToolkitLLMAdapter` and `DiplomatCostGate` to `src/adapters.py`, expanded State Manager API with 5 persistence methods (`store_coaching`, `store_intelligence`, `set_game_state`, `store_adversarial_read`, `mark_coaching_consumed`), removed all sqlite3 fallbacks from Orchestrator (now delegates to State Manager directly), typed `InboundEvent` parameters on `process_event` and `run_response_pipeline`, and updated ARCHITECTURE.md coupling notes. Full regression: 170 passed.
 
 ## Phase 11: Orchestrator
 

@@ -567,3 +567,18 @@ Verification:
 - `python3 -m pytest` — 170 passed
 
 Next step: 12.4 performs architecture/doc cleanup and final regression verification before review.
+
+### Step 12.4: Documentation cleanup and regression verification
+
+**Mode:** Build (cleanup)
+**Outcome:** Complete — ARCHITECTURE.md coupling notes updated, full regression passes, phase ready for review
+
+Updated `ARCHITECTURE.md` coupling notes:
+- `ToolkitLLMAdapter` reference now points to `src/adapters.py` (was `orchestrator.py`)
+- `DiplomatCostGate` reference now points to `src/adapters.py`
+- Added explicit `Orchestrator ↔ State Manager` write-path coupling note documenting the 5 persistence methods
+
+Verification:
+- `python3 -m pytest` — 170 passed
+
+Phase 12 complete: adapter extraction, State Manager API expansion, and Orchestrator fallback removal all verified. State transitions to review.
