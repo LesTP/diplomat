@@ -127,7 +127,8 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 | Layer | Status |
 |-------|--------|
 | Unit tests | Complete — 170 module tests |
-| Pipeline integration | Complete — 12 fake-backed Orchestrator integration tests, 182 total regression tests |
+| Pipeline integration | Complete — 12 fake-backed Orchestrator integration tests |
+| Transcript replay | Complete — 2 transcript fixtures, 5 replay tests, 187 total regression tests |
 | Prompt regression | Not started |
 | Multi-agent self-play | Not started |
 

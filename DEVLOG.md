@@ -704,3 +704,21 @@ Verification:
 - `python3 -m pytest -q` — 187 passed
 
 Phase 14 is ready for review.
+
+### 2026-05-27 — Phase 14 Complete
+
+**Action:** Phase Review and Phase Complete for Layer 3 Transcript Replay Tests
+**Outcome:** Complete — human audit gate set in DEVPLAN frontmatter
+
+Phase Review found no must-fix or should-fix items. All fixture messages match `RuleBasedExtractor` patterns, `state_manager.query()` intelligence ordering is deterministic (ORDER BY id ASC, records inserted in round sequence), all imports used, and the conftest `pipeline` fixture is correctly reused across all five replay tests.
+
+Two transcript fixtures and five replay integration tests verify multi-round state accumulation through the fake-backed Orchestrator pipeline:
+- `cooperative_3round.json` — 2 promises, 1 coalition, 3 round boundaries; 3 intelligence records
+- `betrayal_arc.json` — 1 promise, 1 inconsistency, 1 coalition over 3 rounds
+
+ARCHITECTURE.md Testing Status updated to record transcript replay tier complete.
+
+Verification:
+- `python3 -m pytest -q` — 187 passed
+
+No new gotchas promoted. No contract changes require propagation.
