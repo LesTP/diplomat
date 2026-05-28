@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from typing import Any
 
 import pytest
 
@@ -33,12 +34,25 @@ class FakeLLMClient:
         return "PASS|Looks good."
 
 
+async def fake_module_caller(
+    module_name: str, input_data: Any, metadata: dict[str, Any]
+) -> Any:
+    if module_name == "extraction":
+        extractor = FakeExtractor()
+        return await extractor.extract(
+            input_data.get("text", ""),
+            input_data.get("current_state", {}),
+            input_data.get("trigger_type", "message"),
+        )
+    raise ValueError(f"Unsupported module: {module_name}")
+
+
 @pytest.mark.asyncio
 async def test_run_scenario_evaluates_structural_properties():
     runner = ScenarioRunner(
         llm_client=FakeLLMClient(),
         llm_config={},
-        module_builders={"extraction": FakeExtractor},
+        module_caller=fake_module_caller,
     )
     scenario = {
         "scenario_id": "extraction.promise_explicit",
@@ -79,7 +93,7 @@ async def test_run_scenario_evaluates_llm_judge_property():
     runner = ScenarioRunner(
         llm_client=FakeLLMClient(),
         llm_config={},
-        module_builders={"extraction": FakeExtractor},
+        module_caller=fake_module_caller,
     )
 
     result = await runner.run_scenario(
@@ -106,18 +120,18 @@ async def test_run_scenario_evaluates_llm_judge_property():
 
 
 @pytest.mark.asyncio
-async def test_run_scenario_raises_for_missing_module_builder():
+async def test_run_scenario_raises_for_unsupported_module():
     runner = ScenarioRunner(
         llm_client=FakeLLMClient(),
         llm_config={},
-        module_builders={"extraction": FakeExtractor},
+        module_caller=fake_module_caller,
     )
 
-    with pytest.raises(ValueError, match="No module builder"):
+    with pytest.raises(ValueError, match="Unsupported module"):
         await runner.run_scenario(
             {
                 "scenario_id": "generation.missing",
-                "description": "No builder for this module.",
+                "description": "No handler for this module.",
                 "module": "generation",
                 "input": {},
                 "expected_properties": [],
@@ -130,7 +144,7 @@ async def test_run_scenario_raises_for_invalid_judge_path():
     runner = ScenarioRunner(
         llm_client=FakeLLMClient(),
         llm_config={},
-        module_builders={"extraction": FakeExtractor},
+        module_caller=fake_module_caller,
     )
 
     with pytest.raises(ValueError, match="Cannot extract judge response text"):
@@ -177,7 +191,7 @@ async def test_run_all_loads_scenarios_filters_and_returns_report(tmp_path):
     runner = ScenarioRunner(
         llm_client=FakeLLMClient(),
         llm_config={},
-        module_builders={"extraction": FakeExtractor},
+        module_caller=fake_module_caller,
     )
 
     report = await runner.run_all(tmp_path, module_filter="extraction")
@@ -195,7 +209,7 @@ async def test_run_scenario_failing_structural_check():
     runner = ScenarioRunner(
         llm_client=FakeLLMClient(),
         llm_config={},
-        module_builders={"extraction": FakeExtractor},
+        module_caller=fake_module_caller,
     )
     scenario = {
         "scenario_id": "extraction.wrong_status",
