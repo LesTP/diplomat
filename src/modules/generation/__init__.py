@@ -2,10 +2,22 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from inspect import isawaitable
 from typing import Any
 
+from toolkit.structured_llm import structured_call
+
 from modules.context_assembler import DecisionContext
+
+
+_GENERATION_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["response", "reasoning"],
+    "properties": {
+        "response": {"type": "string", "minLength": 1},
+        "reasoning": {"type": "string", "minLength": 1},
+    },
+}
 
 
 @dataclass(frozen=True)
@@ -35,18 +47,70 @@ class LLMGenerator:
         self.review_gate_enabled = review_gate_enabled
 
     async def generate(self, context: DecisionContext) -> GenerationResult:
+        if self.review_gate_enabled:
+            return await self._generate_json(context)
+        return await self._generate_plain(context)
+
+    async def _generate_json(self, context: DecisionContext) -> GenerationResult:
+        result = await structured_call(
+            self.llm_client,
+            self.llm_config,
+            self.tier,
+            schema=_GENERATION_SCHEMA,
+            system_prompt=context.system_prompt,
+            user_prompt=context.user_prompt,
+            max_retries=1,
+        )
+
+        if not result.success:
+            return GenerationResult(
+                success=False,
+                response_text=None,
+                reasoning=None,
+                raw_response=None,
+                error=result.error,
+            )
+
+        data = result.data or {}
+        response_text = data.get("response", "")
+        reasoning = data.get("reasoning", "")
+
+        if not response_text.strip():
+            return GenerationResult(
+                success=False,
+                response_text=None,
+                reasoning=None,
+                raw_response=data,
+                error="LLM response JSON must include a nonblank response",
+            )
+
+        return GenerationResult(
+            success=True,
+            response_text=response_text.strip(),
+            reasoning=reasoning.strip(),
+            raw_response=data,
+            error=None,
+        )
+
+    async def _generate_plain(self, context: DecisionContext) -> GenerationResult:
+        from inspect import isawaitable
+
         try:
-            response = await self._complete(self._build_messages(context))
-            response_text, raw_response = self._normalize_response(response)
-            if not response_text.strip():
+            response = self.llm_client.complete(
+                messages=[
+                    {"role": "system", "content": context.system_prompt},
+                    {"role": "user", "content": context.user_prompt},
+                ],
+                config=self.llm_config,
+                tier=self.tier,
+                max_tokens=self.max_tokens,
+            )
+            if isawaitable(response):
+                response = await response
+            if not isinstance(response, str):
+                raise ValueError("LLM response must be plain text")
+            if not response.strip():
                 raise ValueError("LLM response must not be blank")
-            if self.review_gate_enabled:
-                response_text, reasoning, raw_response = self._parse_review_response(
-                    response_text, raw_response
-                )
-            else:
-                response_text = response_text.strip()
-                reasoning = None
         except Exception as exc:
             return GenerationResult(
                 success=False,
@@ -58,61 +122,11 @@ class LLMGenerator:
 
         return GenerationResult(
             success=True,
-            response_text=response_text,
-            reasoning=reasoning,
-            raw_response=raw_response,
+            response_text=response.strip(),
+            reasoning=None,
+            raw_response=None,
             error=None,
         )
-
-    async def _complete(self, messages: list[dict[str, str]]) -> Any:
-        response = self.llm_client.complete(
-            messages=messages,
-            config=self.llm_config,
-            tier=self.tier,
-            max_tokens=self.max_tokens,
-        )
-        if isawaitable(response):
-            response = await response
-        return response
-
-    def _build_messages(self, context: DecisionContext) -> list[dict[str, str]]:
-        return [
-            {"role": "system", "content": context.system_prompt},
-            {"role": "user", "content": context.user_prompt},
-        ]
-
-    def _normalize_response(self, response: Any) -> tuple[str, dict[str, Any] | None]:
-        if isinstance(response, str):
-            return response, None
-        if isinstance(response, dict):
-            for key in ("text", "content", "response"):
-                value = response.get(key)
-                if isinstance(value, str):
-                    return value, response
-            raise ValueError("LLM response dict must contain text content")
-        raise ValueError("LLM response must be plain text")
-
-    def _parse_review_response(
-        self, response_text: str, raw_response: dict[str, Any] | None
-    ) -> tuple[str, str, dict[str, Any]]:
-        try:
-            parsed = json.loads(response_text)
-        except json.JSONDecodeError as exc:
-            raise ValueError(f"LLM response was not valid JSON: {exc.msg}") from exc
-
-        if not isinstance(parsed, dict):
-            raise ValueError("LLM response JSON must be an object")
-
-        response = parsed.get("response")
-        reasoning = parsed.get("reasoning")
-        if not isinstance(response, str) or not response.strip():
-            raise ValueError("LLM response JSON must include a nonblank response")
-        if not isinstance(reasoning, str):
-            raise ValueError("LLM response JSON must include reasoning")
-
-        debug_response = dict(raw_response or {})
-        debug_response["parsed_json"] = parsed
-        return response.strip(), reasoning.strip(), debug_response
 
 
 __all__ = ["GenerationResult", "LLMGenerator"]

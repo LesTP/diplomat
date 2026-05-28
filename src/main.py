@@ -21,9 +21,11 @@ def main() -> None:
 
 async def run(config_path: str) -> None:
     llm_module = _load_toolkit_module("llm_client")
-    llm_adapter = ToolkitLLMAdapter(llm_module)
-    telegram_client = _build_telegram_client()
     cost_gate = _build_cost_gate(config_path)
+    # Route all LLM calls through the cost accountant for spend tracking.
+    accountant = cost_gate._accountant if cost_gate is not None else None
+    llm_adapter = ToolkitLLMAdapter(llm_module, cost_accountant=accountant)
+    telegram_client = _build_telegram_client()
 
     orchestrator = Orchestrator(
         config_path=config_path,

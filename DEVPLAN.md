@@ -1,8 +1,8 @@
 ---
-phase: 17
+phase: 18
 blocked: false
-state: plan
-steps_remaining: 0
+state: build
+steps_remaining: 1
 ---
 
 # Diplomat — Development Plan
@@ -23,9 +23,35 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 17 complete. Awaiting human audit before next phase.
-- **Focus** — Layer 2 prompt regression infrastructure complete; 211 tests pass.
-- **Blocked/Broken** — audit gate set.
+- **Phase** — Phase 18 in progress. Self-play infrastructure built and tested (24 tests pass). Awaiting live simulation run.
+- **Focus** — Layer 4 multi-agent self-play: 3-faction territory-dispute scenario with real LLM calls.
+- **Blocked/Broken** — None.
+
+## Phase 18: Layer 4 — Multi-Agent Self-Play
+
+Regime: Build. Scope: Create the multi-agent self-play infrastructure — GameEnvironment, faction personas, scenario text, simulation runner CLI, post-game analysis, and unit tests. Then run a live 4-round simulation with 3 factions and real LLM calls. Reference: `diplomat-testing-doc.md` §6.
+
+**Design constraints:**
+- 3 generic factions (Alpha, Beta, Gamma) with distinct negotiation strategies but identical technical capabilities
+- Territory-dispute scenario with escalating per-round moderator updates
+- All agents use real LLM calls (LLMAnalyst, LLMGenerator, LLMAdversarialReader)
+- RuleBasedExtractor for free extraction; AutoApproveReviewGate for no human in loop
+- GameEnvironment supports `extra_module_overrides` so unit tests can inject StubAnalysts
+- CLI runner: `python -m tests.self_play.run_simulation --rounds 4`
+
+Steps:
+
+- [x] 18.1 — **Faction personas and scenario text.** Create `tests/self_play/personas/` with `alpha.txt` (defensive coalition-builder), `beta.txt` (aggressive opportunist), `gamma.txt` (adaptive information-gatherer). Create `tests/self_play/scenario.py` with `SEED_MESSAGE` and `ROUND_UPDATES` for a 4-round territory-dispute scenario with escalating tension.
+
+- [x] 18.2 — **GameEnvironment.** Create `tests/self_play/game_environment.py` with: per-faction YAML config generation from `pipeline_test.yaml` template, Orchestrator lifecycle management, `broadcast()`/`broadcast_to_all()` message routing, `run_round()` with moderator updates + agent responses + round-end signals, `run_game()` with seed message and round loop, `collect_results()` querying each agent's state_manager. Supports `extra_module_overrides` for test injection.
+
+- [x] 18.3 — **Simulation runner CLI.** Create `tests/self_play/run_simulation.py` with argparse (`--rounds`, `--output`, `--factions`), `ToolkitLLMAdapter` and `DiplomatCostGate` construction, temp directory management, JSON results output with timestamped filenames.
+
+- [x] 18.4 — **Post-game analysis.** Create `tests/self_play/analysis.py` with per-agent summary (promises, coalitions, inconsistencies, intelligence), communication analysis, round-by-round response display, promise cross-reference across agents. CLI: `python -m tests.self_play.analysis --results <path>`.
+
+- [x] 18.5 — **Unit tests.** Create `tests/test_self_play.py` with 24 tests: config generation (4), broadcast mechanics (3), scenario data (3), persona files (9), round lifecycle with fake LLM (4), analysis (1). All 24 pass.
+
+- [ ] 18.6 — **Documentation and live run.** Update DEVPLAN, ARCHITECTURE, testing doc. Run live 4-round simulation on Pi with real LLM calls. Analyze results. Transition to `state: review`.
 
 ## Phase 17: Layer 2 — Prompt Regression Infrastructure
 

@@ -127,12 +127,9 @@ async def test_prompt_and_draft_forwarded_to_llm_client(prompt_path, schema_path
     await reader.read("Germany, we should coordinate quietly.")
 
     messages = client.calls[0]["messages"]
-    assert messages[0] == {
-        "role": "system",
-        "content": "Read as an opposing faction.",
-    }
+    assert messages[0]["role"] == "system"
+    assert "Read as an opposing faction." in messages[0]["content"]
     assert messages[1]["role"] == "user"
-    assert "Adversarial analysis JSON schema:" in messages[1]["content"]
     assert "Germany, we should coordinate quietly." in messages[1]["content"]
 
 
@@ -186,7 +183,7 @@ async def test_missing_required_key_success_false(prompt_path, schema_path):
 
     assert result.success is False
     assert result.analysis is None
-    assert "failed schema validation" in result.error
+    assert "required property" in result.error
 
 
 @pytest.mark.asyncio
@@ -205,7 +202,7 @@ async def test_wrong_value_type_success_false(prompt_path, schema_path):
 
     assert result.success is False
     assert result.analysis is None
-    assert "failed schema validation" in result.error
+    assert "is not of type" in result.error
     assert "reveals" in result.error
 
 

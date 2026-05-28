@@ -107,7 +107,7 @@ class Orchestrator:
         )
         self.current_round = 1
         self._running = False
-        self._debounce_task: asyncio.Task[None] | None = None
+        self._extraction_tasks: set[asyncio.Task[None]] = set()
         self._round_timer_task: asyncio.Task[None] | None = None
 
         self._initialize_sqlite(self.db_path)
@@ -139,10 +139,14 @@ class Orchestrator:
 
     async def shutdown(self) -> None:
         self._running = False
-        if self._debounce_task is not None and not self._debounce_task.done():
-            self._debounce_task.cancel()
+        tasks = list(self._extraction_tasks)  # snapshot to avoid mutation during iteration
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        for task in tasks:
             with contextlib.suppress(asyncio.CancelledError):
-                await self._debounce_task
+                await task
+        self._extraction_tasks.clear()
         if self._round_timer_task is not None and not self._round_timer_task.done():
             self._round_timer_task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
@@ -181,11 +185,11 @@ class Orchestrator:
         raise RuntimeError(f"Unsupported coaching parser result: {parsed!r}")
 
     def _enqueue_message_extraction(self, event: Any, event_id: str) -> None:
-        if self._debounce_task is not None and not self._debounce_task.done():
-            self._debounce_task.cancel()
-        self._debounce_task = asyncio.create_task(
+        task = asyncio.create_task(
             self._debounced_message_extraction(event, event_id)
         )
+        self._extraction_tasks.add(task)
+        task.add_done_callback(self._extraction_tasks.discard)
 
     async def _debounced_message_extraction(self, event: Any, event_id: str) -> None:
         try:

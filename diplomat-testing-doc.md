@@ -21,7 +21,7 @@ The modular architecture in the main spec was partly designed with testability i
 | 2 — Prompt regression | Prompt quality and constraint compliance | Slow | Low | Before prompt changes go live | **Complete** — infrastructure + 6 starter scenarios |
 | 3 — Pipeline integration | Cross-module behavior, failure handling, transcript replay | Medium | Free | Before deployments | **Complete** — 17 tests, 207 total |
 | — Live smoke test | Real Telegram + real LLM end-to-end | Manual | Low | Before first game | **Complete** |
-| 4 — Multi-agent self-play | Game-level behavior, persona coherence | Slow | Medium-high | Final validation before real game | Not started |
+| 4 — Multi-agent self-play | Game-level behavior, persona coherence | Slow | Medium-high | Final validation before real game | **In progress** — infrastructure + 24 tests |
 
 ### What Already Exists
 

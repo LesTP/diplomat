@@ -469,22 +469,24 @@ async def test_operator_coaching_is_stored_unconsumed(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_game_message_debounce_cancels_and_reschedules(tmp_path):
+async def test_game_message_debounce_extracts_all_messages(tmp_path):
     orchestrator, _event_store, state_manager, extractor, _transport = _orchestrator(
         tmp_path
     )
     orchestrator.message_debounce_seconds = 0.01
 
     await orchestrator.process_event(_event(sender_faction="france", content="first"))
-    first_task = orchestrator._debounce_task
     await orchestrator.process_event(_event(sender_faction="germany", content="second"))
-    await asyncio.sleep(0)
 
-    assert first_task.cancelled() or first_task.done()
-    await orchestrator._debounce_task
-    assert extractor.calls == [("second", {"promises": []}, "message")]
-    assert state_manager.patches[0][1].trigger_type == "message"
-    assert state_manager.patches[0][1].trigger_ref == "event-2"
+    # Wait for both extraction tasks to complete.
+    for task in list(orchestrator._extraction_tasks):
+        await task
+
+    # Both messages should be extracted — no message is dropped.
+    assert len(extractor.calls) == 2
+    extracted_contents = [c[0] for c in extractor.calls]
+    assert "first" in extracted_contents
+    assert "second" in extracted_contents
 
 
 @pytest.mark.asyncio

@@ -7,8 +7,10 @@ from pathlib import Path
 from typing import Any
 
 from toolkit.structured_llm import (
+    Example,
     load_schema as _tk_load_schema,
     parse_json_response as _tk_parse_json,
+    structured_call,
     structured_complete,
     validate_json_schema,
 )
@@ -21,6 +23,31 @@ class ExtractionResult:
     success: bool
     patch: StatePatch | None
     error: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Few-shot examples for extraction
+# ---------------------------------------------------------------------------
+
+_EXTRACTION_EXAMPLES = [
+    Example(
+        input='Beta commits to supporting Alpha\'s claim on the eastern zone in exchange for trade rights.',
+        output={"promises": [{"promise_id": "beta-alpha-eastern-support", "from_faction": "beta", "to_faction": "alpha", "content": "support Alpha's claim on eastern zone in exchange for trade rights", "status": "pending"}]},
+    ),
+    Example(
+        input="Alpha and Gamma have agreed to coordinate their defense.",
+        output={"coalitions": [{"coalition_id": "alpha-gamma-defense", "faction_a": "alpha", "faction_b": "gamma", "strength": 0.6, "basis": "agreed to coordinate defense"}]},
+    ),
+    Example(
+        input="Round 2 begins. Weather is clear.",
+        output={},
+    ),
+]
+
+
+# ---------------------------------------------------------------------------
+# Rule-based extractor (free, no LLM)
+# ---------------------------------------------------------------------------
 
 
 class RuleBasedExtractor:
@@ -106,6 +133,11 @@ class RuleBasedExtractor:
         return f"{prefix}-{slug[:48] or 'unknown'}"
 
 
+# ---------------------------------------------------------------------------
+# LLM-based extractor using structured_call
+# ---------------------------------------------------------------------------
+
+
 class OpenAIStructuredExtractor:
     def __init__(
         self,
@@ -124,48 +156,46 @@ class OpenAIStructuredExtractor:
     async def extract(
         self, input_text: str, current_state: dict[str, Any], trigger_type: str
     ) -> ExtractionResult:
-        try:
-            response_text = await self._complete(
-                self._build_messages(input_text, current_state, trigger_type)
-            )
-            patch_data = parse_json_object(response_text)
-            patch = validate_state_patch(patch_data, self.schema)
-        except Exception as exc:
-            return ExtractionResult(success=False, patch=None, error=str(exc))
+        user_prompt = self._build_user_prompt(input_text, current_state, trigger_type)
 
-        return ExtractionResult(success=True, patch=patch)
-
-    async def _complete(self, messages: list[dict[str, str]]) -> str:
-        return await structured_complete(
-            self.llm_client, self.llm_config, self.tier, messages
+        result = await structured_call(
+            self.llm_client,
+            self.llm_config,
+            self.tier,
+            schema=self.schema,
+            system_prompt=self.system_prompt,
+            user_prompt=user_prompt,
+            examples=_EXTRACTION_EXAMPLES,
+            max_retries=1,
         )
 
-    def _build_messages(
-        self, input_text: str, current_state: dict[str, Any], trigger_type: str
-    ) -> list[dict[str, str]]:
-        if trigger_type not in {"message", "intel_correction"}:
-            raise ValueError(f"Unsupported trigger_type: {trigger_type}")
+        if not result.success:
+            return ExtractionResult(success=False, patch=None, error=result.error)
 
+        return ExtractionResult(success=True, patch=StatePatch(result.data or {}))
+
+    def _build_user_prompt(
+        self, input_text: str, current_state: dict[str, Any], trigger_type: str
+    ) -> str:
         trigger_note = (
             "[OPERATOR INTEL] Treat this as a high-confidence correction."
             if trigger_type == "intel_correction"
             else "Treat this as an observed game message."
         )
-        user_prompt = "\n\n".join(
+        return "\n\n".join(
             [
                 trigger_note,
-                "State patch JSON schema:",
-                json.dumps(self.schema, sort_keys=True),
                 "Current state snapshot:",
                 json.dumps(current_state, sort_keys=True),
                 "Input text:",
                 input_text,
             ]
         )
-        return [
-            {"role": "system", "content": self.system_prompt},
-            {"role": "user", "content": user_prompt},
-        ]
+
+
+# ---------------------------------------------------------------------------
+# Shared helpers
+# ---------------------------------------------------------------------------
 
 
 def load_prompt(prompt_path: str | Path) -> str:

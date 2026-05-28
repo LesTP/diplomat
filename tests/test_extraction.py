@@ -53,8 +53,8 @@ def test_public_exports_include_primary_and_fallback_extractors():
 def test_configured_state_updater_prompt_loads_json_only_guidance():
     prompt = load_prompt(PROMPT_PATH)
 
-    assert "Return only JSON" in prompt
-    assert "empty JSON object" in prompt
+    assert "Return ONLY valid JSON" in prompt
+    assert "return {}" in prompt
 
 
 def test_parse_json_object_returns_decoded_object():
@@ -259,12 +259,12 @@ async def test_openai_structured_extractor_uses_prompt_context_and_commodity_tie
     )
     assert client.calls[0]["config"] == {"provider": "openai"}
     assert client.calls[0]["tier"] == "COMMODITY"
-    assert client.calls[0]["messages"][0] == {
-        "role": "system",
-        "content": "Extract only valid state patch JSON.",
-    }
+    # structured_call assembles schema + examples into the system prompt.
+    system_prompt = client.calls[0]["messages"][0]["content"]
+    assert "Extract only valid state patch JSON." in system_prompt
+    assert "JSON Schema" in system_prompt
+    assert "Example" in system_prompt
     user_prompt = client.calls[0]["messages"][1]["content"]
-    assert "State patch JSON schema:" in user_prompt
     assert '"promises": []' in user_prompt
     assert "Treat this as an observed game message." in user_prompt
     assert "England promises France" in user_prompt
@@ -317,6 +317,8 @@ async def test_openai_structured_extractor_reports_invalid_json(tmp_path):
 async def test_openai_structured_extractor_reports_invalid_schema(tmp_path):
     prompt_path = tmp_path / "state_updater.txt"
     prompt_path.write_text("Extract JSON.", encoding="utf-8")
+    # FakeLLMClient returns the same invalid-schema response on both
+    # the initial attempt and the retry, so structured_call exhausts retries.
     extractor = OpenAIStructuredExtractor(
         FakeLLMClient('{"promises": [{"promise_id": "missing"}]}'),
         llm_config={},
@@ -329,7 +331,7 @@ async def test_openai_structured_extractor_reports_invalid_schema(tmp_path):
 
     assert result.success is False
     assert result.patch is None
-    assert "failed schema validation" in result.error
+    assert "required property" in result.error
 
 
 @pytest.mark.asyncio

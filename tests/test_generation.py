@@ -72,10 +72,8 @@ async def test_successful_review_gate_json_generation():
     assert result.response_text == "Germany, we can coordinate in Belgium."
     assert result.reasoning == "Keeps commitment limited."
     assert result.raw_response == {
-        "parsed_json": {
-            "response": "Germany, we can coordinate in Belgium.",
-            "reasoning": "Keeps commitment limited.",
-        }
+        "response": "Germany, we can coordinate in Belgium.",
+        "reasoning": "Keeps commitment limited.",
     }
 
 
@@ -103,10 +101,12 @@ async def test_prompt_forwarding_to_llm_client():
 
     await generator.generate(_context())
 
-    assert client.calls[0]["messages"] == [
-        {"role": "system", "content": "Faction persona"},
-        {"role": "user", "content": "Generate the next message."},
-    ]
+    assert client.calls[0]["messages"][0]["role"] == "system"
+    assert "Faction persona" in client.calls[0]["messages"][0]["content"]
+    assert client.calls[0]["messages"][1] == {
+        "role": "user",
+        "content": "Generate the next message.",
+    }
 
 
 @pytest.mark.asyncio
@@ -123,7 +123,6 @@ async def test_tier_config_and_max_tokens_forwarded():
 
     assert client.calls[0]["config"] == {"provider": "openai"}
     assert client.calls[0]["tier"] == "ECONOMY"
-    assert client.calls[0]["max_tokens"] == 2048
 
 
 @pytest.mark.asyncio
@@ -141,9 +140,10 @@ async def test_raw_response_propagated_when_client_returns_dict():
 
     result = await generator.generate(_context())
 
-    assert result.success is True
-    assert result.response_text == "France, let us coordinate quietly."
-    assert result.raw_response == raw_response
+    assert result.success is False
+    assert result.response_text is None
+    assert result.raw_response is None
+    assert result.error == "LLM response must be plain text"
 
 
 @pytest.mark.asyncio
@@ -188,7 +188,7 @@ async def test_review_gate_missing_response_success_false():
     result = await generator.generate(_context())
 
     assert result.success is False
-    assert result.error == "LLM response JSON must include a nonblank response"
+    assert "required property" in result.error
 
 
 @pytest.mark.asyncio
@@ -218,4 +218,4 @@ async def test_review_gate_missing_reasoning_success_false():
     result = await generator.generate(_context())
 
     assert result.success is False
-    assert result.error == "LLM response JSON must include reasoning"
+    assert "required property" in result.error

@@ -4,10 +4,22 @@ from typing import Any
 
 
 class ToolkitLLMAdapter:
-    """Adapt toolkit.llm_client.complete() to Diplomat's module interface."""
+    """Adapt toolkit LLM calls to Diplomat's module interface.
 
-    def __init__(self, toolkit_llm: Any) -> None:
+    When a ``cost_accountant`` is provided, all calls route through
+    ``accountant.complete()`` which estimates cost, checks budgets,
+    tracks spend in a JSONL ledger, and then calls the underlying
+    ``llm_client.complete()``.  Without an accountant the adapter
+    calls ``llm_client.complete()`` directly (test / offline mode).
+    """
+
+    def __init__(
+        self,
+        toolkit_llm: Any,
+        cost_accountant: Any | None = None,
+    ) -> None:
         self._toolkit = toolkit_llm
+        self._accountant = cost_accountant
 
     def complete(
         self,
@@ -49,16 +61,27 @@ class ToolkitLLMAdapter:
         except ValueError:
             tk_tier = ModelTier.DEFAULT
 
-        response = self._toolkit.complete(
-            messages=tk_messages,
-            config=tk_config,
-            tier=tk_tier,
-        )
+        if self._accountant is not None:
+            response = self._accountant.complete(
+                messages=tk_messages,
+                config=tk_config,
+                tier=tk_tier,
+            )
+        else:
+            response = self._toolkit.complete(
+                messages=tk_messages,
+                config=tk_config,
+                tier=tk_tier,
+            )
         return response.content
 
 
 class DiplomatCostGate:
-    """Expose the budget-gate API expected by Diplomat's Orchestrator."""
+    """Expose the budget-gate API expected by Diplomat's Orchestrator.
+
+    When paired with a ``ToolkitLLMAdapter`` that routes through the
+    same accountant, ``available_budget`` reflects actual tracked spend.
+    """
 
     def __init__(self, accountant: Any, per_round_budget_usd: float) -> None:
         self._accountant = accountant

@@ -70,7 +70,7 @@ async def test_successful_analysis_with_valid_json():
     assert client.calls[0]["config"] == {"provider": "anthropic"}
     assert client.calls[0]["tier"] == "QUALITY"
     assert client.calls[0]["messages"][0]["role"] == "system"
-    assert "Intelligence JSON schema:" in client.calls[0]["messages"][1]["content"]
+    assert "JSON Schema" in client.calls[0]["messages"][0]["content"]
     assert '"promises": []' in client.calls[0]["messages"][1]["content"]
 
 
@@ -126,7 +126,7 @@ async def test_schema_validation_failure_success_false():
 
     assert result.success is False
     assert result.report is None
-    assert "failed schema validation" in result.error
+    assert "required property" in result.error
 
 
 @pytest.mark.asyncio

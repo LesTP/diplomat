@@ -1,0 +1,501 @@
+"""Multi-agent self-play game environment.
+
+Spins up N Orchestrator instances with TestTransport, routes messages
+between agents, manages round lifecycle, and collects results.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import contextlib
+import json
+import time
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+from modules.types import InboundEvent
+from orchestrator import Orchestrator
+from tests.helpers.test_transport import TestTransport
+from tests.self_play.scenario import ROUND_UPDATES, SEED_MESSAGE
+
+
+# ------------------------------------------------------------------
+# LLM call logging
+# ------------------------------------------------------------------
+
+
+@dataclass
+class LLMCallRecord:
+    """One logged LLM API call."""
+
+    timestamp: str
+    faction_id: str
+    call_index: int
+    messages: list[dict[str, str]]
+    config_provider: str
+    tier: str | None
+    max_tokens: int | None
+    response: str
+    duration_seconds: float
+    error: str | None = None
+
+
+class LoggingLLMClient:
+    """Wraps an LLM client and records every call with full detail."""
+
+    def __init__(self, inner: Any) -> None:
+        self._inner = inner
+        self.call_log: list[LLMCallRecord] = []
+        self._call_index = 0
+        self._current_faction: str = "unknown"
+
+    def set_faction(self, faction_id: str) -> None:
+        self._current_faction = faction_id
+
+    async def complete(self, **kwargs: Any) -> str:
+        messages = kwargs.get("messages", [])
+        config = kwargs.get("config", {})
+        tier = kwargs.get("tier")
+        max_tokens = kwargs.get("max_tokens")
+
+        start = time.monotonic()
+        error = None
+        response = ""
+        try:
+            result = self._inner.complete(**kwargs)
+            if asyncio.iscoroutine(result):
+                result = await result
+            response = result
+            return response
+        except Exception as exc:
+            error = str(exc)
+            raise
+        finally:
+            duration = time.monotonic() - start
+            self._call_index += 1
+            self.call_log.append(
+                LLMCallRecord(
+                    timestamp=datetime.now(timezone.utc).isoformat(),
+                    faction_id=self._current_faction,
+                    call_index=self._call_index,
+                    messages=_safe_messages(messages),
+                    config_provider=config.get("provider", "?"),
+                    tier=str(tier) if tier else None,
+                    max_tokens=max_tokens,
+                    response=response if isinstance(response, str) else str(response),
+                    duration_seconds=round(duration, 3),
+                    error=error,
+                )
+            )
+
+    def to_dicts(self) -> list[dict[str, Any]]:
+        """Serialize all call records for JSON output."""
+        records = []
+        for r in self.call_log:
+            records.append(
+                {
+                    "timestamp": r.timestamp,
+                    "faction_id": r.faction_id,
+                    "call_index": r.call_index,
+                    "messages": r.messages,
+                    "config_provider": r.config_provider,
+                    "tier": r.tier,
+                    "max_tokens": r.max_tokens,
+                    "response": r.response,
+                    "duration_seconds": r.duration_seconds,
+                    "error": r.error,
+                }
+            )
+        return records
+
+
+def _safe_messages(messages: Any) -> list[dict[str, str]]:
+    """Normalize messages to a JSON-safe list of dicts."""
+    if not isinstance(messages, list):
+        return [{"raw": str(messages)}]
+    result = []
+    for m in messages:
+        if isinstance(m, dict):
+            result.append({k: str(v) for k, v in m.items()})
+        else:
+            result.append({"role": getattr(m, "role", "?"), "content": getattr(m, "content", str(m))})
+    return result
+
+
+@dataclass
+class AgentHandle:
+    """Runtime state for a single agent in the simulation."""
+
+    faction_id: str
+    orchestrator: Orchestrator
+    transport: TestTransport
+    task: asyncio.Task[None]
+
+
+class GameEnvironment:
+    """Coordinate a multi-agent self-play simulation."""
+
+    def __init__(
+        self,
+        faction_personas: dict[str, Path],
+        *,
+        llm_client: Any,
+        cost_accountant: Any,
+        base_path: Path,
+        tmp_dir: Path,
+        extra_module_overrides: dict[str, Any] | None = None,
+    ) -> None:
+        self.faction_personas = faction_personas
+        self.llm_client = llm_client
+        self.cost_accountant = cost_accountant
+        self.base_path = base_path
+        self.tmp_dir = tmp_dir
+        self.extra_module_overrides = extra_module_overrides or {}
+        self.agents: dict[str, AgentHandle] = {}
+        self.channel_log: list[dict[str, Any]] = []
+        # Wrap in a logging client if it isn't one already.
+        if isinstance(llm_client, LoggingLLMClient):
+            self.logging_client: LoggingLLMClient | None = llm_client
+        else:
+            self.logging_client = None
+
+    # ------------------------------------------------------------------
+    # Config generation
+    # ------------------------------------------------------------------
+
+    def _generate_faction_config(
+        self, faction_id: str, persona_path: Path, db_path: Path
+    ) -> Path:
+        """Write a per-faction pipeline YAML into *tmp_dir*."""
+        config: dict[str, Any] = yaml.safe_load(
+            (self.base_path / "config" / "pipeline_test.yaml").read_text(
+                encoding="utf-8"
+            )
+        )
+
+        config["faction_id"] = faction_id
+        config["database"]["path"] = str(db_path)
+        config["message_debounce_seconds"] = 0.01
+
+        # Use real LLM providers from environment.
+        import os
+
+        config["llm_providers"] = {
+            "primary": {
+                "provider": os.getenv("DIPLOMAT_PRIMARY_PROVIDER", "openai"),
+                "models": {
+                    "quality": os.getenv(
+                        "DIPLOMAT_PRIMARY_QUALITY_MODEL", "gpt-4.1-mini"
+                    ),
+                    "default": os.getenv(
+                        "DIPLOMAT_PRIMARY_DEFAULT_MODEL", "gpt-4.1-mini"
+                    ),
+                    "commodity": os.getenv(
+                        "DIPLOMAT_PRIMARY_COMMODITY_MODEL", "gpt-4.1-mini"
+                    ),
+                },
+                "api_key_env": "OPENAI_API_KEY",
+            },
+            "secondary": {
+                "provider": os.getenv("DIPLOMAT_SECONDARY_PROVIDER", "openai"),
+                "models": {
+                    "quality": os.getenv(
+                        "DIPLOMAT_SECONDARY_QUALITY_MODEL", "gpt-4.1-mini"
+                    ),
+                    "default": os.getenv(
+                        "DIPLOMAT_SECONDARY_DEFAULT_MODEL", "gpt-4.1-mini"
+                    ),
+                    "commodity": os.getenv(
+                        "DIPLOMAT_SECONDARY_COMMODITY_MODEL", "gpt-4.1-mini"
+                    ),
+                },
+                "api_key_env": "OPENAI_API_KEY",
+            },
+        }
+
+        # Real LLM-backed modules — identical capabilities for all factions.
+        config["modules"]["primary_analyst"] = {
+            "class": "LLMAnalyst",
+            "provider": "primary",
+            "tier": "commodity",
+        }
+        config["modules"]["secondary_analyst"] = {
+            "class": "LLMAnalyst",
+            "provider": "secondary",
+            "tier": "commodity",
+        }
+        config["modules"]["generator"] = {
+            "class": "LLMGenerator",
+            "provider": "primary",
+            "tier": "commodity",
+            "max_tokens": 512,
+        }
+        config["modules"]["adversarial"] = {
+            "class": "LLMAdversarialReader",
+            "provider": "secondary",
+            "tier": "commodity",
+        }
+        config["modules"]["review_gate"] = {"class": "AutoApproveReviewGate"}
+        config["modules"]["extractor"] = {
+            "class": "OpenAIStructuredExtractor",
+            "provider": "primary",
+        }
+
+        # Persona path.
+        config["paths"]["faction_prompt"] = str(persona_path)
+
+        config_path = self.tmp_dir / f"pipeline_{faction_id}.yaml"
+        config_path.write_text(
+            yaml.safe_dump(config, sort_keys=False), encoding="utf-8"
+        )
+        return config_path
+
+    # ------------------------------------------------------------------
+    # Lifecycle
+    # ------------------------------------------------------------------
+
+    async def setup(self) -> None:
+        """Create and start all agent Orchestrators."""
+        for faction_id, persona_path in self.faction_personas.items():
+            db_path = self.tmp_dir / f"{faction_id}.db"
+            config_path = self._generate_faction_config(
+                faction_id, persona_path, db_path
+            )
+
+            transport = TestTransport()
+            overrides = {"transport": transport}
+            overrides.update(self.extra_module_overrides)
+            orchestrator = Orchestrator(
+                config_path,
+                llm_client=self.llm_client,
+                cost_accountant=self.cost_accountant,
+                module_overrides=overrides,
+                base_path=self.base_path,
+            )
+            task = asyncio.create_task(orchestrator.start())
+            await asyncio.sleep(0)  # let the event loop start
+
+            self.agents[faction_id] = AgentHandle(
+                faction_id=faction_id,
+                orchestrator=orchestrator,
+                transport=transport,
+                task=task,
+            )
+
+    async def teardown(self) -> None:
+        """Shut down all agents gracefully."""
+        for handle in self.agents.values():
+            await handle.orchestrator.shutdown()
+            handle.task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await handle.task
+
+    # ------------------------------------------------------------------
+    # Message routing
+    # ------------------------------------------------------------------
+
+    async def broadcast(
+        self,
+        sender_id: str,
+        content: str,
+        *,
+        channel: str = "public",
+    ) -> None:
+        """Inject an event into all agents except the sender."""
+        now = datetime.now(timezone.utc)
+        self.channel_log.append(
+            {
+                "sender": sender_id,
+                "channel": channel,
+                "content": content,
+                "timestamp": now.isoformat(),
+            }
+        )
+        for faction_id, handle in self.agents.items():
+            if faction_id != sender_id:
+                await handle.transport.inject(
+                    InboundEvent(
+                        timestamp=now,
+                        sender_faction=sender_id,
+                        channel=channel,
+                        content=content,
+                    )
+                )
+
+    async def broadcast_to_all(
+        self,
+        sender_id: str,
+        content: str,
+        *,
+        channel: str = "public",
+    ) -> None:
+        """Inject an event into ALL agents (including sender)."""
+        now = datetime.now(timezone.utc)
+        self.channel_log.append(
+            {
+                "sender": sender_id,
+                "channel": channel,
+                "content": content,
+                "timestamp": now.isoformat(),
+            }
+        )
+        for handle in self.agents.values():
+            await handle.transport.inject(
+                InboundEvent(
+                    timestamp=now,
+                    sender_faction=sender_id,
+                    channel=channel,
+                    content=content,
+                )
+            )
+
+    # ------------------------------------------------------------------
+    # Round management
+    # ------------------------------------------------------------------
+
+    async def run_round(self, round_number: int) -> dict[str, str]:
+        """Execute one round: moderator update → each agent responds → round end."""
+        print(f"\n{'='*60}")
+        print(f"  ROUND {round_number}")
+        print(f"{'='*60}")
+
+        # 1. Inject moderator round update.
+        update = ROUND_UPDATES.get(round_number)
+        if update:
+            print(f"\n[MODERATOR] {update[:120]}...")
+            await self.broadcast_to_all("moderator", update)
+            await asyncio.sleep(0.5)  # settle for extraction of moderator message
+
+        # 2. Each agent generates a response.
+        round_responses: dict[str, str] = {}
+        for faction_id, handle in self.agents.items():
+            # Tag LLM calls with the current faction.
+            if self.logging_client:
+                self.logging_client.set_faction(faction_id)
+            try:
+                await handle.orchestrator.run_response_pipeline()
+            except Exception as exc:
+                print(f"  [{faction_id}] response pipeline error: {exc}")
+                continue
+
+            await asyncio.sleep(0.05)  # settle
+
+            outputs = await handle.transport.get_output()
+            public = [m for m in outputs if m.channel == "public"]
+            if public:
+                response_text = public[-1].content
+                round_responses[faction_id] = response_text
+                truncated = (
+                    response_text[:200] + "..."
+                    if len(response_text) > 200
+                    else response_text
+                )
+                print(f"\n  [{faction_id.upper()}] {truncated}")
+
+        # 3. Broadcast each agent's response to all others.
+        for faction_id, response in round_responses.items():
+            await self.broadcast(faction_id, response)
+
+        await asyncio.sleep(2.0)  # settle for extraction of all received messages
+
+        # 4. Signal round end.
+        await self.broadcast_to_all("moderator", "[ROUND END]")
+        await asyncio.sleep(1.0)  # settle for analysis
+
+        return round_responses
+
+    async def run_game(self, total_rounds: int = 4) -> dict[str, Any]:
+        """Run a full multi-round game and return results."""
+        print(f"\n{'#'*60}")
+        print(f"  SELF-PLAY SIMULATION — {len(self.agents)} factions, {total_rounds} rounds")
+        print(f"{'#'*60}")
+
+        # Seed message.
+        print(f"\n[MODERATOR] {SEED_MESSAGE[:200]}...")
+        await self.broadcast_to_all("moderator", SEED_MESSAGE)
+        await asyncio.sleep(0.1)
+
+        # Run rounds.
+        all_responses: dict[int, dict[str, str]] = {}
+        for round_num in range(1, total_rounds + 1):
+            responses = await self.run_round(round_num)
+            all_responses[round_num] = responses
+
+        # Collect and return results.
+        results = await self.collect_results()
+        results["round_responses"] = {
+            str(k): v for k, v in all_responses.items()
+        }
+        results["rounds_completed"] = total_rounds
+
+        # Print summary.
+        print(f"\n{'='*60}")
+        print("  GAME COMPLETE")
+        print(f"{'='*60}")
+        print(f"  Rounds: {total_rounds}")
+        print(f"  Messages exchanged: {len(self.channel_log)}")
+        for fid, data in results["agents"].items():
+            promises = len(data.get("promises", []))
+            coalitions = len(data.get("coalitions", []))
+            print(f"  [{fid}] promises={promises}, coalitions={coalitions}")
+
+        return results
+
+    # ------------------------------------------------------------------
+    # Results collection
+    # ------------------------------------------------------------------
+
+    async def collect_results(self) -> dict[str, Any]:
+        """Query each agent's state and assemble the results dict."""
+        agent_results: dict[str, Any] = {}
+        for faction_id, handle in self.agents.items():
+            sm = handle.orchestrator.state_manager
+            try:
+                full_state = await sm.get_full_state()
+            except Exception:
+                full_state = {}
+
+            promises = await _safe_query(sm, "promises", {})
+            coalitions = await _safe_query(sm, "coalitions", {})
+            inconsistencies = await _safe_query(sm, "inconsistencies", {})
+            intelligence = await _safe_query(sm, "intelligence", {})
+            state_change_log = await _safe_query(sm, "state_change_log", {})
+            coaching = await _safe_query(sm, "coaching", {})
+            adversarial_reads = await _safe_query(sm, "adversarial_reads", {})
+
+            agent_results[faction_id] = {
+                "full_state": full_state,
+                "promises": promises,
+                "coalitions": coalitions,
+                "inconsistencies": inconsistencies,
+                "intelligence": intelligence,
+                "state_change_log": state_change_log,
+                "coaching": coaching,
+                "adversarial_reads": adversarial_reads,
+                "round": handle.orchestrator.current_round,
+            }
+
+        result = {
+            "agents": agent_results,
+            "transcript": self.channel_log,
+        }
+
+        # Attach LLM call log if available.
+        if self.logging_client:
+            result["llm_call_log"] = self.logging_client.to_dicts()
+
+        return result
+
+
+async def _safe_query(
+    state_manager: Any, entity_type: str, filters: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Query a state_manager table, returning [] on any error."""
+    try:
+        return await state_manager.query(entity_type, filters)
+    except Exception:
+        return []
