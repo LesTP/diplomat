@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from inspect import isawaitable
 from pathlib import Path
 from typing import Any
 
-from jsonschema import Draft202012Validator, ValidationError
+from toolkit.structured_llm import structured_complete, validate_json_schema
 
 from modules.extraction import load_prompt, load_schema, parse_json_object
 
@@ -37,7 +36,10 @@ class LLMAdversarialReader:
         try:
             if not draft.strip():
                 raise ValueError("Draft must not be blank")
-            response_text = await self._complete(self._build_messages(draft))
+            response_text = await structured_complete(
+                self.llm_client, self.llm_config, self.tier,
+                self._build_messages(draft),
+            )
             analysis = validate_adversarial_analysis(
                 parse_json_object(response_text),
                 self.schema,
@@ -46,18 +48,6 @@ class LLMAdversarialReader:
             return AdversarialResult(success=False, analysis=None, error=str(exc))
 
         return AdversarialResult(success=True, analysis=analysis, error=None)
-
-    async def _complete(self, messages: list[dict[str, str]]) -> str:
-        response = self.llm_client.complete(
-            messages=messages,
-            config=self.llm_config,
-            tier=self.tier,
-        )
-        if isawaitable(response):
-            response = await response
-        if not isinstance(response, str):
-            raise ValueError("LLM response must be plain text")
-        return response
 
     def _build_messages(self, draft: str) -> list[dict[str, str]]:
         user_prompt = "\n\n".join(
@@ -77,14 +67,9 @@ class LLMAdversarialReader:
 def validate_adversarial_analysis(
     analysis_data: dict[str, Any], schema: dict[str, Any]
 ) -> dict[str, Any]:
-    try:
-        Draft202012Validator(schema).validate(analysis_data)
-    except ValidationError as exc:
-        path = ".".join(str(part) for part in exc.absolute_path)
-        location = f" at {path}" if path else ""
-        raise ValueError(
-            f"Adversarial analysis failed schema validation{location}: {exc.message}"
-        ) from exc
+    validate_json_schema(
+        analysis_data, schema, label="Adversarial analysis failed schema validation"
+    )
     return analysis_data
 
 

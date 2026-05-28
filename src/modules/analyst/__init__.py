@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-from inspect import isawaitable
 from pathlib import Path
 from typing import Any
 
-from jsonschema import Draft202012Validator, ValidationError
+from toolkit.structured_llm import structured_complete, validate_json_schema
 
 from modules.extraction import load_prompt, load_schema, parse_json_object
 from modules.types import AnalysisResult
@@ -32,7 +31,10 @@ class LLMAnalyst:
     async def analyze(self, state: dict[str, Any]) -> AnalysisResult:
         timestamp = datetime.now(timezone.utc)
         try:
-            response_text = await self._complete(self._build_messages(state))
+            response_text = await structured_complete(
+                self.llm_client, self.llm_config, self.tier,
+                self._build_messages(state),
+            )
             report = validate_intelligence_report(
                 parse_json_object(response_text),
                 self.schema,
@@ -54,18 +56,6 @@ class LLMAnalyst:
             timestamp=timestamp,
         )
 
-    async def _complete(self, messages: list[dict[str, str]]) -> str:
-        response = self.llm_client.complete(
-            messages=messages,
-            config=self.llm_config,
-            tier=self.tier,
-        )
-        if isawaitable(response):
-            response = await response
-        if not isinstance(response, str):
-            raise ValueError("LLM response must be plain text")
-        return response
-
     def _build_messages(self, state: dict[str, Any]) -> list[dict[str, str]]:
         user_prompt = "\n\n".join(
             [
@@ -84,14 +74,9 @@ class LLMAnalyst:
 def validate_intelligence_report(
     report_data: dict[str, Any], schema: dict[str, Any]
 ) -> dict[str, Any]:
-    try:
-        Draft202012Validator(schema).validate(report_data)
-    except ValidationError as exc:
-        path = ".".join(str(part) for part in exc.absolute_path)
-        location = f" at {path}" if path else ""
-        raise ValueError(
-            f"Intelligence report failed schema validation{location}: {exc.message}"
-        ) from exc
+    validate_json_schema(
+        report_data, schema, label="Intelligence report failed schema validation"
+    )
     return report_data
 
 

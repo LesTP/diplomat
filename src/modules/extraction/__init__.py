@@ -3,11 +3,15 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass
-from inspect import isawaitable
 from pathlib import Path
 from typing import Any
 
-from jsonschema import Draft202012Validator, ValidationError
+from toolkit.structured_llm import (
+    load_schema as _tk_load_schema,
+    parse_json_response as _tk_parse_json,
+    structured_complete,
+    validate_json_schema,
+)
 
 from modules.types import StatePatch
 
@@ -132,16 +136,9 @@ class OpenAIStructuredExtractor:
         return ExtractionResult(success=True, patch=patch)
 
     async def _complete(self, messages: list[dict[str, str]]) -> str:
-        response = self.llm_client.complete(
-            messages=messages,
-            config=self.llm_config,
-            tier=self.tier,
+        return await structured_complete(
+            self.llm_client, self.llm_config, self.tier, messages
         )
-        if isawaitable(response):
-            response = await response
-        if not isinstance(response, str):
-            raise ValueError("LLM response must be plain text")
-        return response
 
     def _build_messages(
         self, input_text: str, current_state: dict[str, Any], trigger_type: str
@@ -176,38 +173,17 @@ def load_prompt(prompt_path: str | Path) -> str:
 
 
 def load_schema(schema_path: str | Path) -> dict[str, Any]:
-    text = Path(schema_path).read_text(encoding="utf-8")
-    try:
-        parsed = json.loads(text)
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"Schema file is not valid JSON: {exc.msg}") from exc
-    if not isinstance(parsed, dict):
-        raise ValueError("Schema file must be a JSON object")
-    return parsed
+    return _tk_load_schema(schema_path)
 
 
 def parse_json_object(response_text: str) -> dict[str, Any]:
-    try:
-        parsed = json.loads(response_text)
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"LLM response was not valid JSON: {exc.msg}") from exc
-
-    if not isinstance(parsed, dict):
-        raise ValueError("LLM response JSON must be an object")
-    return parsed
+    return _tk_parse_json(response_text)
 
 
 def validate_state_patch(
     patch_data: dict[str, Any], schema: dict[str, Any]
 ) -> StatePatch:
-    try:
-        Draft202012Validator(schema).validate(patch_data)
-    except ValidationError as exc:
-        path = ".".join(str(part) for part in exc.absolute_path)
-        location = f" at {path}" if path else ""
-        raise ValueError(
-            f"State patch failed schema validation{location}: {exc.message}"
-        ) from exc
+    validate_json_schema(patch_data, schema, label="State patch failed schema validation")
     return StatePatch(patch_data)
 
 
