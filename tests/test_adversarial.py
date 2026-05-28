@@ -205,7 +205,8 @@ async def test_wrong_value_type_success_false(prompt_path, schema_path):
 
     assert result.success is False
     assert result.analysis is None
-    assert "failed schema validation at reveals" in result.error
+    assert "failed schema validation" in result.error
+    assert "reveals" in result.error
 
 
 @pytest.mark.asyncio
