@@ -364,6 +364,12 @@ Endgame-prompt anomaly (from the v1 attempt before budget fix, but worth recordi
 - Reconciliation's inconsistency and status-update paths need a scenario designed to trip them (e.g., a faction that shifts position contradicting an earlier explicit commitment). Future test, not blocking.
 - Stage 1 (Model 1) conversation model is sufficient for the current experimental program. Revisit Stage 2 (K=2 passes) only if Run 8 reveals that within-round reactivity would change conclusions.
 
+**Open items closed by this run:**
+- Run 7 itself (this entry).
+- Promise dedup via reconciliation — confirmed live; reconciliation merged multiple duplicate coalition proposals across rounds 3-4 with semantic-similarity reasoning.
+- Explicit `FINAL ROUND` / `PENULTIMATE` prompt markers — implemented and fired correctly (R3 / R4 only); B's R4 majority-share concession is visible behavioral evidence the FINAL ROUND marker did its job.
+- Self-play infrastructure hardened — round counter mirror, per-round budget reset mirror, auto-trigger gate, dry-run validation capability. See `ARCH_conversation_model.md` for the conversation-model design space documented at the same time.
+
 **Decision rule for Run 8 (defined in advance, per the new entry template):**
 - If the 3-provider asymmetric outcome shows a clear winner-by-provider → that's the experiment, log it.
 - If the winner is essentially random / no provider dominates → run two more games with rotated faction assignments to control for position.
@@ -469,13 +475,7 @@ Endgame-prompt anomaly (from the v1 attempt before budget fix, but worth recordi
 
 ### Open Items
 
-**Closed by Run 7 (2026-05-29):**
-- [x] **Run 7** — endgame awareness + live reconciliation + scoring. Done. See Run 7 entry for observations.
-- [x] Promise dedup via reconciliation. Confirmed live; reconciliation merged multiple duplicate coalition proposals across rounds 3-4 with semantic-similarity reasoning.
-- [x] Explicit `FINAL ROUND` / `PENULTIMATE` prompt markers — implemented and fired correctly (R3 / R4 only); B's R4 majority-share concession is visible behavioral evidence.
-- [x] Self-play infrastructure hardened — round counter mirror, per-round budget reset mirror, auto-trigger gate, dry-run validation. See `ARCH_conversation_model.md` for the conversation-model design space documented at the same time.
-
-**Still open after Run 7:**
+**Still open (post Run 7):**
 - [ ] **Run 8** — three-provider asymmetric Generator showdown (OpenAI / Anthropic / Gemini). Plumbing ready.
 - [ ] Run 9 — rotate faction assignments in 3-provider showdown to control for position advantage.
 - [ ] Reconciliation: fulfillment detection (`pending → kept`). Still untested in practice because Run 7 reached no agreement, so no promises got fulfilled. Needs a scenario where at least one promise visibly resolves mid-game.
