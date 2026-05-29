@@ -12,12 +12,13 @@ Faction identity configuration. Loads the faction persona from `config/faction_p
 - **Errors:** FileNotFoundError if faction_prompt.txt is missing
 
 ### build_round_context
-- **Signature:** `async def build_round_context(self, round_number: int, rounds_remaining: int | None, coaching_context: CoachingContext) -> str`
+- **Signature:** `async def build_round_context(self, round_number: int, rounds_remaining: int | None, coaching_context: CoachingContext, total_rounds: int | None = None) -> str`
 - **Parameters:**
   - round_number: int — current round
   - rounds_remaining: int | None — None if total rounds unknown
   - coaching_context: CoachingContext — accumulated coaching from the coaching table
-- **Returns:** str — formatted round context section
+  - total_rounds: int | None — if provided, header renders "Round: N of M" and `rounds_remaining` is derived from `total_rounds - round_number` (overrides any caller-supplied `rounds_remaining`). Production games typically pass None; the self-play harness sets it because it knows the game length.
+- **Returns:** str — formatted round context section. When the effective rounds_remaining is 1, a `### PENULTIMATE ROUND` reminder is inserted. When it is 0, a `### FINAL ROUND` reminder replaces it. Earlier rounds get no endgame reminder.
 - **Errors:** none
 
 ## Types

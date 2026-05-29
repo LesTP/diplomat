@@ -155,3 +155,113 @@ async def test_build_round_context_formats_unknown_rounds_remaining(tmp_path):
     )
 
     assert "Rounds remaining: unknown" in context
+
+
+@pytest.mark.asyncio
+async def test_build_round_context_with_total_rounds_renders_x_of_y(tmp_path):
+    persona = FileBasedPersona(tmp_path / "unused.txt")
+
+    context = await persona.build_round_context(
+        round_number=2,
+        rounds_remaining=None,
+        coaching_context=CoachingContext(
+            priorities=[], constraints=[], watch_items=[], tone_notes=[]
+        ),
+        total_rounds=4,
+    )
+
+    assert "Round: 2 of 4" in context
+    assert "Rounds remaining: 2" in context  # derived from total_rounds
+    assert "FINAL ROUND" not in context
+    assert "PENULTIMATE ROUND" not in context
+
+
+@pytest.mark.asyncio
+async def test_build_round_context_total_rounds_overrides_rounds_remaining(tmp_path):
+    """When both are given, total_rounds wins (authoritative source)."""
+    persona = FileBasedPersona(tmp_path / "unused.txt")
+
+    context = await persona.build_round_context(
+        round_number=2,
+        rounds_remaining=99,  # stale/wrong
+        coaching_context=CoachingContext(
+            priorities=[], constraints=[], watch_items=[], tone_notes=[]
+        ),
+        total_rounds=4,
+    )
+
+    assert "Rounds remaining: 2" in context
+    assert "Rounds remaining: 99" not in context
+
+
+@pytest.mark.asyncio
+async def test_build_round_context_penultimate_round_emits_warning(tmp_path):
+    persona = FileBasedPersona(tmp_path / "unused.txt")
+
+    # Via rounds_remaining directly.
+    context_rr = await persona.build_round_context(
+        round_number=3,
+        rounds_remaining=1,
+        coaching_context=CoachingContext(
+            priorities=[], constraints=[], watch_items=[], tone_notes=[]
+        ),
+    )
+    assert "### PENULTIMATE ROUND" in context_rr
+    assert "Only one round remains after this" in context_rr
+    assert "FINAL ROUND" not in context_rr
+
+    # Via total_rounds derivation (round 3 of 4 → 1 remaining).
+    context_tr = await persona.build_round_context(
+        round_number=3,
+        rounds_remaining=None,
+        coaching_context=CoachingContext(
+            priorities=[], constraints=[], watch_items=[], tone_notes=[]
+        ),
+        total_rounds=4,
+    )
+    assert "### PENULTIMATE ROUND" in context_tr
+
+
+@pytest.mark.asyncio
+async def test_build_round_context_final_round_emits_warning(tmp_path):
+    persona = FileBasedPersona(tmp_path / "unused.txt")
+
+    # Via rounds_remaining directly.
+    context_rr = await persona.build_round_context(
+        round_number=4,
+        rounds_remaining=0,
+        coaching_context=CoachingContext(
+            priorities=[], constraints=[], watch_items=[], tone_notes=[]
+        ),
+    )
+    assert "### FINAL ROUND" in context_rr
+    assert "This is the last round" in context_rr
+    assert "PENULTIMATE ROUND" not in context_rr
+
+    # Via total_rounds derivation (round 4 of 4 → 0 remaining).
+    context_tr = await persona.build_round_context(
+        round_number=4,
+        rounds_remaining=None,
+        coaching_context=CoachingContext(
+            priorities=[], constraints=[], watch_items=[], tone_notes=[]
+        ),
+        total_rounds=4,
+    )
+    assert "### FINAL ROUND" in context_tr
+
+
+@pytest.mark.asyncio
+async def test_build_round_context_no_endgame_in_early_rounds(tmp_path):
+    """Endgame reminders must NOT fire in early rounds (rounds_remaining >= 2)."""
+    persona = FileBasedPersona(tmp_path / "unused.txt")
+
+    for remaining in (2, 5, 10):
+        context = await persona.build_round_context(
+            round_number=1,
+            rounds_remaining=remaining,
+            coaching_context=CoachingContext(
+                priorities=[], constraints=[], watch_items=[], tone_notes=[]
+            ),
+        )
+        assert "FINAL ROUND" not in context
+        assert "PENULTIMATE ROUND" not in context

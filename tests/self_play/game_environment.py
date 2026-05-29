@@ -439,6 +439,11 @@ class GameEnvironment:
         await self.broadcast_to_all("moderator", self.seed_message)
         await asyncio.sleep(0.1)
 
+        # Tell each faction's orchestrator the game length so the persona can
+        # surface penultimate/final-round endgame reminders.
+        for handle in self.agents.values():
+            handle.orchestrator.total_rounds = total_rounds
+
         # Run rounds.
         all_responses: dict[int, dict[str, str]] = {}
         for round_num in range(1, total_rounds + 1):

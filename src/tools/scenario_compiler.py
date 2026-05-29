@@ -136,6 +136,13 @@ BATNA WARNING: If no agreement is reached, you get only {batna} points.
 Any deal scoring above {batna} is better than no deal. But don't settle
 for barely above your BATNA — push for the best terms possible.
 
+ENDGAME: This game has a fixed number of rounds. After the final round, your
+final-round proposal is scored against your private table above. Highest
+scorer wins; anyone below their BATNA loses. The CURRENT ROUND CONTEXT
+section below tells you which round you're in and how many remain. Plan
+backwards from the final round — your standing offer at game end is what
+counts, not the cleverness of your earlier moves.
+
 Your TRUE priority is {true_priority_issue} — you value {true_priority_outcome} \
 most ({true_priority_points}pts).
 

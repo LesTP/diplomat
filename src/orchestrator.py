@@ -106,6 +106,10 @@ class Orchestrator:
             self.config.get("message_debounce_seconds", 0.5)
         )
         self.current_round = 1
+        # Set by self-play harness to communicate game length to the persona's
+        # endgame reminders. Production games leave this as None — there's no
+        # known total round count.
+        self.total_rounds: int | None = None
         self._running = False
         self._extraction_tasks: set[asyncio.Task[None]] = set()
         self._round_timer_task: asyncio.Task[None] | None = None
@@ -391,6 +395,7 @@ class Orchestrator:
             self.current_round,
             None,
             await self._coaching_context(),
+            total_rounds=self.total_rounds,
         )
         context = await self.context_assembler.assemble(
             persona_prompt=persona_prompt,

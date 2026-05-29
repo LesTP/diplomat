@@ -174,7 +174,7 @@ class FakePersona:
     async def get_base_prompt(self):
         return "Base persona"
 
-    async def build_round_context(self, round_number, rounds_remaining, coaching_context):
+    async def build_round_context(self, round_number, rounds_remaining, coaching_context, total_rounds=None):
         return f"Round {round_number}"
 
 

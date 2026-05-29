@@ -177,8 +177,105 @@ Scenario compiler classifies scenarios and injects mode-specific behavioral inst
 - **Cooperative:** "Look for trades that create mutual value, but maximize YOUR share."
 - **Mixed:** "Be competitive on your priority issue, cooperative on secondary ones."
 
-### Run 7 — Three-Party Coalition (Scored)
-Pending — blocked by network share outage during first attempt.
+### Run 7 — Three-Party Coalition (Scored) — READY TO RUN
+
+**Status:** READY TO RUN (instrumentation complete 2026-05-29; awaiting kickoff)
+
+**Rationale:**
+A negotiation strategy on a finite horizon should evolve: open exploratory, gather
+information, then arc toward a concrete commitment as the end approaches. Without
+an explicit endgame signal, an agent has no reason to ever close — every round
+feels like a middle round, so it keeps hedging, keeps exploring, and never commits.
+Once we tell the agent the game is bounded, scoring happens at the end, and there
+are explicit winners and losers, the agent gains a reason to converge late.
+
+This applies beyond Run 7. It's an instance of a general principle for
+finite-horizon agent design: when an agent's behavior depends on knowing the game
+is bounded, you have to *tell it the game is bounded*. The same logic will apply
+to any future scenario and to real game deployment.
+
+**Hypothesis:**
+Stating "finite game + scoring + winners/losers" in the persona is *sufficient*
+to produce the open-then-commit arc. Specifically:
+- Round 1-2: agents probe, propose tentative trades, withhold true priorities (similar to Runs 4-6).
+- Round 3 (penultimate): visible shift toward concrete proposals; agents begin "closing language".
+- Round 4 (final): agents state their best offer clearly; convergence on a deal (or explicit walkaway with reference to BATNA).
+
+If this holds, the prompt design is minimal and the dynamic PENULTIMATE/FINAL
+injections are belt-and-suspenders. If it fails, we'll see flat behavior across
+rounds and need to strengthen the time-pressure mechanism.
+
+Secondary hypothesis (lower confidence): reconciliation will visibly improve
+ledger quality — fewer duplicate promises, some `pending → kept/broken`
+transitions, at least one inconsistency flagged from position shifts.
+
+**What we're tweaking (the experimental variables):**
+
+| Element | Change | Type |
+|---------|--------|------|
+| `PERSONA_TEMPLATE` in scenario compiler | New static `ENDGAME:` paragraph (every faction's system prompt) | prompt |
+| Persona `build_round_context` | Renders "Round N of M"; emits `### PENULTIMATE ROUND` / `### FINAL ROUND` blocks in last two rounds | prompt + infra |
+| GameEnvironment | Wires `total_rounds` to each orchestrator | infra |
+| Reconciliation module | Enabled (built Phase 18, never run live) | infra (first live test) |
+| Post-game scoring | Enabled (built Phase 18, never run live) | infra (first live test) |
+
+Implementation: see `DEVLOG.md` → "Run 7 Prep — Endgame Awareness" entry
+(2026-05-29).
+
+**Config:**
+- Scenario: Three-Party Coalition (same as Run 6, auto-compiled by scenario compiler)
+- Models: all 3 factions on `gpt-4.1-mini` (kept identical to Runs 3-6 so behavior change can be cleanly attributed to the prompt/instrumentation change, not the model)
+- AutoApproveReviewGate, 4 rounds
+- Local temp path for self-play cost ledger (UNC-path fix from the previous attempt)
+
+**What we're looking for (observation targets):**
+- *Endgame behavior shift:* do agents commit more concretely in round 4 than round 1? Do they reference scoring/BATNA in messages? Do they react to the PENULTIMATE / FINAL ROUND injection (round 3 vs round 4)?
+- *Reconciliation:* duplicate promises actually merged (Run 4 had 5 dupes of the same $2M commitment), at least one `pending → kept/broken`, at least one inconsistency flagged (zero across 7 prior runs).
+- *Post-game scoring:* clean winner/loser declaration with per-faction scores vs BATNA.
+
+**Estimated cost:** ~$0.60 (similar to Run 6)
+
+**Decision after run:**
+- If late-round shift is visible → keep prompt design as-is; move on to Run 8 (multi-provider).
+- If behavior is still flat → strengthen dynamic reminders (insert earlier, raise urgency wording), re-run as 7b.
+- If shift is too strong (agents panic and capitulate below BATNA) → soften, possibly remove the FINAL ROUND injection and rely on round count alone.
+- If reconciliation underperforms → separate diagnostic before Run 8.
+
+**Observations:** _(to fill after the run)_
+
+**Learning:** _(to fill after the run)_
+
+---
+
+## Phase 7: Multi-Provider Comparison (Run 8) — PLANNED
+
+### Run 8 — Three-Provider Asymmetric Showdown
+
+**Goal:** Measure model-family strategic capability cleanly. Same prompt, same persona, same scenario — one variable: which provider backs the Generator.
+
+**Verified providers (2026-05-29):**
+- ✅ OpenAI: `gpt-4.1-mini` (existing key, used in Runs 1-7)
+- ✅ Anthropic: `claude-haiku-4-5` and `claude-sonnet-4-6` (key added, both reachable via toolkit)
+- ✅ Google: `gemini-2.5-flash` (key added, reachable via toolkit; 2.0-flash and 2.5-pro return `limit: 0` on this project, so 2.5-flash is the working commodity-tier model)
+
+**Config:**
+- Same scenario as Run 7 (Three-Party Coalition, with endgame awareness already baked in from Run 7's prompt changes)
+- Per-faction Generator model:
+  - Faction A: `gpt-4.1-mini` (OpenAI)
+  - Faction B: `claude-haiku-4-5` (Anthropic)
+  - Faction C: `gemini-2.5-flash` (Google)
+- All other modules (extraction, analyst, adversarial, reconciliation) held constant on a single provider (likely OpenAI) so only the Generator varies
+- AutoApproveReviewGate, 4 rounds, post-game scoring
+
+**What we're looking for:**
+- Winner of the post-game score across providers (with caveat: n=1)
+- Qualitative differences: persona adherence, concreteness, late-round closing behavior, willingness to deceive
+- Token cost per faction (free-tier coverage for Gemini, paid for OpenAI/Anthropic)
+- Schema-validation failure rates per provider (does structured_call+retry hold up across model families?)
+
+**Estimated cost:** ~$0.40 (OpenAI + Anthropic + Gemini free tier covers most calls)
+
+**Optional Run 9:** Rotate faction assignments (B↔A, C↔B, A↔C) to control for position advantage in the coalition game. Repeat once or twice to build a small leaderboard.
 
 ---
 
@@ -213,9 +310,11 @@ Pending — blocked by network share outage during first attempt.
 | 4 | Water Rights | 21 | 0 | ~$0.55 | Rich negotiation, convergence, duplicates |
 | 5 | Trade Summit | 8 | 0 | ~$0.55 | Deception tactics work with point tables |
 | 6 | Coalition (auto) | 1 | 3 | ~$0.60 | Scenario compiler works, extraction too strict |
-| 7 | Coalition (scored) | TBD | TBD | TBD | Scoring + game mode + broader extraction |
+| 7 | Coalition (endgame, scored) | TBD | TBD | ~$0.60 | **Planned.** Endgame awareness + live reconciliation + scoring |
+| 8 | Coalition (3-provider) | TBD | TBD | ~$0.40 | **Planned.** OpenAI vs Anthropic vs Gemini Generator, all else equal |
 
-**Total estimated spend across all runs: ~$2.50**
+**Total spend across completed runs: ~$2.50**
+**Estimated additional spend for Runs 7 + 8: ~$1.00**
 
 ---
 
@@ -236,10 +335,14 @@ Pending — blocked by network share outage during first attempt.
 ---
 
 ### Open Items
-- [ ] Promise dedup via reconciliation — built but untested with live LLM
-- [ ] Fulfillment detection via reconciliation — built but untested
-- [ ] Inconsistency detection via reconciliation — built but untested
-- [ ] Promise state transitions (pending -> kept/broken) — reconciler should handle this
+- [ ] **Run 7** — endgame awareness + live reconciliation + scoring (planned, see Phase 6)
+- [ ] **Run 8** — three-provider asymmetric showdown (planned, see Phase 7)
+- [ ] Promise dedup via reconciliation — built but untested with live LLM (covered by Run 7)
+- [ ] Fulfillment detection via reconciliation — built but untested (covered by Run 7)
+- [ ] Inconsistency detection via reconciliation — built but untested (covered by Run 7)
+- [ ] Promise state transitions (pending -> kept/broken) — reconciler should handle this (covered by Run 7)
+- [ ] Explicit `FINAL ROUND` / `PENULTIMATE` prompt markers — defer until Run 7 shows whether implicit round count is enough
+- [ ] Run 9: rotate faction assignments in 3-provider showdown to control for position advantage
 - [ ] Persona drift over 8+ rounds not yet tested
 - [ ] Real game deployment (Telegram, operator coaching, non-self-play)
 - [ ] Provider-native structured output (OpenAI `response_format: json_schema`)

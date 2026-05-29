@@ -36,26 +36,66 @@ class FileBasedPersona:
         round_number: int,
         rounds_remaining: int | None,
         coaching_context: CoachingContext,
+        total_rounds: int | None = None,
     ) -> str:
-        remaining = "unknown" if rounds_remaining is None else str(rounds_remaining)
-        sections = [
+        # If total_rounds is given, derive rounds_remaining authoritatively from it.
+        if total_rounds is not None:
+            effective_remaining: int | None = total_rounds - round_number
+            round_line = f"Round: {round_number} of {total_rounds}"
+            remaining_display = str(effective_remaining)
+        else:
+            effective_remaining = rounds_remaining
+            round_line = f"Round: {round_number}"
+            remaining_display = (
+                "unknown" if rounds_remaining is None else str(rounds_remaining)
+            )
+
+        sections: list[str] = [
             _ROUND_CONTEXT_MARKER,
             "",
-            f"Round: {round_number}",
-            f"Rounds remaining: {remaining}",
+            round_line,
+            f"Rounds remaining: {remaining_display}",
             "",
-            "### Priorities",
-            *_format_items(coaching_context.priorities),
-            "",
-            "### Constraints",
-            *_format_items(coaching_context.constraints),
-            "",
-            "### Watch Items",
-            *_format_items(coaching_context.watch_items),
-            "",
-            "### Tone Notes",
-            *_format_items(coaching_context.tone_notes),
         ]
+
+        # Endgame reminder fires only in the last two rounds (penultimate + final).
+        if effective_remaining is not None and effective_remaining <= 1:
+            if effective_remaining == 0:
+                sections.extend(
+                    [
+                        "### FINAL ROUND",
+                        "This is the last round. Your standing offer at the end of this round "
+                        "is what gets scored against your private table. State your final "
+                        "proposal clearly. There are no more chances to adjust.",
+                        "",
+                    ]
+                )
+            else:  # effective_remaining == 1
+                sections.extend(
+                    [
+                        "### PENULTIMATE ROUND",
+                        "Only one round remains after this. Move toward concrete commitments "
+                        "now. Whatever offer you carry into the final round is what gets "
+                        "scored — don't leave your best terms for too late.",
+                        "",
+                    ]
+                )
+
+        sections.extend(
+            [
+                "### Priorities",
+                *_format_items(coaching_context.priorities),
+                "",
+                "### Constraints",
+                *_format_items(coaching_context.constraints),
+                "",
+                "### Watch Items",
+                *_format_items(coaching_context.watch_items),
+                "",
+                "### Tone Notes",
+                *_format_items(coaching_context.tone_notes),
+            ]
+        )
         return "\n".join(sections)
 
 

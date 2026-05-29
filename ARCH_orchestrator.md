@@ -111,6 +111,7 @@ Budget lifecycle: the Orchestrator creates a CostBudget per round from pipeline.
 
 ## State
 - Round counter (persisted in game_state table)
+- `total_rounds: int | None` — in-memory attribute. Default `None` (production games don't know the count). Self-play harnesses set this before running so the Persona's round-context formatter can render "Round N of M" and emit penultimate/final-round endgame reminders.
 - Module instances (in-memory, reconstructed on restart)
 - CostAccountant session totals (in-memory, ledger persisted to data/cost_ledger.jsonl)
 - Coaching queue consumption tracking (in coaching table, managed via State Manager)
