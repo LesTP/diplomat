@@ -112,6 +112,7 @@ Budget lifecycle: the Orchestrator creates a CostBudget per round from pipeline.
 ## State
 - Round counter (persisted in game_state table)
 - `total_rounds: int | None` — in-memory attribute. Default `None` (production games don't know the count). Self-play harnesses set this before running so the Persona's round-context formatter can render "Round N of M" and emit penultimate/final-round endgame reminders.
+- `auto_response_enabled: bool` — in-memory attribute. Default `True` (production reacts to direct-address messages). The self-play harness sets this to `False` so that `_is_direct_address` triggers don't auto-fire response pipelines — self-play wants exactly one explicit response per agent per round (Model 1 in `ARCH_conversation_model.md`).
 - Module instances (in-memory, reconstructed on restart)
 - CostAccountant session totals (in-memory, ledger persisted to data/cost_ledger.jsonl)
 - Coaching queue consumption tracking (in coaching table, managed via State Manager)

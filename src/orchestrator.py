@@ -110,6 +110,12 @@ class Orchestrator:
         # endgame reminders. Production games leave this as None — there's no
         # known total round count.
         self.total_rounds: int | None = None
+        # When False, suppresses the orchestrator's `_is_direct_address`
+        # auto-trigger that fires response pipelines on every inbound message
+        # mentioning this faction. Self-play sets this to False so that exactly
+        # one explicit response per agent per round is produced — see
+        # ARCH_conversation_model.md (Stage 1, Model 1).
+        self.auto_response_enabled: bool = True
         self._running = False
         self._extraction_tasks: set[asyncio.Task[None]] = set()
         self._round_timer_task: asyncio.Task[None] | None = None
@@ -171,7 +177,7 @@ class Orchestrator:
         self._enqueue_message_extraction(event, event_id)
         if await self._check_round_boundary(event):
             return event_id
-        if self._is_direct_address(event):
+        if self.auto_response_enabled and self._is_direct_address(event):
             await self.run_response_pipeline(trigger_event=event)
         return event_id
 

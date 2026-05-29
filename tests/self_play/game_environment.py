@@ -383,6 +383,22 @@ class GameEnvironment:
         print(f"  ROUND {round_number}")
         print(f"{'='*60}")
 
+        # Tell each orchestrator we've advanced to this round. The orchestrator's
+        # built-in round-boundary signal detection looks for "^ROUND N" markers,
+        # which our moderator doesn't send — so without this, current_round would
+        # stay pinned at 1 for the entire game and the persona's PENULTIMATE /
+        # FINAL ROUND reminders would never fire.
+        # We also explicitly reset the per-round cost budget, because the same
+        # round-boundary signal would normally do that. Without the reset, the
+        # round-budget tracker accumulates spend monotonically across all rounds
+        # and eventually trips, silently skipping generation in later rounds.
+        for handle in self.agents.values():
+            handle.orchestrator.current_round = round_number
+            try:
+                handle.orchestrator._reset_round_budget()
+            except Exception as exc:
+                print(f"  [{handle.faction_id}] _reset_round_budget failed: {exc}")
+
         # 1. Inject moderator round update.
         update = self.round_updates.get(round_number)
         if update:
@@ -434,15 +450,26 @@ class GameEnvironment:
         print(f"  SELF-PLAY SIMULATION — {len(self.agents)} factions, {total_rounds} rounds")
         print(f"{'#'*60}")
 
+        # Tell each faction's orchestrator the game length so the persona can
+        # surface penultimate/final-round endgame reminders. MUST happen before
+        # the seed broadcast — otherwise any orchestrator auto-response triggered
+        # by the seed message sees `total_rounds=None` and prints "Rounds
+        # remaining: unknown" in the round context.
+        # Also disable auto-response triggers (Stage 1 / Model 1 — see
+        # ARCH_conversation_model.md). Each agent gets exactly one response
+        # per round via the explicit `run_response_pipeline()` call in
+        # `run_round()`. Without this, the orchestrator's `_is_direct_address`
+        # trigger fires 3-5 extra generations per agent per round (one per
+        # inbound message mentioning the faction), most of which are silently
+        # lost to real-LLM-latency races against the transport drain.
+        for handle in self.agents.values():
+            handle.orchestrator.total_rounds = total_rounds
+            handle.orchestrator.auto_response_enabled = False
+
         # Seed message.
         print(f"\n[MODERATOR] {self.seed_message[:200]}...")
         await self.broadcast_to_all("moderator", self.seed_message)
         await asyncio.sleep(0.1)
-
-        # Tell each faction's orchestrator the game length so the persona can
-        # surface penultimate/final-round endgame reminders.
-        for handle in self.agents.values():
-            handle.orchestrator.total_rounds = total_rounds
 
         # Run rounds.
         all_responses: dict[int, dict[str, str]] = {}

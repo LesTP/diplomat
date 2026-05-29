@@ -59,6 +59,16 @@ def _parse_args() -> argparse.Namespace:
         default="a multi-party negotiation",
         help="Title for compiled persona headers",
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=(
+            "Replace the real LLM client with DryRunLLMClient (zero cost). "
+            "All calls return canned schema-valid JSON. Use this to verify "
+            "self-play infrastructure (round counter, message delivery, "
+            "extraction/reconciliation call counts) before spending real money."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -196,10 +206,25 @@ async def _compile_scenario(
 
 async def _run(args: argparse.Namespace) -> None:
     faction_ids = [f.strip() for f in args.factions.split(",") if f.strip()]
-    # Single accountant shared between adapter and cost gate.
-    accountant = _build_raw_accountant()
-    llm_client = _build_llm_client(cost_accountant=accountant)
-    cost_accountant = _build_cost_accountant(accountant=accountant)
+
+    if args.dry_run:
+        # Zero-cost path: wrap a DryRunLLMClient with the same LoggingLLMClient
+        # so the existing llm_call_log machinery still records every call.
+        from tests.self_play.fake_llm_client import DryRunLLMClient
+        from tests.self_play.game_environment import LoggingLLMClient
+        from tests.helpers.factories import FakeCostAccountant
+
+        print("=" * 60)
+        print("  DRY RUN MODE — no real LLM calls, no cost")
+        print("=" * 60)
+        accountant = None
+        llm_client = LoggingLLMClient(DryRunLLMClient())
+        cost_accountant = FakeCostAccountant()
+    else:
+        # Single accountant shared between adapter and cost gate.
+        accountant = _build_raw_accountant()
+        llm_client = _build_llm_client(cost_accountant=accountant)
+        cost_accountant = _build_cost_accountant(accountant=accountant)
 
     with tempfile.TemporaryDirectory(
         prefix="diplomat_selfplay_", ignore_cleanup_errors=True

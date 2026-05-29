@@ -20,6 +20,10 @@ logs/loop/*.jsonl
 logs/loop/*.txt
 logs/loop/*.log
 logs/loop/.*.tmp
+# Self-play noisy artifacts (regenerable; results JSONs are kept)
+tests/self_play/results/*.log
+tests/self_play/results/*.txt
+tests/self_play/results/dryrun_*.json
 
 # Config secrets
 config/.env
