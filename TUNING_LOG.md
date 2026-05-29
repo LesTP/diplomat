@@ -403,35 +403,156 @@ Endgame-prompt anomaly (from the v1 attempt before budget fix, but worth recordi
 
 ---
 
-## Phase 7: Multi-Provider Comparison (Run 8) — PLANNED
+## Phase 7: Multi-Provider Comparison (Run 8) — COMPLETE
 
-### Run 8 — Three-Provider Asymmetric Showdown
+### Run 8 — Three-Provider Asymmetric Showdown (Water Rights) — COMPLETE
 
-**Goal:** Measure model-family strategic capability cleanly. Same prompt, same persona, same scenario — one variable: which provider backs the Generator.
+**Status:** COMPLETE 2026-05-29. Switched from Three-Party Coalition to Water Rights to avoid Run 7's structural no-deal pattern. Surfaced and fixed two infra bugs (env loading + Markdown fence stripping) and built two new pieces of runner plumbing (per-faction provider routing, pre-compiled analysis loader). All three providers reached the transcript; 11/12 expected messages exchanged (Gamma's R4 lost to a Google free-tier rate limit, cosmetic).
 
-**Verified providers (2026-05-29):**
-- ✅ OpenAI: `gpt-4.1-mini` (existing key, used in Runs 1-7)
-- ✅ Anthropic: `claude-haiku-4-5` and `claude-sonnet-4-6` (key added, both reachable via toolkit)
-- ✅ Google: `gemini-2.5-flash` (key added, reachable via toolkit; 2.0-flash and 2.5-pro return `limit: 0` on this project, so 2.5-flash is the working commodity-tier model)
+**Pre-run history:** Run 7 used Three-Party Coalition where v(ABC)=121 ≈ v(AB)=118. Game-theoretically the excluded faction (C) had no path to a deal that beat their BATNA, so the strict "all factions converge" scoring always read "no deal" regardless of negotiation skill. Useless for a provider showdown — every model that plays correctly produces the same outcome. Switched to Water Rights (3 issues × 3 outcomes, asymmetric private valuations, all three factions can plausibly beat BATNA) and hand-patched BATNAs upward (alpha 7.5→11, beta 4→8, gamma 6→10) to force real negotiation pressure. Verified with a new tool (`tests/self_play/verify_scenario_optimum.py`) that the scenario has 12/27 deals beating all BATNAs, 5 Pareto-optimal deals, and a non-trivial "everyone-gets-priority" optimum.
+
+**Conversation model:** Stage 1 (Model 1 — single-shot sealed), same as Run 7. Carried forward unchanged.
+
+**Rationale:**
+A clean provider comparison needs a scenario where:
+1. Convergence is possible (a deal exists that beats BATNA for all)
+2. Finding it requires actual diplomatic skill (not just arithmetic)
+3. Different strategies produce different scores
+4. Information asymmetry creates space for misreading opponents
+
+Water Rights satisfies all four; Three-Party Coalition satisfies (3) only.
+
+**Hypothesis:**
+With one variable held (per-faction Generator provider) and all other modules fixed, different providers will exhibit different negotiation styles — anchoring, articulateness, willingness to compromise. The post-game score will reveal whether any style outperforms.
+
+**What we're tweaking (the experimental variables):**
+
+| Element | Change | Type |
+|---------|--------|------|
+| Per-faction Generator provider | Alpha=OpenAI gpt-4.1-mini, Beta=Anthropic claude-haiku-4-5, Gamma=Google gemini-2.5-flash. Extraction/Analyst/Adversarial/Reconciliation held on shared OpenAI. | infra |
+| `tests/self_play/scenarios/water_rights.md` | NEW. Three issues (volume, payment, infrastructure) × three outcomes each. Each faction has a distinct priority issue. | scenario |
+| `tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json` | Auto-compiled by scenario compiler, then BATNAs hand-patched upward to force negotiation pressure (compiler defaults too soft — see "Compiler BATNA anchor" in Open Items). | scenario data |
+| `tests/self_play/verify_scenario_optimum.py` | NEW tool. Enumerates all possible deals, computes per-faction max/BATNA/Pareto-optimal deals, verifies non-trivial logrolling optimum exists before spending money on a live run. | infra (new tool) |
+| `--per-faction-providers` CLI flag | NEW. Parses a JSON map `{faction: {provider, model}}` and overrides only the Generator slot per faction. Other modules unaffected. | runner |
+| `--analysis-json` CLI flag | NEW. Skips live LLM compilation and loads a pre-compiled analysis JSON. Preserves hand-edits to BATNAs/scoring between iterations. Personas regenerated from the loaded analysis at startup. | runner |
+| `load_dotenv()` in run_simulation | Bug fix. Without this, only env vars in the parent shell (typically only OpenAI's key) were visible to subprocess SDKs; Anthropic and Google failed auth. | runner |
+| `toolkit/structured_llm/parse_json_response` | Bug fix. Strips a surrounding Markdown code fence before parsing. Anthropic and Google wrap JSON in ` ```json ... ``` ` even when instructed otherwise; without stripping, structured_call's retries silently exhausted and downstream modules saw nothing. | toolkit dep |
+| `verify_dryrun --expect-providers` | NEW. Walks the call log and asserts each faction's GEN calls went through the expected provider. Catches routing regressions for free. | infra (verifier) |
 
 **Config:**
-- Same scenario as Run 7 (Three-Party Coalition, with endgame awareness already baked in from Run 7's prompt changes)
-- Per-faction Generator model:
-  - Faction A: `gpt-4.1-mini` (OpenAI)
-  - Faction B: `claude-haiku-4-5` (Anthropic)
-  - Faction C: `gemini-2.5-flash` (Google)
-- All other modules (extraction, analyst, adversarial, reconciliation) held constant on a single provider (likely OpenAI) so only the Generator varies
-- AutoApproveReviewGate, 4 rounds, post-game scoring
+- Scenario: Water Rights (Clearwater River Basin), 3 factions, 4 rounds
+- Generator providers (per faction):
+  - alpha: OpenAI `gpt-4.1-mini`
+  - beta: Anthropic `claude-haiku-4-5`
+  - gamma: Google `gemini-2.5-flash`
+- All other modules (Extraction, Analyst, Adversarial, Reconciliation): shared OpenAI `gpt-4.1-mini`
+- AutoApproveReviewGate, post-game scoring enabled
 
-**What we're looking for:**
-- Winner of the post-game score across providers (with caveat: n=1)
-- Qualitative differences: persona adherence, concreteness, late-round closing behavior, willingness to deceive
-- Token cost per faction (free-tier coverage for Gemini, paid for OpenAI/Anthropic)
-- Schema-validation failure rates per provider (does structured_call+retry hold up across model families?)
+**Cost:** ~$1 across two real runs (the v2 attempt before fence stripping was discarded). Cost dominated by Anthropic and OpenAI; Google free-tier covered most of gamma's calls until rate limiting at the end.
 
-**Estimated cost:** ~$0.40 (OpenAI + Anthropic + Gemini free tier covers most calls)
+**Observations:**
 
-**Optional Run 9:** Rotate faction assignments (B↔A, C↔B, A↔C) to control for position advantage in the coalition game. Repeat once or twice to build a small leaderboard.
+Final results (`tests/self_play/results/run8_water_rights_3provider_v3.json`):
+
+| Faction | Provider | Score | BATNA | Promises tracked |
+|---|---|---|---|---|
+| alpha | OpenAI gpt-4.1-mini | 11 | 11 | 8 |
+| beta | Anthropic claude-haiku-4-5 | 8 | 8 | 15 |
+| gamma | Google gemini-2.5-flash | 10 | 10 | 5 |
+
+No deal declared. All factions revert to BATNA. Winner by points: Alpha (tiebreak on highest BATNA).
+
+**Convergence pattern observed:**
+- Two of three issues converged cleanly across all factions: **Volume = High (20M gallons/month)** and **Infrastructure = Joint-Funded Desalination**.
+- Deadlock was on **Payment Structure**:
+  - Alpha (OpenAI) anchored on Heavy-Downstream from Round 1 and never moved. Conceded Volume Low→High but kept Payment as non-negotiable.
+  - Beta (Anthropic) pushed Token with detailed structured arguments: "Beta's cash position is fragile... Alpha already received substantial compensation via infrastructure"
+  - Gamma (Google) sided with Beta on Token (Gamma's scoring: Token=6 vs Heavy-Downstream=3)
+
+**Game-theoretic check:** Beta+Gamma's preferred deal (High + Token + Joint-Funded) would force Alpha below BATNA (alpha=9 vs BATNA 11). Alpha was correctly refusing. A Pareto-optimal Shared deal exists (High + Shared + Joint-Funded → alpha=14, beta=20, gamma=22, all comfortably above BATNA) but **no agent proposed it**. Everyone stayed at the extremes on payment.
+
+**Qualitative provider differentiation (visible in the transcripts):**
+- **OpenAI (Alpha):** hardball anchorer. Set an opening position in R1 and held it through R4 on the priority issue. Conceded only on the secondary issue.
+- **Anthropic (Beta):** most articulate. Used numbered structured arguments. Explicitly named the deception tactic in reasoning ("I should overstate interest in Payment Structure to trade for Volume"). But rigidly stuck to extreme positions.
+- **Google (Gamma):** cooperative and supportive. Allied with Beta on the non-priority issue (payment). Voice cut off in R4 by free-tier rate limit (429).
+
+**Learning:**
+- *Provider differentiation IS visible* in qualitative behavior — different anchoring patterns, different rhetorical styles, different willingness to ally. But raw scores are essentially tied at BATNA because (a) the deadlock is structural (everyone insists on their own preferred payment), and (b) Alpha won the tiebreak on raw BATNA value, not on negotiation skill.
+- *Position confounds provider quality.* Alpha (OpenAI) had the highest BATNA (11) and also won the tiebreak with 11 points. We cannot distinguish "OpenAI is the better hardball player" from "alpha had the most leverage to play hardball." A follow-up Run 9 with rotated assignments is needed to control for this.
+- *Persona payment rigidity recurs.* Same flavor as Run 7's "static persona endgame over-anchoring" — agents stake out a position on their priority issue in R1 and never propose compromises even when those compromises clearly beat their BATNA. Future tuning: nudge personas toward proposing the secondary outcome on their priority issue when deadlocked.
+- *Scoring rule strictness recurs.* The "all factions must converge on compatible terms" rule reads this as "no deal" even though there was substantive agreement on 2/3 issues. Same observation as Run 7. May need a relaxed scoring mode that recognizes partial deals.
+- *Google free tier is a real constraint.* Gemini-2.5-flash worked fine for ~3 rounds, then rate-limited in R4. For serious experimentation gamma needs either backoff-with-retry in toolkit's llm_client or a paid model tier.
+- *Two infra bugs were silent failures.* Both the missing `load_dotenv()` and the missing fence-strip produced "successful" runs with no visible error — agents just didn't speak. Without the `--expect-providers` verifier and per-faction extraction analysis it would be easy to mistake silent message loss for "the agent had nothing to say." Worth keeping the verifier in the standard validation flow.
+
+**Decisions taken:**
+- Run 9 (rotated faction assignments) is the natural next experiment — same plumbing, same Water Rights scenario, just rotate which provider plays which faction. Controls for position advantage.
+- Don't relax scoring rules yet — collect one more data point first to see if "alpha wins by tiebreak" is a pattern.
+- Don't tune the persona payment rigidity in this iteration — it would muddy Run 9's variable isolation. Note it as a separate follow-up.
+- Don't fix the Google rate-limit handling in toolkit right now — document it and use a paid model in Run 9 if budget allows, OR accept that the third provider may drop a message per game.
+
+**Open items closed by this run** (pointer-only):
+- Per-faction Generator provider routing infra (was a gap, now exists as a clean CLI flag).
+- `--analysis-json` path that preserves hand-tuned BATNAs across runs (gap filled).
+- Markdown fence handling in toolkit's `parse_json_response` (silent failure mode, now fixed).
+- `.env` not auto-loaded in self-play runner (silent failure mode, now fixed).
+- Scenario optimum verifier (was: "we hope this scenario has a non-trivial optimum"; now: we can prove it before spending money).
+
+**Open items raised by this run:**
+- [ ] **Run 9 — rotated faction assignments.** Control for position advantage (alpha had the highest BATNA AND won — coincidence?). Same Water Rights scenario, rotate provider→faction mapping.
+- [ ] **Persona payment rigidity.** All three agents stayed at extremes on the deadlocked issue. None proposed the obvious Shared compromise that beats all BATNAs. Likely a persona-prompt issue (the "don't accept the first reasonable framework" rule reinforces hardball). Worth testing a softened variant in a future run.
+- [ ] **Google free-tier rate limiting.** Gemini-2.5-flash hit 429 on Gamma R4. Add retry-with-backoff to toolkit's llm_client, OR switch gamma to gemini-2.5-pro (paid) for serious runs.
+- [ ] **Scoring rule strictness (recurring).** Two of three issues had clean consensus; the scorer read "no deal." Consider partial-deal scoring that rewards convergence on individual issues even when the overall package isn't signed.
+- [ ] **Compiler BATNA anchor.** The scenario compiler's system prompt hardcodes "BATNAs should be low enough (typically 4-8 total)" regardless of what the narrative says. Our scenario explicitly said "BATNA is roughly half of max" and the compiler still produced 7.5/4/6 — required a hand-patch to hit 11/8/10. Either relax the compiler's BATNA guidance, add a `--batna-fraction` override, or accept the hand-patch step in the workflow.
+
+**Decision rule for Run 9 (defined in advance):**
+- If rotated assignments produce the same "highest-BATNA faction wins by tiebreak" pattern → conclude that this Water Rights scenario can't distinguish provider quality and design a new scenario.
+- If a different provider wins from a different faction position → we have a directional signal about provider style. Worth at least one more rotation to confirm.
+- If the rotated game converges on an actual deal → the original game's deadlock was specific to provider×position pairing, which is itself an interesting result.
+
+---
+
+## Inter-Run Infrastructure (Run 7 → Run 8)
+
+Five pieces of infrastructure were built or fixed for Run 8. They are reusable for all future runs.
+
+**Per-faction provider routing** (`tests/self_play/game_environment.py`):
+- New `per_faction_providers: dict[str, dict[str, str]]` kwarg on `GameEnvironment`.
+- When set, generates a `generator_override` slot in the faction's `llm_providers` config and points only the Generator module at it. Other modules (Extractor, Analyst, Adversarial, Reconciliation) stay on shared primary/secondary.
+- `_api_key_env_for(provider)` helper maps provider name → expected env var (openai/anthropic/google/openrouter).
+
+**Pre-compiled analysis loader** (`tests/self_play/run_simulation.py`):
+- New `--analysis-json` CLI flag loads a pre-existing `scenario_analysis.json` and regenerates personas from it (no LLM call). Useful when hand-editing BATNAs, scoring tables, or deception tactics between runs to preserve those edits without recompiling.
+- Requires `--scenario` alongside it (for the seed-message text).
+
+**`.env` loader in runner** (`tests/self_play/run_simulation.py`):
+- `load_dotenv()` at module top so subprocess SDKs see all provider keys, not just whatever happens to be in the parent shell. Previously only OPENAI_API_KEY was reliably visible.
+
+**Scenario optimum verifier** (`tests/self_play/verify_scenario_optimum.py`):
+- Reads a `scenario_analysis.json`, enumerates all possible deals (cartesian product of outcomes across issues), computes per-faction max score / BATNA / Pareto-optimal deals, and reports:
+  - Whether priorities are differentiated across factions
+  - How many deals beat all BATNAs (catches "all deals trivially beat BATNA — no pressure" and "no deal beats BATNAs — scenario is broken")
+  - Pareto frontier size
+  - The "everyone-gets-priority" deal and whether it sits on the frontier
+  - Logrolling quality at 75% and 60% of max thresholds
+
+**Markdown fence stripping in toolkit** (`p:\shared\toolkit\src\toolkit\structured_llm\core.py`):
+- `parse_json_response` now strips a single surrounding ` ```json ... ``` ` or ` ``` ... ``` ` fence before parsing.
+- No-op for OpenAI; needed for Anthropic and Google which wrap JSON output despite explicit "return raw JSON" instructions.
+- 19 toolkit tests still pass.
+
+**`verify_dryrun --expect-providers`** (`tests/self_play/verify_dryrun.py`):
+- Asserts each faction's GEN calls went through the expected provider. Catches per-faction routing regressions cheaply.
+
+---
+
+## Run 8 alternatives that we did NOT take (and why)
+
+Documented for the next time we hit a similar fork:
+
+- **Recompile Water Rights with --scenario each run** (let the compiler produce its own BATNAs). Rejected because the compiler's hardcoded BATNA range produced soft pressure (26/27 deals beat all BATNAs); the hand-patch was needed to get non-trivial negotiation. We invested in `--analysis-json` to preserve the hand-patch across runs.
+- **Stick with Three-Party Coalition and accept the no-deal outcome.** Rejected because every provider would produce essentially the same result (game-theoretically-correct refusal), so no provider differentiation would be observable.
+- **Test all 3 providers on the same scenario in series (3 separate games, each with all factions on one provider).** Rejected because that measures within-provider consistency, not cross-provider negotiation dynamics. The cross-provider game is the more interesting experiment.
+- **Build Stage 2 (M2-bounded K=2 conversation model) first.** Rejected because Run 7 Stage 1 produced rich enough behavior to support a clean provider comparison. Stage 2 stays deferred per `ARCH_conversation_model.md`.
 
 ---
 
@@ -470,10 +591,11 @@ Endgame-prompt anomaly (from the v1 attempt before budget fix, but worth recordi
 | 5 | Trade Summit | 8 | 0 | ~$0.55 | Deception tactics work with point tables |
 | 6 | Coalition (auto) | 1 | 3 | ~$0.60 | Scenario compiler works, extraction too strict |
 | 7 | Coalition (endgame, scored) | a=4, b=3, c=2 | 0 | ~$1-2 | **Endgame works:** B explicitly concedes majority-share in R4 (FINAL ROUND); reconciliation merges duplicate promises; no deal because A+B align but C dissents (game-theoretically reasonable for coalition exclusion). Four self-play infra bugs surfaced and fixed; dry-run capability added. |
-| 8 | Coalition (3-provider) | TBD | TBD | ~$0.40 | **Planned.** OpenAI vs Anthropic vs Gemini Generator, all else equal |
+| 8 | Water Rights (3-provider) | a=8, b=15, c=5 | 0 | ~$1 | **Provider differentiation visible qualitatively** but raw scores deadlock at BATNA. Volume and Infrastructure converge cleanly; Payment deadlocks (Alpha=Heavy-Downstream vs Beta+Gamma=Token). Pareto-optimal Shared compromise existed but no agent proposed it. Two silent-failure infra bugs surfaced and fixed (`.env` not loaded; toolkit `parse_json_response` didn't strip Markdown fences from Anthropic/Google JSON). New CLI flags: `--per-faction-providers`, `--analysis-json`, `--expect-providers`. New verifier: `verify_scenario_optimum.py`. |
+| 9 | Water Rights (3-provider, rotated) | TBD | TBD | ~$1 | **Planned.** Same scenario, rotate provider→faction assignments to control for position advantage. |
 
-**Total spend across completed runs (1-7): ~$4-5**
-**Estimated additional spend for Run 8: ~$0.40**
+**Total spend across completed runs (1-8): ~$5-6**
+**Estimated additional spend for Run 9: ~$1**
 
 ---
 
@@ -497,26 +619,38 @@ Endgame-prompt anomaly (from the v1 attempt before budget fix, but worth recordi
 
 9. **Validate plumbing for free before spending money** (Run 7). The dry-run capability (`DryRunLLMClient` + `verify_dryrun`) caught all four Run-7-prep bugs without a single live LLM call. Use it on every future structural change.
 
+10. **Cross-provider JSON formatting differs even with identical prompts** (Run 8). Anthropic and Google wrap JSON output in `` ```json ... ``` `` Markdown fences regardless of explicit "return raw JSON" instructions. OpenAI returns raw JSON. Any structured-output layer must strip fences before parsing, or risk silent retry-then-give-up failure modes that look like "the model returned nothing."
+
+11. **Silent failures hide behind "success."** (Run 8). Two of Run 8's bugs (missing `.env` load + missing fence-strip) produced "successful" LLM calls that returned strings the downstream parser couldn't read. The structured_call retry loop happily burned all retries on the same parse failure and reported no error. Active assertion of *expected* behavior (`--expect-providers` in verify_dryrun, expected message counts in verify_dryrun) is the cheapest way to catch these.
+
+12. **Per-faction provider routing belongs in the runner, not the env** (Run 8). The original env-var-based config (`DIPLOMAT_PRIMARY_PROVIDER`) was global across factions. A CLI JSON flag (`--per-faction-providers`) is much cleaner: it's explicit, validates early, and the verifier can assert each faction got the assigned provider.
+
+13. **Compiler defaults aren't always what you want** (Run 8). The scenario compiler's hardcoded BATNA range ("typically 4-8 total") produced too-soft pressure for our experiment regardless of narrative cues. A pre-compiled-analysis loader (`--analysis-json`) is the right escape hatch — it lets you hand-edit the compiler's output and reuse it across runs.
+
 ---
 
 ### Open Items
 
-**Still open (post Run 7):**
-- [ ] **Run 8** — three-provider asymmetric Generator showdown (OpenAI / Anthropic / Gemini). Plumbing ready.
-- [ ] Run 9 — rotate faction assignments in 3-provider showdown to control for position advantage.
-- [ ] Reconciliation: fulfillment detection (`pending → kept`). Still untested in practice because Run 7 reached no agreement, so no promises got fulfilled. Needs a scenario where at least one promise visibly resolves mid-game.
+**Still open (post Run 8):**
+- [ ] **Run 9** — Water Rights with rotated provider→faction assignments to control for position advantage. Same plumbing.
+- [ ] **Persona payment rigidity.** Recurring across Run 7 and Run 8. Agents anchor on their priority's extreme outcome and refuse to propose the Pareto-optimal compromise. Future tuning: nudge personas toward proposing the secondary outcome on their priority issue when deadlocked beyond round 2.
+- [ ] **Google free-tier rate limiting.** Gemini 2.5-flash hit 429 on Run 8 R4. Either add retry-with-backoff to toolkit's `llm_client`, or switch to a paid Gemini tier for serious runs.
+- [ ] **Scoring rule strictness (recurring across Run 7 and Run 8).** Strict "all factions converge on compatible terms" misclassifies partial-consensus outcomes as no-deal. Consider a partial-deal scoring mode.
+- [ ] **Compiler BATNA anchor.** `tools/scenario_compiler.py` system prompt hardcodes BATNA range. Add a `--batna-fraction` override or relax the range guidance.
+- [ ] Reconciliation: fulfillment detection (`pending → kept`). Still untested in practice because Run 7 AND Run 8 reached no agreement, so no promises got fulfilled. Needs a scenario where at least one promise visibly resolves mid-game.
 - [ ] Reconciliation: status transitions to `broken`. Same as above — needs a scenario where a faction makes a commitment in early rounds and then visibly contradicts it.
-- [ ] Reconciliation: inconsistency flagging. Run 7 contained position shifts (B going from "majority for me" to "majority for A") but the reconciler did not flag them. Needs investigation: is the prompt too narrow, or is the LLM reading the shifts as legitimate negotiation moves rather than contradictions?
-- [ ] Reconciliation: missed-proposals path. Implicit zero in Run 7 because extraction caught everything. Worth re-testing when the broadened extraction prompt is stressed.
+- [ ] Reconciliation: inconsistency flagging. Run 7 and Run 8 contained position shifts but the reconciler did not flag them as contradictions (read them as legitimate negotiation moves).
+- [ ] Reconciliation: missed-proposals path. Implicit zero in Run 7 and Run 8 because extraction caught everything.
 
-**New items raised by Run 7:**
-- [ ] **Persona endgame over-anchoring.** Static `ENDGAME:` paragraph in the auto-compiled persona caused faction A to invent the phrase *"as we approach our final round"* in round 2 of Run 7-v1 — before any dynamic PENULTIMATE/FINAL marker was added to the round context. Decide whether to soften the static persona text, move more of the urgency into the dynamic markers only, or accept that some early-round endgame thinking is fine.
-- [ ] **`LoggingLLMClient` doesn't see SCORE or RECON calls.** Both `score_game()` and reconciliation setup unwrap the wrapper to use the inner client (probably for `structured_call` interface reasons). Result: `verify_dryrun` and the call-log inspector miss these calls. Fix the unwrap so all calls go through one observable client.
-- [ ] **Scoring rule strictness.** The post-game scorer requires "all factions to converge on explicitly compatible proposals" to declare a deal. In coalition games where the value-maximizing coalition is 2-of-3 by design, the excluded faction has no incentive to endorse, so the scorer always says "no deal" even when AB-with-C-excluded was effectively reached. Decide whether to change the scoring rule (allow N-of-M coalitions) or accept that the BATNA-tiebreaker captures this case adequately.
-- [ ] **Conversation model Stage 2+.** `ARCH_conversation_model.md` documents the M2-bounded / M2-debounced / M2-async migration path. Stage 2 (K=2 passes per round — open + react) is the natural next upgrade if Run 8 results suggest agents need within-round reactivity to test interesting hypotheses.
+**New items raised by Run 8:**
+- [ ] **Provider × position confound.** Alpha won by tiebreak with the highest BATNA. Can't tell if that's "OpenAI plays hardball best" or "alpha had the most leverage to play hardball." Run 9 (rotation) is the test.
+- [ ] **No agent proposes Pareto compromises.** None of OpenAI/Anthropic/Google proposed the Shared payment compromise even though it cleanly beats all BATNAs. Suggests the persona prompt's "don't accept the first reasonable framework" rule may be over-anchoring. Worth A/B testing a softened variant.
 
 **Older items (carried forward):**
 - [ ] Persona drift over 8+ rounds not yet tested.
 - [ ] Real game deployment (Telegram, operator coaching, non-self-play).
 - [ ] Provider-native structured output (OpenAI `response_format: json_schema`).
 - [ ] Level 1 modularization: config-driven prompts and examples (see DEVPLAN roadmap).
+- [ ] **Persona endgame over-anchoring (Run 7).** Static `ENDGAME:` paragraph in the auto-compiled persona caused faction A to invent the phrase *"as we approach our final round"* in round 2 of Run 7-v1. Decide whether to soften the static persona text, move more of the urgency into the dynamic markers only, or accept that some early-round endgame thinking is fine.
+- [ ] **`LoggingLLMClient` doesn't see SCORE or RECON calls (Run 7).** Both `score_game()` and reconciliation setup unwrap the wrapper to use the inner client. Result: `verify_dryrun` and the call-log inspector miss these calls.
+- [ ] **Conversation model Stage 2+.** `ARCH_conversation_model.md` documents the M2-bounded / M2-debounced / M2-async migration path. Stage 2 (K=2 passes per round — open + react) is the natural next upgrade if Run 9 results suggest agents need within-round reactivity to test interesting hypotheses.

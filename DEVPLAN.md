@@ -21,11 +21,16 @@ steps_remaining: 0
   - Self-play cost ledger uses a local temp path (`%TEMP%/diplomat_selfplay/`) to avoid UNC path issues on network shares.
   - Before deployment, install `../toolkit` editable and run live probes for `llm_client`, `telegram_client`, and `cost_accountant`; this environment cannot import `toolkit`, so Phase 11 close recorded probe specs rather than live matches
   - Prompt regression runner: `_judge_response_text()` JSON path extraction must be wrapped in try-catch — if a scenario's `path` does not exist in module output, the raw KeyError propagates and crashes the runner. Fixed in Phase 17 review; always validate extraction paths before production scenario runs.
+  - **Cross-provider JSON formatting (Run 8 fix).** Anthropic and Google wrap JSON output in ` ```json ... ``` ` Markdown fences regardless of explicit "return raw JSON" instructions. OpenAI returns raw JSON. Toolkit's `parse_json_response` (in `structured_llm/core.py`) now strips a single surrounding code fence before parsing. Without this, structured_call's retries silently exhaust and downstream modules see "no error" but receive nothing.
+  - **Self-play env loading (Run 8 fix).** `tests/self_play/run_simulation.py` calls `load_dotenv()` at module top. Previously only env vars in the parent shell were visible to subprocess SDKs — typically only `OPENAI_API_KEY` was reliable; Anthropic and Google calls silently failed auth.
+  - **Per-faction provider routing (Run 8).** Use `--per-faction-providers '{"alpha":{"provider":"openai","model":"gpt-4.1-mini"},...}'` to vary only the Generator per faction. Other modules stay on shared primary/secondary. Verify with `verify_dryrun --expect-providers '{"alpha":"openai",...}'`.
+  - **Pre-compiled analysis loader (Run 8).** Use `--analysis-json <path>` to skip live LLM compilation and load a pre-edited analysis JSON (preserves hand-tuned BATNAs, scoring tables, deception tactics). Requires `--scenario` for the seed-message text. Personas are regenerated from the loaded analysis at startup.
+  - **Compiler BATNA anchor (Run 8 surfaced).** `tools/scenario_compiler.py` hardcodes "BATNAs should be low enough (typically 4-8 total)" in its system prompt regardless of narrative. If you need stronger BATNA pressure, hand-edit the analysis JSON and use `--analysis-json` to feed it back in.
 
 ## Current Status
 
-- **Phase** — Phase 18 complete. Awaiting human audit before next phase.
-- **Focus** — Self-play infrastructure, prompt tuning, scenario compiler, state reconciliation, cost wiring. 7 simulation runs (~$2.50 total). See `TUNING_LOG.md`.
+- **Phase** — Phase 18 complete + Run 8 (multi-provider) complete. Awaiting human audit before next phase.
+- **Focus** — Self-play infrastructure, prompt tuning, scenario compiler, state reconciliation, cost wiring, multi-provider. 8 simulation runs (~$5-6 total). See `TUNING_LOG.md`.
 - **Blocked/Broken** — None. Audit gate set.
 
 ## Next Steps: Modularization Roadmap
@@ -76,6 +81,13 @@ Remove game-specific flow assumptions (round boundaries, direct-address triggers
 - [ ] **Live Telegram re-smoke.** Phase 18 changes (debounce fix, structured_call, cost wiring, reconciliation) have only been validated in self-play. Need a manual Telegram smoke test on the Pi covering multi-message burst, review gate, and cost ledger.
 - [ ] **Switch to TelegramReviewGate.** Production `pipeline.yaml` uses `AutoApproveReviewGate` (safe default). Change to `TelegramReviewGate` on the Pi when deploying with real credentials.
 - [ ] **Run scored Three-Party Coalition.** The last attempt failed on a UNC path issue (now fixed). Validates post-game scoring + reconciliation end-to-end.
+
+### Self-Play / Multi-Provider Experimentation
+- [ ] **Run 9 — rotated provider assignments.** Water Rights scenario, rotate provider→faction mapping to control for position-vs-provider confound (Alpha won Run 8 by tiebreak with the highest BATNA — coincidence?). Same plumbing as Run 8.
+- [ ] **Persona payment rigidity (recurring across Run 7 + Run 8).** Agents anchor on extreme outcomes on their priority issue and refuse to propose Pareto compromises that beat all BATNAs. The persona-prompt rule "don't accept the first reasonable framework" may be over-anchoring. A/B test a softened variant.
+- [ ] **Google free-tier rate limiting.** Gemini-2.5-flash hit 429 on Run 8 R4. Add retry-with-backoff to toolkit's `llm_client`, OR switch gamma to a paid Gemini tier.
+- [ ] **Compiler BATNA anchor.** `tools/scenario_compiler.py` hardcodes BATNA range guidance regardless of narrative. Add a `--batna-fraction` override, OR relax the range guidance, OR accept the hand-patch workflow (currently using `--analysis-json` to preserve hand-edits).
+- [ ] **`LoggingLLMClient` doesn't see SCORE or RECON calls (Run 7).** Both unwrap the wrapper to call the inner client. Fix the unwrap so all calls go through one observable client.
 
 ### Extraction Quality
 - [ ] **Promise dedup via reconciliation.** Reconciler is built but untested with live LLM. Run 4 showed 5 duplicates of the same $2M commitment.

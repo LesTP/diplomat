@@ -18,6 +18,18 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Load .env so API keys for all providers (Anthropic, Google, etc.) are
+# available to subprocess libraries that read from os.environ at call time.
+# Without this, only env vars already in the parent shell would work — which
+# typically only covers OPENAI_API_KEY on dev machines.
+try:
+    from dotenv import load_dotenv
+    _env_path = Path(__file__).resolve().parent.parent.parent / ".env"
+    if _env_path.is_file():
+        load_dotenv(_env_path)
+except ImportError:
+    pass
+
 # Ensure src/ is importable.
 _project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_project_root / "src"))
@@ -67,6 +79,31 @@ def _parse_args() -> argparse.Namespace:
             "All calls return canned schema-valid JSON. Use this to verify "
             "self-play infrastructure (round counter, message delivery, "
             "extraction/reconciliation call counts) before spending real money."
+        ),
+    )
+    parser.add_argument(
+        "--per-faction-providers",
+        type=str,
+        default=None,
+        help=(
+            'JSON map of faction_id -> {"provider":"...","model":"..."} '
+            'that overrides the Generator provider/model for that faction. '
+            'Only the Generator is affected; all other modules stay on the '
+            'shared (primary/secondary) providers. '
+            'Example: \'{"alpha":{"provider":"openai","model":"gpt-4.1-mini"},'
+            '"beta":{"provider":"anthropic","model":"claude-haiku-4-5"},'
+            '"gamma":{"provider":"google","model":"gemini-2.5-flash"}}\''
+        ),
+    )
+    parser.add_argument(
+        "--analysis-json",
+        type=str,
+        default=None,
+        help=(
+            "Path to a pre-compiled scenario_analysis.json. When provided, "
+            "skips the live LLM compile step and uses this analysis to "
+            "generate personas and seed post-game scoring. Requires --scenario "
+            "to also be provided (for the seed message text)."
         ),
     )
     return parser.parse_args()
@@ -204,8 +241,82 @@ async def _compile_scenario(
     return personas, analysis
 
 
+def _load_precompiled_analysis(
+    analysis_path_str: str,
+    faction_ids: list[str],
+    tmp_dir: Path,
+    scenario_title: str,
+) -> tuple[dict[str, Path], dict[str, Any]]:
+    """Load a pre-compiled scenario_analysis.json and regenerate personas from it.
+
+    Used to preserve hand-tuned BATNAs or any other manual edits to the
+    analysis JSON between compile and live run. No LLM call.
+    """
+    from tools.scenario_compiler import generate_persona, save_persona
+
+    analysis_path = Path(analysis_path_str)
+    if not analysis_path.is_file():
+        print(f"ERROR: analysis JSON not found: {analysis_path}", file=sys.stderr)
+        sys.exit(1)
+
+    analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
+    available_factions = analysis["factions"]
+    print(f"Loaded pre-compiled analysis from {analysis_path.name}")
+    print(f"  Factions in analysis: {', '.join(available_factions)}")
+    print(f"  BATNAs: {analysis['batna']}")
+
+    # Auto-use the factions from the analysis if caller didn't override.
+    if set(faction_ids) == {"alpha", "beta", "gamma"} and set(available_factions) != {"alpha", "beta", "gamma"}:
+        faction_ids = available_factions[:3]
+        print(f"  Using factions from analysis: {', '.join(faction_ids)}")
+
+    personas_dir = tmp_dir / "personas"
+    personas: dict[str, Path] = {}
+    for fid in faction_ids:
+        if fid not in analysis["scoring"]:
+            print(f"WARNING: faction '{fid}' not in analysis, skipping")
+            continue
+        persona_text = generate_persona(fid, analysis, scenario_title)
+        path = save_persona(fid, persona_text, personas_dir)
+        personas[fid] = path
+        print(f"  Regenerated persona: {fid}")
+
+    print(f"  Logrolling: {analysis.get('logrolling', [])}")
+    return personas, analysis
+
+
 async def _run(args: argparse.Namespace) -> None:
     faction_ids = [f.strip() for f in args.factions.split(",") if f.strip()]
+
+    # Parse --per-faction-providers JSON early so we fail before any LLM cost.
+    per_faction_providers: dict[str, dict[str, str]] | None = None
+    if args.per_faction_providers:
+        try:
+            per_faction_providers = json.loads(args.per_faction_providers)
+        except json.JSONDecodeError as exc:
+            print(f"ERROR: --per-faction-providers is not valid JSON: {exc}", file=sys.stderr)
+            sys.exit(1)
+        if not isinstance(per_faction_providers, dict):
+            print("ERROR: --per-faction-providers must be a JSON object", file=sys.stderr)
+            sys.exit(1)
+        for fid, cfg in per_faction_providers.items():
+            if not isinstance(cfg, dict):
+                print(f"ERROR: per-faction-providers[{fid}] must be an object", file=sys.stderr)
+                sys.exit(1)
+            if "provider" not in cfg or "model" not in cfg:
+                print(
+                    f"ERROR: per-faction-providers[{fid}] missing 'provider' or 'model'",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+        # Warn about factions in the map that don't match the simulation's faction list.
+        # We don't fail because scenario-driven runs auto-rename factions in _compile_scenario.
+        unknown = set(per_faction_providers.keys()) - set(faction_ids)
+        if unknown and not args.scenario:
+            print(
+                f"WARNING: per-faction-providers has factions not in --factions: {sorted(unknown)}",
+                file=sys.stderr,
+            )
 
     if args.dry_run:
         # Zero-cost path: wrap a DryRunLLMClient with the same LoggingLLMClient
@@ -231,11 +342,29 @@ async def _run(args: argparse.Namespace) -> None:
     ) as tmp:
         tmp_dir = Path(tmp)
 
-        # Pre-game: compile scenario into personas if --scenario provided.
+        # Pre-game: compile scenario into personas if --scenario provided,
+        # OR load pre-compiled analysis JSON if --analysis-json provided.
         seed_message = None
         round_updates = None
         scenario_analysis = None
-        if args.scenario:
+        if args.analysis_json:
+            if not args.scenario:
+                print(
+                    "ERROR: --analysis-json requires --scenario (for the seed message text)",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            personas, scenario_analysis = _load_precompiled_analysis(
+                args.analysis_json, faction_ids, tmp_dir, args.scenario_title
+            )
+            seed_message = Path(args.scenario).read_text(encoding="utf-8")
+            round_updates = {
+                1: "Opening positions are on the table. Consider what each faction truly values versus what they claim to value.",
+                2: "Midpoint: assess whether proposals reflect genuine priorities or strategic positioning. Look for trades that create mutual value.",
+                3: "Pressure is building. The cost of no deal is rising. Consider whether to escalate, concede, or propose a new framework.",
+                4: "Final round. All commitments are binding. This is your last chance to secure favorable terms.",
+            }
+        elif args.scenario:
             personas, scenario_analysis = await _compile_scenario(
                 args.scenario, faction_ids, tmp_dir, llm_client, args.scenario_title
             )
@@ -260,6 +389,7 @@ async def _run(args: argparse.Namespace) -> None:
             seed_message=seed_message,
             round_updates=round_updates,
             scenario_analysis=scenario_analysis,
+            per_faction_providers=per_faction_providers,
         )
 
         await env.setup()

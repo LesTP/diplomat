@@ -28,6 +28,16 @@ def main() -> int:
         default=True,
         help="Whether adversarial reader was enabled (default: True)",
     )
+    p.add_argument(
+        "--expect-providers",
+        type=str,
+        default=None,
+        help=(
+            'JSON map of faction_id -> expected Generator provider name. '
+            'Asserts the call log shows each faction\'s Generator using the '
+            'expected provider. Example: \'{"alpha":"openai","beta":"anthropic"}\''
+        ),
+    )
     args = p.parse_args()
 
     data = json.loads(Path(args.results).read_text(encoding="utf-8"))
@@ -158,9 +168,42 @@ def main() -> int:
         agents_keys = sorted(agents.keys())
         gen_factions = sorted({c.get("faction") for c in gen_calls if c.get("faction")})
         failures.append(
-            f"State — agents present in results ({agents_keys}) "
+            f"State \u2014 agents present in results ({agents_keys}) "
             f"mismatch generators called ({gen_factions})"
         )
+
+    # --- Invariant 10: per-faction provider routing (if --expect-providers given) ---
+    provider_observations: dict[str, set[str]] = {}
+    if args.expect_providers:
+        try:
+            expected = json.loads(args.expect_providers)
+        except json.JSONDecodeError as exc:
+            failures.append(f"Provider expectation \u2014 invalid JSON: {exc}")
+            expected = {}
+        # Walk every call: classify, record (faction_id, config_provider) when GEN.
+        for c in calls:
+            msgs = c.get("messages") or []
+            sys_msg = next((m for m in msgs if m.get("role") == "system"), {})
+            sys_prompt = sys_msg.get("content", "")
+            call_type = classify_call(sys_prompt)
+            if call_type != "GEN":
+                continue
+            faction = c.get("faction_id") or extract_faction_id(sys_prompt)
+            provider = c.get("config_provider") or "?"
+            if faction:
+                provider_observations.setdefault(faction, set()).add(provider)
+        for fid, expected_provider in expected.items():
+            observed = provider_observations.get(fid, set())
+            if not observed:
+                failures.append(
+                    f"Provider routing \u2014 faction '{fid}' expected provider "
+                    f"'{expected_provider}' but no GEN calls observed."
+                )
+            elif observed != {expected_provider}:
+                failures.append(
+                    f"Provider routing \u2014 faction '{fid}' expected provider "
+                    f"'{expected_provider}' but observed: {sorted(observed)}"
+                )
 
     # --- Report ---
     print(f"\nVerified against: {args.results}")
@@ -170,6 +213,10 @@ def main() -> int:
     print(f"  Penultimate marker rounds: {sorted(penultimate_rounds)}")
     print(f"  Final marker rounds: {sorted(final_rounds)}")
     print(f"  SCORE calls: {by_type.get('SCORE', 0)}")
+    if provider_observations:
+        print("  Per-faction Generator providers observed:")
+        for fid in sorted(provider_observations):
+            print(f"    {fid}: {sorted(provider_observations[fid])}")
     print()
 
     if failures:

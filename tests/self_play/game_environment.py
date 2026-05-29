@@ -127,6 +127,23 @@ def _safe_messages(messages: Any) -> list[dict[str, str]]:
     return result
 
 
+# ---------------------------------------------------------------------------
+# Provider routing helpers
+# ---------------------------------------------------------------------------
+
+_PROVIDER_API_KEY_ENV: dict[str, str] = {
+    "openai": "OPENAI_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY",
+    "google": "GOOGLE_API_KEY",
+    "openrouter": "OPENROUTER_API_KEY",
+}
+
+
+def _api_key_env_for(provider: str) -> str:
+    """Return the env var name that holds the API key for a given provider."""
+    return _PROVIDER_API_KEY_ENV.get(provider, "OPENAI_API_KEY")
+
+
 @dataclass
 class AgentHandle:
     """Runtime state for a single agent in the simulation."""
@@ -152,6 +169,7 @@ class GameEnvironment:
         seed_message: str | None = None,
         round_updates: dict[int, str] | None = None,
         scenario_analysis: dict[str, Any] | None = None,
+        per_faction_providers: dict[str, dict[str, str]] | None = None,
     ) -> None:
         self.faction_personas = faction_personas
         self.llm_client = llm_client
@@ -162,6 +180,7 @@ class GameEnvironment:
         self.seed_message = seed_message or DEFAULT_SEED_MESSAGE
         self.round_updates = round_updates if round_updates is not None else DEFAULT_ROUND_UPDATES
         self.scenario_analysis = scenario_analysis
+        self.per_faction_providers = per_faction_providers or {}
         self.agents: dict[str, AgentHandle] = {}
         self.channel_log: list[dict[str, Any]] = []
         # Wrap in a logging client if it isn't one already.
@@ -235,9 +254,27 @@ class GameEnvironment:
             "provider": "secondary",
             "tier": "commodity",
         }
+        # Generator: defaults to primary, but can be overridden per faction
+        # via per_faction_providers. Used to vary the Generator's provider
+        # while holding all other modules constant (Run 8 design).
+        generator_provider_slot = "primary"
+        override = self.per_faction_providers.get(faction_id)
+        if override:
+            provider_name = override["provider"]
+            model_name = override["model"]
+            generator_provider_slot = "generator_override"
+            config["llm_providers"]["generator_override"] = {
+                "provider": provider_name,
+                "models": {
+                    "quality": model_name,
+                    "default": model_name,
+                    "commodity": model_name,
+                },
+                "api_key_env": _api_key_env_for(provider_name),
+            }
         config["modules"]["generator"] = {
             "class": "LLMGenerator",
-            "provider": "primary",
+            "provider": generator_provider_slot,
             "tier": "commodity",
             "max_tokens": 512,
         }
@@ -501,9 +538,9 @@ class GameEnvironment:
             print(f"  [{fid}] promises={promises}, coalitions={coalitions}")
 
         if "scores" in results:
-            print(f"\n  {'─'*56}")
+            print(f"\n  {'-'*56}")
             print("  FINAL SCORES")
-            print(f"  {'─'*56}")
+            print(f"  {'-'*56}")
             scores = results["scores"]
             deal = scores.get("deal_reached", False)
             print(f"  Deal reached: {'YES' if deal else 'NO (BATNA applies)'}")
