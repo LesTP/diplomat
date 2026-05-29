@@ -53,48 +53,49 @@ But 3 extraction calls failed schema validation: LLM returned `coalition` (singu
 
 ---
 
-## Phase 3: Prompt Tuning (Run 4)
+## Run 4 — Water Rights — COMPLETE
 
-### Generation Prompt Overhaul
-**Problem:** Agents spoke in vague diplomatic abstractions. Nobody referenced tracked promises, intelligence reports, or specific prior proposals.
+**Status:** COMPLETE
 
-**Fix:** Rewrote `generation.txt` from 4 lines of generic guidance to 28 lines of specific instructions:
-- "Reference specific assessments from intelligence"
-- "Hold other factions accountable for promises"
-- "Quote or paraphrase specific proposals from the transcript"
-- "Be concrete — name factions, reference offers, cite numbers"
-- "Adapt to round pressure: explore early, commit late"
+**Rationale:**
+Run 3 fixed extraction (LLM-based + debounce repair) so agents finally produced
+trackable promises. But analyzing Run 3 output revealed three persistent quality
+issues: agents spoke in vague diplomatic abstractions and never referenced
+tracked promises or intelligence; analyst intelligence reports were empty in
+early rounds because they only saw structured state tables (which were empty
+before extraction caught up); and personas described personalities rather than
+strategies, so agents defaulted to cooperative behavior. This run tests whether
+targeted prompt rewrites plus an asymmetric scenario produce richer, more
+strategically coherent negotiation.
 
-### Extraction Prompt Improvements
-- Added promise state tracking: instructions to check existing promises in current state, update to "kept"/"broken"/"void"
-- Added inconsistency detection rules
-- Strengthened dedup: "before creating a new promise, check if an existing one covers the same commitment"
+**Hypothesis:**
+Concrete prompt instructions ("reference specific assessments", "hold other
+factions accountable", "cite numbers") + asymmetric scenario structure (dam vs.
+farms vs. city, each with distinct leverage) will produce:
+- More concrete proposals with specific terms (dollar amounts, gallon figures).
+- Cross-faction promise tracking (factions citing each other's commitments).
+- Convergence toward a substantive deal by Round 4.
 
-### Analyst Transcript Feed
-**Problem:** Intelligence reports were empty in early rounds because the analyst only received structured state tables (promises, coalitions), which were empty before any extraction ran.
+**What we're tweaking:**
 
-**Fix:** Added `recent_events` parameter to `LLMAnalyst.analyze()`. Orchestrator now passes the last 30 events alongside state data. Updated analyst prompt to reference both transcript and state.
+| Element | Change | Type |
+|---------|--------|------|
+| `generation.txt` | Rewrote from 4 lines of generic guidance to 28 lines of specific instructions ("reference intelligence", "hold accountable", "cite specifics", "adapt to round pressure") | prompt |
+| `state_updater.txt` | Added promise state tracking (pending/kept/broken/void), dedup rules, inconsistency-detection guidance | prompt |
+| `LLMAnalyst.analyze()` | New `recent_events` parameter; orchestrator passes last 30 events alongside structured state | infra |
+| `analyst.txt` | Updated to reference both transcript and state, note contradictions | prompt |
+| Scenario | New Water Rights scenario: upstream dam / midstream farms / downstream city, each with distinct asymmetric positions | scenario |
 
-### Run 4 — Water Rights Scenario
-**Config:** New scenario with asymmetric positions (upstream dam, midstream farms, downstream city). All prompt improvements applied.
+**Config:** 3 factions, 4 rounds, `gpt-4.1-mini`, OpenAIStructuredExtractor, AutoApproveReviewGate.
 
-**Result:** **Dramatically richer negotiation.** 21 promises tracked (vs 7 in Run 3). Concrete proposals with specific dollar amounts ($2M, $500K/month) and gallon figures (15M/month). All three factions converged on a substantive agreement framework by Round 4.
+**Cost:** ~$0.55
 
-**Promise cross-reference showed real tracking:**
-- `Beta->Alpha` tracked by 3 agents independently
-- `Gamma->Alpha` tracked 5 times by Alpha alone (Gamma kept reiterating)
-
-**Remaining issues:**
-- 5 duplicate promises for the same Gamma $2M commitment (different IDs each time)
-- All promises still "pending" (no state transitions to "kept")
-- Intelligence still thin in Round 1
-- No inconsistencies detected despite Beta shifting from 20M to 15M gallons
-
----
-
-## Phase 4: Persona Analysis
-
-### Persona Performance Assessment (Water Rights)
+**Observations:**
+- Dramatically richer negotiation. **21 promises tracked** (vs 7 in Run 3).
+- Concrete proposals with specific dollar amounts ($2M, $500K/month) and gallon figures (15M/month).
+- All three factions converged on a substantive agreement framework by Round 4.
+- Promise cross-reference showed real tracking: `Beta→Alpha` tracked by 3 agents independently; `Gamma→Alpha` tracked 5x by Alpha alone (Gamma kept reiterating).
+- Manual persona scores:
 
 | Faction | Persona Adherence | Leverage Use | Concreteness | Adaptability |
 |---------|-------------------|--------------|--------------|--------------|
@@ -102,82 +103,164 @@ But 3 extraction calls failed schema validation: LLM returned `coalition` (singu
 | Beta (farms) | 9/10 | 8/10 | 9/10 | 6/10 |
 | Gamma (city) | 8/10 | 6/10 | 8/10 | 4/10 |
 
-**Key finding:** Personas described personalities ("measured and firm," "direct and urgent") but not executable strategies. The LLM defaulted to cooperative behavior because nothing in its training reward incentivized deception or hardball.
+- **Remaining issues:** 5 duplicate promises for the same Gamma $2M commitment (different IDs each time); all promises still "pending" (no state transitions to "kept"); intelligence still thin in Round 1; zero inconsistencies detected despite Beta shifting from 20M to 15M gallons.
 
-**Learning — "Properly instructed" means:**
-1. **Quantified objectives** — point tables beat personality adjectives
-2. **Named tactics** — "Pretend Environment is critical, then concede it" beats "be strategic"
-3. **Conditional escalation rules** — "If rejected twice, threaten to walk" beats "be willing to play hardball"
-4. **Explicit BATNA** — "No-deal = 6 points, reject under 10" gives a walkaway threshold
+**Learning:**
+- Concrete prompt guidance produces concrete behavior. The hypothesis held.
+- **BUT** personas described personalities ("measured and firm," "direct and urgent"), not executable strategies. The LLM defaulted to cooperative behavior because nothing in its training reward incentivized deception or hardball.
+- "Properly instructed" means: (1) quantified objectives — point tables beat personality adjectives; (2) named tactics — "Pretend Environment is critical, then concede it" beats "be strategic"; (3) conditional escalation rules — "if rejected twice, threaten to walk" beats "be willing to play hardball"; (4) explicit BATNA — "No-deal = 6 points, reject under 10" gives a walkaway threshold.
+- Reconciliation gap is real: dedup and state transitions need a dedicated post-round LLM pass; better extraction prompts alone won't fix it.
+
+**Decisions taken:**
+- Run 5 redesigns personas with point tables, BATNAs, named deception tactics (tests the "properly instructed" hypothesis directly).
+- Future: build a reconciliation module for dedup + state transitions (eventually shipped in Phase 18, will run live in Run 7).
 
 ---
 
-## Phase 5: Dirty Bargaining (Run 5)
+## Run 5 — Trade Summit (Dirty Bargaining) — COMPLETE
 
-### Persona Redesign
-Applied the "properly instructed" principles: each persona now contains:
-- Private scoring table (1-10 points per issue per outcome)
-- BATNA value
-- Named deception tactic ("Pretend Environmental Rules are critical")
-- Conditional escalation rules
-- "Don't accept the first reasonable framework"
+**Status:** COMPLETE
 
-### Run 5 — Trade Summit (Dirty Bargaining)
-**Config:** 3 issues (Tariffs, Labor, Environment) x 3 outcomes (Strict/Moderate/Relaxed). Each faction has asymmetric private valuations and explicit deception instructions.
+**Rationale:**
+Run 4 showed that concrete prompts produce concrete behavior, but personas
+described personalities rather than strategies — agents defaulted to cooperative
+when explicit competitive instructions were absent. The "properly instructed"
+hypothesis claims that quantified objectives + named tactics + BATNA +
+conditional rules will unlock genuinely strategic (including deceptive)
+behavior. This run tests that claim directly.
 
-**Result:** **Dramatically more strategic behavior.**
+**Hypothesis:**
+Asymmetric private valuations + explicit deception instructions per faction will
+produce:
+- Visible deception tactics — agents overstating low-priority issues to gain
+  leverage on their true priority.
+- Position shifts between early and late rounds (the "deception-then-reveal" arc).
+- Closer-to-equilibrium outcomes; sometimes failed deals are the correct outcome.
 
-**Alpha's bluff worked:** Claimed Strict Environmental was critical (R1-R3), then "conceded" to Moderate in R4 — exactly the planned deception tactic. Would score 14/18 points on final proposal.
+A useful control: at least one faction kept relatively honest, so we can
+distinguish instructed deception from model-default behavior.
 
-**Beta's progressive concession:** Demanded Relaxed Tariffs aggressively in R1, shifted to accepting Moderate/Strict by R4 to secure Strict Labor — textbook deception-then-reveal.
+**What we're tweaking:**
 
-**Gamma was most honest:** True priority (Strict Environment) stated openly throughout. Offered to trade Labor for Environment.
+| Element | Change | Type |
+|---------|--------|------|
+| Persona files (Alpha, Beta, Gamma) | Each now contains: private scoring table (1-10 pts per issue per outcome), explicit BATNA value, named deception tactic ("Pretend Environmental Rules are critical"), conditional escalation rules, "don't accept the first reasonable framework" | persona |
+| Scenario | New: Trade Summit — 3 issues (Tariffs, Labor, Environment) × 3 outcomes (Strict/Moderate/Relaxed); each faction has asymmetric private valuations | scenario |
 
-**Position evolution showed real negotiation dynamics:**
+Everything else (model, infra, prompts) held constant from Run 4.
+
+**Config:** 3 factions, 4 rounds, `gpt-4.1-mini`, AutoApproveReviewGate.
+
+**Cost:** ~$0.55
+
+**Observations:**
+- **Dramatically more strategic behavior.**
+- *Alpha's bluff worked:* Claimed Strict Environmental was critical R1–R3, then "conceded" to Moderate in R4 — exactly the planned deception tactic. Would score 14/18 points on final proposal.
+- *Beta's progressive concession:* Demanded Relaxed Tariffs aggressively in R1, shifted to accepting Moderate/Strict by R4 to secure Strict Labor — textbook deception-then-reveal.
+- *Gamma stayed most honest:* True priority (Strict Environment) stated openly throughout; offered to trade Labor for Environment. This is the control point.
+- Position evolution showed real negotiation dynamics:
 
 | Round | Alpha (true: Tariffs) | Beta (true: Labor) | Gamma (true: Environment) |
-|-------|----------------------|-------------------|--------------------------|
+|-------|----------------------|--------------------|---------------------------|
 | R1 | Strict/Mod/Strict | Relaxed/Strict/? | ?/Strict/Strict |
 | R4 | Strict/Strict/Mod | Strict/Strict/? | Mod/Strict/Strict |
 
-Near-agreement but Tariff-Environment deadlock between Alpha and Gamma.
+- Near-agreement but Tariff–Environment deadlock between Alpha and Gamma.
+
+**Learning:**
+- Hypothesis confirmed: point tables + named tactics + BATNA produce genuinely strategic, including deceptive, behavior.
+- LLMs *can* deceive when instructed to — the failure mode in earlier runs was instruction, not capability.
+- Honest agent (Gamma) as control: confirms the deception is instruction-driven, not model-default.
+- Real negotiation dynamics emerged: position shifts followed the planned tactics, not random drift.
+
+**Decisions taken:**
+- Productionize this pattern: build a scenario compiler that auto-generates scored personas from narrative descriptions (became Run 6).
+- Add post-game scoring to determine whether agents actually maximize their private payoffs (built for Run 7).
 
 ---
 
-## Phase 6: Scenario Compiler + Scoring (Run 6-7)
+## Run 6 — Three-Party Coalition (Auto-Compiled) — COMPLETE
 
-### Scenario Compiler Tool
-Built `src/tools/scenario_compiler.py` — takes a narrative scenario description, uses `structured_call` to extract:
-- Issues and outcomes
-- Per-faction point valuations
-- BATNAs
-- Deception tactics
-- Game mode (cooperative/competitive/mixed)
+**Status:** COMPLETE
 
-Generates ready-to-use persona files with embedded scoring tables. One LLM call per scenario (~$0.01).
+**Rationale:**
+Run 5 proved the "properly instructed" persona pattern (point tables + BATNA +
+named tactics) produces strategic behavior, but hand-authoring those personas
+for every new scenario is tedious. To iterate quickly across many scenarios we
+need to *generate* the personas from a short narrative description rather than
+hand-write them each time.
 
-### Run 6 — Three-Party Coalition (Auto-Compiled)
-**Config:** Classic Susskind exercise (v(AB)=118, v(AC)=84, v(BC)=50, v(ABC)=121). Personas auto-generated by compiler.
+Run 6 tests two related questions in one shot:
+1. Can a single LLM call read a narrative scenario description and produce a
+   Run-5-quality scored persona file (point tables, BATNAs, deception tactics,
+   game-mode classification)?
+2. Does the existing extraction pipeline correctly track promise activity in a
+   coalition-style scenario — more abstract, proposal-heavy negotiation than
+   the Trade Summit's tight issue×outcome grid?
 
-**Result:** Agents correctly identified coalition dynamics. C used blocking power (AC proposals to compete with B's AB proposals). A pivoted to grand coalition in R4. But only 1 promise tracked — extraction prompt was too strict (required "commitments," missed "proposals").
+This is more an infrastructure-validation run than a behavioral experiment.
 
-**Action:** Broadened extraction prompt to treat concrete proposals with specific terms as trackable promises.
+**Hypothesis:**
+- The scenario compiler can produce playable personas. Concrete evidence: agents
+  successfully recognize and use coalition dynamics (blocking power, value-of-
+  coalition reasoning), meaning the auto-generated point tables and game-mode
+  instructions are coherent.
+- Existing extraction prompt handles coalition negotiation. Concrete evidence:
+  tracked-promise count comparable to Runs 4-5 (~7-21).
 
-### Post-Game Scoring System
-Added `score_game()` to GameEnvironment:
-- Evaluates final-round proposals against scoring tables via `structured_call`
-- Determines if deal was reached (strict: positions must be explicitly compatible)
-- Calculates per-faction scores against private scoring tables
-- Compares to BATNA
-- Declares winner (highest score) and loser (below BATNA or lowest)
+**What we're tweaking:**
 
-### Game Mode System
-Scenario compiler classifies scenarios and injects mode-specific behavioral instructions:
-- **Competitive:** "Your goal is to maximize YOUR score. A deal where everyone is happy means you left points on the table."
-- **Cooperative:** "Look for trades that create mutual value, but maximize YOUR share."
-- **Mixed:** "Be competitive on your priority issue, cooperative on secondary ones."
+| Element | Change | Type |
+|---------|--------|------|
+| `src/tools/scenario_compiler.py` | NEW tool. Reads a narrative scenario description, makes one `structured_call` (~$0.01) to extract factions / issues / outcomes / per-faction point tables / BATNAs / deception tactics / game-mode (cooperative/competitive/mixed), then fills a template to produce ready-to-use persona files. | infra (new tool) |
+| Scenario | NEW: Three-Party Coalition (classic Susskind exercise — v(AB)=118, v(AC)=84, v(BC)=50, v(ABC)=121) | scenario |
+| Personas | **Auto-generated by the compiler** from the narrative scenario, not hand-written. This is the experimental variable. | persona (autogen) |
 
-### Run 7 — Three-Party Coalition (Scored) — READY TO RUN
+Everything else (extraction prompt, generation prompt, analyst, model, infra) held constant from Run 5.
+
+**Config:** 3 factions, 4 rounds, `gpt-4.1-mini`, AutoApproveReviewGate. Post-game scoring not yet enabled (built between Run 6 and Run 7).
+
+**Cost:** ~$0.60 (compiler call ~$0.01, game ~$0.59)
+
+**Observations:**
+- *Compiler validation — PASSED.* Auto-generated personas produced coherent strategic behavior. Agents correctly identified coalition dynamics: C used blocking power (made AC counter-proposals to compete with AB proposals B was pushing). A pivoted to the grand coalition (ABC) in R4. These are recognizable, scenario-appropriate moves.
+- *Extraction — FAILED.* Only **1 promise tracked** across the entire game, despite ~12 concrete proposals in the transcript ("I propose we split 70/14", "let's do AB at 60-58", etc.).
+- Diagnosis: the extraction prompt required "clear commitments" (binding I-will-X statements). Coalition negotiation is mostly *proposals* and *counter-offers*, which the extractor didn't classify as promises.
+
+**Learning:**
+- Scenario compiler works. We can now iterate on scenarios without hand-authoring personas. A real productivity unlock for the experimentation phase.
+- The "promise" concept needs to be broader for coalition-style scenarios — any concrete proposal with specific terms should be trackable, not just I-commit-to-X language.
+- Different scenario types stress different parts of the pipeline. The Trade Summit's tight issue×outcome structure produced clean extraction; coalition's free-form value-allocation language broke it.
+
+**Decisions taken:**
+- Broaden extraction prompt: treat concrete proposals with specific terms as trackable promises (applied via prompt update; will be re-validated in Run 7).
+- Add post-game scoring so coalition outcomes can be evaluated against per-faction scoring tables (built between Run 6 and Run 7; first live test in Run 7).
+- Add explicit game-mode behavioral instructions per scenario (cooperative / competitive / mixed) — injected by the scenario compiler so different scenarios get different conduct guidance (built between Run 6 and Run 7).
+
+---
+
+## Inter-Run Infrastructure (Run 6 → Run 7)
+
+Two pieces of infrastructure were built between Run 6 and Run 7 in preparation
+for the coalition-scored run. Both will get their first live test in Run 7.
+
+**Post-game scoring** (`score_game()` on GameEnvironment):
+- Evaluates final-round proposals against per-faction scoring tables via `structured_call`.
+- Determines whether a deal was reached (strict: positions must be explicitly compatible).
+- Calculates each faction's score against its private scoring table.
+- Compares each score against the faction's BATNA.
+- Declares winner (highest score) and loser (below BATNA, or lowest).
+
+**Game-mode behavioral instructions** (injected by the scenario compiler):
+- Compiler classifies each scenario as cooperative / competitive / mixed.
+- Persona template embeds mode-specific conduct guidance:
+  - *Competitive:* "Your goal is to maximize YOUR score. A deal where everyone is happy means you left points on the table."
+  - *Cooperative:* "Look for trades that create mutual value, but maximize YOUR share."
+  - *Mixed:* "Be competitive on your priority issue, cooperative on secondary ones."
+
+---
+
+## Run 7 — Three-Party Coalition (Scored) — READY TO RUN
 
 **Status:** READY TO RUN (instrumentation complete 2026-05-29; awaiting kickoff)
 
