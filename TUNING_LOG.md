@@ -115,6 +115,16 @@ farms vs. city, each with distinct leverage) will produce:
 - Run 5 redesigns personas with point tables, BATNAs, named deception tactics (tests the "properly instructed" hypothesis directly).
 - Future: build a reconciliation module for dedup + state transitions (eventually shipped in Phase 18, will run live in Run 7).
 
+**Open items closed by this run** (pointer-only):
+- Vague-language / no-promise-reference problem from Run 3 (resolved by rewritten generation prompt).
+- Empty early-round intelligence (resolved by analyst-transcript feed).
+- Real-money negotiation extraction (resolved; 21 promises vs Run 3's 7).
+
+**Open items raised by this run:**
+- Personality-style personas don't produce strategic behavior — need executable strategies (point tables, BATNAs, named tactics). Becomes the central hypothesis of Run 5.
+- Reconciliation gap (dedup, fulfillment, inconsistencies) is real and prompt-only fixes won't address it.
+- Round-1 analyst intelligence still thin even with the transcript fix.
+
 ---
 
 ## Run 5 — Trade Summit (Dirty Bargaining) — COMPLETE
@@ -177,6 +187,14 @@ Everything else (model, infra, prompts) held constant from Run 4.
 - Productionize this pattern: build a scenario compiler that auto-generates scored personas from narrative descriptions (became Run 6).
 - Add post-game scoring to determine whether agents actually maximize their private payoffs (built for Run 7).
 
+**Open items closed by this run** (pointer-only):
+- "Properly instructed" hypothesis from Run 4 (now confirmed: point tables + named tactics + BATNA unlock genuinely strategic / deceptive behavior).
+- LLM capability question (LLMs *can* deceive when explicitly instructed — failure modes in earlier runs were instruction, not capability).
+
+**Open items raised by this run:**
+- Hand-authoring per-faction scored personas for every new scenario is tedious. Motivates the scenario compiler in Run 6.
+- Post-game scoring is needed to determine if agents actually maximized their payoffs (built between Run 5 and Run 7).
+
 ---
 
 ## Run 6 — Three-Party Coalition (Auto-Compiled) — COMPLETE
@@ -236,6 +254,15 @@ Everything else (extraction prompt, generation prompt, analyst, model, infra) he
 - Broaden extraction prompt: treat concrete proposals with specific terms as trackable promises (applied via prompt update; will be re-validated in Run 7).
 - Add post-game scoring so coalition outcomes can be evaluated against per-faction scoring tables (built between Run 6 and Run 7; first live test in Run 7).
 - Add explicit game-mode behavioral instructions per scenario (cooperative / competitive / mixed) — injected by the scenario compiler so different scenarios get different conduct guidance (built between Run 6 and Run 7).
+
+**Open items closed by this run** (pointer-only):
+- Scenario compiler validity (untested → confirmed; auto-generated personas produced coherent coalition behavior).
+- Removed the need for hand-authored scored personas going forward.
+
+**Open items raised by this run:**
+- Extraction's "promise = binding commitment" definition is too narrow for coalition-style negotiation, which is mostly proposal-language. Becomes the prompt-broadening change applied before Run 7.
+- No post-game scoring yet → no objective "did anyone win?" measurement. Built between Run 6 and Run 7.
+- No game-mode behavioral guidance → cooperative scenarios and competitive ones share identical agent conduct. Built between Run 6 and Run 7.
 
 ---
 
@@ -364,11 +391,10 @@ Endgame-prompt anomaly (from the v1 attempt before budget fix, but worth recordi
 - Reconciliation's inconsistency and status-update paths need a scenario designed to trip them (e.g., a faction that shifts position contradicting an earlier explicit commitment). Future test, not blocking.
 - Stage 1 (Model 1) conversation model is sufficient for the current experimental program. Revisit Stage 2 (K=2 passes) only if Run 8 reveals that within-round reactivity would change conclusions.
 
-**Open items closed by this run:**
-- Run 7 itself (this entry).
-- Promise dedup via reconciliation — confirmed live; reconciliation merged multiple duplicate coalition proposals across rounds 3-4 with semantic-similarity reasoning.
-- Explicit `FINAL ROUND` / `PENULTIMATE` prompt markers — implemented and fired correctly (R3 / R4 only); B's R4 majority-share concession is visible behavioral evidence the FINAL ROUND marker did its job.
-- Self-play infrastructure hardened — round counter mirror, per-round budget reset mirror, auto-trigger gate, dry-run validation capability. See `ARCH_conversation_model.md` for the conversation-model design space documented at the same time.
+**Open items closed by this run** (pointer-only; evidence lives in Observations and Learning above):
+- Promise dedup via reconciliation (untested → confirmed live).
+- Explicit `FINAL ROUND` / `PENULTIMATE` marker design (deferred → implemented and observed to influence behavior).
+- Self-play infrastructure hardening (4 plumbing bugs surfaced and fixed; dry-run capability added).
 
 **Decision rule for Run 8 (defined in advance, per the new entry template):**
 - If the 3-provider asymmetric outcome shows a clear winner-by-provider → that's the experiment, log it.
