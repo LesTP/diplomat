@@ -1108,189 +1108,100 @@ Run `python src/main.py` on the Pi, then manually test each path:
 
 ## 6. Layer 4 — Multi-Agent Self-Play
 
-Self-play runs multiple agent instances against each other in a simulated environment. It is the final validation before real deployment and the most expensive test to run.
+Self-play runs multiple agent instances against each other in a simulated environment. It validates game-level behavior, persona coherence, extraction quality, and strategic play. See `TUNING_LOG.md` for the full iterative tuning record.
 
-### 6.1 GameEnvironment
+**Status:** Operational. 7 simulation runs completed across 4 scenario types (~$2.50 total). 35 unit tests.
 
-```python
-# tests/self_play/game_environment.py
+### 6.1 Architecture
 
-import asyncio
-import json
-from datetime import datetime, timezone
-from pathlib import Path
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| GameEnvironment | `tests/self_play/game_environment.py` | Orchestrates N agents: config generation, message routing, round lifecycle, results collection, post-game scoring |
+| LoggingLLMClient | `tests/self_play/game_environment.py` | Wraps any LLM client; records every call with full prompts, responses, and timing |
+| Scenario Compiler | `src/tools/scenario_compiler.py` | Converts narrative scenario descriptions into scored persona files via LLM |
+| Simulation Runner | `tests/self_play/run_simulation.py` | CLI entry point with `--scenario` flag for auto-compiled personas |
+| Analysis | `tests/self_play/analysis.py` | Post-game report: promises, coalitions, communication patterns, promise cross-reference |
+| Scenario Library | `Multi-Party Negotiation Scenarios.md` | Catalogue of academic, historical, and game-theoretic negotiation scenarios |
 
-from modules.types import InboundEvent
-from orchestrator import Orchestrator
-from tests.helpers.test_transport import TestTransport
+### 6.2 Running Self-Play
 
-
-class GameEnvironment:
-    def __init__(self, agent_configs: dict[str, dict]):
-        # agent_configs: faction_id → {config_path, persona_path, ...}
-        self.agent_configs = agent_configs
-        self.agents: dict[str, Orchestrator] = {}
-        self.transports: dict[str, TestTransport] = {}
-        self.channel_log: list[dict] = []
-        self.round_number: int = 1
-        self.total_rounds: int = 8
-
-    async def setup(self, llm_client, cost_accountant=None):
-        for faction_id, cfg in self.agent_configs.items():
-            transport = TestTransport()
-            self.transports[faction_id] = transport
-
-            orch = Orchestrator(
-                config_path=cfg["config_path"],
-                base_path=cfg.get("base_path", Path.cwd()),
-                module_overrides={"transport": transport},
-                llm_client=llm_client,
-                cost_accountant=cost_accountant,
-            )
-
-            # Start event loop in background
-            self.agents[faction_id] = orch
-            asyncio.create_task(orch.start())
-
-    async def broadcast(self, sender_id: str, content: str,
-                        channel: str = "public"):
-        message = {
-            "round": self.round_number,
-            "sender": sender_id,
-            "channel": channel,
-            "content": content,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }
-        self.channel_log.append(message)
-
-        for faction_id, transport in self.transports.items():
-            if faction_id != sender_id:
-                await transport.inject(InboundEvent(
-                    timestamp=datetime.now(timezone.utc),
-                    sender_faction=sender_id,
-                    channel=channel,
-                    content=content,
-                ))
-
-    async def run_round(self):
-        print(f"\n=== ROUND {self.round_number} ===")
-
-        for faction_id, agent in self.agents.items():
-            await agent.run_response_pipeline()
-            await asyncio.sleep(2)
-
-            transport = self.transports[faction_id]
-            outputs = transport.get_output()
-            public = [m for m in outputs if m.channel == "public"]
-            if public:
-                latest = public[-1]
-                print(f"[{faction_id}]: {latest.content}")
-                await self.broadcast(faction_id, latest.content)
-            transport.clear_output()
-
-        # Signal round end to all agents
-        for faction_id, transport in self.transports.items():
-            await transport.inject(InboundEvent(
-                timestamp=datetime.now(timezone.utc),
-                sender_faction="system",
-                channel="public",
-                content="[ROUND END]",
-            ))
-
-        await asyncio.sleep(5)  # allow analysis to complete
-        self.round_number += 1
-
-    async def run_game(self):
-        for _ in range(self.total_rounds):
-            await self.run_round()
-        return self.collect_results()
-
-    def collect_results(self) -> dict:
-        results = {}
-        for faction_id, agent in self.agents.items():
-            results[faction_id] = {
-                "round": self.round_number - 1,
-            }
-        return {
-            "transcript": self.channel_log,
-            "agent_results": results,
-            "rounds_completed": self.round_number - 1,
-        }
-
-    async def teardown(self):
-        for agent in self.agents.values():
-            await agent.shutdown()
-```
-
-### 6.2 Self-Play Runner
-
+**With pre-built personas:**
 ```bash
 python -m tests.self_play.run_simulation \
-  --rounds 8 \
-  --output tests/self_play/results/run_001.json
+  --rounds 4 --factions alpha,beta,gamma \
+  --output tests/self_play/results/run.json
 ```
 
-### 6.3 Self-Play Personas
-
-Each agent gets a config file pointing to its faction persona. The personas must have genuine tension with each other for self-play to be useful.
-
-| Persona | Natural antagonists | What to watch for |
-|---|---|---|
-| Cartographers | Everyone (they're information brokers) | Does it build information advantage? Does it maintain neutrality? |
-| Sustainers | Accelerants | Does it resist destabilization? Does it use infrastructure leverage correctly? |
-| Arbiters | Accelerants, Covenant | Does it maintain legitimacy framing? Does it avoid taking visible sides? |
-| Accelerants | Everyone | Is it genuinely unpredictable? Does it time destabilization well? |
-| Covenant | Arbiters | Does it stay in character under pressure? Does it make and keep principled commitments? |
-
-### 6.4 What Self-Play Reveals
-
-**Per-agent analysis questions:**
-
-- *Promise tracking:* Does the agent's promise ledger correctly reflect what was said across all rounds?
-- *Intelligence accuracy:* Did the Analyst's predictions come true? Compare predictions against actual subsequent moves.
-- *Constraint compliance:* Did the agent violate any of its configured commitments?
-- *Coalition coherence:* Did the agent's coalition assessments reflect the actual alliance patterns?
-- *Persona drift:* Does the agent's language and behavior in round 7 match its character in round 1?
-
-**Cross-agent analysis questions:**
-
-- Did any agent successfully execute a multi-round betrayal? Was the target's Analyst issuing early warnings?
-- Did the Divergence module flag anything interesting? Did the divergences correspond to genuinely uncertain situations?
-- Did any coalition form unexpectedly that the agents' intelligence reports failed to predict?
-
-**Cost management:**
-
-A full five-agent, eight-round game with all real API calls costs real money. All self-play configurations route LLM calls through `DiplomatCostGate` (in `src/adapters.py`) with tight per-round and per-session budgets.
-
-Two cheaper alternatives:
-
-*Hybrid mode:* Use `RuleBasedExtractor` for all agents. Extraction quality is reduced but the flow, persona behavior, and intelligence pipeline all exercise properly.
-
-*Single-faction mode:* Run your agent against `StubAgent` opponents that use only the Generation module with simple personas — no full pipeline. Your agent gets realistic inputs; the others are cheap.
-
-```python
-class StubAgent:
-    def __init__(self, faction_id: str, persona_summary: str, llm_client, llm_config: dict):
-        self.faction_id = faction_id
-        self.persona_summary = persona_summary
-        self.generator = LLMGenerator(
-            llm_client=llm_client,
-            llm_config=llm_config,
-            tier="commodity",
-            max_tokens=256,
-            review_gate_enabled=False,
-        )
-
-    async def generate_response(self, transcript: list[str]) -> str:
-        from modules.context_assembler import DecisionContext
-        context = DecisionContext(
-            system_prompt=f"You are {self.faction_id}. {self.persona_summary}",
-            user_prompt=f"Recent transcript:\n{chr(10).join(transcript)}\n\nRespond briefly.",
-            metadata={},
-        )
-        result = await self.generator.generate(context)
-        return result.response_text or ""
+**With auto-compiled scenario (recommended):**
+```bash
+python -m tests.self_play.run_simulation \
+  --scenario tests/self_play/scenarios/three_party_coalition.md \
+  --scenario-title "Three-Party Coalition" \
+  --factions a,b,c --rounds 4 \
+  --output tests/self_play/results/run.json
 ```
+
+The `--scenario` flag compiles the scenario description into per-faction personas with private scoring tables, BATNAs, deception tactics, and game-mode-specific behavioral instructions. One LLM call (~$0.01).
+
+**Post-game analysis:**
+```bash
+python -m tests.self_play.analysis --results tests/self_play/results/run.json
+```
+
+### 6.3 Scenario Compiler
+
+The compiler (`src/tools/scenario_compiler.py`) is a pre-game preparation tool, usable for both self-play testing and real game deployment. It uses `structured_call` to extract from a narrative:
+
+- **Issues and outcomes** — what's being negotiated, possible positions
+- **Per-faction scoring** — private point values per outcome (1-10 scale)
+- **BATNAs** — no-deal value per faction
+- **Deception tactics** — which low-priority issue each faction should overstate
+- **Logrolling opportunities** — mutually beneficial trades
+- **Game mode** — cooperative, competitive, or mixed
+
+The game mode drives persona behavioral style:
+- **Competitive:** "Maximize YOUR score. A deal where everyone is happy means you left points on the table."
+- **Cooperative:** "Find mutual value, but make sure YOUR share is maximized."
+- **Mixed:** "Be competitive on your priority, cooperative on secondary issues."
+
+### 6.4 Post-Game Scoring
+
+GameEnvironment includes `score_game()` which evaluates the final round's proposals against each faction's scoring table via `structured_call`:
+- Determines if a deal was reached (positions must be explicitly compatible)
+- Calculates per-faction point scores from agreed outcomes
+- Compares each score to BATNA — above BATNA = WIN, below = LOSE
+- Declares the winner (highest score)
+
+### 6.5 What Self-Play Has Revealed
+
+Key findings from 7 runs across 4 scenario types (see `TUNING_LOG.md` for details):
+
+1. **LLMs default to cooperative.** Without explicit competitive instructions, agents converge on reasonable deals too quickly. Point tables + named deception tactics produce dramatically more strategic behavior.
+2. **Extraction definition matters.** "Promise = binding commitment" missed most negotiation language. Broadened to include concrete proposals with specific terms.
+3. **Infrastructure bugs hide behind prompt problems.** The debounce bug (Run 2) looked like extraction failure but was actually a pipeline race condition dropping messages.
+4. **Asymmetric scenarios produce richer behavior.** Generic territory disputes produce vague percentage splits. Specific asymmetric positions (dam/farms/money) or private scoring tables produce concrete, trackable proposals.
+5. **Few-shot examples + retry eliminates schema failures.** Narrative-only prompts failed ~30% of the time. `structured_call` with examples and retry reduced failures to near zero.
+
+### 6.6 Available Scenarios
+
+| Scenario | File | Type | Factions |
+|----------|------|------|----------|
+| Territory Dispute | `tests/self_play/scenario.py` (legacy) | Cooperative | 3 generic |
+| Water Rights | (replaced by dirty bargaining) | Cooperative | 3 asymmetric |
+| Dirty Bargaining | `tests/self_play/scenario.py` (current) | Mixed | 3 with scoring |
+| Three-Party Coalition | `tests/self_play/scenarios/three_party_coalition.md` | Competitive | 3 (Susskind) |
+
+Additional scenarios available in `Multi-Party Negotiation Scenarios.md` (Harborco, Congress of Vienna, Six-Party Talks, climate COPs, etc.).
+
+### 6.7 Cost
+
+| Configuration | Cost per 4-round run |
+|---------------|---------------------|
+| gpt-4.1-mini, 3 factions, RuleBasedExtractor | ~$0.09 |
+| gpt-4.1-mini, 3 factions, LLM extraction | ~$0.55 |
+| gpt-4.1-mini, 3 factions, LLM extraction + scoring | ~$0.60 |
+
+All calls route through `CostAccountant.complete()` with ledger tracking and budget enforcement.
 
 ---
 
@@ -1363,9 +1274,8 @@ Recurring patterns in `constraint_enforcement` or `persona_correction` indicate 
 | **Done** | Deployment readiness: regression coverage, two-channel Telegram docs, systemd unit, production log cleanup (193 total) | Live smoke fixes |
 | **Done** | Layer 2 infrastructure: scenario runner, LLM-as-judge | Live API keys for paid scenario execution |
 | **Done** | Layer 2 starter scenarios: 4 extraction + 2 generation | Runner infrastructure |
-| **Next** | Layer 4: GameEnvironment, 5 faction personas, first simulation | All above stable |
-| **Last** | Layer 4: GameEnvironment, 5 faction personas, first simulation | All above stable |
-| **Ongoing** | Add a scenario for every prompt gap or self-play anomaly found | — |
+| **Done** | Layer 4: GameEnvironment, scenario compiler, post-game scoring, game-mode, 7 simulation runs | All above stable |
+| **Ongoing** | Add scenarios and tune prompts based on self-play analysis. See `TUNING_LOG.md` | — |
 
 ---
 
@@ -1390,20 +1300,33 @@ python -m tests.prompt_regression.runner \
   --scenarios tests/prompt_regression/scenarios/
 ```
 
-### Run self-play simulation (full, expensive)
+### Run self-play simulation (with scenario compiler)
 
 ```bash
 python -m tests.self_play.run_simulation \
-  --rounds 8 \
-  --output tests/self_play/results/$(date +%Y%m%d_%H%M).json
+  --scenario tests/self_play/scenarios/three_party_coalition.md \
+  --factions a,b,c --rounds 4 \
+  --output tests/self_play/results/run.json
 ```
 
-### Run self-play simulation (single faction, cheap)
+### Run self-play simulation (pre-built personas)
 
 ```bash
 python -m tests.self_play.run_simulation \
-  --rounds 8 \
-  --mode single_faction \
-  --faction covenant \
-  --output tests/self_play/results/$(date +%Y%m%d_%H%M)_covenant.json
+  --rounds 4 --factions alpha,beta,gamma \
+  --output tests/self_play/results/run.json
+```
+
+### Compile a scenario into personas
+
+```bash
+python -m tools.scenario_compiler \
+  --scenario scenario.md --output-dir output/
+```
+
+### Analyze self-play results
+
+```bash
+python -m tests.self_play.analysis \
+  --results tests/self_play/results/run.json
 ```

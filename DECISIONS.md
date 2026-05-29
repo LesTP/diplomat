@@ -139,3 +139,38 @@ Priority: Important
 Decision: Phase 17 will build Layer 2 prompt regression infrastructure around module-level scenarios, structural JSON-path checks, and optional LLM-as-judge checks that use the same injected `llm_client.complete(messages, config, tier)` adapter shape as Diplomat modules. It will not exercise the full Orchestrator pipeline or import provider SDKs/toolkit directly.
 Rationale: Prompt regression needs to catch prompt-quality regressions with a smaller, more targeted surface than Layer 3 pipeline replay. Keeping the harness module-scoped makes failures actionable, while reusing the adapter shape preserves the no-direct-SDK contract and lets the suite run on the Pi where toolkit is installed.
 Revisit if: Prompt regressions primarily arise from cross-module context assembly rather than individual module behavior.
+
+D-20: Per-event extraction replaces cancel-and-replace debounce
+Date: 2026-05-28 | Status: Closed
+Priority: Critical
+Decision: Rewrite Orchestrator message extraction from a single `_debounce_task` that cancels the previous message's extraction to `_extraction_tasks: set[asyncio.Task]` where each message gets its own independent extraction task with self-cleanup via `done_callback`.
+Rationale: Self-play Run 2 revealed that the cancel-and-replace pattern silently dropped all messages except the last in a burst. In a 3-faction game, only `[ROUND END]` was ever extracted because it arrived last and cancelled all faction messages. This is also a production bug — in a real Telegram game, multiple players could send messages within the debounce window. The per-event model ensures every message is extracted regardless of arrival timing.
+Revisit if: Extraction costs become a concern under genuine burst traffic (e.g., 50+ messages in seconds). In that case, consider batching rather than cancellation.
+
+D-21: All LLM modules use toolkit structured_call
+Date: 2026-05-28 | Status: Closed
+Priority: Important
+Decision: Rewire all four LLM-consuming modules (extraction, analyst, adversarial, generation) to use `toolkit.structured_llm.structured_call()` instead of manual prompt assembly + parse + validate patterns. `structured_call` handles schema injection into the system prompt, few-shot example formatting, JSON parsing, schema validation, and retry-with-error-feedback.
+Rationale: Each module independently reimplemented the same pattern: build messages with schema, call LLM, parse JSON, validate, handle errors. Self-play Run 3 showed that ~30% of extraction calls failed schema validation when using narrative-only prompts. `structured_call` with few-shot examples and retry reduced failures to near zero. Centralizing this in toolkit eliminates duplication and ensures consistent enforcement across all modules.
+Revisit if: Provider-native structured output (OpenAI `response_format: json_schema`) becomes available through toolkit — would replace the prompt-based enforcement with token-level enforcement.
+
+D-22: Extraction tracks proposals, not just binding commitments
+Date: 2026-05-28 | Status: Closed
+Priority: Important
+Decision: Broaden the extraction prompt's definition of a "promise" to include concrete proposals with specific terms, conditional offers, and demands — not just explicit binding commitments.
+Rationale: Self-play Run 6 (Three-Party Coalition) tracked only 1 promise despite 12 messages full of specific proposals ("I propose we split 70/14"). The original definition ("a promise requires a clear commitment") was too strict for negotiation language where parties make offers, demands, and conditional proposals before anything becomes binding. Tracking proposals gives the intelligence pipeline material to work with.
+Revisit if: Over-extraction becomes a problem (too many low-quality promise entries). May need a confidence threshold or a separate "proposals" entity type.
+
+D-23: Scenario compiler is a production tool, not test infrastructure
+Date: 2026-05-28 | Status: Closed
+Priority: Important
+Decision: Place the scenario compiler in `src/tools/` rather than `tests/self_play/`. It is an operator-facing pre-game preparation tool, not test scaffolding.
+Rationale: The scenario compiler converts a narrative game description into scored persona files with point tables, BATNAs, deception tactics, and game-mode-specific behavioral instructions. This is exactly what a human operator would do before a real game — read the rules, assess their faction's interests, and prepare a strategy. Placing it in `src/tools/` signals that it's part of the operational toolkit, usable both in self-play and in real game preparation.
+Revisit if: The compiler grows complex enough to warrant its own module with tests alongside (currently tested via `tests/test_scenario_compiler.py`).
+
+D-24: Game-mode classification drives persona behavioral style
+Date: 2026-05-28 | Status: Closed
+Priority: Important
+Decision: The scenario compiler classifies each scenario as cooperative, competitive, or mixed, and the persona template injects mode-specific behavioral instructions accordingly. Competitive mode instructs agents to maximize their own score, exploit others' urgency, and threaten to walk away. Cooperative mode instructs mutual value creation while maximizing own share.
+Rationale: Self-play Runs 1-4 showed that LLMs default to cooperative behavior regardless of scenario structure. Without explicit competitive instructions, agents converge on reasonable deals too quickly and never employ deception or hardball tactics. The game-mode classification lets the scenario structure (not a global toggle) determine how competitive agents should be. Dirty bargaining Run 5 with explicit competitive personas produced dramatically more strategic play including successful bluffs and progressive concession tactics.
+Revisit if: A more nuanced per-issue competitiveness model is needed (some issues cooperative, others zero-sum within the same negotiation).

@@ -15,43 +15,62 @@ steps_remaining: 1
   - Bot vs. user account question must be resolved with game moderator before deployment; implement `TelethonUserTransport` only if bot-to-bot messaging is unavailable
   - Round structure (signal vs. time-based) must be confirmed before Orchestrator event loop
   - `toolkit` lives at `../toolkit` and must be installed editable into the diplomat venv (`<venv>/bin/python3 -m pip install -e ../toolkit`). It is not declared in `pyproject.toml` to avoid a misleading install contract — fresh `pip install -e .` cannot resolve `toolkit` from PyPI, so the editable install is a one-time per-host setup step. Module-level tests use dependency-injected fakes for isolation; that pattern is fine and should continue, but integration paths in Orchestrator must exercise real `toolkit` imports
-  - Debounce strategy resolved (11.2): per-message cooldown — each new message cancels and reschedules the extraction timer; avoids redundant LLM calls under burst traffic
-  - Cost governance resolved (11.4): CostBudget resets per round (strict per-round cap); session totals tracked in cost_ledger.jsonl by CostAccountant
-  - CostAccountant is a thin wrapper around the module-level llm_client call: Orchestrator checks budget before dispatching each LLM call and alerts operator on over-budget
+  - Debounce strategy: **rewritten in Phase 18** from per-message cancel-and-replace to per-event task set. Each game message gets its own extraction task; no cancellation between different messages. The original design (11.2) silently dropped messages in multi-message bursts.
+  - Cost governance: CostAccountant is now wired through `ToolkitLLMAdapter` — every LLM call routes through `accountant.complete()` for budget-check + ledger write. The `DiplomatCostGate` check-before-call pattern remains for round-level budget control. Both share the same accountant instance.
+  - All four LLM modules (extraction, analyst, adversarial, generation) now use `toolkit.structured_llm.structured_call()` for schema-enforced JSON output with automatic retry on validation failure.
+  - Self-play cost ledger uses a local temp path (`%TEMP%/diplomat_selfplay/`) to avoid UNC path issues on network shares.
   - Before deployment, install `../toolkit` editable and run live probes for `llm_client`, `telegram_client`, and `cost_accountant`; this environment cannot import `toolkit`, so Phase 11 close recorded probe specs rather than live matches
   - Prompt regression runner: `_judge_response_text()` JSON path extraction must be wrapped in try-catch — if a scenario's `path` does not exist in module output, the raw KeyError propagates and crashes the runner. Fixed in Phase 17 review; always validate extraction paths before production scenario runs.
 
 ## Current Status
 
-- **Phase** — Phase 18 in progress. Self-play infrastructure built and tested (24 tests pass). Awaiting live simulation run.
-- **Focus** — Layer 4 multi-agent self-play: 3-faction territory-dispute scenario with real LLM calls.
+- **Phase** — Phase 18 nearing completion. Self-play infrastructure built, tested (35 tests), and validated through 7 simulation runs (~$2.50 total). Scenario compiler, post-game scoring, and game-mode system operational.
+- **Focus** — Documentation catch-up and final validation run with scored Three-Party Coalition scenario.
 - **Blocked/Broken** — None.
 
-## Phase 18: Layer 4 — Multi-Agent Self-Play
+## Phase 18: Layer 4 — Multi-Agent Self-Play + Tuning
 
-Regime: Build. Scope: Create the multi-agent self-play infrastructure — GameEnvironment, faction personas, scenario text, simulation runner CLI, post-game analysis, and unit tests. Then run a live 4-round simulation with 3 factions and real LLM calls. Reference: `diplomat-testing-doc.md` §6.
+Regime: Build. Scope expanded significantly from original plan. Started as self-play infrastructure; grew to include core pipeline fixes (debounce, cost wiring), toolkit enhancements (structured_call, OpenAI pricing), prompt tuning across all 4 LLM modules, a scenario compiler tool, and post-game scoring. See `TUNING_LOG.md` for the full iterative tuning record.
 
 **Design constraints:**
-- 3 generic factions (Alpha, Beta, Gamma) with distinct negotiation strategies but identical technical capabilities
-- Territory-dispute scenario with escalating per-round moderator updates
-- All agents use real LLM calls (LLMAnalyst, LLMGenerator, LLMAdversarialReader)
-- RuleBasedExtractor for free extraction; AutoApproveReviewGate for no human in loop
-- GameEnvironment supports `extra_module_overrides` so unit tests can inject StubAnalysts
-- CLI runner: `python -m tests.self_play.run_simulation --rounds 4`
+- 3 generic factions with distinct negotiation strategies, identical technical capabilities
+- Multiple scenario types tested: territory dispute, water rights, dirty bargaining, coalition exercise
+- All agents use real LLM calls (LLMAnalyst, LLMGenerator, LLMAdversarialReader, OpenAIStructuredExtractor)
+- AutoApproveReviewGate for no human in the loop
+- GameEnvironment supports `extra_module_overrides` for unit tests, `--scenario` flag for auto-compiled personas
+- CLI runner: `python -m tests.self_play.run_simulation --rounds 4 [--scenario <path>]`
 
 Steps:
 
-- [x] 18.1 — **Faction personas and scenario text.** Create `tests/self_play/personas/` with `alpha.txt` (defensive coalition-builder), `beta.txt` (aggressive opportunist), `gamma.txt` (adaptive information-gatherer). Create `tests/self_play/scenario.py` with `SEED_MESSAGE` and `ROUND_UPDATES` for a 4-round territory-dispute scenario with escalating tension.
+- [x] 18.1 — **Faction personas and scenario text.** Created `tests/self_play/personas/` and `tests/self_play/scenario.py` with territory-dispute scenario. Later replaced with water rights, dirty bargaining, and Three-Party Coalition scenarios.
 
-- [x] 18.2 — **GameEnvironment.** Create `tests/self_play/game_environment.py` with: per-faction YAML config generation from `pipeline_test.yaml` template, Orchestrator lifecycle management, `broadcast()`/`broadcast_to_all()` message routing, `run_round()` with moderator updates + agent responses + round-end signals, `run_game()` with seed message and round loop, `collect_results()` querying each agent's state_manager. Supports `extra_module_overrides` for test injection.
+- [x] 18.2 — **GameEnvironment.** Per-faction YAML config generation, Orchestrator lifecycle, `broadcast()`/`broadcast_to_all()` message routing, `run_round()`/`run_game()`, `collect_results()`. Added `LoggingLLMClient` for full prompt/response/timing capture. Supports `extra_module_overrides`, `seed_message`/`round_updates` overrides, and `scenario_analysis` for scoring.
 
-- [x] 18.3 — **Simulation runner CLI.** Create `tests/self_play/run_simulation.py` with argparse (`--rounds`, `--output`, `--factions`), `ToolkitLLMAdapter` and `DiplomatCostGate` construction, temp directory management, JSON results output with timestamped filenames.
+- [x] 18.3 — **Simulation runner CLI.** Argparse with `--rounds`, `--output`, `--factions`, `--scenario`, `--scenario-title`. Single shared CostAccountant between adapter and gate. Results written before teardown. Unbuffered stdout for long-running simulations.
 
-- [x] 18.4 — **Post-game analysis.** Create `tests/self_play/analysis.py` with per-agent summary (promises, coalitions, inconsistencies, intelligence), communication analysis, round-by-round response display, promise cross-reference across agents. CLI: `python -m tests.self_play.analysis --results <path>`.
+- [x] 18.4 — **Post-game analysis.** Per-agent summary, communication patterns, round-by-round responses, promise cross-reference. CLI: `python -m tests.self_play.analysis --results <path>`.
 
-- [x] 18.5 — **Unit tests.** Create `tests/test_self_play.py` with 24 tests: config generation (4), broadcast mechanics (3), scenario data (3), persona files (9), round lifecycle with fake LLM (4), analysis (1). All 24 pass.
+- [x] 18.5 — **Unit tests.** 24 self-play tests + 11 scenario compiler tests = 35 total. Config generation, broadcast, lifecycle, analysis, persona generation, schema validation.
 
-- [ ] 18.6 — **Documentation and live run.** Update DEVPLAN, ARCHITECTURE, testing doc. Run live 4-round simulation on Pi with real LLM calls. Analyze results. Transition to `state: review`.
+- [x] 18.6 — **Orchestrator debounce fix.** Rewrote from single `_debounce_task` (cancel-and-replace) to `_extraction_tasks: set[asyncio.Task]` (per-event, no cancellation). Fixed bug where burst messages silently dropped all but the last. Run 1-2 had zero extractions because of this.
+
+- [x] 18.7 — **structured_call toolkit function.** Built `toolkit.structured_llm.structured_call()`: prompt assembly + schema injection + few-shot examples + JSON parse + schema validate + retry on failure. Rewired all 4 Diplomat LLM modules (extraction, analyst, adversarial, generation) to use it. 19 new toolkit tests.
+
+- [x] 18.8 — **Cost accountant wiring.** `ToolkitLLMAdapter` now accepts optional `cost_accountant` and routes calls through `accountant.complete()`. Added OpenAI models to toolkit pricing table. Made `budget` parameter optional with default. Unknown models use conservative fallback pricing ($15/$75 per Mtok).
+
+- [x] 18.9 — **Prompt tuning.** Generation prompt: reference intelligence, hold factions accountable, cite specifics, adapt to round pressure. Extraction prompt: explicit field allowlists, few-shot examples (promise, coalition, fulfillment, broken+inconsistency, empty), promise state tracking (pending/kept/broken/void), dedup rules, proposals as promises. Analyst prompt: use transcript alongside state tables, note contradictions.
+
+- [x] 18.10 — **Analyst transcript feed.** Added `recent_events` parameter to `LLMAnalyst.analyze()`. Orchestrator passes last 30 events alongside state data. Fixed empty early-round intelligence.
+
+- [x] 18.11 — **Scenario compiler.** Built `src/tools/scenario_compiler.py`: takes narrative scenario description, uses `structured_call` to extract issues/outcomes/scoring/BATNAs/deception tactics/logrolling/game-mode. Generates ready-to-use persona files. CLI: `python -m tools.scenario_compiler --scenario <path>`. Wired into self-play runner via `--scenario` flag.
+
+- [x] 18.12 — **Post-game scoring.** Added `score_game()` to GameEnvironment: evaluates final proposals against scoring tables via `structured_call`, determines deal reached, calculates per-faction scores vs BATNA, declares winner/loser.
+
+- [x] 18.13 — **Game mode system.** Scenario compiler classifies scenarios as cooperative/competitive/mixed. Persona template injects mode-specific behavioral instructions (competitive: maximize your score; cooperative: find mutual value but maximize your share).
+
+- [ ] 18.14 — **Documentation catch-up and final validation.** Update all project docs to reflect Phase 18 changes. Run scored Three-Party Coalition. Transition to `state: review`.
+
+Summary (in progress): Built complete self-play infrastructure with scenario compiler, post-game scoring, and game-mode system. Ran 7 simulations across 4 scenario types totaling ~$2.50 in LLM costs. Fixed critical debounce bug, wired real cost tracking, built reusable `structured_call` toolkit function, and tuned all prompts based on empirical run analysis. See `TUNING_LOG.md` for detailed run-by-run analysis.
 
 ## Phase 17: Layer 2 — Prompt Regression Infrastructure
 

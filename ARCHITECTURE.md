@@ -126,28 +126,29 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 
 | Layer | Status |
 |-------|--------|
-| Unit and regression tests | Complete — 193 total tests after deployment-readiness coverage |
+| Unit and regression tests | Complete — 235+ tests across 13 test files |
 | Pipeline integration | Complete — 12 fake-backed Orchestrator integration tests |
-| Transcript replay | Complete — 2 transcript fixtures, 5 replay tests, 187 total regression tests |
-| Prompt regression | Phase 17 complete — 211 tests (14 prompt-regression unit tests + 197 regression); 6 starter scenarios (4 extraction free, 2 generation require live LLM) |
-| Multi-agent self-play | Phase 18 in progress — 3-faction territory-dispute scenario, 24 self-play infrastructure tests |
+| Transcript replay | Complete — 2 transcript fixtures, 5 replay tests |
+| Prompt regression | Complete — 6 starter scenarios (4 extraction free, 2 generation require live LLM) |
+| Multi-agent self-play | Phase 18 — GameEnvironment, scenario compiler, post-game scoring, 35 infrastructure tests, 7 simulation runs across 4 scenario types. See `TUNING_LOG.md`. |
 
 ## Coupling Notes
 
 - **Event Store ↔ State Manager:** loose — both use the same SQLite file but own separate tables. No code dependency. Event Store writes messages; State Manager writes domain tables.
 - **Extraction ↔ State Manager:** moderate — Extraction produces StatePatch objects validated against State Manager's schema. Schema is loaded from config, not hardcoded in either module.
 - **Extraction ↔ Coaching:** loose — Coaching routes INTEL notes to Extraction with `trigger_type='intel_correction'`. Same Extraction interface, different trigger.
-- **Analyst ↔ State Manager:** read-only — Analyst consumes `get_full_state()` output. Never writes.
+- **Analyst ↔ State Manager + Event Store:** read-only — Analyst consumes `get_full_state()` output and recent events (transcript). Never writes. Recent events added in Phase 18 to give the analyst conversation context alongside structured state.
 - **Context Assembler ↔ everything:** read-only fan-in — assembles from Persona, Analyst, Event Store, Coaching outputs. The only module that knows the shape of the Generation context window.
 - **Generation ↔ Context Assembler:** tight — Generation consumes DecisionContext directly. Changes to context structure affect both.
 - **Review Gate ↔ Transport:** moderate — Review Gate uses toolkit/telegram_client for its own UI (sending drafts, receiving commands). Separate from the main Transport instance.
 - **Orchestrator ↔ all modules:** tight by design — it is the composition layer. Changes to pipeline topology affect only the Orchestrator.
-- **All LLM modules ↔ toolkit:** one-way via adapter — Extraction, Analyst, Generation, Adversarial call `llm_client.complete(messages=list[dict], config=dict, tier=str)` expecting plain str back. In production, `ToolkitLLMAdapter` (in `src/adapters.py`) wraps this into toolkit's real `complete(list[Message], LLMConfig, ModelTier) → LLMResponse`. In tests, fakes implement the same dict/str interface directly. Modules never import from toolkit.
-- **Orchestrator ↔ toolkit/cost_accountant:** via `DiplomatCostGate` (in `src/adapters.py`) — wraps toolkit's `CostAccountant(ledger_path)` with `available_budget()` / `reset_round_budget()` API that Orchestrator's budget-gate pattern expects. Toolkit's accountant is a `complete()` wrapper; the gate adapts it to a check-before-call pattern.
-- **Orchestrator ↔ State Manager:** write path — Orchestrator calls the 5 persistence methods (`store_coaching`, `store_intelligence`, `set_game_state`, `store_adversarial_read`, `mark_coaching_consumed`) added in Phase 12. Previously these were Orchestrator sqlite3 fallbacks; now they are proper State Manager responsibilities.
+- **All LLM modules ↔ toolkit:** two-layer via adapter — All four modules (Extraction, Analyst, Generation, Adversarial) call `toolkit.structured_llm.structured_call()` for schema-enforced JSON output with retry. This goes through the injected `llm_client.complete(messages, config, tier)` interface. In production, `ToolkitLLMAdapter` (in `src/adapters.py`) wraps toolkit's real `complete()` and optionally routes through `CostAccountant.complete()` for budget enforcement and ledger tracking. In tests, fakes implement the same dict/str interface. Modules never import from toolkit directly.
+- **ToolkitLLMAdapter ↔ CostAccountant:** optional coupling — when a `cost_accountant` is injected, the adapter routes every LLM call through `accountant.complete()` which estimates cost, checks budgets, calls the underlying LLM, and writes a ledger entry. Without an accountant, the adapter calls `llm_client.complete()` directly (test/offline mode). The `DiplomatCostGate` provides the Orchestrator's check-before-call budget pattern using the same accountant instance.
+- **Orchestrator ↔ State Manager:** write path — Orchestrator calls the 5 persistence methods (`store_coaching`, `store_intelligence`, `set_game_state`, `store_adversarial_read`, `mark_coaching_consumed`) added in Phase 12.
+- **Scenario Compiler ↔ structured_call:** the compiler (`src/tools/scenario_compiler.py`) uses `structured_call` to parse narrative scenarios into scoring tables. It generates persona files consumed by `FileBasedPersona`. No runtime dependency — it's a pre-game preparation tool.
 - **Extension: new Transport implementation** → additive (new class, config change). No other modules affected.
 - **Extension: new LLM provider** → toolkit config change only. No Diplomat code changes.
-- **Extension: different game domain** → replace config/ directory. No code changes.
+- **Extension: different game domain** → replace config/ directory and persona files. Scenario compiler can auto-generate personas from a narrative description.
 
 ## Key Decisions
 

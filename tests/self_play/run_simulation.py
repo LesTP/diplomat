@@ -47,6 +47,18 @@ def _parse_args() -> argparse.Namespace:
         default="alpha,beta,gamma",
         help="Comma-separated faction IDs (default: alpha,beta,gamma)",
     )
+    parser.add_argument(
+        "--scenario",
+        type=str,
+        default=None,
+        help="Path to scenario description — auto-compiles personas via LLM",
+    )
+    parser.add_argument(
+        "--scenario-title",
+        type=str,
+        default="a multi-party negotiation",
+        help="Title for compiled persona headers",
+    )
     return parser.parse_args()
 
 
@@ -76,8 +88,12 @@ def _build_raw_accountant():
         from toolkit.cost_accountant import CostAccountant
         from toolkit.cost_accountant.types import CostBudget
 
-        ledger_path = _project_root / "data" / "selfplay_cost_ledger.jsonl"
-        ledger_path.parent.mkdir(parents=True, exist_ok=True)
+        # Use a local path for the ledger to avoid UNC path issues on
+        # network shares (the resolved project root can produce doubled
+        # path segments like \\host\shared\shared\...).
+        ledger_dir = Path(tempfile.gettempdir()) / "diplomat_selfplay"
+        ledger_dir.mkdir(parents=True, exist_ok=True)
+        ledger_path = ledger_dir / "cost_ledger.jsonl"
         default_budget = CostBudget(
             operation_name="self_play",
             operation_budget_usd=10.0,
@@ -118,9 +134,68 @@ def _resolve_personas(faction_ids: list[str]) -> dict[str, Path]:
     return personas
 
 
+async def _compile_scenario(
+    scenario_path_str: str,
+    faction_ids: list[str],
+    tmp_dir: Path,
+    llm_client: Any,
+    scenario_title: str,
+) -> dict[str, Path]:
+    """Compile a scenario file into per-faction persona files via LLM."""
+    from tools.scenario_compiler import (
+        analyze_scenario,
+        generate_persona,
+        save_analysis,
+        save_persona,
+    )
+
+    scenario_path = Path(scenario_path_str)
+    if not scenario_path.is_file():
+        print(f"ERROR: scenario file not found: {scenario_path}", file=sys.stderr)
+        sys.exit(1)
+
+    scenario_text = scenario_path.read_text(encoding="utf-8")
+
+    # The llm_client here is a LoggingLLMClient wrapping the adapter.
+    # We need to get the inner adapter for the compiler call.
+    inner = getattr(llm_client, "_inner", llm_client)
+    import os
+    llm_config = {
+        "provider": "openai",
+        "models": {"commodity": "gpt-4.1-mini"},
+        "api_key": os.getenv("OPENAI_API_KEY", ""),
+    }
+
+    print(f"Compiling scenario: {scenario_path.name}")
+    analysis = await analyze_scenario(scenario_text, inner, llm_config, tier="commodity")
+
+    # Save analysis for inspection
+    personas_dir = tmp_dir / "personas"
+    save_analysis(analysis, personas_dir)
+
+    # Use factions from analysis if caller didn't override
+    available_factions = analysis["factions"]
+    if set(faction_ids) == {"alpha", "beta", "gamma"} and set(available_factions) != {"alpha", "beta", "gamma"}:
+        # Auto-use the factions from the analysis
+        faction_ids = available_factions[:3]
+        print(f"Using factions from scenario: {', '.join(faction_ids)}")
+
+    personas: dict[str, Path] = {}
+    for fid in faction_ids:
+        if fid not in analysis["scoring"]:
+            print(f"WARNING: faction '{fid}' not in analysis, skipping")
+            continue
+        persona_text = generate_persona(fid, analysis, scenario_title)
+        path = save_persona(fid, persona_text, personas_dir)
+        personas[fid] = path
+        print(f"  Generated persona: {fid}")
+
+    print(f"Logrolling: {analysis.get('logrolling', [])}")
+    return personas, analysis
+
+
 async def _run(args: argparse.Namespace) -> None:
     faction_ids = [f.strip() for f in args.factions.split(",") if f.strip()]
-    personas = _resolve_personas(faction_ids)
     # Single accountant shared between adapter and cost gate.
     accountant = _build_raw_accountant()
     llm_client = _build_llm_client(cost_accountant=accountant)
@@ -130,12 +205,36 @@ async def _run(args: argparse.Namespace) -> None:
         prefix="diplomat_selfplay_", ignore_cleanup_errors=True
     ) as tmp:
         tmp_dir = Path(tmp)
+
+        # Pre-game: compile scenario into personas if --scenario provided.
+        seed_message = None
+        round_updates = None
+        scenario_analysis = None
+        if args.scenario:
+            personas, scenario_analysis = await _compile_scenario(
+                args.scenario, faction_ids, tmp_dir, llm_client, args.scenario_title
+            )
+            # Use the scenario text as the seed message.
+            seed_message = Path(args.scenario).read_text(encoding="utf-8")
+            # Generic round updates for compiled scenarios.
+            round_updates = {
+                1: "Opening positions are on the table. Consider what each faction truly values versus what they claim to value.",
+                2: "Midpoint: assess whether proposals reflect genuine priorities or strategic positioning. Look for trades that create mutual value.",
+                3: "Pressure is building. The cost of no deal is rising. Consider whether to escalate, concede, or propose a new framework.",
+                4: "Final round. All commitments are binding. This is your last chance to secure favorable terms.",
+            }
+        else:
+            personas = _resolve_personas(faction_ids)
+
         env = GameEnvironment(
             faction_personas=personas,
             llm_client=llm_client,
             cost_accountant=cost_accountant,
             base_path=_project_root,
             tmp_dir=tmp_dir,
+            seed_message=seed_message,
+            round_updates=round_updates,
+            scenario_analysis=scenario_analysis,
         )
 
         await env.setup()

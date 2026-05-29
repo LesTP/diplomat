@@ -16,10 +16,16 @@ CRITICAL SCHEMA RULES:
 
 EXTRACTION RULES:
 - Extract only facts supported by the input text and current state context.
-- A promise requires a clear commitment from one faction to another. Vague
-  offers or proposals that haven't been accepted are NOT promises.
+- A promise is a clear commitment OR a concrete proposal with specific terms
+  from one faction to another. This includes:
+  - Explicit commitments ("I commit to X")
+  - Specific proposals ("I propose we split 70/30")
+  - Conditional offers ("If you agree to X, I will do Y")
+  - Demands with specific terms ("I demand X in exchange for Y")
+  Vague statements without specific terms are NOT promises.
 - A coalition requires evidence of two factions actively cooperating or
-  agreeing to cooperate. A proposal to form one is not yet a coalition.
+  agreeing to cooperate. A proposal to form one is not yet a coalition,
+  but a mutual agreement to form one IS.
 - Use stable, descriptive IDs (e.g., "beta-alpha-resource-split-r2").
 - Preserve existing IDs when updating a known item.
 - For operator intel corrections, treat as high-confidence.

@@ -15,16 +15,18 @@ The human operator coaching the faction. The system handles the cognitive load o
 - Transport layer for Telegram I/O (send/receive via toolkit/telegram_client)
 - Append-only event store for raw game messages
 - Structured state manager with schema-validated patches and audit log
-- LLM-based extraction: text → structured state patches (via toolkit/llm_client)
+- LLM-based extraction: text → structured state patches (via toolkit/structured_call)
 - Dual-provider strategic analysis with divergence detection
 - Faction persona configuration with hot-reload
 - Context assembly: persona + intelligence + coaching + transcript → decision context
-- LLM-based response generation (via toolkit/llm_client)
+- LLM-based response generation (via toolkit/structured_call)
 - Adversarial self-read of draft responses before posting
 - Human review gate with approve/edit/block workflow
 - Coaching system with tagged input routing (PRIORITY, CONSTRAINT, INTEL, TONE, WATCH)
-- Cost governance via toolkit/cost_accountant
+- Cost governance via toolkit/cost_accountant (wired through ToolkitLLMAdapter)
 - Pipeline configuration via single YAML file
+- Scenario compiler: narrative description → scored persona files with point tables, BATNAs, deception tactics, and game-mode classification (`src/tools/scenario_compiler.py`)
+- Multi-agent self-play: GameEnvironment with configurable scenarios, post-game scoring, and per-faction analysis
 
 ### Flexible
 - [in] TelethonUserTransport for user-account mode (if bot-to-bot blocked)
@@ -114,7 +116,7 @@ MVP is the configuration that closes the core loop: messages arrive → state up
 - Multi-faction support: run multiple instances with different faction_prompt.txt files
 
 ## Size Estimate
-Multi-module. 12 modules with defined interfaces, single Orchestrator wiring layer. Similar scope to Phosphene (10+ modules), though individual modules are simpler (no memory tiers, no distillation).
+Multi-module. 12 core pipeline modules with defined interfaces, single Orchestrator wiring layer, plus `src/tools/` (scenario compiler) and `tests/self_play/` (simulation infrastructure with 35 tests). Similar scope to Phosphene (10+ modules), though individual modules are simpler (no memory tiers, no distillation). All LLM modules use `toolkit.structured_llm.structured_call()` for consistent schema enforcement.
 
 ---
 

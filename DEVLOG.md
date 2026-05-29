@@ -7,6 +7,41 @@
      module entries to DEVLOG_archive.md during phase completion cleanup.
      Add a boundary marker: <!-- Entries above archived from Module N, YYYY-MM-DD -->
 
+## Phase 18: Multi-Agent Self-Play + Tuning
+
+### 2026-05-28/29 — Phase 18 In Progress
+
+**Action:** Built complete self-play infrastructure; ran 7 simulations; discovered and fixed core pipeline bugs; built scenario compiler and post-game scoring.
+
+**Scope (expanded from original plan):**
+- Self-play infrastructure: GameEnvironment, LoggingLLMClient, simulation runner CLI, post-game analysis
+- Pipeline fixes: Orchestrator debounce rewrite (D-20), cost accountant wiring through adapter
+- Toolkit enhancements: `structured_call()` function (D-21), OpenAI pricing, optional budget
+- Module rewires: all 4 LLM modules → structured_call
+- Prompt tuning: generation, extraction, analyst, adversarial prompts updated based on run analysis
+- Scenario compiler (`src/tools/scenario_compiler.py`) — production pre-game tool (D-23)
+- Post-game scoring: evaluates final proposals against scoring tables, declares winner
+- Game mode system: cooperative/competitive/mixed behavioral instructions (D-24)
+
+**Key findings from 7 runs (~$2.50 total):**
+1. RuleBasedExtractor misses all natural negotiation language (Run 1)
+2. Debounce cancel-and-replace silently drops messages in bursts (Run 2 — critical bug)
+3. Narrative-only prompts fail schema validation ~30% of the time (Run 3)
+4. LLMs default to cooperative without explicit competitive instructions (Runs 1-4)
+5. Point tables + named deception tactics produce genuinely strategic play (Run 5)
+6. Scenario compiler successfully auto-generates scored personas (Run 6-7)
+
+See `TUNING_LOG.md` for the full iterative tuning record with per-run analysis.
+
+**Verification:**
+- 35 self-play + scenario compiler tests pass
+- 235+ total tests across the project (1 pre-existing flaky timer test on Windows)
+- 7 live simulation runs completed across 4 scenario types
+
+**New decisions:** D-20 through D-24 added to DECISIONS.md.
+
+**Pending:** Documentation catch-up (in progress), scored Three-Party Coalition run, final commit.
+
 ## Module 1: Event Store + State Manager
 
 ### 2026-05-25 — Phase 1 Complete

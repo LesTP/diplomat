@@ -20,7 +20,8 @@ import yaml
 from modules.types import InboundEvent
 from orchestrator import Orchestrator
 from tests.helpers.test_transport import TestTransport
-from tests.self_play.scenario import ROUND_UPDATES, SEED_MESSAGE
+from tests.self_play.scenario import ROUND_UPDATES as DEFAULT_ROUND_UPDATES
+from tests.self_play.scenario import SEED_MESSAGE as DEFAULT_SEED_MESSAGE
 
 
 # ------------------------------------------------------------------
@@ -148,6 +149,9 @@ class GameEnvironment:
         base_path: Path,
         tmp_dir: Path,
         extra_module_overrides: dict[str, Any] | None = None,
+        seed_message: str | None = None,
+        round_updates: dict[int, str] | None = None,
+        scenario_analysis: dict[str, Any] | None = None,
     ) -> None:
         self.faction_personas = faction_personas
         self.llm_client = llm_client
@@ -155,6 +159,9 @@ class GameEnvironment:
         self.base_path = base_path
         self.tmp_dir = tmp_dir
         self.extra_module_overrides = extra_module_overrides or {}
+        self.seed_message = seed_message or DEFAULT_SEED_MESSAGE
+        self.round_updates = round_updates if round_updates is not None else DEFAULT_ROUND_UPDATES
+        self.scenario_analysis = scenario_analysis
         self.agents: dict[str, AgentHandle] = {}
         self.channel_log: list[dict[str, Any]] = []
         # Wrap in a logging client if it isn't one already.
@@ -364,7 +371,7 @@ class GameEnvironment:
         print(f"{'='*60}")
 
         # 1. Inject moderator round update.
-        update = ROUND_UPDATES.get(round_number)
+        update = self.round_updates.get(round_number)
         if update:
             print(f"\n[MODERATOR] {update[:120]}...")
             await self.broadcast_to_all("moderator", update)
@@ -415,8 +422,8 @@ class GameEnvironment:
         print(f"{'#'*60}")
 
         # Seed message.
-        print(f"\n[MODERATOR] {SEED_MESSAGE[:200]}...")
-        await self.broadcast_to_all("moderator", SEED_MESSAGE)
+        print(f"\n[MODERATOR] {self.seed_message[:200]}...")
+        await self.broadcast_to_all("moderator", self.seed_message)
         await asyncio.sleep(0.1)
 
         # Run rounds.
@@ -432,6 +439,11 @@ class GameEnvironment:
         }
         results["rounds_completed"] = total_rounds
 
+        # Post-game scoring.
+        if self.scenario_analysis:
+            scores = await self.score_game(all_responses.get(total_rounds, {}))
+            results["scores"] = scores
+
         # Print summary.
         print(f"\n{'='*60}")
         print("  GAME COMPLETE")
@@ -443,7 +455,110 @@ class GameEnvironment:
             coalitions = len(data.get("coalitions", []))
             print(f"  [{fid}] promises={promises}, coalitions={coalitions}")
 
+        if "scores" in results:
+            print(f"\n  {'─'*56}")
+            print("  FINAL SCORES")
+            print(f"  {'─'*56}")
+            scores = results["scores"]
+            deal = scores.get("deal_reached", False)
+            print(f"  Deal reached: {'YES' if deal else 'NO (BATNA applies)'}")
+            for fid, score_data in scores.get("faction_scores", {}).items():
+                pts = score_data.get("points", 0)
+                batna = score_data.get("batna", 0)
+                vs_batna = pts - batna
+                marker = "WIN" if vs_batna > 0 else "LOSE" if vs_batna < 0 else "DRAW"
+                print(f"  [{fid}] {pts} pts (BATNA={batna}, vs BATNA: {vs_batna:+d}) {marker}")
+            winner = max(
+                scores.get("faction_scores", {}).items(),
+                key=lambda x: x[1].get("points", 0),
+                default=("?", {}),
+            )
+            print(f"\n  WINNER: {winner[0].upper()} with {winner[1].get('points', 0)} points")
+
         return results
+
+    # ------------------------------------------------------------------
+    # Post-game scoring
+    # ------------------------------------------------------------------
+
+    async def score_game(
+        self, final_responses: dict[str, str]
+    ) -> dict[str, Any]:
+        """Score the game outcome based on final-round proposals and scoring tables."""
+        if not self.scenario_analysis:
+            return {"error": "No scenario analysis available for scoring"}
+
+        from toolkit.structured_llm import structured_call
+
+        scoring_schema = {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["deal_reached", "faction_scores", "reasoning"],
+            "properties": {
+                "deal_reached": {"type": "boolean"},
+                "agreed_outcomes": {
+                    "type": "object",
+                    "additionalProperties": {"type": "string"},
+                    "description": "Issue name -> agreed outcome, if deal reached",
+                },
+                "faction_scores": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "object",
+                        "properties": {
+                            "points": {"type": "number"},
+                            "batna": {"type": "number"},
+                        },
+                        "required": ["points", "batna"],
+                    },
+                },
+                "reasoning": {"type": "string"},
+            },
+        }
+
+        factions_text = "\n\n".join(
+            f"[{fid}] {text}" for fid, text in final_responses.items()
+        )
+
+        # Get the inner LLM client for scoring.
+        inner = getattr(self.llm_client, "_inner", self.llm_client)
+        import os
+        llm_config = {
+            "provider": "openai",
+            "models": {"commodity": "gpt-4.1-mini"},
+            "api_key": os.getenv("OPENAI_API_KEY", ""),
+        }
+
+        result = await structured_call(
+            inner,
+            llm_config,
+            "commodity",
+            schema=scoring_schema,
+            system_prompt=(
+                "You are a negotiation game scorer. Given the final round's "
+                "proposals from all factions and the scoring tables, determine:\n"
+                "1. Whether a deal was reached (did all factions converge on "
+                "compatible terms?)\n"
+                "2. If yes, what the agreed outcomes are per issue.\n"
+                "3. Each faction's point score based on the agreed outcomes "
+                "and their private scoring table.\n"
+                "4. If no deal, each faction gets their BATNA score.\n"
+                "Be strict about what counts as agreement — positions must be "
+                "explicitly compatible, not just close."
+            ),
+            user_prompt=(
+                f"Scoring tables:\n{json.dumps(self.scenario_analysis['scoring'], indent=2)}\n\n"
+                f"BATNAs:\n{json.dumps(self.scenario_analysis['batna'], indent=2)}\n\n"
+                f"Issues:\n{json.dumps(self.scenario_analysis['issues'], indent=2)}\n\n"
+                f"Final round proposals:\n{factions_text}"
+            ),
+            max_retries=1,
+        )
+
+        if not result.success:
+            return {"error": f"Scoring failed: {result.error}"}
+
+        return result.data
 
     # ------------------------------------------------------------------
     # Results collection
