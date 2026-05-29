@@ -1,8 +1,8 @@
 ---
 phase: 18
 blocked: false
-state: build
-steps_remaining: 1
+state: review
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -24,9 +24,80 @@ steps_remaining: 1
 
 ## Current Status
 
-- **Phase** — Phase 18 nearing completion. Self-play infrastructure built, tested (35 tests), and validated through 7 simulation runs (~$2.50 total). Scenario compiler, post-game scoring, and game-mode system operational.
-- **Focus** — Documentation catch-up and final validation run with scored Three-Party Coalition scenario.
-- **Blocked/Broken** — None.
+- **Phase** — Phase 18 complete. Awaiting human audit before next phase.
+- **Focus** — Self-play infrastructure, prompt tuning, scenario compiler, state reconciliation, cost wiring. 7 simulation runs (~$2.50 total). See `TUNING_LOG.md`.
+- **Blocked/Broken** — None. Audit gate set.
+
+## Next Steps: Modularization Roadmap
+
+The system is functional for the diplomacy game. The following levels of modularization would make it reusable across domains (customer service, contract negotiation, sales, etc.). See `ARCH_reconciliation.md` for reconciliation design.
+
+### Level 1: Config-Driven Prompts and Examples (recommended next)
+
+Move all entity-type-specific content out of Python code into config files that sit alongside the schema. The code reads the schema to discover entity types and loads corresponding examples and prompt fragments dynamically.
+
+**What changes:**
+- Extraction few-shot examples (`_EXTRACTION_EXAMPLES`) → `config/examples/extraction_examples.json`
+- Reconciliation prompt entity references → derived from schema keys
+- Analysis tool entity iteration → reads schema instead of hardcoding "promises", "coalitions"
+- Persona library structure: `config/personas/styles/` for reusable behavioral templates, overlaid with domain-specific scoring by the scenario compiler
+
+**Result:** Switching domains = replace `config/` directory. No code changes.
+
+**Effort:** 1-2 hours.
+
+### Level 2: Schema-Driven State Manager (needed for true reuse)
+
+The state manager generates SQLite tables from `state_patch.json` at startup. Each entity type in the schema becomes a table. Upsert/delete/query methods derive field names and primary keys from the schema rather than hardcoding them.
+
+**What changes:**
+- `_create_tables()` reads schema and generates `CREATE TABLE` statements
+- `_upsert_promise()` / `_upsert_coalition()` etc. → generic `_upsert_entity(table, item)`
+- Table-to-ID-column mapping derived from schema `required` fields
+
+**Result:** `state_patch.json` is the single source of truth for both validation and storage.
+
+**Effort:** Half a day. Wait until you actually try a second domain to feel the pain first.
+
+### Level 3: Domain-Agnostic Orchestrator (future)
+
+Remove game-specific flow assumptions (round boundaries, direct-address triggers). Replace with configurable triggers and a flow definition.
+
+**What changes:**
+- Orchestrator becomes a state machine configured by a flow YAML
+- Round detection → generic "boundary condition" pattern matching
+- Direct-address → generic "response trigger" rules
+
+**Effort:** Multiple days. Only if you have a concrete non-game use case.
+
+## Open Items and Future Plans
+
+### Immediate (before deployment)
+- [ ] **Live Telegram re-smoke.** Phase 18 changes (debounce fix, structured_call, cost wiring, reconciliation) have only been validated in self-play. Need a manual Telegram smoke test on the Pi covering multi-message burst, review gate, and cost ledger.
+- [ ] **Switch to TelegramReviewGate.** Production `pipeline.yaml` uses `AutoApproveReviewGate` (safe default). Change to `TelegramReviewGate` on the Pi when deploying with real credentials.
+- [ ] **Run scored Three-Party Coalition.** The last attempt failed on a UNC path issue (now fixed). Validates post-game scoring + reconciliation end-to-end.
+
+### Extraction Quality
+- [ ] **Promise dedup via reconciliation.** Reconciler is built but untested with live LLM. Run 4 showed 5 duplicates of the same $2M commitment.
+- [ ] **Fulfillment detection.** Only 1/21 promises ever marked "kept". Reconciler should fix this — needs live validation.
+- [ ] **Inconsistency detection.** Zero inconsistencies detected across 7 runs despite clear position shifts. Reconciler prompt specifically targets this.
+- [ ] **Under-extraction in coalition games.** Run 6 (Three-Party Coalition) tracked only 1 promise out of 12 concrete proposals. Broadened extraction prompt may help; needs re-test.
+
+### Prompt Tuning
+- [ ] **Persona drift over 8+ rounds.** All runs were 4 rounds. Longer games may show persona drift — agents gradually losing their distinctive voice.
+- [ ] **Provider-native structured output.** OpenAI's `response_format: json_schema` would give near-100% schema compliance at the token level. Requires toolkit `llm_client` changes to pass the parameter through.
+- [ ] **Add more extraction few-shot examples.** Current 5 examples cover promise/coalition/fulfillment/broken/empty. Could add: conditional offer, demand with deadline, position shift, multi-issue proposal.
+
+### Infrastructure
+- [ ] **Persona library.** Separate behavioral styles from domain-specific scoring. Reusable templates in `config/personas/styles/`.
+- [ ] **Game-mode runtime override.** `--game-mode` flag on the runner to override the compiler's classification without regenerating personas.
+- [ ] **Level 1 modularization.** Config-driven prompts and examples (see roadmap above).
+- [ ] **Dated model pricing in toolkit.** OpenAI returns `gpt-4.1-mini-2025-04-14` but pricing table has `gpt-4.1-mini`. Fallback pricing works but overestimates cost.
+
+### Game-Specific
+- [ ] **Real game rules.** Game rules are still being finalized. When available, compile them through the scenario compiler to generate the real faction persona.
+- [ ] **ClankmatesTransport.** If the game moves to Clankmates platform, build a polling-based transport (no webhooks). Keep Telegram for operator coaching.
+- [ ] **Multi-game support.** Run multiple instances with different faction prompts and databases for parallel games.
 
 ## Phase 18: Layer 4 — Multi-Agent Self-Play + Tuning
 
@@ -68,7 +139,13 @@ Steps:
 
 - [x] 18.13 — **Game mode system.** Scenario compiler classifies scenarios as cooperative/competitive/mixed. Persona template injects mode-specific behavioral instructions (competitive: maximize your score; cooperative: find mutual value but maximize your share).
 
-- [ ] 18.14 — **Documentation catch-up and final validation.** Update all project docs to reflect Phase 18 changes. Run scored Three-Party Coalition. Transition to `state: review`.
+- [x] 18.14 — **State reconciliation.** Built `src/modules/reconciliation/` with `StateReconciler`: post-round LLM call that merges duplicate promises, detects fulfillments (pending→kept/broken), flags inconsistencies from position shifts, and catches missed proposals. Added `delete_entity()` and `update_promise_status()` to State Manager. Wired into Orchestrator's `handle_round_boundary()` before analysts. 6 tests.
+
+- [x] 18.15 — **Budget gate fix.** `DiplomatCostGate.available_budget()` now reads actual spend from the shared `CostAccountant.session_total` instead of relying on `record_spend()` calls that never happened. Round spend = delta since last `reset_round_budget()`.
+
+- [x] 18.16 — **Documentation catch-up.** Updated DEVPLAN, DECISIONS (D-20 through D-24), ARCHITECTURE (coupling notes, testing status), ARCH_cost_accountant, diplomat-testing-doc (Layer 4 rewrite), DEVLOG, PROJECT scope. Created TUNING_LOG.md and ARCH_reconciliation.md.
+
+Summary: Phase 18 expanded from 6 planned steps to 16 actual steps. Built complete self-play infrastructure with scenario compiler, post-game scoring, state reconciliation, and game-mode system. Ran 7 simulations across 4 scenario types totaling ~$2.50. Fixed critical debounce bug, wired real cost tracking, built reusable `structured_call` toolkit function, tuned all prompts based on empirical analysis. See `TUNING_LOG.md` for detailed run-by-run record.
 
 Summary (in progress): Built complete self-play infrastructure with scenario compiler, post-game scoring, and game-mode system. Ran 7 simulations across 4 scenario types totaling ~$2.50 in LLM costs. Fixed critical debounce bug, wired real cost tracking, built reusable `structured_call` toolkit function, and tuned all prompts based on empirical run analysis. See `TUNING_LOG.md` for detailed run-by-run analysis.
 

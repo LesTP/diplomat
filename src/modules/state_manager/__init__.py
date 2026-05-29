@@ -308,6 +308,38 @@ class SQLiteStateManager:
     async def mark_coaching_consumed(self) -> None:
         with self._connect() as conn:
             conn.execute("UPDATE coaching SET consumed = 1 WHERE consumed = 0")
+            conn.commit()
+
+    async def delete_entity(self, entity_type: str, entity_id: str) -> None:
+        """Delete an entity by its primary key (e.g., promise_id, coalition_id)."""
+        id_column = {
+            "promises": "promise_id",
+            "coalitions": "coalition_id",
+            "inconsistencies": "inconsistency_id",
+        }.get(entity_type)
+        if id_column is None:
+            return
+        with self._connect() as conn:
+            conn.execute(
+                f"DELETE FROM {entity_type} WHERE {id_column} = ?",
+                (entity_id,),
+            )
+            conn.commit()
+
+    async def update_promise_status(
+        self, promise_id: str, status: str, resolution: str = ""
+    ) -> None:
+        """Update a promise's status and resolution."""
+        with self._connect() as conn:
+            conn.execute(
+                """
+                UPDATE promises
+                SET status = ?, resolution = ?, updated_at = ?
+                WHERE promise_id = ?
+                """,
+                (status, resolution, self._now(), promise_id),
+            )
+            conn.commit()
 
     def _upsert_faction_state(
         self, conn: sqlite3.Connection, item: dict[str, Any], updated_at: str

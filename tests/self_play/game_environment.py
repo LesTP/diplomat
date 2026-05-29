@@ -283,6 +283,19 @@ class GameEnvironment:
                 module_overrides=overrides,
                 base_path=self.base_path,
             )
+
+            # Attach a reconciler for post-round state cleanup.
+            inner = getattr(self.llm_client, "_inner", self.llm_client)
+            import os
+            recon_config = {
+                "provider": "openai",
+                "models": {"commodity": "gpt-4.1-mini"},
+                "api_key": os.getenv("OPENAI_API_KEY", ""),
+            }
+            from modules.reconciliation import StateReconciler
+            orchestrator.reconciler = StateReconciler(
+                inner, recon_config, tier="commodity"
+            )
             task = asyncio.create_task(orchestrator.start())
             await asyncio.sleep(0)  # let the event loop start
 

@@ -6,17 +6,19 @@
 |-----------|---------------|--------------|
 | Transport | Platform I/O: send messages, receive events (Telegram, CLI) | toolkit/telegram_client |
 | Event Store | Append-only raw event log with round tagging | none (SQLite) |
-| State Manager | Structured domain state: factions, promises, coalitions, inconsistencies. Schema-validated patches, audit log. | none (SQLite) |
-| Extraction | Text → structured state patch via LLM | toolkit/llm_client |
-| Analyst | Structured state → intelligence report via LLM. Two instances (primary + secondary) with different providers. | toolkit/llm_client |
+| State Manager | Structured domain state with schema-validated patches, audit log, entity CRUD | none (SQLite) |
+| Extraction | Text → structured state patch via LLM (structured_call) | toolkit/structured_llm |
+| Reconciliation | Post-round state cleanup: dedup promises, detect fulfillments/broken/inconsistencies, catch missed proposals | toolkit/structured_llm |
+| Analyst | State + transcript → intelligence report via LLM. Two instances with different providers. | toolkit/structured_llm |
 | Divergence | Compare two analysis outputs against configurable thresholds | none (pure Python, sub-module of Analyst) |
 | Persona | Faction identity configuration with hot-reload | none (filesystem) |
 | Context Assembler | Assemble all inputs into a Decision Engine context window | none (pure composition) |
-| Generation | Context → response text via LLM | toolkit/llm_client |
-| Adversarial | Draft → adversarial analysis via LLM (skippable) | toolkit/llm_client |
+| Generation | Context → response text via LLM (structured_call for JSON mode) | toolkit/structured_llm |
+| Adversarial | Draft → adversarial analysis via LLM (skippable) | toolkit/structured_llm |
 | Coaching | Parse and route operator input by tag | none (pure parsing) |
 | Review Gate | Human approval workflow: approve/edit/block | toolkit/telegram_client |
-| Orchestrator | Pipeline topology, event loop, round management, cost accountant wiring | All modules, toolkit/cost_accountant |
+| Scenario Compiler | Narrative scenario → scored persona files with point tables, BATNAs, deception tactics, game-mode | toolkit/structured_llm |
+| Orchestrator | Pipeline topology, event loop, round management, reconciliation, cost accountant wiring | All modules, toolkit/cost_accountant |
 
 ## Data Flow
 
@@ -121,16 +123,18 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 | 10 | Review Gate | Human approval workflow via Telegram. Needed before any posting. | Phase 9 complete |
 | 11 | Adversarial | Optional LLM call. Valuable but skippable — Review Gate catches issues manually. | Phase 10 complete |
 | 12 | Orchestrator | Wires everything. Event loop, round management, cost accountant, failure handling. Last because it requires all modules. | Complete |
+| 13 | Reconciliation | Post-round state cleanup via LLM. Merges duplicate promises, detects fulfillments and broken commitments, flags inconsistencies. | Phase 18 complete |
+| 14 | Scenario Compiler | Pre-game tool. Narrative → scored personas. Not a pipeline module — operator runs it before game start. | Phase 18 complete |
 
 ## Testing Status
 
 | Layer | Status |
 |-------|--------|
-| Unit and regression tests | Complete — 235+ tests across 13 test files |
+| Unit and regression tests | Complete — 240+ tests across 14 test files |
 | Pipeline integration | Complete — 12 fake-backed Orchestrator integration tests |
 | Transcript replay | Complete — 2 transcript fixtures, 5 replay tests |
 | Prompt regression | Complete — 6 starter scenarios (4 extraction free, 2 generation require live LLM) |
-| Multi-agent self-play | Phase 18 — GameEnvironment, scenario compiler, post-game scoring, 35 infrastructure tests, 7 simulation runs across 4 scenario types. See `TUNING_LOG.md`. |
+| Multi-agent self-play | Phase 18 — GameEnvironment, scenario compiler, post-game scoring, state reconciliation, 41 infrastructure tests, 7 simulation runs across 4 scenario types. See `TUNING_LOG.md`. |
 
 ## Coupling Notes
 

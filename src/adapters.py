@@ -79,24 +79,30 @@ class ToolkitLLMAdapter:
 class DiplomatCostGate:
     """Expose the budget-gate API expected by Diplomat's Orchestrator.
 
-    When paired with a ``ToolkitLLMAdapter`` that routes through the
-    same accountant, ``available_budget`` reflects actual tracked spend.
+    Reads actual spend from the shared CostAccountant to enforce
+    per-round budgets. The accountant tracks cumulative session spend;
+    the gate compares current spend against the snapshot taken at
+    round start to determine remaining round budget.
     """
 
     def __init__(self, accountant: Any, per_round_budget_usd: float) -> None:
         self._accountant = accountant
         self._per_round_budget_usd = per_round_budget_usd
-        self._round_spend = 0.0
+        self._round_start_spend = getattr(accountant, "session_total", 0.0)
 
     def available_budget(self) -> float:
-        return max(0.0, self._per_round_budget_usd - self._round_spend)
+        current_spend = getattr(self._accountant, "session_total", 0.0)
+        round_spend = current_spend - self._round_start_spend
+        return max(0.0, self._per_round_budget_usd - round_spend)
 
     def reset_round_budget(self, amount: float) -> None:
         self._per_round_budget_usd = amount
-        self._round_spend = 0.0
+        self._round_start_spend = getattr(self._accountant, "session_total", 0.0)
 
     def record_spend(self, cost_usd: float) -> None:
-        self._round_spend += cost_usd
+        # Kept for backwards compatibility but no longer needed —
+        # spend is read directly from the accountant's session_total.
+        pass
 
     @property
     def session_total(self) -> float:

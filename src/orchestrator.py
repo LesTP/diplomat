@@ -351,6 +351,13 @@ class Orchestrator:
     async def handle_round_boundary(self) -> None:
         state = await self.state_manager.get_full_state()
         recent_events = await self._recent_events()
+
+        # Post-round state reconciliation: dedup, fulfillment, inconsistencies.
+        await self._reconcile_state(state, recent_events)
+
+        # Re-read state after reconciliation for analyst input.
+        state = await self.state_manager.get_full_state()
+
         if not await self._budget_available("analyst:primary"):
             return
         if not await self._budget_available("analyst:secondary"):
@@ -589,6 +596,82 @@ class Orchestrator:
 
     async def _mark_coaching_consumed(self) -> None:
         await self.state_manager.mark_coaching_consumed()
+
+    async def _reconcile_state(
+        self, state: dict[str, Any], recent_events: list[Any]
+    ) -> None:
+        """Run post-round state reconciliation if a reconciler is available."""
+        reconciler = getattr(self, "reconciler", None)
+        if reconciler is None:
+            return
+        if not await self._budget_available("reconciliation"):
+            return
+        try:
+            result = await reconciler.reconcile(
+                state, recent_events, self.current_round
+            )
+        except Exception as exc:
+            print(f"Reconciliation failed: {exc}")
+            return
+        if not result.success:
+            print(f"Reconciliation failed: {result.error}")
+            return
+
+        # Apply merge: remove duplicate promise IDs from state.
+        for merge in result.merged_promises:
+            for remove_id in merge.get("remove_ids", []):
+                try:
+                    await self.state_manager.delete_entity("promises", remove_id)
+                except Exception:
+                    pass
+
+        # Apply status updates.
+        for update in result.updated_statuses:
+            try:
+                await self.state_manager.update_promise_status(
+                    update["promise_id"],
+                    update["new_status"],
+                    update.get("resolution", ""),
+                )
+            except Exception:
+                pass
+
+        # Add new inconsistencies.
+        for incon in result.new_inconsistencies:
+            incon_with_id = dict(incon)
+            if "inconsistency_id" not in incon_with_id:
+                incon_with_id["inconsistency_id"] = (
+                    f"recon-{incon.get('faction_id', 'unknown')}-r{self.current_round}"
+                )
+            try:
+                from modules.types import StatePatch
+                await self.state_manager.apply_patch(
+                    StatePatch({"inconsistencies": [incon_with_id]}),
+                    PatchSource(
+                        trigger_type="reconciliation",
+                        trigger_ref=f"round-{self.current_round}",
+                    ),
+                )
+            except Exception:
+                pass
+
+        # Add missed proposals as new promises.
+        for proposal in result.missed_proposals:
+            try:
+                from modules.types import StatePatch
+                await self.state_manager.apply_patch(
+                    StatePatch({"promises": [proposal]}),
+                    PatchSource(
+                        trigger_type="reconciliation",
+                        trigger_ref=f"round-{self.current_round}",
+                    ),
+                )
+            except Exception:
+                pass
+
+        if result.merge_log:
+            log_text = "\n".join(f"  - {entry}" for entry in result.merge_log)
+            print(f"Reconciliation (round {self.current_round}):\n{log_text}")
 
     @staticmethod
     def _public_data(value: Any) -> Any:

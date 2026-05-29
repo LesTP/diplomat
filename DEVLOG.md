@@ -9,7 +9,7 @@
 
 ## Phase 18: Multi-Agent Self-Play + Tuning
 
-### 2026-05-28/29 — Phase 18 In Progress
+### 2026-05-28/29 — Phase 18 Complete
 
 **Action:** Built complete self-play infrastructure; ran 7 simulations; discovered and fixed core pipeline bugs; built scenario compiler and post-game scoring.
 
@@ -23,6 +23,10 @@
 - Post-game scoring: evaluates final proposals against scoring tables, declares winner
 - Game mode system: cooperative/competitive/mixed behavioral instructions (D-24)
 
+- State reconciliation: `src/modules/reconciliation/` — post-round LLM cleanup of promise duplicates, fulfillment/broken detection, inconsistency flagging, missed proposals
+- Budget gate fix: `DiplomatCostGate.available_budget()` reads real spend from shared accountant
+- State Manager: added `delete_entity()` and `update_promise_status()` methods
+
 **Key findings from 7 runs (~$2.50 total):**
 1. RuleBasedExtractor misses all natural negotiation language (Run 1)
 2. Debounce cancel-and-replace silently drops messages in bursts (Run 2 — critical bug)
@@ -34,13 +38,13 @@
 See `TUNING_LOG.md` for the full iterative tuning record with per-run analysis.
 
 **Verification:**
-- 35 self-play + scenario compiler tests pass
-- 235+ total tests across the project (1 pre-existing flaky timer test on Windows)
+- 41 self-play + scenario compiler + reconciliation tests pass
+- 240+ total tests across the project (1 pre-existing flaky timer test on Windows)
 - 7 live simulation runs completed across 4 scenario types
 
 **New decisions:** D-20 through D-24 added to DECISIONS.md.
 
-**Pending:** Documentation catch-up (in progress), scored Three-Party Coalition run, final commit.
+**Next steps:** See DEVPLAN.md "Next Steps: Modularization Roadmap" and "Open Items and Future Plans" sections.
 
 ## Module 1: Event Store + State Manager
 

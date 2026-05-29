@@ -235,10 +235,12 @@ Pending — blocked by network share outage during first attempt.
 
 ---
 
-## Open Items
-- [ ] Promise state transitions (pending -> kept/broken) not yet validated in a live run
-- [ ] Inconsistency detection not yet triggered in any run
+### Open Items
+- [ ] Promise dedup via reconciliation — built but untested with live LLM
+- [ ] Fulfillment detection via reconciliation — built but untested
+- [ ] Inconsistency detection via reconciliation — built but untested
+- [ ] Promise state transitions (pending -> kept/broken) — reconciler should handle this
 - [ ] Persona drift over 8+ rounds not yet tested
 - [ ] Real game deployment (Telegram, operator coaching, non-self-play)
 - [ ] Provider-native structured output (OpenAI `response_format: json_schema`)
-- [ ] Cost ledger path issue on network shares (doubled `shared\shared` in UNC path)
+- [ ] Level 1 modularization: config-driven prompts and examples (see DEVPLAN roadmap)
