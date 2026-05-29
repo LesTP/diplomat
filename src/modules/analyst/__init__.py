@@ -28,15 +28,29 @@ class LLMAnalyst:
         self.schema = load_schema(schema_path)
         self.provider_id = provider_id
 
-    async def analyze(self, state: dict[str, Any]) -> AnalysisResult:
+    async def analyze(
+        self,
+        state: dict[str, Any],
+        recent_events: list[Any] | None = None,
+    ) -> AnalysisResult:
         timestamp = datetime.now(timezone.utc)
 
-        user_prompt = "\n\n".join(
-            [
-                "Current state snapshot:",
-                json.dumps(state, sort_keys=True),
-            ]
-        )
+        parts = [
+            "Current state snapshot:",
+            json.dumps(state, sort_keys=True),
+        ]
+
+        if recent_events:
+            transcript_lines = []
+            for event in recent_events:
+                e = getattr(event, "event", event)
+                sender = getattr(e, "sender_faction", "?")
+                content = getattr(e, "content", str(e))
+                transcript_lines.append(f"[{sender}] {content}")
+            parts.append("Recent transcript:")
+            parts.append("\n".join(transcript_lines))
+
+        user_prompt = "\n\n".join(parts)
 
         result = await structured_call(
             self.llm_client,

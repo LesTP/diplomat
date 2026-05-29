@@ -39,6 +39,17 @@ _EXTRACTION_EXAMPLES = [
         output={"coalitions": [{"coalition_id": "alpha-gamma-defense", "faction_a": "alpha", "faction_b": "gamma", "strength": 0.6, "basis": "agreed to coordinate defense"}]},
     ),
     Example(
+        input="Alpha has delivered the 15 million gallons promised to Beta last round.",
+        output={"promises": [{"promise_id": "alpha-beta-water-delivery", "from_faction": "alpha", "to_faction": "beta", "content": "deliver 15 million gallons", "status": "kept", "resolution": "delivered as promised"}]},
+    ),
+    Example(
+        input="Despite promising neutrality, Gamma has signed an exclusive deal with Beta.",
+        output={
+            "promises": [{"promise_id": "gamma-neutrality", "from_faction": "gamma", "to_faction": "alpha", "content": "remain neutral", "status": "broken", "resolution": "signed exclusive deal with Beta"}],
+            "inconsistencies": [{"inconsistency_id": "gamma-neutrality-broken", "faction_id": "gamma", "description": "promised neutrality but signed exclusive deal with Beta", "leverage_value": 0.8}],
+        },
+    ),
+    Example(
         input="Round 2 begins. Weather is clear.",
         output={},
     ),

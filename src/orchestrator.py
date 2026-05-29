@@ -350,13 +350,14 @@ class Orchestrator:
 
     async def handle_round_boundary(self) -> None:
         state = await self.state_manager.get_full_state()
+        recent_events = await self._recent_events()
         if not await self._budget_available("analyst:primary"):
             return
         if not await self._budget_available("analyst:secondary"):
             return
         primary_result, secondary_result = await asyncio.gather(
-            self.primary_analyst.analyze(state),
-            self.secondary_analyst.analyze(state),
+            self.primary_analyst.analyze(state, recent_events=recent_events),
+            self.secondary_analyst.analyze(state, recent_events=recent_events),
         )
         if not getattr(primary_result, "success", False):
             await self._send_operator("Primary analyst failed; round analysis skipped.")

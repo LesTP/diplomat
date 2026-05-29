@@ -157,7 +157,7 @@ class FakeAnalyst:
         self.success = success
         self.calls = []
 
-    async def analyze(self, state):
+    async def analyze(self, state, **kwargs):
         self.calls.append(state)
         return AnalysisResult(
             success=self.success,

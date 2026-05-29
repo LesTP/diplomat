@@ -21,7 +21,7 @@ class StubAnalyst:
         self.timestamp = timestamp or datetime(2026, 5, 27, tzinfo=timezone.utc)
         self.calls: list[dict[str, Any]] = []
 
-    async def analyze(self, state: dict[str, Any]) -> AnalysisResult:
+    async def analyze(self, state: dict[str, Any], **kwargs) -> AnalysisResult:
         self.calls.append(state)
         return AnalysisResult(
             success=True,

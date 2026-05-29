@@ -22,6 +22,27 @@ EXTRACTION RULES:
   agreeing to cooperate. A proposal to form one is not yet a coalition.
 - Use stable, descriptive IDs (e.g., "beta-alpha-resource-split-r2").
 - Preserve existing IDs when updating a known item.
-- Mark promises as "pending" unless text clearly states kept, broken, or void.
 - For operator intel corrections, treat as high-confidence.
 - If the input contains no extractable state changes, return {}.
+
+PROMISE STATE TRACKING:
+- New promises start as "pending".
+- Check the current state snapshot for EXISTING promises. If the input text
+  shows a faction fulfilling a prior commitment, emit that promise with its
+  EXISTING promise_id and status "kept".
+- If the input shows a faction contradicting or reneging on a prior promise,
+  emit it with status "broken" and describe the contradiction in "resolution".
+- If a promise is explicitly withdrawn or cancelled, use status "void".
+- DEDUPLICATION: Before creating a new promise, check if an existing promise
+  in the current state covers the same commitment (same from_faction,
+  to_faction, and substantially similar content). If so, DO NOT create a
+  new entry. Only emit an existing promise if its STATUS is changing.
+  A faction restating or reconfirming an existing commitment is NOT a new
+  promise — skip it entirely.
+- When in doubt about whether something is a new promise vs a restatement,
+  prefer skipping it (return {}) over creating a duplicate.
+
+INCONSISTENCY DETECTION:
+- If a faction's current statement contradicts a prior promise or position
+  visible in the current state, create an inconsistency entry describing
+  the contradiction.
