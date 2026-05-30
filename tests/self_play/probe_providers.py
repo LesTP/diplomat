@@ -14,7 +14,7 @@ well under any reasonable daily quota.
 
 Usage:
     python -m tests.self_play.probe_providers \\
-        --providers '{"alpha":{"provider":"openai","model":"gpt-4.1-mini"},"beta":{"provider":"anthropic","model":"claude-haiku-4-5"},"gamma":{"provider":"google","model":"gemini-2.5-flash"}}'
+        --providers '{"alpha":{"provider":"openai","model":"gpt-4.1-mini"},"beta":{"provider":"anthropic","model":"claude-haiku-4-5"},"gamma":{"provider":"google","model":"gemini-2.5-flash-lite"}}'
 
 Exits 0 if every probe passes; nonzero on any failure. Suitable for use
 as a guard in scripts that launch live runs.

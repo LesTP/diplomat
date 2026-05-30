@@ -92,7 +92,7 @@ def _parse_args() -> argparse.Namespace:
             'shared (primary/secondary) providers. '
             'Example: \'{"alpha":{"provider":"openai","model":"gpt-4.1-mini"},'
             '"beta":{"provider":"anthropic","model":"claude-haiku-4-5"},'
-            '"gamma":{"provider":"google","model":"gemini-2.5-flash"}}\''
+            '"gamma":{"provider":"google","model":"gemini-2.5-flash-lite"}}\''
         ),
     )
     parser.add_argument(

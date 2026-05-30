@@ -6,7 +6,7 @@ Living document for deployment configuration, provider assignments, prompt desig
 
 ## 1. Provider Assignments
 
-Configuration file: `config/pipeline.yaml` (production) or `config/pipeline_smoke.yaml` (testing).
+Configuration file: `config/pipeline.yaml` (production) or `config/pipeline_smoke.yaml` (testing). Per-faction Generator overrides for self-play via `--per-faction-providers` CLI flag on `run_simulation.py`.
 
 ### Current Assignment
 
@@ -28,6 +28,32 @@ Configuration file: `config/pipeline.yaml` (production) or `config/pipeline_smok
 | **Adversarial** | OpenAI | gpt-5.4-mini | Deliberately different provider from generator; cheap model sufficient for pattern matching |
 | **Extractor** | OpenAI | gpt-5.4-mini | Structured extraction is straightforward; cheap model is sufficient |
 
+### Google (Gemini) defaults for tuning and multi-provider runs
+
+Set 2026-05-30. Google moved from free tier to **paid (Tier 1)** after the
+operator enabled billing and bought $10 in credits. The Run 8 "20 requests/day"
+constraint is gone; every call is now metered (per-token billing).
+
+| Role | Model | Why |
+|---|---|---|
+| **Default for tuning / Run 9** | `gemini-2.5-flash-lite` | Fastest (~1.6s), cheapest ($0.10 in / $0.40 out per MTok), **no thinking-mode overhead**. Validates plumbing and behavioral patterns without the gotchas below. |
+| Stronger generator option | `gemini-2.5-flash` | Better reasoning, but uses thinking mode — see gotcha. Requires `max_tokens >= 1000`. |
+| Strongest option | `gemini-2.5-pro` | Newly accessible on paid tier. Strongest reasoning; also thinking mode. Requires `max_tokens >= 1500`. |
+| Deprecated | `gemini-2.0-flash` | 404 — "no longer available to new users." Do not use. |
+
+**Thinking-token gotcha (flash and pro only).** Gemini 2.5 flash and pro
+consume output tokens for internal reasoning *before* producing visible
+output. If `max_tokens` is too low, the model returns only the opening
+Markdown fence ` ``` ` because the entire budget got eaten by thinking.
+Empirical floor for trivial prompts is ~200 tokens; production negotiation
+responses need 1000–2000. `gemini-2.5-flash-lite` does NOT have thinking
+mode and is unaffected. This is the primary reason flash-lite is the
+current tuning default.
+
+CLI examples in `tests/self_play/probe_providers.py` and
+`tests/self_play/run_simulation.py` use `gemini-2.5-flash-lite` to match
+this default.
+
 ### Available Providers
 
 Toolkit supports these providers via `llm_client`. Add to `pipeline.yaml` `llm_providers` section with an API key env var.
@@ -36,7 +62,7 @@ Toolkit supports these providers via `llm_client`. Add to `pipeline.yaml` `llm_p
 |---|---|---|---|
 | OpenAI | `openai` | Reliable structured output, strong reasoning, good JSON | Less distinctive voice in creative writing |
 | Anthropic | `anthropic` | Nuanced language, persona adherence, complex constraint following | Can over-hedge, sometimes refuses adversarial framings |
-| Google | `google` | Large context window, good synthesis | Less predictable format, newer API |
+| Google | `google` | Large context window, good synthesis. Cheap on paid tier ($0.10/MTok for flash-lite). | Thinking-mode budget gotcha on 2.5-flash/pro (see Google defaults section above); some older models deprecated |
 | OpenRouter | `openrouter` | Access to many models (Llama, Mistral, etc.) | Variable quality, routing latency |
 
 ### Tier System
@@ -257,5 +283,7 @@ Log prompt and config changes during the game.
 ```
 date        | what changed                          | why                           | result
 ------------|---------------------------------------|-------------------------------|-------
-(no changes yet)
+2026-05-30  | Google paid tier enabled, $10 credits | Run 8 hit 250 RPD on free tier| 5-call burst probe passed; all 3 Gemini 2.5 models accessible incl. pro
+2026-05-30  | gemini-2.5-flash-lite set as default  | Avoid thinking-token gotcha   | Cheapest ($0.10/MTok), no thinking-mode overhead; revisit during dedicated provider/tier testing
+2026-05-30  | toolkit complete_with_retry shipped   | Transient 429/5xx/empty handling at scale | Exponential backoff + retry-after honoring; wired through CostAccountant + Diplomat adapter; 15 new toolkit tests; live 3-provider probe green
 ```

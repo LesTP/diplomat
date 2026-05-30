@@ -68,7 +68,12 @@ class ToolkitLLMAdapter:
                 tier=tk_tier,
             )
         else:
-            response = self._toolkit.complete(
+            # Use complete_with_retry for the direct path so test/offline
+            # mode gets the same transient-failure handling as production.
+            complete_fn = getattr(
+                self._toolkit, "complete_with_retry", self._toolkit.complete
+            )
+            response = complete_fn(
                 messages=tk_messages,
                 config=tk_config,
                 tier=tk_tier,

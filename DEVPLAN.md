@@ -1,7 +1,7 @@
 ---
-phase: 18
+phase: 19
 blocked: false
-state: review
+state: discuss
 steps_remaining: 0
 ---
 
@@ -29,12 +29,14 @@ steps_remaining: 0
   - **Run live probe before multi-provider games.** `python -m tests.self_play.probe_providers --providers '<same JSON as --per-faction-providers>'` hits each provider once with a trivial JSON request and verifies auth + roundtrip + parse. ~$0.001 total. Catches integration bugs (missing API keys, fence wrapping, model name typos) that `DryRunLLMClient` cannot catch by design (DryRun replaces the LLM client entirely with canned responses, so no real auth/parse path runs). Run this before every multi-provider simulation — Run 8 burned ~14 Gemini calls on silent retry loops because we didn't probe first; Google's free tier here is **20 requests/day** for gemini-2.5-flash, so two failed iterations exhausts the daily budget.
   - **Google Gemini free-tier quota on this project: 20 requests/day** for `gemini-2.5-flash` (most other Gemini models return `limit: 0`). With a clean 4-round game using ~4-6 gemini GEN calls, that's comfortably 1-3 games per day. Bug-tax (silent retries) can burn 14+ calls per failed attempt — probe first.
   - **Follow `RUN_PROTOCOL.md` for any live multi-agent run.** The doc formalizes the pre-flight sequence: define inputs → verify scenario → probe providers → dry-run plumbing → run live → verify output → document. Skip rules and abort conditions are spelled out. Read it once before the first live run of a session.
+  - **Phase 18 retroactively reclassified Build → Explore.** Started Build-regime (steps 18.1–18.5), morphed into Explore as work shifted to "run sims and tune." Self-time-boxed by spending. Future cold-start sessions should not be surprised that a planned 6-step phase grew to 16 steps + two named runs (Run 7 Prep, Run 8). See `DEVLOG.md` Phase 18 Close entry for full explanation.
 
 ## Current Status
 
-- **Phase** — Phase 18 complete + Run 8 (multi-provider) complete. Awaiting human audit before next phase.
-- **Focus** — Self-play infrastructure, prompt tuning, scenario compiler, state reconciliation, cost wiring, multi-provider. 8 simulation runs (~$5-6 total). See `TUNING_LOG.md`.
-- **Blocked/Broken** — None. Audit gate set.
+- **Phase** — Phase 19 (Discuss). Phase 18 closed 2026-05-30 with regime-shift acknowledgment.
+- **Focus** — Operator selects next concrete work from `NEXT_STEPS.md`. Likely first item: Google billing tier check (item #1) or coaching test loop on Pi (item #4).
+- **Blocked/Broken** — None.
+- **Reference docs** — `NEXT_STEPS.md` (forward-looking backlog), `TUNING_LOG.md` (run-by-run record through Run 8), `ARCH_conversation_model.md` (Stage 1/2/3 migration), `RUN_PROTOCOL.md` (pre-flight for live runs).
 
 ## Next Steps: Modularization Roadmap
 
@@ -114,108 +116,27 @@ Remove game-specific flow assumptions (round boundaries, direct-address triggers
 - [ ] **ClankmatesTransport.** If the game moves to Clankmates platform, build a polling-based transport (no webhooks). Keep Telegram for operator coaching.
 - [ ] **Multi-game support.** Run multiple instances with different faction prompts and databases for parallel games.
 
+## Phase 19: Next Steps (Discuss)
+
+Regime: Discuss → likely Explore once a concrete first item is selected. Scope is set by operator review of `NEXT_STEPS.md`. No specific steps committed yet; this phase starts when the operator picks a first work item.
+
+Candidate first items (from NEXT_STEPS.md suggested sequencing):
+1. Google billing tier check (10 min, may unlock items #1 and #1.5)
+2. OpenRouter integration + Run 9 (1 day, biggest experimental payoff)
+3. Coaching test loop on Pi (1 day, validates original use case)
+4. Divorce / pressure-mechanism scenario design (2–3 days, sets up Run 10)
+5. Stage 2a conversation model + per-round events (2 days)
+6. Clankmates discovery → mock → transport (timeline depends on platform team)
+
+Open-ended TODO backlog in NEXT_STEPS.md covers: Run 8 follow-up investigations (Pareto-optimal Shared deal, reconciliation status transitions, inconsistency detection), tooling debt (LoggingLLMClient wrapper unwrap, scenario compiler BATNA hardcoding, dated model pricing), and live Telegram re-smoke.
+
 ## Phase 18: Layer 4 — Multi-Agent Self-Play + Tuning
 
-Regime: Build. Scope expanded significantly from original plan. Started as self-play infrastructure; grew to include core pipeline fixes (debounce, cost wiring), toolkit enhancements (structured_call, OpenAI pricing), prompt tuning across all 4 LLM modules, a scenario compiler tool, and post-game scoring. See `TUNING_LOG.md` for the full iterative tuning record.
-
-**Design constraints:**
-- 3 generic factions with distinct negotiation strategies, identical technical capabilities
-- Multiple scenario types tested: territory dispute, water rights, dirty bargaining, coalition exercise
-- All agents use real LLM calls (LLMAnalyst, LLMGenerator, LLMAdversarialReader, OpenAIStructuredExtractor)
-- AutoApproveReviewGate for no human in the loop
-- GameEnvironment supports `extra_module_overrides` for unit tests, `--scenario` flag for auto-compiled personas
-- CLI runner: `python -m tests.self_play.run_simulation --rounds 4 [--scenario <path>]`
-
-Steps:
-
-- [x] 18.1 — **Faction personas and scenario text.** Created `tests/self_play/personas/` and `tests/self_play/scenario.py` with territory-dispute scenario. Later replaced with water rights, dirty bargaining, and Three-Party Coalition scenarios.
-
-- [x] 18.2 — **GameEnvironment.** Per-faction YAML config generation, Orchestrator lifecycle, `broadcast()`/`broadcast_to_all()` message routing, `run_round()`/`run_game()`, `collect_results()`. Added `LoggingLLMClient` for full prompt/response/timing capture. Supports `extra_module_overrides`, `seed_message`/`round_updates` overrides, and `scenario_analysis` for scoring.
-
-- [x] 18.3 — **Simulation runner CLI.** Argparse with `--rounds`, `--output`, `--factions`, `--scenario`, `--scenario-title`. Single shared CostAccountant between adapter and gate. Results written before teardown. Unbuffered stdout for long-running simulations.
-
-- [x] 18.4 — **Post-game analysis.** Per-agent summary, communication patterns, round-by-round responses, promise cross-reference. CLI: `python -m tests.self_play.analysis --results <path>`.
-
-- [x] 18.5 — **Unit tests.** 24 self-play tests + 11 scenario compiler tests = 35 total. Config generation, broadcast, lifecycle, analysis, persona generation, schema validation.
-
-- [x] 18.6 — **Orchestrator debounce fix.** Rewrote from single `_debounce_task` (cancel-and-replace) to `_extraction_tasks: set[asyncio.Task]` (per-event, no cancellation). Fixed bug where burst messages silently dropped all but the last. Run 1-2 had zero extractions because of this.
-
-- [x] 18.7 — **structured_call toolkit function.** Built `toolkit.structured_llm.structured_call()`: prompt assembly + schema injection + few-shot examples + JSON parse + schema validate + retry on failure. Rewired all 4 Diplomat LLM modules (extraction, analyst, adversarial, generation) to use it. 19 new toolkit tests.
-
-- [x] 18.8 — **Cost accountant wiring.** `ToolkitLLMAdapter` now accepts optional `cost_accountant` and routes calls through `accountant.complete()`. Added OpenAI models to toolkit pricing table. Made `budget` parameter optional with default. Unknown models use conservative fallback pricing ($15/$75 per Mtok).
-
-- [x] 18.9 — **Prompt tuning.** Generation prompt: reference intelligence, hold factions accountable, cite specifics, adapt to round pressure. Extraction prompt: explicit field allowlists, few-shot examples (promise, coalition, fulfillment, broken+inconsistency, empty), promise state tracking (pending/kept/broken/void), dedup rules, proposals as promises. Analyst prompt: use transcript alongside state tables, note contradictions.
-
-- [x] 18.10 — **Analyst transcript feed.** Added `recent_events` parameter to `LLMAnalyst.analyze()`. Orchestrator passes last 30 events alongside state data. Fixed empty early-round intelligence.
-
-- [x] 18.11 — **Scenario compiler.** Built `src/tools/scenario_compiler.py`: takes narrative scenario description, uses `structured_call` to extract issues/outcomes/scoring/BATNAs/deception tactics/logrolling/game-mode. Generates ready-to-use persona files. CLI: `python -m tools.scenario_compiler --scenario <path>`. Wired into self-play runner via `--scenario` flag.
-
-- [x] 18.12 — **Post-game scoring.** Added `score_game()` to GameEnvironment: evaluates final proposals against scoring tables via `structured_call`, determines deal reached, calculates per-faction scores vs BATNA, declares winner/loser.
-
-- [x] 18.13 — **Game mode system.** Scenario compiler classifies scenarios as cooperative/competitive/mixed. Persona template injects mode-specific behavioral instructions (competitive: maximize your score; cooperative: find mutual value but maximize your share).
-
-- [x] 18.14 — **State reconciliation.** Built `src/modules/reconciliation/` with `StateReconciler`: post-round LLM call that merges duplicate promises, detects fulfillments (pending→kept/broken), flags inconsistencies from position shifts, and catches missed proposals. Added `delete_entity()` and `update_promise_status()` to State Manager. Wired into Orchestrator's `handle_round_boundary()` before analysts. 6 tests.
-
-- [x] 18.15 — **Budget gate fix.** `DiplomatCostGate.available_budget()` now reads actual spend from the shared `CostAccountant.session_total` instead of relying on `record_spend()` calls that never happened. Round spend = delta since last `reset_round_budget()`.
-
-- [x] 18.16 — **Documentation catch-up.** Updated DEVPLAN, DECISIONS (D-20 through D-24), ARCHITECTURE (coupling notes, testing status), ARCH_cost_accountant, diplomat-testing-doc (Layer 4 rewrite), DEVLOG, PROJECT scope. Created TUNING_LOG.md and ARCH_reconciliation.md.
-
-Summary: Phase 18 expanded from 6 planned steps to 16 actual steps. Built complete self-play infrastructure with scenario compiler, post-game scoring, state reconciliation, and game-mode system. Ran 7 simulations across 4 scenario types totaling ~$2.50. Fixed critical debounce bug, wired real cost tracking, built reusable `structured_call` toolkit function, tuned all prompts based on empirical analysis. See `TUNING_LOG.md` for detailed run-by-run record.
-
-Summary (in progress): Built complete self-play infrastructure with scenario compiler, post-game scoring, and game-mode system. Ran 7 simulations across 4 scenario types totaling ~$2.50 in LLM costs. Fixed critical debounce bug, wired real cost tracking, built reusable `structured_call` toolkit function, and tuned all prompts based on empirical run analysis. See `TUNING_LOG.md` for detailed run-by-run analysis.
+Complete. Regime shifted Build → Explore mid-phase (planned 6 steps grew to 16 actual + Run 7 Prep + Run 8 multi-provider). Built complete self-play infrastructure (GameEnvironment, scenario compiler, post-game scoring, state reconciliation, game-mode system), fixed critical pipeline bugs (debounce, cost wiring, budget gate), built reusable `structured_call` toolkit function, tuned all 4 LLM prompts empirically. Ran 8 simulations across 4 scenario types (~$5–6 total spend). Decisions D-20 through D-24 added. Phase Close entry in `DEVLOG.md` Phase 18 Close section documents the regime shift and includes the compressed 16-step list. Run-by-run analysis in `TUNING_LOG.md`.
 
 ## Phase 17: Layer 2 — Prompt Regression Infrastructure
 
-Regime: Build. Scope: Create the prompt regression testing framework — scenario JSON format, scenario runner, LLM-as-judge evaluator, and a starter set of scenarios for Extraction and Generation modules. This infrastructure validates that prompt changes don’t break expected behavior. Reference: `diplomat-testing-doc.md` §4.
-
-**Design constraints:**
-- Scenarios are JSON files with structural assertions (`json_path_exists`, `json_path_equals`) and/or LLM-as-judge qualitative evaluations
-- The LLM-as-judge uses the same adapter interface as all Diplomat modules (injected `llm_client`, plain dicts in, plain str out) — no direct toolkit imports
-- The scenario runner calls real LLM APIs for the module under test and (optionally) for judge evaluations — **this costs money**. Use `commodity` tier models for judging.
-- Scenarios target individual modules (extraction, generation, analyst, adversarial), not the full pipeline
-- All existing 193 unit/integration tests must continue to pass
-- Runner must work on the Pi where toolkit is installed; scenarios can be authored anywhere
-
-Steps:
-
-- [x] 17.1 — **Scenario format and result types.** Create `tests/prompt_regression/__init__.py` and `tests/prompt_regression/types.py` with:
-  - `PropertyCheck` dataclass: `type` (json_path_exists | json_path_equals | llm_judge), `path`/`value`/`criteria`/`pass_instruction`/`fail_instruction`, `description`
-  - `PropertyResult` dataclass: `passed`, `description`, `expected`, `actual`, `judge_explanation`
-  - `ScenarioResult` dataclass: `scenario_id`, `description`, `properties: list[PropertyResult]`, `passed`
-  - `RunReport` dataclass: `results: list[ScenarioResult]`, `total`, `passed`
-  - `load_scenario(path) -> dict` and `load_scenarios(directory) -> list[dict]` helpers that read and validate scenario JSON files
-  - `json_path_exists(data, path) -> bool` and `json_path_get(data, path) -> Any` helpers for dotted-bracket path navigation (e.g., `patch.data.promises[0].status`)
-  Add unit tests for the path helpers in `tests/test_prompt_regression_types.py`. Run full regression.
-
-- [x] 17.2 — **LLM-as-judge module.** Create `tests/prompt_regression/judge.py` with:
-  - `JudgeResult` dataclass: `verdict` (PASS/FAIL), `explanation`, `criteria`
-  - `LLMJudge` class: constructor accepts `llm_client` and `llm_config: dict` and `tier: str = "commodity"`; `async evaluate(response_text, criteria, pass_instruction, fail_instruction, context="") -> JudgeResult`
-  - The evaluate prompt asks the LLM to return `PASS|explanation` or `FAIL|explanation`; parser splits on `|`
-  - Add a unit test with a fake LLM client that returns canned `PASS|reason` and `FAIL|reason` to verify parsing
-  Run full regression.
-
-- [x] 17.3 — **Scenario runner.** Create `tests/prompt_regression/runner.py` with:
-  - `ScenarioRunner` class: constructor accepts `llm_client`, `llm_config: dict`, and module builder callables
-  - `async run_scenario(scenario: dict) -> ScenarioResult`: calls the appropriate module (extraction/generation/analyst/adversarial) with the scenario input, then evaluates each `expected_properties` entry using structural checks or LLM-as-judge
-  - `async run_all(scenario_dir: str) -> RunReport`: loads all scenarios, runs each, prints per-scenario PASS/FAIL, prints summary
-  - CLI entry point: `python -m tests.prompt_regression.runner --scenarios <dir>` with optional `--module <name>` filter
-  Add a smoke test with a fake LLM client and one inline scenario dict to verify the runner produces a `RunReport`. Run full regression.
-
-- [x] 17.4 — **Starter scenarios: extraction.** Create `tests/prompt_regression/scenarios/extraction/` with 4 JSON scenarios:
-  1. `promise_explicit.json` — explicit promise creates pending promise entry (structural: `json_path_exists` on `patch.data.promises[0]`, `json_path_equals` on status=pending)
-  2. `promise_vague.json` — vague offer does NOT create promise (structural: promises array empty or absent)
-  3. `coalition_formation.json` — alliance announcement creates coalition entry
-  4. `inconsistency_detection.json` — contradiction creates inconsistency entry
-  These scenarios use `RuleBasedExtractor` (free, no API calls) so they double as structural validation. Run full regression.
-
-- [x] 17.5 — **Starter scenarios: generation.** Create `tests/prompt_regression/scenarios/generation/` with 2 JSON scenarios:
-  1. `constraint_respect.json` — CONSTRAINT coaching must be respected (llm_judge: response does not accept forbidden alliance)
-  2. `persona_consistency.json` — response matches faction persona tone (llm_judge: response uses appropriate diplomatic framing)
-  These require real LLM calls for both generation and judging. Document expected cost per run. Run full regression.
-
-- [x] 17.6 — **Documentation and regression.** Verify full test suite (193 existing + new type/runner tests). Update DEVPLAN Phase 17 summary. Update `diplomat-testing-doc.md` Layer 2 status. Append DEVLOG entry. Transition to `state: review`.
-
-Summary: Implemented Layer 2 prompt regression infrastructure: scenario/result dataclasses, scenario JSON validation, dotted/bracket JSON-path helpers, LLM-as-judge evaluation, a module-builder based scenario runner with CLI, 15 focused prompt-regression unit tests, 4 free Extraction scenarios, 2 LLM-backed Generation scenarios, and cost documentation for paid generation runs. Phase Review applied 1 must-fix (wrapped `_judge_response_text()` path extraction in try-catch) and added 4 edge-case tests (judge whitespace/blank-explanation handling, runner missing-builder and invalid-path errors). Full regression: 211 tests pass. Generation scenarios require a live injected LLM client on the Pi to execute. See `DEVLOG.md`.
+Complete. Built `tests/prompt_regression/` package: scenario/result dataclasses, JSON-path helpers, LLM-as-judge, module-builder scenario runner with CLI, 4 free Extraction scenarios, 2 LLM-backed Generation scenarios. Phase Review applied 1 must-fix (safe path extraction in judge) and added 4 edge-case tests. 211 tests pass. Generation scenarios require live injected client on the Pi. See `DEVLOG_archive.md` Phase 17.
 
 ## Phase 16: Deployment Readiness
 
@@ -258,14 +179,7 @@ Complete. Implemented review decisions, auto-approve mode, Telegram approve/edit
 
 ## Phase 8: Generation
 
-Regime: Build. Scope: `GenerationResult` dataclass, `LLMGenerator.generate()`, review-gate JSON response parsing, plain-text mode, generation prompt/config artifacts, and full regression coverage. No direct provider SDK imports; all LLM calls stay behind toolkit-compatible dependency injection.
-
-Steps:
-- [x] 8.1 — Implement `GenerationResult` and `LLMGenerator` in `src/modules/generation/__init__.py`. Constructor accepts toolkit-compatible LLM config/client dependency, tier, max_tokens, and `review_gate_enabled`; `generate(context)` calls the injected completion client with `DecisionContext.system_prompt` and `DecisionContext.user_prompt`, returns `success=False` for client exceptions, and preserves provider/debug response data where available. Add `tests/test_generation.py` coverage for successful plain-text generation, client exception failure, prompt forwarding, tier/max token forwarding, and provider/raw response propagation. Run focused tests.
-- [x] 8.2 — Add review-gate JSON handling and generation prompt/config artifacts. When `review_gate_enabled=True`, require JSON containing `response` and `reasoning`; reject malformed JSON, missing/blank response, and schema-shaped failures through `GenerationResult.success=False`. When disabled, treat nonblank plain text as `response_text` with `reasoning=None`. Create `config/prompts/generation.txt` with JSON/plain output instructions aligned to `ARCH_generation.md`. Run focused tests plus full regression.
-- [x] 8.3 — Documentation cleanup and regression verification. Verify the full suite, update Phase 8 summary/status, mark implementation sequence row 9 as pending review, and transition DEVPLAN to `state: review`.
-
-Summary: Implemented `GenerationResult`, `LLMGenerator`, review-gate JSON parsing (`response`, `reasoning`), plain-text mode, raw response preservation, `config/prompts/generation.txt`, and 11 focused Generation tests. Full regression: 98 passed. Phase Review found and fixed one must-fix: Context Assembler was instructing the LLM to use `draft_message`/`rationale` keys while Generation expected `response`/`reasoning` — fixed in both `_format_output_instruction` and its test. Phase complete.
+Complete. Implemented `GenerationResult`, `LLMGenerator`, review-gate JSON parsing (`response`, `reasoning`), plain-text mode, `config/prompts/generation.txt`, and 11 focused tests. Phase Review fixed one must-fix: Context Assembler was instructing LLM with `draft_message`/`rationale` keys while Generation expected `response`/`reasoning`. Full regression: 98 passed. See `DEVLOG_archive.md` Phase 8.
 
 ## Phase 7: Context Assembler
 
@@ -277,11 +191,7 @@ Complete. Implemented shared intelligence result types, `LLMAnalyst`, pure diver
 
 ## Phase 5: Persona
 
-Regime: Build. Scope: `CoachingContext` dataclass, `FileBasedPersona` (both public methods), hot-reload, `config/faction_prompt.txt` sample, full test coverage.
-
-Steps:
-- [x] 5.1 — Implement `CoachingContext` + `FileBasedPersona` (`get_base_prompt`, `build_round_context`) in `src/modules/persona/__init__.py`. Write `tests/test_persona.py` covering: FileNotFoundError, fresh read, hot-reload on mtime change, no-reload when unchanged, CURRENT ROUND CONTEXT section stripping, `build_round_context` formatting with all fields, empty fields, `rounds_remaining=None`. Run full suite.
-- [x] 5.2 — Create `config/faction_prompt.txt` with sample faction persona including `## CURRENT ROUND CONTEXT` marker. Run full regression (59 + new persona tests pass). Update DEVPLAN summary, DEVLOG, ARCHITECTURE.md status.
+Complete. Implemented `CoachingContext`, `FileBasedPersona` (hot-reload via mtime), section stripping at `## CURRENT ROUND CONTEXT` marker, dynamic round-context formatting, and sample `config/faction_prompt.txt`. 68 tests passed. See `DEVLOG_archive.md` Module 5.
 
 ## Phase 1: Event Store + State Manager
 
