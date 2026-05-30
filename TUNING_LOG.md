@@ -543,6 +543,9 @@ Five pieces of infrastructure were built or fixed for Run 8. They are reusable f
 **`verify_dryrun --expect-providers`** (`tests/self_play/verify_dryrun.py`):
 - Asserts each faction's GEN calls went through the expected provider. Catches per-faction routing regressions cheaply.
 
+**Live provider probe** (`tests/self_play/probe_providers.py`):
+- Hits each provider once with a trivial JSON request (~$0.001 per call) and verifies auth + roundtrip + parse. Run before every live multi-provider simulation. Catches integration bugs (missing API keys, fence wrapping, model name typos) that `DryRunLLMClient` cannot catch by design — DryRun replaces the LLM client entirely with canned responses, so no real auth/parse path runs. Run 8 burned ~14 gemini calls on silent retry loops in two failed iterations before fixing the bugs; a probe would have caught both for ~$0.003 total.
+
 ---
 
 ## Run 8 alternatives that we did NOT take (and why)
@@ -626,6 +629,8 @@ Documented for the next time we hit a similar fork:
 12. **Per-faction provider routing belongs in the runner, not the env** (Run 8). The original env-var-based config (`DIPLOMAT_PRIMARY_PROVIDER`) was global across factions. A CLI JSON flag (`--per-faction-providers`) is much cleaner: it's explicit, validates early, and the verifier can assert each faction got the assigned provider.
 
 13. **Compiler defaults aren't always what you want** (Run 8). The scenario compiler's hardcoded BATNA range ("typically 4-8 total") produced too-soft pressure for our experiment regardless of narrative cues. A pre-compiled-analysis loader (`--analysis-json`) is the right escape hatch — it lets you hand-edit the compiler's output and reuse it across runs.
+
+14. **Dry runs and live probes catch different failure modes** (Run 8 post-mortem). Dry-run validates *plumbing* (round counter, message routing, budget reset) because it controls the LLM responses. It cannot catch *provider integration* bugs (auth, JSON parsing, model name typos) because it replaces the LLM client entirely. The fix: a separate `probe_providers.py` that makes 1 real call per provider with a trivial prompt. ~$0.003 total. Run BOTH before any live multi-provider game.
 
 ---
 
