@@ -8,6 +8,55 @@
      module entries to DEVLOG_archive.md during phase completion cleanup.
      Add a boundary marker: <!-- Entries above archived from Module N, YYYY-MM-DD -->
 
+## Phase 19 — tooling debt: LoggingLLMClient SCORE/RECON visibility
+
+### 2026-05-30 — Fix unwrap regressions; surface concurrency bug; add re-snapshot of call log
+
+**Action:** Closed the first tooling-debt item from `NEXT_STEPS.md` sequencing position #1. `LoggingLLMClient` now sees reconciliation (RECON) and post-game scoring (SCORE) calls with correct per-faction attribution.
+
+**Three independent fixes, all in `tests/self_play/`:**
+
+1. **Stop unwrapping the LoggingLLMClient at the reconciler and scorer call sites** (`game_environment.py` lines 325, 606 in pre-fix file). Both used `getattr(self.llm_client, "_inner", self.llm_client)` to bypass the logging wrapper. Now they wrap the logging client in a per-subsystem `_TaggedLLMClient` that pins a fixed faction tag (`recon:<faction>` or `scorer`) onto every call, with graceful fallback to the inner adapter when logging is disabled.
+
+2. **New `_TaggedLLMClient` helper** in `game_environment.py`. **Async, not sync-returning-coroutine.** This matters: if `complete()` were sync, `set_faction()` would run at arg-evaluation time, so `asyncio.gather(tagged_a.complete(...), tagged_b.complete(...))` would resolve both `set_faction` calls before either coroutine ran — leaving every snapshot pointing at the last tag. Making `complete()` async forces the tag-set to happen inside the coroutine body, after the event loop enters it. Caught by `test_two_tagged_clients_dont_cross_tags_concurrently` — the first version of this fix failed the test, which surfaced the bug.
+
+3. **`LoggingLLMClient.complete()` snapshots `_current_faction` at entry** instead of reading it in the `finally` block. Required for concurrent tagged calls: even with correctly-async wrappers, two calls can interleave their `set_faction` updates while one is still awaiting its inner API call. Without the snapshot, the wrong tag would be logged. Verified by `test_snapshot_faction_survives_concurrent_set`.
+
+**Bonus fix: call-log snapshot timing in `run_game()`.** `collect_results()` snapshots `llm_call_log` via `to_dicts()`. `score_game()` runs *after* `collect_results()` and adds the SCORE call to the live log — which never made it into the serialized output. Fixed by re-snapshotting `results["llm_call_log"]` after scoring completes. This was the actual reason the dry-run smoke test initially showed 0 SCORE calls even with the wiring correct.
+
+**verify_dryrun updated:** Invariant 7 (Scoring) was previously: *"check the results-JSON `scores` field instead of the call log"* (with an explicit "SCORE calls bypass LoggingLLMClient" comment). Now: *"expected at least 1 SCORE call in the LLM call log"* with a regression-hint message pointing back to `game_environment.py score_game()` if SCORE drops to 0.
+
+**Tests:** 5 new tests in `tests/test_self_play.py` (`TestLoggingLLMClient` × 3, `TestTaggedLLMClient` × 2):
+- Basic call recording with faction tag
+- Error recording + re-raise
+- Snapshot survives concurrent set_faction
+- Tagged client applies fixed tag per call
+- Two tagged clients don't cross-tag concurrently (the race test that caught the sync vs async bug)
+
+**End-to-end validation:** Dry-run with 2-round Water Rights scenario. Call log now contains:
+```
+By type: {EXTRACT: 27, GEN: 6, ADV: 6, RECON: 6, ANALYST: 12, SCORE: 1}
+By tag: {recon:gamma: 23, gamma: 16, unknown: 6, alpha: 4, beta: 4,
+         recon:alpha: 2, recon:beta: 2, scorer: 1}
+```
+RECON calls correctly attributed per faction; SCORE call tagged `scorer`. `verify_dryrun` passes with `SCORE calls: 1` reported.
+
+**Note on tag stickiness (not fixed):** After a reconciler call sets `_current_faction = "recon:gamma"`, subsequent ANALYST/EXTRACT calls in the same orchestrator chain inherit that tag until the next agent's `run_response_pipeline()` resets it (visible in `recon:gamma: 23` above). This is technically a misattribution for the trailing ANALYST/EXTRACT calls but doesn't affect the bug we set out to fix (SCORE/RECON visibility). Could be addressed later by tagging analyst/extraction calls explicitly with the orchestrator's owning faction at handle_round_boundary time, but the current behavior is at worst cosmetically misleading, not functionally wrong.
+
+**Verification:**
+- Full diplomat suite: 260 passed + 3 pre-existing Windows/network-share flakes (unchanged from baseline).
+- Dry-run end-to-end: SCORE and RECON calls now visible and correctly tagged in the call log.
+- `verify_dryrun.py` invariant 7 passes against the new output.
+
+**Files modified:**
+- `tests/self_play/game_environment.py` (snapshot in LoggingLLMClient.complete, new `_TaggedLLMClient`, RECON unwrap fix, SCORE unwrap fix, re-snapshot of llm_call_log after scoring)
+- `tests/self_play/verify_dryrun.py` (invariant 7 now asserts SCORE call count)
+- `tests/test_self_play.py` (5 new tests in TestLoggingLLMClient + TestTaggedLLMClient)
+
+**Next:** Tooling debt item #2 — scenario compiler BATNA hardcode. Then #3 — dated OpenAI model pricing in toolkit.
+
+---
+
 ## Phase 19 — toolkit complete_with_retry
 
 ### 2026-05-30 — Retry-with-backoff + safety-filter handling shipped

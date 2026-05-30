@@ -356,3 +356,167 @@ class TestAnalysis:
         assert "SELF-PLAY ANALYSIS REPORT" in captured.out
         assert "alpha" in captured.out.lower()
         assert "beta" in captured.out.lower()
+
+
+# ── LoggingLLMClient + _TaggedLLMClient ───────────────────────────────
+
+
+class _StubInner:
+    """Minimal async LLM client stub for LoggingLLMClient tests."""
+
+    def __init__(self, response: str = "ok") -> None:
+        self._response = response
+        self.calls: list[dict] = []
+
+    async def complete(self, **kwargs):
+        self.calls.append(kwargs)
+        return self._response
+
+
+class TestLoggingLLMClient:
+    @pytest.mark.asyncio
+    async def test_records_call_with_current_faction(self) -> None:
+        from tests.self_play.game_environment import LoggingLLMClient
+
+        inner = _StubInner("response-text")
+        client = LoggingLLMClient(inner)
+        client.set_faction("alpha")
+
+        result = await client.complete(
+            messages=[{"role": "user", "content": "hi"}],
+            config={"provider": "openai"},
+            tier="commodity",
+            max_tokens=100,
+        )
+
+        assert result == "response-text"
+        assert len(client.call_log) == 1
+        record = client.call_log[0]
+        assert record.faction_id == "alpha"
+        assert record.config_provider == "openai"
+        assert record.response == "response-text"
+        assert record.error is None
+
+    @pytest.mark.asyncio
+    async def test_records_error_and_reraises(self) -> None:
+        from tests.self_play.game_environment import LoggingLLMClient
+
+        class _FailInner:
+            async def complete(self, **kwargs):
+                raise RuntimeError("boom")
+
+        client = LoggingLLMClient(_FailInner())
+        client.set_faction("beta")
+
+        with pytest.raises(RuntimeError, match="boom"):
+            await client.complete(
+                messages=[{"role": "user", "content": "x"}],
+                config={"provider": "anthropic"},
+                tier=None,
+            )
+
+        assert len(client.call_log) == 1
+        assert client.call_log[0].error == "boom"
+        assert client.call_log[0].faction_id == "beta"
+
+    @pytest.mark.asyncio
+    async def test_snapshot_faction_survives_concurrent_set(self) -> None:
+        """If set_faction is called *after* complete starts, the log
+        still records the faction that was set *before* the call started.
+
+        This guards against a race where two TaggedLLMClient wrappers
+        interleave: each sets its own tag, then awaits; without the
+        snapshot, both records would show the second wrapper's tag.
+        """
+        from tests.self_play.game_environment import LoggingLLMClient
+
+        # An inner stub that pauses long enough for an external set_faction
+        # to fire between start and finish.
+        class _PausingInner:
+            async def complete(self, **kwargs):
+                await asyncio.sleep(0.05)
+                return "done"
+
+        client = LoggingLLMClient(_PausingInner())
+        client.set_faction("alpha")
+
+        async def call() -> str:
+            return await client.complete(
+                messages=[{"role": "user", "content": "x"}],
+                config={"provider": "openai"},
+                tier=None,
+            )
+
+        async def stomp_after_delay() -> None:
+            # Give complete() time to enter and snapshot, then change the tag.
+            await asyncio.sleep(0.01)
+            client.set_faction("beta")
+
+        results = await asyncio.gather(call(), stomp_after_delay())
+        assert results[0] == "done"
+        # The call started with "alpha"; the log should still say "alpha"
+        # even though _current_faction is now "beta".
+        assert len(client.call_log) == 1
+        assert client.call_log[0].faction_id == "alpha"
+        assert client._current_faction == "beta"
+
+
+class TestTaggedLLMClient:
+    @pytest.mark.asyncio
+    async def test_applies_fixed_tag_per_call(self) -> None:
+        from tests.self_play.game_environment import (
+            LoggingLLMClient,
+            _TaggedLLMClient,
+        )
+
+        inner = _StubInner("ok")
+        logging_client = LoggingLLMClient(inner)
+        logging_client.set_faction("alpha")  # would be the "default" tag
+
+        # A tagged client pretending to be a RECON caller for faction alpha.
+        tagged = _TaggedLLMClient(logging_client, "recon:alpha")
+
+        await tagged.complete(
+            messages=[{"role": "user", "content": "reconcile"}],
+            config={"provider": "openai"},
+            tier="commodity",
+        )
+
+        assert len(logging_client.call_log) == 1
+        assert logging_client.call_log[0].faction_id == "recon:alpha"
+
+    @pytest.mark.asyncio
+    async def test_two_tagged_clients_dont_cross_tags_concurrently(self) -> None:
+        """Concurrent calls through differently-tagged clients each record
+        their own tag — relies on LoggingLLMClient's snapshot-at-start."""
+        from tests.self_play.game_environment import (
+            LoggingLLMClient,
+            _TaggedLLMClient,
+        )
+
+        class _PausingInner:
+            async def complete(self, **kwargs):
+                await asyncio.sleep(0.02)
+                return "ok"
+
+        logging_client = LoggingLLMClient(_PausingInner())
+
+        recon_alpha = _TaggedLLMClient(logging_client, "recon:alpha")
+        recon_beta = _TaggedLLMClient(logging_client, "recon:beta")
+
+        await asyncio.gather(
+            recon_alpha.complete(
+                messages=[{"role": "user", "content": "a"}],
+                config={"provider": "openai"},
+                tier=None,
+            ),
+            recon_beta.complete(
+                messages=[{"role": "user", "content": "b"}],
+                config={"provider": "openai"},
+                tier=None,
+            ),
+        )
+
+        assert len(logging_client.call_log) == 2
+        tags = sorted(r.faction_id for r in logging_client.call_log)
+        assert tags == ["recon:alpha", "recon:beta"]

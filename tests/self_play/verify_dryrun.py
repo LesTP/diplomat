@@ -155,12 +155,20 @@ def main() -> int:
                 f"got {by_type.get('ADV', 0)}"
             )
 
-    # --- Invariant 7: SCORE produced output (note: SCORE calls bypass
-    # LoggingLLMClient because score_game uses the unwrapped inner client,
-    # so we check the results-JSON `scores` field instead of the call log).
+    # --- Invariant 7: SCORE produced output AND is visible in the call log.
+    # SCORE and RECON calls now route through LoggingLLMClient (via
+    # _TaggedLLMClient) so they appear in the call log. We can assert both
+    # the results JSON and the call-log presence.
     if not scores or "faction_scores" not in scores:
         failures.append(
             "Scoring — scores.faction_scores missing; post-game scorer did not run."
+        )
+    if by_type.get("SCORE", 0) < 1:
+        failures.append(
+            "Scoring — expected at least 1 SCORE call in the LLM call log "
+            f"(got {by_type.get('SCORE', 0)}). If 0, the scorer is bypassing "
+            "LoggingLLMClient — check tests/self_play/game_environment.py "
+            "score_game() for an unwrap regression."
         )
 
     # --- Invariant 9: each agent has run-loop state ---
