@@ -3,6 +3,11 @@
 A record of the iterative tuning process for the Diplomat AI negotiation agent,
 conducted via multi-agent self-play simulations.
 
+> **Before any live run, follow `RUN_PROTOCOL.md`** — the canonical pre-flight
+> sequence (define inputs → verify scenario → probe providers → dry-run plumbing
+> → run live → verify output → document). Skipping the protocol burned ~14
+> Gemini calls in Run 8 before the bugs surfaced.
+
 ---
 
 ## Phase 1: Infrastructure (Run 1-2)
