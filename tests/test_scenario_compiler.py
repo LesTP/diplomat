@@ -5,10 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 
 from tools.scenario_compiler import (
+    DEFAULT_BATNA_FRACTION,
     SCENARIO_ANALYSIS_SCHEMA,
+    build_compiler_system_prompt,
     generate_persona,
+    max_possible_score,
     save_analysis,
     save_persona,
+    validate_batna_pressure,
 )
 
 
@@ -105,3 +109,92 @@ class TestSchema:
         assert "batna" in SCENARIO_ANALYSIS_SCHEMA["properties"]
         assert "deception_tactics" in SCENARIO_ANALYSIS_SCHEMA["properties"]
         assert "logrolling" in SCENARIO_ANALYSIS_SCHEMA["properties"]
+
+
+class TestBuildCompilerSystemPrompt:
+    def test_default_fraction_renders_as_percent(self) -> None:
+        prompt = build_compiler_system_prompt()
+        # Default 0.50 -> 50%
+        assert "50%" in prompt
+        # Old hardcoded range must be gone
+        assert "4-8 total" not in prompt
+
+    def test_custom_fraction_overrides_percent(self) -> None:
+        prompt = build_compiler_system_prompt(batna_fraction=0.65)
+        assert "65%" in prompt
+        assert "50%" not in prompt or prompt.count("65%") >= 1
+
+    def test_lower_fraction(self) -> None:
+        prompt = build_compiler_system_prompt(batna_fraction=0.30)
+        assert "30%" in prompt
+
+    def test_invalid_fraction_zero_raises(self) -> None:
+        import pytest
+        with pytest.raises(ValueError):
+            build_compiler_system_prompt(batna_fraction=0.0)
+
+    def test_invalid_fraction_one_raises(self) -> None:
+        import pytest
+        with pytest.raises(ValueError):
+            build_compiler_system_prompt(batna_fraction=1.0)
+
+    def test_invalid_fraction_negative_raises(self) -> None:
+        import pytest
+        with pytest.raises(ValueError):
+            build_compiler_system_prompt(batna_fraction=-0.1)
+
+
+class TestMaxPossibleScore:
+    def test_sums_max_outcome_per_issue(self) -> None:
+        # alpha: max(8,5,1) + max(1,3,5) + max(3,5,4) = 8 + 5 + 5 = 18
+        assert max_possible_score(_SAMPLE_ANALYSIS, "alpha") == 18
+
+    def test_beta_max(self) -> None:
+        # beta: max(2,4,6) + max(8,5,1) + max(4,5,3) = 6 + 8 + 5 = 19
+        assert max_possible_score(_SAMPLE_ANALYSIS, "beta") == 19
+
+    def test_unknown_faction_returns_zero(self) -> None:
+        assert max_possible_score(_SAMPLE_ANALYSIS, "nonexistent") == 0
+
+
+class TestValidateBatnaPressure:
+    def test_passes_when_batna_meets_target(self) -> None:
+        # _SAMPLE_ANALYSIS has alpha BATNA=6, max=18 → 33%.
+        # With target=0.30 (below tolerance), all should pass.
+        warnings = validate_batna_pressure(
+            _SAMPLE_ANALYSIS, target_fraction=0.30, tolerance=0.05
+        )
+        assert warnings == []
+
+    def test_warns_when_batna_well_below_target(self) -> None:
+        # alpha BATNA=6, max=18 = 33%. Target=0.60, tolerance=0.10 → floor=0.50.
+        # 33% < 50% → warn for all three (all factions have BATNA=6, max ~18-19).
+        warnings = validate_batna_pressure(
+            _SAMPLE_ANALYSIS, target_fraction=0.60, tolerance=0.10
+        )
+        assert len(warnings) == 3
+        for w in warnings:
+            assert "BATNA" in w
+            assert "target" in w
+            # Hint about how to fix should be mentioned
+            assert "--analysis-json" in w or "--batna-fraction" in w
+
+    def test_warns_only_low_factions(self) -> None:
+        analysis = {
+            "factions": ["high", "low"],
+            "issues": [{"name": "i1", "outcomes": ["o1", "o2"]}],
+            "scoring": {
+                "high": {"i1": {"o1": 10, "o2": 1}},
+                "low": {"i1": {"o1": 10, "o2": 1}},
+            },
+            "batna": {"high": 7, "low": 2},
+        }
+        # max=10 for both. target=0.50 → floor=0.40.
+        # high: 7/10=70% — pass; low: 2/10=20% — warn.
+        warnings = validate_batna_pressure(analysis, target_fraction=0.50, tolerance=0.10)
+        assert len(warnings) == 1
+        assert warnings[0].startswith("low:")
+
+    def test_default_fraction_matches_module_constant(self) -> None:
+        # Smoke check that the validator and CLI default agree
+        assert 0.0 < DEFAULT_BATNA_FRACTION < 1.0

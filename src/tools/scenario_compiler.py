@@ -92,7 +92,7 @@ SCENARIO_ANALYSIS_SCHEMA: dict[str, Any] = {
     },
 }
 
-COMPILER_SYSTEM_PROMPT = """\
+COMPILER_SYSTEM_PROMPT_TEMPLATE = """\
 You are a negotiation scenario analyst. Given a scenario description, extract
 the structured game-theoretic elements needed for AI agent play.
 
@@ -104,9 +104,16 @@ Rules:
 - Assign asymmetric values: each faction should have one issue they value
   highly (7-10 pts for their preferred outcome) and issues they care less
   about (1-4 pts). This creates logrolling opportunities.
-- BATNAs should be low enough (typically 4-8 total across all issues) that
-  a reasonable deal beats no deal, but high enough that truly bad deals
-  are rejected.
+- BATNA guidance: each faction's BATNA (no-deal value) should be approximately
+  {batna_fraction_pct}% of their MAXIMUM possible score across all issues
+  (i.e., the score they would get if every issue resolved in their most-preferred
+  outcome). This calibrates negotiation pressure: a Pareto-optimal deal clearly
+  beats BATNA, but barely-acceptable deals fail it. Adjust upward if the
+  scenario narrative implies strong outside options (good alternatives, time
+  pressure on opponents, ability to walk away cheaply); adjust downward if
+  the scenario implies weak alternatives (sunk costs, reputational cost of
+  no-deal, deadline pressure on this faction). ALWAYS honor explicit BATNA
+  values stated in the narrative.
 - Deception tactics: for each faction, identify which low-priority issue
   they should OVERSTATE interest in, so they can "concede" it later in
   exchange for their true priority.
@@ -119,6 +126,27 @@ Rules:
   "competitive" — fixed pie, one faction's gain is another's loss
   "mixed" — some cooperative elements, some zero-sum
 """
+
+
+# Default BATNA fraction-of-max-score floor. Tuned from Run 8 analysis where
+# hand-patched BATNAs landed in the 0.40–0.61 range; 0.50 is a reasonable
+# middle ground that produces non-trivial pressure without ruling out deals.
+DEFAULT_BATNA_FRACTION = 0.50
+
+
+def build_compiler_system_prompt(batna_fraction: float = DEFAULT_BATNA_FRACTION) -> str:
+    """Return the compiler system prompt with the BATNA fraction inlined."""
+    if not 0.0 < batna_fraction < 1.0:
+        raise ValueError(
+            f"batna_fraction must be in (0.0, 1.0); got {batna_fraction}"
+        )
+    return COMPILER_SYSTEM_PROMPT_TEMPLATE.format(
+        batna_fraction_pct=int(round(batna_fraction * 100)),
+    )
+
+
+# Backwards-compatible: keep the old constant as a default-rendered version.
+COMPILER_SYSTEM_PROMPT = build_compiler_system_prompt()
 
 # ---------------------------------------------------------------------------
 # Persona template
@@ -229,8 +257,22 @@ async def analyze_scenario(
     llm_client: Any,
     llm_config: dict[str, Any],
     tier: str = "commodity",
+    batna_fraction: float = DEFAULT_BATNA_FRACTION,
 ) -> dict[str, Any]:
-    """Parse a scenario description into structured scoring data."""
+    """Parse a scenario description into structured scoring data.
+
+    Parameters
+    ----------
+    scenario_text : str
+        Narrative description of the scenario.
+    llm_client, llm_config, tier
+        Injected toolkit-compatible LLM client and config.
+    batna_fraction : float
+        Target BATNA value as a fraction of each faction's MAXIMUM possible
+        score across all issues. Default 0.50. Higher = more pressure toward
+        Pareto-optimal deals; lower = easier for BATNA fallback to "win."
+        Operator hand-patches in Run 8 landed in 0.40-0.61. Must be in (0, 1).
+    """
     from toolkit.structured_llm import structured_call
 
     result = await structured_call(
@@ -238,7 +280,7 @@ async def analyze_scenario(
         llm_config,
         tier,
         schema=SCENARIO_ANALYSIS_SCHEMA,
-        system_prompt=COMPILER_SYSTEM_PROMPT,
+        system_prompt=build_compiler_system_prompt(batna_fraction),
         user_prompt=f"Analyze the following negotiation scenario:\n\n{scenario_text}",
         max_retries=2,
     )
@@ -247,6 +289,59 @@ async def analyze_scenario(
         raise ValueError(f"Scenario analysis failed: {result.error}")
 
     return result.data
+
+
+def max_possible_score(analysis: dict[str, Any], faction_id: str) -> int:
+    """Return the maximum possible score for one faction across all issues.
+
+    Sums the highest-value outcome per issue from the faction's private
+    scoring table. This is the score achieved if every issue resolves in
+    the faction's most-preferred outcome.
+    """
+    scoring = analysis["scoring"].get(faction_id, {})
+    total = 0
+    for issue in analysis.get("issues", []):
+        outcomes = scoring.get(issue["name"], {})
+        if outcomes:
+            total += max(outcomes.values())
+    return total
+
+
+def validate_batna_pressure(
+    analysis: dict[str, Any],
+    target_fraction: float = DEFAULT_BATNA_FRACTION,
+    tolerance: float = 0.10,
+) -> list[str]:
+    """Return per-faction warnings where BATNA is significantly below target.
+
+    Compares each faction's BATNA against ``target_fraction * max_score``.
+    Emits a warning when BATNA is more than ``tolerance`` fractional units
+    below the target (e.g. target=0.50, tolerance=0.10 → warn if BATNA is
+    below 0.40 of max). Returns an empty list when all factions clear the
+    threshold.
+
+    Use this in workflows that consume the compiler output to flag scenarios
+    where the LLM under-set BATNAs — a recurring issue in Runs 4-8 that
+    required hand-patching via ``--analysis-json``.
+    """
+    warnings: list[str] = []
+    floor = max(0.0, target_fraction - tolerance)
+    for faction_id in analysis.get("factions", []):
+        max_score = max_possible_score(analysis, faction_id)
+        if max_score == 0:
+            continue
+        batna = analysis.get("batna", {}).get(faction_id, 0)
+        actual_fraction = batna / max_score
+        if actual_fraction < floor:
+            target_batna = int(round(max_score * target_fraction))
+            warnings.append(
+                f"{faction_id}: BATNA={batna} is {actual_fraction:.0%} of "
+                f"max={max_score} (target ~{target_fraction:.0%} ~= "
+                f"{target_batna}). Negotiation pressure may be too low; "
+                f"consider hand-patching via --analysis-json or rerunning "
+                f"with a higher --batna-fraction."
+            )
+    return warnings
 
 
 def generate_persona(
@@ -370,6 +465,17 @@ def _parse_args() -> argparse.Namespace:
         default="a multi-party negotiation",
         help="Scenario title for persona headers",
     )
+    parser.add_argument(
+        "--batna-fraction",
+        type=float,
+        default=DEFAULT_BATNA_FRACTION,
+        help=(
+            f"Target BATNA as fraction of each faction's max possible score "
+            f"(default: {DEFAULT_BATNA_FRACTION}). Higher = more pressure "
+            f"toward Pareto-optimal deals; lower = easier to fall back to "
+            f"BATNA. Run 8 hand-patches landed in 0.40-0.61."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -403,14 +509,24 @@ async def _run(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     print(f"Analyzing scenario: {scenario_path.name}")
+    print(f"  BATNA target fraction: {args.batna_fraction:.0%} of each faction's max score")
     analysis = await analyze_scenario(
-        scenario_text, llm_client, llm_config, tier="commodity"
+        scenario_text, llm_client, llm_config,
+        tier="commodity",
+        batna_fraction=args.batna_fraction,
     )
 
     analysis_path = save_analysis(analysis, output_dir)
     print(f"Analysis saved: {analysis_path}")
     print(f"Factions: {', '.join(analysis['factions'])}")
     print(f"Issues: {', '.join(i['name'] for i in analysis['issues'])}")
+
+    # Validate BATNA pressure against the requested target.
+    warnings = validate_batna_pressure(analysis, target_fraction=args.batna_fraction)
+    if warnings:
+        print("\nBATNA pressure warnings:")
+        for w in warnings:
+            print(f"  - {w}")
 
     factions = [args.faction] if args.faction else analysis["factions"]
     for faction_id in factions:

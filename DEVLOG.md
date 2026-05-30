@@ -8,6 +8,49 @@
      module entries to DEVLOG_archive.md during phase completion cleanup.
      Add a boundary marker: <!-- Entries above archived from Module N, YYYY-MM-DD -->
 
+## Phase 19 — tooling debt: scenario compiler BATNA hardcode
+
+### 2026-05-30 — Replace "4-8 total" hardcode with fraction-of-max formula; add validator
+
+**Action:** Closed the second tooling-debt item from `NEXT_STEPS.md` sequencing position #1. The scenario compiler's BATNA range guidance is no longer hardcoded to "typically 4-8 total" regardless of narrative — it's now a fraction of each faction's maximum possible score, configurable per run, with a post-hoc validator that flags under-pressure.
+
+**Three changes in `src/tools/scenario_compiler.py`:**
+
+1. **Prompt template parameterized by BATNA fraction.** Replaced `COMPILER_SYSTEM_PROMPT` constant with `COMPILER_SYSTEM_PROMPT_TEMPLATE` + `build_compiler_system_prompt(batna_fraction)` function. The "4-8 total" range guidance is replaced with: *"each faction's BATNA should be approximately {N}% of their MAXIMUM possible score across all issues."* This scales naturally to scenario size and lets the operator tune pressure per scenario.
+
+2. **New `analyze_scenario(..., batna_fraction=0.50)` parameter.** Default 0.50 calibrated from Run 8's hand-patch values (alpha/beta/gamma landed in 0.40-0.61). Tradeoff: 0.50 produces real pressure (Pareto deals clearly beat BATNA) without being so high that no deal is possible.
+
+3. **New `validate_batna_pressure()` function.** Post-hoc check that compares each faction's BATNA against `target_fraction * max_score` with configurable tolerance. Returns per-faction warnings. Also exports `max_possible_score()` helper for inspection.
+
+**Wired through to two CLIs:**
+- `src/tools/scenario_compiler.py` — `--batna-fraction` flag (default 0.50). Prints the target at compile time + warnings after analysis.
+- `tests/self_play/run_simulation.py` — `--batna-fraction` flag passes through to `_compile_scenario` → `analyze_scenario`. Ignored when `--analysis-json` is used (pre-compiled analysis is already final). Prints BATNA pressure warnings after compilation.
+
+**Retroactive validation.** Loaded Run 8's Water Rights analysis and ran `validate_batna_pressure(target_fraction=0.50)`:
+- Pre-patch compiler output (alpha=7.5, beta=4, gamma=6): 3 warnings, BATNAs at 19-34% of max. Exactly the under-pressure problem we hit in Run 8.
+- Hand-patched values (alpha=11, beta=8, gamma=10): 1 warning. Beta still borderline at 38% of max — even the hand-patch was suboptimal. The validator surfaces this.
+
+**Tests:** 13 new in `tests/test_scenario_compiler.py`:
+- `TestBuildCompilerSystemPrompt` × 6: default/custom fraction renders, lower/higher fractions, invalid (0, 1, negative) raise ValueError
+- `TestMaxPossibleScore` × 3: sums max-outcome per issue across issues, beta-specific check, unknown faction returns 0
+- `TestValidateBatnaPressure` × 4: passes when at target, warns when below, warns only low factions, default constant in valid range
+
+**Verification:**
+- Full diplomat suite: 273 passed + 3 pre-existing Windows/network-share flakes (unchanged from baseline).
+- Both CLI `--help` outputs show the new flag with description and default.
+- Compiler dry-path validation (loading existing analysis): wiring works end-to-end.
+
+**Files modified:**
+- `src/tools/scenario_compiler.py` (prompt template + 3 new functions: build_compiler_system_prompt, max_possible_score, validate_batna_pressure; CLI flag + warning printer in `_run`)
+- `tests/self_play/run_simulation.py` (CLI flag + threading through `_compile_scenario` + warning printer)
+- `tests/test_scenario_compiler.py` (13 new tests; updated imports)
+
+**Note on workflow.** This doesn't deprecate the `--analysis-json` hand-patch workflow — that's still the right tool when the operator needs to dial in specific BATNA values per faction. What changes: the compiler's default output is now closer to usable on first try, and when it isn't, the validator says so explicitly with a hint about how to fix.
+
+**Next:** Tooling debt item #3 — dated OpenAI model pricing in toolkit (`gpt-4.1-mini-2025-04-14` falls back to conservative default because pricing table only has `gpt-4.1-mini`).
+
+---
+
 ## Phase 19 — tooling debt: LoggingLLMClient SCORE/RECON visibility
 
 ### 2026-05-30 — Fix unwrap regressions; surface concurrency bug; add re-snapshot of call log

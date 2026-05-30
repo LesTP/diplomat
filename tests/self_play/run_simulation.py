@@ -106,6 +106,18 @@ def _parse_args() -> argparse.Namespace:
             "to also be provided (for the seed message text)."
         ),
     )
+    parser.add_argument(
+        "--batna-fraction",
+        type=float,
+        default=None,
+        help=(
+            "Target BATNA as fraction of each faction's max possible score "
+            "during scenario compilation (default: tools/scenario_compiler "
+            "DEFAULT_BATNA_FRACTION = 0.50). Higher = more pressure toward "
+            "Pareto-optimal deals; lower = easier to fall back to BATNA. "
+            "Ignored when --analysis-json is used."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -187,13 +199,16 @@ async def _compile_scenario(
     tmp_dir: Path,
     llm_client: Any,
     scenario_title: str,
+    batna_fraction: float | None = None,
 ) -> dict[str, Path]:
     """Compile a scenario file into per-faction persona files via LLM."""
     from tools.scenario_compiler import (
+        DEFAULT_BATNA_FRACTION,
         analyze_scenario,
         generate_persona,
         save_analysis,
         save_persona,
+        validate_batna_pressure,
     )
 
     scenario_path = Path(scenario_path_str)
@@ -213,12 +228,30 @@ async def _compile_scenario(
         "api_key": os.getenv("OPENAI_API_KEY", ""),
     }
 
+    effective_fraction = (
+        batna_fraction if batna_fraction is not None else DEFAULT_BATNA_FRACTION
+    )
+
     print(f"Compiling scenario: {scenario_path.name}")
-    analysis = await analyze_scenario(scenario_text, inner, llm_config, tier="commodity")
+    print(f"  BATNA target fraction: {effective_fraction:.0%} of each faction's max score")
+    analysis = await analyze_scenario(
+        scenario_text, inner, llm_config,
+        tier="commodity",
+        batna_fraction=effective_fraction,
+    )
 
     # Save analysis for inspection
     personas_dir = tmp_dir / "personas"
     save_analysis(analysis, personas_dir)
+
+    # Warn if BATNAs landed below the target floor. Common enough across
+    # Runs 4-8 to deserve an inline diagnostic; operator can hand-patch
+    # via --analysis-json or rerun with a higher --batna-fraction.
+    warnings = validate_batna_pressure(analysis, target_fraction=effective_fraction)
+    if warnings:
+        print("\nBATNA pressure warnings:")
+        for w in warnings:
+            print(f"  - {w}")
 
     # Use factions from analysis if caller didn't override
     available_factions = analysis["factions"]
@@ -366,7 +399,8 @@ async def _run(args: argparse.Namespace) -> None:
             }
         elif args.scenario:
             personas, scenario_analysis = await _compile_scenario(
-                args.scenario, faction_ids, tmp_dir, llm_client, args.scenario_title
+                args.scenario, faction_ids, tmp_dir, llm_client, args.scenario_title,
+                batna_fraction=args.batna_fraction,
             )
             # Use the scenario text as the seed message.
             seed_message = Path(args.scenario).read_text(encoding="utf-8")
