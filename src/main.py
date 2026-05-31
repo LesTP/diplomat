@@ -127,27 +127,20 @@ def _attach_reconciler(
     Self-play has its own per-faction reconciler wiring that overrides this
     one with a LoggingLLMClient-tagged version for SCORE/RECON visibility.
     """
-    from modules.reconciliation import StateReconciler
+    from modules.reconciliation import build_reconciler
 
     import yaml
     config = yaml.safe_load(Path(config_path).read_text(encoding="utf-8"))
-    primary = config.get("llm_providers", {}).get("primary", {})
-    if not primary:
+    reconciler = build_reconciler(
+        llm_client,
+        config.get("llm_providers", {}),
+        tier="commodity",
+    )
+    if reconciler is None:
         # Without a primary provider config we can't build a reconciler;
         # silently skip (orchestrator handles missing reconciler gracefully).
         return
-
-    api_key_env = primary.get("api_key_env", "")
-    recon_config = {
-        "provider": primary.get("provider", "openai"),
-        "models": primary.get("models", {}),
-        "api_key": os.getenv(api_key_env, "") if api_key_env else "",
-    }
-    orchestrator.reconciler = StateReconciler(
-        llm_client=llm_client,
-        llm_config=recon_config,
-        tier="commodity",
-    )
+    orchestrator.reconciler = reconciler
 
 
 if __name__ == "__main__":

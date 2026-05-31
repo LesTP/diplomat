@@ -139,6 +139,14 @@ _PROVIDER_API_KEY_ENV: dict[str, str] = {
     "openrouter": "OPENROUTER_API_KEY",
 }
 
+# Default primary provider config for self-play subsystem calls (reconciler, scorer).
+# Uses the same env vars as _generate_faction_config so operator overrides apply.
+_SELF_PLAY_PRIMARY: dict[str, Any] = {
+    "provider": "openai",
+    "models": {"commodity": "gpt-4.1-mini"},
+    "api_key_env": "OPENAI_API_KEY",
+}
+
 
 def _api_key_env_for(provider: str) -> str:
     """Return the env var name that holds the API key for a given provider."""
@@ -327,16 +335,10 @@ class GameEnvironment:
             # metadata tags RECON calls in the LLM call log when logging is
             # enabled.
             recon_llm_client: Any = self.logging_client or self.llm_client
-            import os
-            recon_config = {
-                "provider": "openai",
-                "models": {"commodity": "gpt-4.1-mini"},
-                "api_key": os.getenv("OPENAI_API_KEY", ""),
-            }
-            from modules.reconciliation import StateReconciler
-            orchestrator.reconciler = StateReconciler(
+            from modules.reconciliation import build_reconciler
+            orchestrator.reconciler = build_reconciler(
                 recon_llm_client,
-                recon_config,
+                {"primary": _SELF_PLAY_PRIMARY},
                 tier="commodity",
                 attribution=f"recon:{faction_id}",
             )
@@ -608,12 +610,8 @@ class GameEnvironment:
         # Attribution metadata tags SCORE calls in the LLM call log when
         # logging is enabled.
         score_llm_client: Any = self.logging_client or self.llm_client
-        import os
-        llm_config = {
-            "provider": "openai",
-            "models": {"commodity": "gpt-4.1-mini"},
-            "api_key": os.getenv("OPENAI_API_KEY", ""),
-        }
+        from modules.reconciliation import subsystem_llm_config
+        llm_config = subsystem_llm_config(_SELF_PLAY_PRIMARY)
 
         result = await structured_call(
             score_llm_client,

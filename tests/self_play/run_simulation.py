@@ -218,12 +218,13 @@ async def _compile_scenario(
 
     scenario_text = scenario_path.read_text(encoding="utf-8")
 
-    import os
-    llm_config = {
+    from modules.reconciliation import subsystem_llm_config
+    _compile_primary = {
         "provider": "openai",
         "models": {"commodity": "gpt-4.1-mini"},
-        "api_key": os.getenv("OPENAI_API_KEY", ""),
+        "api_key_env": "OPENAI_API_KEY",
     }
+    llm_config = subsystem_llm_config(_compile_primary)
 
     effective_fraction = (
         batna_fraction if batna_fraction is not None else DEFAULT_BATNA_FRACTION

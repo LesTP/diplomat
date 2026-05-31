@@ -9,6 +9,7 @@ transcript and accumulated state.
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -210,4 +211,45 @@ class StateReconciler:
         )
 
 
-__all__ = ["ReconciliationResult", "StateReconciler"]
+def subsystem_llm_config(primary: dict[str, Any], tier: str = "commodity") -> dict[str, Any]:
+    """Build a minimal LLM config dict for a subsystem call.
+
+    primary: pipeline.yaml llm_providers.primary format — keys: provider,
+             models (dict of tier→model-name), api_key_env (env var name).
+    """
+    api_key_env = primary.get("api_key_env", "")
+    return {
+        "provider": primary.get("provider", "openai"),
+        "models": {tier: primary.get("models", {}).get(tier, "")},
+        "api_key": os.getenv(api_key_env, "") if api_key_env else "",
+    }
+
+
+def build_reconciler(
+    llm_client: Any,
+    llm_providers_config: dict[str, Any],
+    tier: str = "commodity",
+    attribution: str | None = None,
+) -> "StateReconciler | None":
+    """Factory: create a StateReconciler from a pipeline llm_providers config.
+
+    llm_providers_config: the full llm_providers dict (must have "primary" key).
+    Returns None if the primary config is missing (reconciler disabled).
+    """
+    primary = llm_providers_config.get("primary", {})
+    if not primary:
+        return None
+    return StateReconciler(
+        llm_client=llm_client,
+        llm_config=subsystem_llm_config(primary, tier),
+        tier=tier,
+        attribution=attribution,
+    )
+
+
+__all__ = [
+    "ReconciliationResult",
+    "StateReconciler",
+    "subsystem_llm_config",
+    "build_reconciler",
+]

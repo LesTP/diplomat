@@ -121,3 +121,23 @@ Existing sites (`reconciliation` → `"reconciliation"`, `game_environment` → 
 Tests: 296 passed; integration: 23 passed.
 
 Next step: 21.8 — extract `build_reconciler` factory and `subsystem_llm_config` helper.
+
+## 2026-05-31 — Phase 21.8: build_reconciler factory + subsystem_llm_config helper
+
+Added two factory functions to `src/modules/reconciliation/__init__.py`:
+
+`subsystem_llm_config(primary, tier="commodity")`: builds the minimal LLM config dict `{provider, models: {tier: model}, api_key}` from a pipeline.yaml-format primary provider config (which uses `api_key_env` rather than `api_key` directly). Eliminates the pattern duplicated 4 times across the codebase.
+
+`build_reconciler(llm_client, llm_providers_config, tier, attribution)`: factory that reads `llm_providers_config["primary"]`, calls `subsystem_llm_config`, and returns a `StateReconciler` (or `None` if primary is missing).
+
+Updated call sites:
+- `src/main.py` `_attach_reconciler`: replaced manual dict construction + `StateReconciler(...)` with `build_reconciler(llm_client, config.get("llm_providers", {}))`. The "silently skip" path is now `if reconciler is None: return`.
+- `tests/self_play/game_environment.py` `setup()`: added `_SELF_PLAY_PRIMARY` module-level dict constant; reconciler attachment uses `build_reconciler(recon_llm_client, {"primary": _SELF_PLAY_PRIMARY}, ..., attribution=...)`.
+- `tests/self_play/game_environment.py` `score_game()`: scorer config uses `subsystem_llm_config(_SELF_PLAY_PRIMARY)`.
+- `tests/self_play/run_simulation.py` `_compile_scenario()`: compilation config uses `subsystem_llm_config(...)` with a local `_compile_primary` dict.
+
+Both helpers exported in `__all__`.
+
+Tests: 296 passed; integration: 23 passed.
+
+Next step: 21.9 doc update.
