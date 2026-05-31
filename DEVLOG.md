@@ -23,3 +23,11 @@ Docs updated: `ASSESSMENT.md` (Block A reconciliation path coverage → closed d
 No new gotchas beyond what is already in DEVPLAN. Key technique: `wait_for_state_change_count` polling preferred over fixed `asyncio.sleep` for debounce-adjacent assertions.
 
 Phase 21 is next.
+
+### Phase 21 plan — 2026-05-31
+
+Phase: Build. Scope is module-boundary cleanup across Orchestrator/self-play and LLM adapter attribution plumbing.
+
+Planned steps: 9 executable steps plus loop-managed review/close. The Phase 21 checklist now uses state-machine checkboxes and frontmatter is set to `phase: 21`, `state: execute`.
+
+No implementation changes in this planning action. Existing dirty worktree changes outside `DEVPLAN.md`, `DEVLOG.md`, and `DECISIONS.md` were left untouched.

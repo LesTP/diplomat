@@ -174,3 +174,10 @@ Priority: Important
 Decision: The scenario compiler classifies each scenario as cooperative, competitive, or mixed, and the persona template injects mode-specific behavioral instructions accordingly. Competitive mode instructs agents to maximize their own score, exploit others' urgency, and threaten to walk away. Cooperative mode instructs mutual value creation while maximizing own share.
 Rationale: Self-play Runs 1-4 showed that LLMs default to cooperative behavior regardless of scenario structure. Without explicit competitive instructions, agents converge on reasonable deals too quickly and never employ deception or hardball tactics. The game-mode classification lets the scenario structure (not a global toggle) determine how competitive agents should be. Dirty bargaining Run 5 with explicit competitive personas produced dramatically more strategic play including successful bluffs and progressive concession tactics.
 Revisit if: A more nuanced per-issue competitiveness model is needed (some issues cooperative, others zero-sum within the same negotiation).
+
+D-25: Phase 21 cleanup stays in Build regime
+Date: 2026-05-31 | Status: Open
+Priority: Important
+Decision: Phase 21 will execute the existing module-boundary cleanup plan as nine state-machine-tracked Build steps, with review and close handled by the autonomous loop rather than as an executable checkbox.
+Rationale: The work is already scoped to concrete API cleanup, adapter attribution plumbing, and duplicate wiring removal. Keeping review/close out of the executable checklist prevents the loop from treating governance actions as code steps and lets `STOP_BEFORE_REVIEW=true` stop at the intended review gate.
+Revisit if: A Phase 21 step requires a contract change outside Orchestrator/self-play/LLM adapter boundaries.
