@@ -500,6 +500,7 @@ class GameEnvironment:
         if self.scenario_analysis:
             scores = await self.score_game(all_responses.get(total_rounds, {}))
             results["scores"] = scores
+            results["scenario_analysis"] = self.scenario_analysis
 
         # Re-snapshot the LLM call log AFTER scoring so the SCORE call (and
         # any post-collect_results calls) appear in the output. Without this,

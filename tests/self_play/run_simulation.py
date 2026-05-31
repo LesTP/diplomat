@@ -436,6 +436,10 @@ async def _run(args: argparse.Namespace) -> None:
 
 
 def _write_results(results: dict, output_path: str | None) -> None:
+    from tests.self_play.analysis import compute_process_signatures
+
+    results["process_signatures"] = compute_process_signatures(results)
+
     if output_path is None:
         results_dir = Path(__file__).resolve().parent / "results"
         results_dir.mkdir(parents=True, exist_ok=True)

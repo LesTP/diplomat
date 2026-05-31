@@ -2,7 +2,7 @@
 phase: 23
 blocked: false
 state: execute
-steps_remaining: 5
+steps_remaining: 4
 ---
 
 # Diplomat — Development Plan
@@ -78,7 +78,7 @@ Prerequisite: None code-wise, but easier after Phase 22 (post-game scoring path 
 Steps:
 - [x] **23.1** Implement `pareto_efficiency` field in `GameEnvironment.score_game()`. Formula: `sum(achieved_scores) / max_pareto_sum`. Compute `max_pareto_sum` by reading the precomputed scenario analysis (`verify_scenario_optimum.py` already enumerates deals; if its result isn't cached, recompute inline at scoring time). Add to the per-run scoring JSON output.
 - [x] **23.2** Add unit tests for the `pareto_efficiency` calculation: (a) a deal at the Pareto-optimum returns 1.0, (b) a deal at BATNA sum returns the BATNA/max ratio, (c) no-deal case handled. Add an integration test that runs a tiny scenario through `score_game()` end-to-end with fake LLM and asserts the field is present and numeric.
-- [ ] **23.3** Implement process signatures aggregator in `tests/self_play/analysis.py`. Four deterministic signatures: `broken_promise_rate` (`broken / total_promises`), `coalition_stability` (`survived_to_final / formed`), `time_to_deal` (round number when reached or `null`), `opening_gap` per faction (|round-1 position score − reached-deal score| / max_possible). Add to the post-game report output.
+- [x] **23.3** Implement process signatures aggregator in `tests/self_play/analysis.py`. Four deterministic signatures: `broken_promise_rate` (`broken / total_promises`), `coalition_stability` (`survived_to_final / formed`), `time_to_deal` (round number when reached or `null`), `opening_gap` per faction (|round-1 position score − reached-deal score| / max_possible). Add to the post-game report output.
 - [ ] **23.4** Tests for process signatures: build a synthetic transcript fixture with known broken-promise count, known coalition trajectory, known opening positions; assert each signature computes to the expected value. ~4 tests.
 - [ ] **23.5** Doc update: `ASSESSMENT.md` (§3.2 Pareto efficiency → ✓ implemented with file:line ref to `score_game`; §3.4 process signatures → partial-to-✓-for-4-of-7 deterministic ones; update Block C tech-debt list). Optional: mention in `diplomat-testing-doc.md` if post-game report format is documented there.
 

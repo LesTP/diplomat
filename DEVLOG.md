@@ -139,3 +139,11 @@ Outcome: Added deterministic Pareto-efficiency tests for optimum, BATNA-ratio, a
 Contract changes: None; this step verifies the scoring JSON fields added in 23.1.
 
 Tests: `.venv/bin/python -m pytest tests/test_self_play.py` — 33 passed.
+
+### Step 23.3: Process signatures aggregator
+
+Mode: Build
+Outcome: Added `compute_process_signatures()` to the self-play analysis report with deterministic `broken_promise_rate`, `coalition_stability`, `time_to_deal`, and per-faction `opening_gap`. Simulation result JSON now includes `process_signatures`; scenario-backed runs also preserve `scenario_analysis` so opening-gap scoring can use the point tables.
+Contract changes: Self-play result JSON now includes `process_signatures`, and scenario-backed results include `scenario_analysis`.
+
+Tests: `.venv/bin/python -m pytest tests/test_self_play.py` — 33 passed. `.venv/bin/python -m tests.self_play.analysis --results tests/self_play/results/phase22_verify_dryrun.json` — passed and printed the process-signatures section.
