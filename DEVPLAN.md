@@ -1,8 +1,8 @@
 ---
-phase: 22
-blocked: true
-state: close
-steps_remaining: 0
+phase: 23
+blocked: false
+state: execute
+steps_remaining: 7
 ---
 
 # Diplomat — Development Plan
@@ -53,9 +53,9 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 22 (Build) closed. Remaining queued Build phases: Phase 23 → 24.
-- **Focus** — Human audit gate before Phase 23: scoring expansion (Pareto efficiency + process signatures).
-- **Blocked/Broken** — Blocked intentionally after close; no known broken build.
+- **Phase** — Phase 23 (Build) active. Remaining queued Build phase: Phase 24.
+- **Focus** — Scoring expansion: Pareto efficiency + deterministic process signatures for self-play diagnostics.
+- **Blocked/Broken** — None known; Phase 23 is code/test/doc work only, no live API required.
 
 ## Phase 21: Module boundary cleanup — Complete
 
@@ -76,12 +76,13 @@ Regime: Build. Implements two of the four scoring lenses defined in `ASSESSMENT.
 Prerequisite: None code-wise, but easier after Phase 22 (post-game scoring path becomes cleaner with `Pipeline` abstraction).
 
 Steps:
-- **23.1** Implement `pareto_efficiency` field in `GameEnvironment.score_game()`. Formula: `sum(achieved_scores) / max_pareto_sum`. Compute `max_pareto_sum` by reading the precomputed scenario analysis (`verify_scenario_optimum.py` already enumerates deals; if its result isn't cached, recompute inline at scoring time). Add to the per-run scoring JSON output.
-- **23.2** Add unit tests for the `pareto_efficiency` calculation: (a) a deal at the Pareto-optimum returns 1.0, (b) a deal at BATNA sum returns the BATNA/max ratio, (c) no-deal case handled. Add an integration test that runs a tiny scenario through `score_game()` end-to-end with fake LLM and asserts the field is present and numeric.
-- **23.3** Implement process signatures aggregator in `tests/self_play/analysis.py`. Four deterministic signatures: `broken_promise_rate` (`broken / total_promises`), `coalition_stability` (`survived_to_final / formed`), `time_to_deal` (round number when reached or `null`), `opening_gap` per faction (|round-1 position score − reached-deal score| / max_possible). Add to the post-game report output.
-- **23.4** Tests for process signatures: build a synthetic transcript fixture with known broken-promise count, known coalition trajectory, known opening positions; assert each signature computes to the expected value. ~4 tests.
-- **23.5** Doc update: `ASSESSMENT.md` (§3.2 Pareto efficiency → ✓ implemented with file:line ref to `score_game`; §3.4 process signatures → partial-to-✓-for-4-of-7 deterministic ones; update Block C tech-debt list). Optional: mention in `diplomat-testing-doc.md` if post-game report format is documented there.
-- **23.6** Phase review + commit + close. Every self-play run now produces per-faction `pareto_efficiency` field + process signatures; named docs updated.
+- [ ] **23.1** Implement `pareto_efficiency` field in `GameEnvironment.score_game()`. Formula: `sum(achieved_scores) / max_pareto_sum`. Compute `max_pareto_sum` by reading the precomputed scenario analysis (`verify_scenario_optimum.py` already enumerates deals; if its result isn't cached, recompute inline at scoring time). Add to the per-run scoring JSON output.
+- [ ] **23.2** Add unit tests for the `pareto_efficiency` calculation: (a) a deal at the Pareto-optimum returns 1.0, (b) a deal at BATNA sum returns the BATNA/max ratio, (c) no-deal case handled. Add an integration test that runs a tiny scenario through `score_game()` end-to-end with fake LLM and asserts the field is present and numeric.
+- [ ] **23.3** Implement process signatures aggregator in `tests/self_play/analysis.py`. Four deterministic signatures: `broken_promise_rate` (`broken / total_promises`), `coalition_stability` (`survived_to_final / formed`), `time_to_deal` (round number when reached or `null`), `opening_gap` per faction (|round-1 position score − reached-deal score| / max_possible). Add to the post-game report output.
+- [ ] **23.4** Tests for process signatures: build a synthetic transcript fixture with known broken-promise count, known coalition trajectory, known opening positions; assert each signature computes to the expected value. ~4 tests.
+- [ ] **23.5** Doc update: `ASSESSMENT.md` (§3.2 Pareto efficiency → ✓ implemented with file:line ref to `score_game`; §3.4 process signatures → partial-to-✓-for-4-of-7 deterministic ones; update Block C tech-debt list). Optional: mention in `diplomat-testing-doc.md` if post-game report format is documented there.
+
+Phase review/close are handled by the autonomous loop after the executable checklist is complete.
 
 Expected outcome: every self-play run produces per-faction Pareto efficiency + process signatures alongside the existing BATNA-relative WIN/LOSE verdict. Diagnostic quality of `TUNING_LOG.md` entries improves significantly.
 

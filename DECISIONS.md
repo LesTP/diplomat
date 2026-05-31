@@ -188,3 +188,10 @@ Priority: Important
 Decision: Phase 22 will split Orchestrator into a per-agent `Pipeline` capability interface plus `Flow` scheduling strategies, with review and close handled by the autonomous loop rather than as an executable checkbox.
 Rationale: Production and self-play already share the same module capabilities but differ in scheduling. Making that boundary explicit lets new applications add a Flow without copying Orchestrator internals or inventing a parallel driver.
 Revisit if: Extraction exposes a cross-module contract change that cannot be contained inside Orchestrator, Pipeline, Flow, and self-play wiring.
+
+D-27: Phase 23 scoring expansion stays diagnostic-only
+Date: 2026-05-31 | Status: Accepted
+Priority: Important
+Decision: Phase 23 will add Pareto efficiency and four deterministic process signatures as post-game diagnostic outputs only. It will not change agent prompts, negotiation behavior, provider routing, or live run protocol.
+Rationale: The scoring lenses are meant to improve assessment quality before further tuning. Keeping them out of runtime decision-making avoids coupling evaluation metrics to agent behavior while tests lock down the calculations.
+Revisit if: A later tuning phase explicitly uses these metrics as feedback signals for prompt or strategy changes.
