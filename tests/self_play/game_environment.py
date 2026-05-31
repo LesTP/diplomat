@@ -620,7 +620,9 @@ class GameEnvironment:
         if not result.success:
             return {"error": f"Scoring failed: {result.error}"}
 
-        return result.data
+        score_data = dict(result.data)
+        score_data.update(_pareto_efficiency_metrics(self.scenario_analysis, score_data))
+        return score_data
 
     # ------------------------------------------------------------------
     # Results collection
@@ -676,3 +678,31 @@ async def _safe_query(
         return await state_manager.query(entity_type, filters)
     except Exception:
         return []
+
+
+def _pareto_efficiency_metrics(
+    scenario_analysis: dict[str, Any],
+    score_data: dict[str, Any],
+) -> dict[str, float]:
+    """Calculate aggregate Pareto efficiency for a scored game result."""
+    from tests.self_play.verify_scenario_optimum import (
+        enumerate_deals,
+        find_pareto_frontier,
+    )
+
+    deals = enumerate_deals(scenario_analysis)
+    frontier = find_pareto_frontier(scenario_analysis, deals)
+    max_pareto_sum = max((sum(scores.values()) for _, scores in frontier), default=0.0)
+
+    faction_scores = score_data.get("faction_scores", {})
+    achieved_sum = 0.0
+    for faction in scenario_analysis.get("factions", faction_scores.keys()):
+        faction_data = faction_scores.get(faction, {})
+        achieved_sum += float(faction_data.get("points", 0.0))
+
+    efficiency = achieved_sum / max_pareto_sum if max_pareto_sum > 0 else 0.0
+    return {
+        "achieved_score_sum": achieved_sum,
+        "max_pareto_sum": max_pareto_sum,
+        "pareto_efficiency": efficiency,
+    }

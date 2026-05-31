@@ -123,3 +123,11 @@ Mode: Build
 Outcome: Activated Phase 23 as the current Build phase and converted its scoring-expansion scope into state-machine executable steps: Pareto efficiency implementation, Pareto tests, process-signature implementation, process-signature tests, and docs.
 
 Scope decision: Phase 23 is diagnostic-only. It adds post-game scoring/reporting fields for self-play analysis without changing agent behavior or live provider/runtime paths.
+
+### Step 23.1: Pareto efficiency scoring field
+
+Mode: Build
+Outcome: `GameEnvironment.score_game()` now post-processes the structured scorer output with aggregate Pareto-efficiency metrics. It reuses the scenario optimum enumerator to find the best Pareto-frontier aggregate score, sums achieved faction scores, and writes `achieved_score_sum`, `max_pareto_sum`, and `pareto_efficiency` into the per-run scoring JSON.
+Contract changes: Self-play scoring JSON now includes three deterministic aggregate scoring fields.
+
+Tests: `.venv/bin/python -m pytest tests/test_self_play.py` — 29 passed.
