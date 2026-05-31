@@ -24,3 +24,11 @@ Outcome: Added `test_burst_extraction_no_drops` to inject five public game event
 Contract changes: None.
 
 Verified with `.venv/bin/python -m pytest tests/integration/test_phase18_paths.py -q` and `.venv/bin/python -m pytest tests/ -q` (286 passed).
+
+### Step 20.3: Reconciler dedup and fulfillment coverage
+
+Mode: Build
+Outcome: Added `test_reconciler_dedup` and `test_reconciler_fulfillment`, driving the production round-boundary reconciliation hook with fake structured responses. The shared fake LLM now recognizes toolkit `structured_call(messages=...)` prompts, so reconciler responses exercise the same adapter path used in production.
+Contract changes: None.
+
+Verified with `.venv/bin/python -m pytest tests/integration/test_phase18_paths.py -q` and `.venv/bin/python -m pytest tests/ -q` (288 passed).

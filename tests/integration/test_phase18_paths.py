@@ -14,7 +14,7 @@ import yaml
 from modules.reconciliation import StateReconciler
 from modules.types import EventFilter, InboundEvent
 from orchestrator import Orchestrator
-from tests.helpers.factories import FakeCostAccountant, make_event
+from tests.helpers.factories import FakeCostAccountant, make_event, make_round_end_event
 from tests.helpers.stub_analyst import StubAnalyst
 from tests.helpers.test_transport import TestTransport
 
@@ -66,7 +66,7 @@ class Phase18FakeLLMClient:
 
     async def complete(self, **kwargs: Any) -> str:
         self.calls.append(kwargs)
-        system_prompt = str(kwargs.get("system_prompt", "")).lower()
+        system_prompt = _system_prompt_from_kwargs(kwargs).lower()
         schema = kwargs.get("schema")
 
         if "negotiation state reconciler" in system_prompt:
@@ -232,6 +232,75 @@ async def test_burst_extraction_no_drops(phase18_pipeline: Phase18PipelineHarnes
     assert len(changes) == 5
 
 
+async def test_reconciler_dedup(phase18_pipeline: Phase18PipelineHarness):
+    await phase18_pipeline.transport.inject(
+        make_event("France promises England support in Belgium.")
+    )
+    await phase18_pipeline.transport.inject(
+        make_event("France promises England support for Belgium.")
+    )
+    await settle_phase18_pipeline()
+
+    before = await phase18_pipeline.orchestrator.state_manager.query("promises", {})
+    assert len(before) == 2
+
+    keep_id = before[0]["promise_id"]
+    remove_id = before[1]["promise_id"]
+    phase18_pipeline.llm_client.reconciliation_responses = [
+        reconciliation_response(
+            merged_promises=[
+                {
+                    "keep_id": keep_id,
+                    "remove_ids": [remove_id],
+                    "reason": "same France-to-England Belgium support promise",
+                }
+            ],
+            merge_log=[f"merged {remove_id} into {keep_id}"],
+        )
+    ]
+
+    await phase18_pipeline.transport.inject(make_round_end_event())
+    await settle_phase18_pipeline()
+
+    after = await phase18_pipeline.orchestrator.state_manager.query("promises", {})
+    assert [row["promise_id"] for row in after] == [keep_id]
+
+
+async def test_reconciler_fulfillment(phase18_pipeline: Phase18PipelineHarness):
+    await phase18_pipeline.transport.inject(
+        make_event("France promises England support in Belgium.")
+    )
+    await settle_phase18_pipeline()
+
+    before = await phase18_pipeline.orchestrator.state_manager.query("promises", {})
+    assert len(before) == 1
+    promise_id = before[0]["promise_id"]
+    phase18_pipeline.llm_client.reconciliation_responses = [
+        reconciliation_response(
+            status_updates=[
+                {
+                    "promise_id": promise_id,
+                    "new_status": "kept",
+                    "resolution": "France followed through in the transcript.",
+                }
+            ],
+            merge_log=[f"marked {promise_id} kept"],
+        )
+    ]
+
+    await phase18_pipeline.transport.inject(
+        make_event("France moves to support England in Belgium.")
+    )
+    await settle_phase18_pipeline()
+    await phase18_pipeline.transport.inject(make_round_end_event())
+    await settle_phase18_pipeline()
+
+    after = await phase18_pipeline.orchestrator.state_manager.query("promises", {})
+    assert after[0]["promise_id"] == promise_id
+    assert after[0]["status"] == "kept"
+    assert after[0]["resolution"] == "France followed through in the transcript."
+
+
 async def settle_phase18_pipeline() -> None:
     await asyncio.sleep(0.08)
 
@@ -249,3 +318,14 @@ def _tmp_pipeline_config(tmp_path: Path) -> Path:
 
 def _schema_has_property(schema: Any, property_name: str) -> bool:
     return isinstance(schema, dict) and property_name in schema.get("properties", {})
+
+
+def _system_prompt_from_kwargs(kwargs: dict[str, Any]) -> str:
+    if "system_prompt" in kwargs:
+        return str(kwargs["system_prompt"])
+    messages = kwargs.get("messages")
+    if isinstance(messages, list) and messages:
+        first = messages[0]
+        if isinstance(first, dict):
+            return str(first.get("content", ""))
+    return ""
