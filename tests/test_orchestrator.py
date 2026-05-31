@@ -4,6 +4,7 @@ import asyncio
 import shutil
 from pathlib import Path
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
 import pytest
 import yaml
@@ -111,6 +112,11 @@ class FakeStateManager:
 
     async def mark_coaching_consumed(self):
         self.consumed_marked = True
+
+
+class FailingPatchStateManager(FakeStateManager):
+    async def apply_patch(self, patch, source):
+        raise RuntimeError("patch failed")
 
 
 class FakeExtractor:
@@ -223,6 +229,36 @@ class FakeReviewGate:
     async def submit(self, draft, adversarial, round_number):
         self.calls.append((draft, adversarial, round_number))
         return self.decision
+
+
+class FakeReconciler:
+    async def reconcile(self, state, recent_events, current_round):
+        return SimpleNamespace(
+            success=True,
+            merged_promises=[{"remove_ids": ["p-duplicate"]}],
+            updated_statuses=[
+                {
+                    "promise_id": "p-status",
+                    "new_status": "kept",
+                    "resolution": "resolved",
+                }
+            ],
+            new_inconsistencies=[
+                {
+                    "faction_id": "france",
+                    "description": "Changed position.",
+                }
+            ],
+            missed_proposals=[
+                {
+                    "promise_id": "p-missed",
+                    "from_faction": "france",
+                    "to_faction": "england",
+                    "content": "Proposal terms.",
+                }
+            ],
+            merge_log=[],
+        )
 
 
 class FakeCostAccountant:
@@ -728,6 +764,26 @@ async def test_secondary_analyst_failure_proceeds_with_primary_only(tmp_path):
     assert state_manager.intelligence[0]["analysis_json"]["secondary"]["success"] is False
     assert state_manager.intelligence[0]["analysis_json"]["divergences"] == []
     assert "Secondary analyst failed" in transport.sent[0].content
+
+
+@pytest.mark.asyncio
+async def test_reconciliation_apply_failures_are_logged(tmp_path, capsys):
+    state_manager = FailingPatchStateManager()
+    orchestrator, _event_store, _state_manager, _extractor, _transport = (
+        _pipeline_orchestrator(tmp_path, state_manager=state_manager)
+    )
+    orchestrator.reconciler = FakeReconciler()
+
+    await orchestrator._reconcile_state({"promises": []}, [])
+
+    captured = capsys.readouterr()
+    assert "Reconciliation delete failed (promise_id=p-duplicate)" in captured.out
+    assert "Reconciliation status update failed (promise_id=p-status)" in captured.out
+    assert (
+        "Reconciliation inconsistency insert failed "
+        "(inconsistency_id=recon-france-r1)"
+    ) in captured.out
+    assert "Reconciliation missed-proposal insert failed (promise_id=p-missed)" in captured.out
 
 
 @pytest.mark.asyncio

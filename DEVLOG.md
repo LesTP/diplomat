@@ -67,3 +67,15 @@ This keeps the production registry free of test-package imports while preserving
 Tests: `.venv/bin/python -m pytest tests/test_orchestrator.py tests/integration -q` (76 passed); `.venv/bin/python -m pytest -q` (293 passed).
 
 Next step: 21.4 logs reconciler exceptions instead of swallowing them.
+
+### Step 21.4: Reconciler exception logging
+
+Mode: Build
+Outcome: Replaced four silent `except Exception: pass` blocks in `_reconcile_state()` with contextual log messages for promise deletes, status updates, inconsistency inserts, and missed-proposal inserts.
+Contract changes: None.
+
+Added a focused test that forces each apply path to fail and asserts the failure is visible in captured output while reconciliation continues.
+
+Tests: `.venv/bin/python -m pytest tests/test_orchestrator.py tests/integration/test_phase18_paths.py -q` (60 passed); `.venv/bin/python -m pytest -q` (294 passed).
+
+Next step: 21.5 adds `attribution` and `purpose` kwargs to the LLM adapter interface.

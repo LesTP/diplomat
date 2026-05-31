@@ -661,8 +661,11 @@ class Orchestrator:
             for remove_id in merge.get("remove_ids", []):
                 try:
                     await self.state_manager.delete_entity("promises", remove_id)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    print(
+                        "Reconciliation delete failed "
+                        f"(promise_id={remove_id}): {exc}"
+                    )
 
         # Apply status updates.
         for update in result.updated_statuses:
@@ -672,8 +675,11 @@ class Orchestrator:
                     update["new_status"],
                     update.get("resolution", ""),
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                print(
+                    "Reconciliation status update failed "
+                    f"(promise_id={update.get('promise_id', 'unknown')}): {exc}"
+                )
 
         # Add new inconsistencies.
         for incon in result.new_inconsistencies:
@@ -691,8 +697,11 @@ class Orchestrator:
                         trigger_ref=f"round-{self.current_round}",
                     ),
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                print(
+                    "Reconciliation inconsistency insert failed "
+                    f"(inconsistency_id={incon_with_id.get('inconsistency_id', 'unknown')}): {exc}"
+                )
 
         # Add missed proposals as new promises.
         for proposal in result.missed_proposals:
@@ -705,8 +714,11 @@ class Orchestrator:
                         trigger_ref=f"round-{self.current_round}",
                     ),
                 )
-            except Exception:
-                pass
+            except Exception as exc:
+                print(
+                    "Reconciliation missed-proposal insert failed "
+                    f"(promise_id={proposal.get('promise_id', 'unknown')}): {exc}"
+                )
 
         if result.merge_log:
             log_text = "\n".join(f"  - {entry}" for entry in result.merge_log)
