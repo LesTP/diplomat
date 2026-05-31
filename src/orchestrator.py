@@ -21,6 +21,12 @@ from modules.generation import GenerationResult
 from modules.persona import CoachingContext
 from modules.transport import OutboundMessage
 from modules.types import Divergence, EventFilter, InboundEvent, PatchSource
+from pipeline import Pipeline
+from flows.event_driven import (
+    EventDrivenFlow,
+    faction_address_detector,
+    signal_round_detector,
+)
 from registry import resolve_class
 
 
@@ -104,7 +110,7 @@ class OrchestrationOptions:
         return cls.from_config(config)
 
 
-class Orchestrator:
+class _OrchestratorCore:
     def __init__(
         self,
         config_path: str | Path = "config/pipeline.yaml",
@@ -727,13 +733,16 @@ class Orchestrator:
     @staticmethod
     def _public_data(value: Any) -> Any:
         if is_dataclass(value):
-            return Orchestrator._public_data(asdict(value))
+            return _OrchestratorCore._public_data(asdict(value))
         if isinstance(value, datetime):
             return value.isoformat()
         if isinstance(value, dict):
-            return {key: Orchestrator._public_data(item) for key, item in value.items()}
+            return {
+                key: _OrchestratorCore._public_data(item)
+                for key, item in value.items()
+            }
         if isinstance(value, list):
-            return [Orchestrator._public_data(item) for item in value]
+            return [_OrchestratorCore._public_data(item) for item in value]
         return value
 
     @staticmethod
@@ -1050,7 +1059,7 @@ class Orchestrator:
     @staticmethod
     def _required_str(config: dict[str, Any], key: str) -> str:
         value = config.get(key)
-        if not Orchestrator._has_text(value):
+        if not _OrchestratorCore._has_text(value):
             raise PipelineConfigError(f"Pipeline config requires {key}")
         return value.strip()
 
@@ -1083,4 +1092,32 @@ async def _maybe_await(value: Any) -> Any:
     return value
 
 
-__all__ = ["Orchestrator", "PipelineConfigError", "PipelinePaths"]
+def Orchestrator(*args: Any, **kwargs: Any) -> EventDrivenFlow:
+    core = _OrchestratorCore(*args, **kwargs)
+    round_detector = None
+    round_interval_seconds = None
+    if core.round_detection["mode"] == "signal":
+        round_detector = signal_round_detector(core.round_detection["pattern"])
+    elif core.round_detection["mode"] == "time":
+        round_interval_seconds = float(core.round_detection["interval_seconds"])
+
+    address_detector = None
+    if core.options.auto_response_enabled:
+        address_detector = faction_address_detector(core.faction_id)
+
+    return EventDrivenFlow(
+        pipeline=Pipeline(core),
+        transport=core.transport,
+        round_detector=round_detector,
+        address_detector=address_detector,
+        message_debounce_seconds=core.message_debounce_seconds,
+        round_interval_seconds=round_interval_seconds,
+    )
+
+
+__all__ = [
+    "OrchestrationOptions",
+    "Orchestrator",
+    "PipelineConfigError",
+    "PipelinePaths",
+]

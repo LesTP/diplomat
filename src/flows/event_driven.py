@@ -25,17 +25,43 @@ class EventDrivenFlow:
         round_detector: RoundDetector | None = None,
         address_detector: AddressDetector | None = None,
         message_debounce_seconds: float = 0.5,
+        round_interval_seconds: float | None = None,
     ) -> None:
         self.pipeline = pipeline
         self.transport = transport
         self.round_detector = round_detector or (lambda _event: False)
         self.address_detector = address_detector or (lambda _event: False)
         self.message_debounce_seconds = message_debounce_seconds
+        self.round_interval_seconds = round_interval_seconds
         self._running = False
         self._extraction_tasks: set[asyncio.Task[None]] = set()
+        self._round_timer_task: asyncio.Task[None] | None = None
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.pipeline.orchestrator, name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        flow_attrs = {
+            "pipeline",
+            "transport",
+            "round_detector",
+            "address_detector",
+            "message_debounce_seconds",
+            "round_interval_seconds",
+            "_running",
+            "_extraction_tasks",
+            "_round_timer_task",
+        }
+        if name in flow_attrs or "pipeline" not in self.__dict__:
+            object.__setattr__(self, name, value)
+            return
+        setattr(self.pipeline.orchestrator, name, value)
 
     async def start(self) -> None:
         self._running = True
+        self._print_online_banner()
+        if self.round_interval_seconds is not None:
+            self._round_timer_task = asyncio.create_task(self._time_round_loop())
         try:
             async for event in self.transport.listen():
                 if not self._running:
@@ -54,6 +80,10 @@ class EventDrivenFlow:
             with contextlib.suppress(asyncio.CancelledError):
                 await task
         self._extraction_tasks.clear()
+        if self._round_timer_task is not None and not self._round_timer_task.done():
+            self._round_timer_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._round_timer_task
 
         close = getattr(self.transport, "close", None)
         if close is None:
@@ -92,6 +122,27 @@ class EventDrivenFlow:
             return False
         await self.pipeline.reconcile_and_analyze()
         return True
+
+    async def _time_round_loop(self) -> None:
+        if self.round_interval_seconds is None:
+            return
+        while self._running:
+            await asyncio.sleep(self.round_interval_seconds)
+            await self.pipeline.reconcile_and_analyze()
+
+    def _print_online_banner(self) -> None:
+        orchestrator = getattr(self.pipeline, "orchestrator", None)
+        if orchestrator is None:
+            return
+        session_budget = float(
+            orchestrator.cost_config.get("session_budget_usd", 0.0)
+        )
+        print(
+            "DIPLOMAT ONLINE - "
+            f"Round {orchestrator.current_round} - "
+            f"{orchestrator.faction_id}"
+            f" - session budget ${session_budget:.2f}"
+        )
 
 
 def signal_round_detector(pattern: str) -> RoundDetector:
