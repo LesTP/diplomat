@@ -2,7 +2,7 @@
 phase: 22
 blocked: false
 state: execute
-steps_remaining: 6
+steps_remaining: 5
 ---
 
 # Diplomat — Development Plan
@@ -94,7 +94,7 @@ Prerequisite: Phase 21 — specifically §21.1's public `advance_to_round` is th
 
 Steps:
 - [x] **22.1** Define `Pipeline` interface. Methods: `start`/`shutdown`, `store_event(event)`, `extract_from(event)`, `dispatch_operator(content)`, `advance_to_round(n)`, `reconcile_and_analyze()`, `run_response(trigger_event=None)`, plus query methods (`get_state`, `get_intelligence`, `get_ledger`). New file `src/pipeline.py`; methods initially delegate to existing `Orchestrator` internals.
-- [ ] **22.2** Implement `EventDrivenFlow` in `src/flows/event_driven.py`. Owns the async event loop reading `Transport.listen()`, the `_extraction_tasks` debounce, the `_check_round_boundary` signal regex, the `_is_direct_address` detector. Constructor takes `pipeline: Pipeline`, `transport: Transport`, optional `round_detector` and `address_detector`.
+- [x] **22.2** Implement `EventDrivenFlow` in `src/flows/event_driven.py`. Owns the async event loop reading `Transport.listen()`, the `_extraction_tasks` debounce, the `_check_round_boundary` signal regex, the `_is_direct_address` detector. Constructor takes `pipeline: Pipeline`, `transport: Transport`, optional `round_detector` and `address_detector`.
 - [ ] **22.3** Compat shim: `Orchestrator` becomes a thin factory `def Orchestrator(...) -> EventDrivenFlow` returning `EventDrivenFlow(pipeline=Pipeline(...), transport=...)`. Existing `main.py` keeps working without changes.
 - [ ] **22.4** Implement `RoundSteppedFlow` in `src/flows/round_stepped.py`. Replaces `GameEnvironment`'s round-stepping logic. Constructor takes `pipelines: list[Pipeline]`, `moderator: Moderator`, `total_rounds: int`. Update `GameEnvironment` to compose `RoundSteppedFlow` (no more `current_round` pokes, no more `[ROUND END]` re-entry trick).
 - [ ] **22.5** Add Pipeline-contract tests (`tests/test_pipeline.py`) and Flow-contract tests (`tests/test_flows.py`). Ensure `EventDrivenFlow` reproduces all current production behavior; `RoundSteppedFlow` reproduces all current self-play behavior.
