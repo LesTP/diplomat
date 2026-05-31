@@ -147,3 +147,11 @@ Outcome: Added `compute_process_signatures()` to the self-play analysis report w
 Contract changes: Self-play result JSON now includes `process_signatures`, and scenario-backed results include `scenario_analysis`.
 
 Tests: `.venv/bin/python -m pytest tests/test_self_play.py` — 33 passed. `.venv/bin/python -m tests.self_play.analysis --results tests/self_play/results/phase22_verify_dryrun.json` — passed and printed the process-signatures section.
+
+### Step 23.4: Process signature tests
+
+Mode: Build
+Outcome: Added a synthetic self-play result fixture covering duplicated promise records, a dissolved coalition, a round-3 deal marker, and round-1 opening positions. Four focused tests now assert the expected broken-promise rate, coalition-stability ratio, time-to-deal, and per-faction opening gaps.
+Contract changes: None; this step verifies the process-signature contract added in 23.3.
+
+Tests: `.venv/bin/python -m pytest tests/test_self_play.py` — 37 passed.

@@ -94,6 +94,52 @@ def _pareto_scenario() -> dict:
     }
 
 
+def _process_signature_results() -> dict:
+    return {
+        "rounds_completed": 4,
+        "transcript": [
+            {"round": 1, "sender": "alpha", "content": "Opening position."},
+            {"round": 3, "sender": "moderator", "content": "Deal reached."},
+        ],
+        "agents": {
+            "alpha": {
+                "promises": [
+                    {"promise_id": "p1", "status": "kept"},
+                    {"promise_id": "p2", "status": "broken"},
+                ],
+                "coalitions": [
+                    {"coalition_id": "c1", "status": "active"},
+                    {"coalition_id": "c2", "status": "dissolved", "ended_round": 2},
+                ],
+            },
+            "beta": {
+                "promises": [
+                    {"promise_id": "p2", "status": "broken"},
+                    {"promise_id": "p3", "status": "pending"},
+                    {"promise_id": "p4", "status": "kept"},
+                ],
+                "coalitions": [
+                    {"coalition_id": "c1", "status": "active"},
+                ],
+            },
+        },
+        "round_responses": {
+            "1": {
+                "alpha": "Alpha proposes optimum.",
+                "beta": "Beta proposes fallback.",
+            }
+        },
+        "scores": {
+            "deal_reached": True,
+            "faction_scores": {
+                "alpha": {"points": 4, "batna": 4},
+                "beta": {"points": 10, "batna": 6},
+            },
+        },
+        "scenario_analysis": _pareto_scenario(),
+    }
+
+
 # ── Config generation ────────────────────────────────────────────────
 
 
@@ -462,6 +508,40 @@ class TestParetoEfficiency:
         assert isinstance(scores["pareto_efficiency"], float)
         assert scores["pareto_efficiency"] == 1.0
         assert scores["max_pareto_sum"] == 20
+
+
+# ── Process signatures ──────────────────────────────────────────────
+
+
+class TestProcessSignatures:
+    def test_broken_promise_rate(self) -> None:
+        from tests.self_play.analysis import compute_process_signatures
+
+        signatures = compute_process_signatures(_process_signature_results())
+
+        assert signatures["broken_promise_rate"] == pytest.approx(0.25)
+
+    def test_coalition_stability(self) -> None:
+        from tests.self_play.analysis import compute_process_signatures
+
+        signatures = compute_process_signatures(_process_signature_results())
+
+        assert signatures["coalition_stability"] == pytest.approx(0.5)
+
+    def test_time_to_deal(self) -> None:
+        from tests.self_play.analysis import compute_process_signatures
+
+        signatures = compute_process_signatures(_process_signature_results())
+
+        assert signatures["time_to_deal"] == 3
+
+    def test_opening_gap(self) -> None:
+        from tests.self_play.analysis import compute_process_signatures
+
+        signatures = compute_process_signatures(_process_signature_results())
+
+        assert signatures["opening_gap"]["alpha"] == pytest.approx(0.6)
+        assert signatures["opening_gap"]["beta"] == pytest.approx(0.4)
 
 
 # ── LoggingLLMClient ─────────────────────────────────────────────────
