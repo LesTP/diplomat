@@ -43,13 +43,13 @@ modules:
   persona:
     class: FileBasedPersona
   primary_analyst:
-    class: StubAnalyst
+    class: LLMAnalyst
     provider: primary
-    fixture_path: tests/integration/fixtures/intelligence_stub.json
+    tier: quality
   secondary_analyst:
-    class: StubAnalyst
+    class: LLMAnalyst
     provider: secondary
-    fixture_path: tests/integration/fixtures/intelligence_stub.json
+    tier: quality
   divergence:
     class: modules.analyst.divergence.compare
   context_assembler:

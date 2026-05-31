@@ -55,3 +55,15 @@ Production still reads `game.total_rounds` from `pipeline.yaml` through `Orchest
 Tests: `.venv/bin/python -m pytest tests/test_orchestrator.py tests/integration/test_phase18_paths.py tests/test_main.py -q` (63 passed); `.venv/bin/python -m pytest -q` (293 passed).
 
 Next step: 21.3 resolves the `StubAnalyst` registry leak.
+
+### Step 21.3: Stub analyst registry cleanup
+
+Mode: Build
+Outcome: Removed the test-only `StubAnalyst` entry from `src/registry.py` and updated `config/pipeline_test.yaml` to name `LLMAnalyst`. Integration tests continue to inject `tests.helpers.stub_analyst.StubAnalyst` through `module_overrides`.
+Contract changes: Production registry no longer resolves test helpers; `diplomat-testing-doc.md` is queued for the Phase 21 doc-update step because it documents the StubAnalyst location/config pattern.
+
+This keeps the production registry free of test-package imports while preserving fake-backed Layer 3 coverage.
+
+Tests: `.venv/bin/python -m pytest tests/test_orchestrator.py tests/integration -q` (76 passed); `.venv/bin/python -m pytest -q` (293 passed).
+
+Next step: 21.4 logs reconciler exceptions instead of swallowing them.
