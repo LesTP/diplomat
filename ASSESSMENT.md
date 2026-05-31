@@ -223,21 +223,21 @@ detection rate).
 
 **Tech debt to watch.** Per-event structured logging (currently only
 `DIPLOMAT ONLINE` lines), tools/function-calling support (none yet),
-tiered memory (none — flat state + audit log), **Pipeline/Flow
-separation** (per-agent pipeline and scheduling strategy currently
-entangled in `Orchestrator`; see `NEXT_STEPS.md` §1.9). The
-Pipeline/Flow split is the architectural seam for "another sequence for
-another application" — adding a StreamFlow / TurnBasedFlow / Clankmates
-HybridFlow becomes additive rather than a new hand-rolled driver.
+tiered memory (none — flat state + audit log). The Pipeline/Flow
+split is complete (Phase 22); adding a StreamFlow / TurnBasedFlow /
+Clankmates HybridFlow is now additive against the stable `Pipeline`
+contract.
 
 **Closed debt.** Reconciliation path coverage is covered by Layer 3
 tests in `tests/integration/test_phase18_paths.py`: burst extraction
 without dropped messages, duplicate promise merge, promise fulfillment,
 new inconsistency detection, and missed proposal insertion.
 
-**Active items.** Pipeline/Flow split (§1.9), Stage 2a conversation model (#3), structured per-event logging (smoke tooling debt).
+**Active items.** Stage 2a conversation model (#3), structured per-event logging (smoke tooling debt).
 
 **Closed debt (Phase 21).** Module boundary cleanup orchestration (§1.7 — `OrchestrationOptions` dataclass, `advance_to_round` public API, reconciler logged exceptions) ✓. Module boundary cleanup LLM adapter + config (§1.8 — `_TaggedLLMClient` deleted, `LoggingLLMClient` reduced, `purpose` kwarg threaded through all modules, `DryRunLLMClient` purpose-based classification, `build_reconciler` / `subsystem_llm_config` factories) ✓.
+
+**Closed debt (Phase 22).** Pipeline/Flow split (§1.9 — `Pipeline` interface in `src/pipeline.py`; `EventDrivenFlow` for production Telegram/CLI; `RoundSteppedFlow` for self-play; `Orchestrator` reduced to compat factory returning `EventDrivenFlow`; `GameEnvironment` composes `RoundSteppedFlow`) ✓.
 
 ### Block B — Prompt tuning
 
@@ -336,3 +336,4 @@ Some items touch multiple blocks or sit outside them:
 | 2026-05-31 | Initial draft. Distills a conversation between operator and Devmate (in this session's chat) about why pure calculation isn't negotiation, what skill means in Diplomat's setting, four scoring lenses with formulas, properties of skill-testing scenarios, and three workstream blocks (A: architecture/memory, B: prompt tuning, C: game creation/scoring). NEXT_STEPS items get tagged A/B/C in a follow-up edit; PROJECT.md and DEVPLAN.md get pointer references. |
 | 2026-05-31 | Block A "tech debt to watch" updated with Pipeline/Flow separation as the architectural seam for adding new application sequences (StreamFlow, TurnBasedFlow, Clankmates HybridFlow). Active items list updated with §1.7, §1.8, §1.9 from NEXT_STEPS. |
 | 2026-05-31 | Block A reconciliation path coverage moved from active debt to closed debt after Layer 3 `test_phase18_paths.py` covered burst extraction, dedup, fulfillment, inconsistencies, and missed proposals. |
+| 2026-05-31 | Block A Pipeline/Flow split (§1.9) moved from active debt to closed debt (Phase 22): `Pipeline` interface extracted, `EventDrivenFlow` and `RoundSteppedFlow` implemented, `Orchestrator` compat shim, `GameEnvironment` refactored. Tech-debt-to-watch blurb updated to reflect completion. |

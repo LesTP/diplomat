@@ -35,6 +35,7 @@ relevant ARCH file using the lookup table below.
 | Review Gate | `ARCH_review_gate.md` |
 | Adversarial | `ARCH_adversarial.md` |
 | Orchestrator | `ARCH_orchestrator.md` |
+| Pipeline + Flow | `ARCH_flow.md` |
 
 ### Tier 3 — On demand (read only when needed)
 
@@ -100,7 +101,9 @@ high-level orientation.
 - Review Gate: Human approval workflow via toolkit/telegram_client
 
 **Composition:**
-- Orchestrator: Pipeline topology, event loop, cost accountant wiring
+- Pipeline: Per-agent capability surface (start/shutdown, store_event, extract_from, run_response, advance_to_round, etc.)
+- Flow: Scheduling strategy — `EventDrivenFlow` (production Telegram/CLI), `RoundSteppedFlow` (self-play)
+- Orchestrator: Compat factory returning `EventDrivenFlow`; see `ARCH_orchestrator.md` → `ARCH_flow.md`
 
 ## Project-Specific Notes
 - **Language:** Python 3, async throughout (asyncio)

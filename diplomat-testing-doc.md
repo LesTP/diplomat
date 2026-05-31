@@ -604,14 +604,15 @@ production LLM adapter on the Pi.
 
 ## 5. Layer 3 — Pipeline Integration Tests
 
-Integration tests run the full Orchestrator with test implementations substituted via `module_overrides`. They verify cross-module behavior and failure handling. **No real API calls** — uses `StubAnalyst`, `RuleBasedExtractor`, fake LLM client, and `AutoApproveReviewGate`.
+Integration tests exercise the full pipeline through `EventDrivenFlow` (reached via the `Orchestrator(...)` compat factory) with test implementations substituted via `module_overrides`. They verify cross-module behavior and failure handling. **No real API calls** — uses `StubAnalyst`, `RuleBasedExtractor`, fake LLM client, and `AutoApproveReviewGate`.
 
 Phase 20 added deterministic coverage for Phase 18 production paths in
 `tests/integration/test_phase18_paths.py`: burst extraction without
 dropped per-event tasks, reconciler duplicate merge, fulfillment update,
 new inconsistency insertion, and missed proposal insertion. These tests
-attach `StateReconciler` to the normal `Orchestrator` fixture and use a
-fake LLM client that returns reconciler-shaped structured JSON.
+attach `StateReconciler` to the normal `pipeline` fixture (constructed via
+`Orchestrator(...)`) and use a fake LLM client that returns
+reconciler-shaped structured JSON.
 
 ### 5.1 Test Fixture Pattern
 
