@@ -171,3 +171,17 @@ Outcome: Phase review clean. No must-fix or should-fix items found. Pareto effic
 Contract changes: None — review-only, no code changes.
 
 Tests: `python -m pytest tests/` — 316 passed.
+
+## 2026-05-31 — Phase 23 close
+
+Action: CLOSE
+Mode: Build
+Outcome: Closed the scoring expansion phase. `_pareto_efficiency_metrics()` in `tests/self_play/game_environment.py` injects three aggregate scoring fields (`achieved_score_sum`, `max_pareto_sum`, `pareto_efficiency`) into every scored game result. `compute_process_signatures()` in `tests/self_play/analysis.py` computes four deterministic per-run signatures (`broken_promise_rate`, `coalition_stability`, `time_to_deal`, `opening_gap`). Both are emitted in the self-play result JSON and rendered in the CLI analysis report.
+
+Docs updated during close: `DEVPLAN.md` reduced Phase 23 to a completion summary and updated Current Status to Phase 24; `ARCHITECTURE.md` regression test count updated to 316; `ASSESSMENT.md` §3.2 and §3.4 marked implemented in step 23.5.
+
+DEVLOG learning review: No trial-and-error patterns observed. Phase 23 ran cleanly across 5 steps with no escalation. No new gotchas to promote.
+
+Contract changes: Self-play result JSON gains `achieved_score_sum`, `max_pareto_sum`, `pareto_efficiency`, `process_signatures`, and `scenario_analysis` fields. No production module contracts changed — all additions are in `tests/self_play/`.
+
+Tests: `python -m pytest tests/` — 316 passed.

@@ -1,8 +1,8 @@
 ---
 phase: 23
-blocked: false
+blocked: true
 state: close
-steps_remaining: 1
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -53,9 +53,9 @@ steps_remaining: 1
 
 ## Current Status
 
-- **Phase** — Phase 23 (Build) active. Remaining queued Build phase: Phase 24.
-- **Focus** — Scoring expansion: Pareto efficiency + deterministic process signatures for self-play diagnostics.
-- **Blocked/Broken** — None known; Phase 23 is code/test/doc work only, no live API required.
+- **Phase** — Phase 24 (Build) next. Phase 23 closed 2026-05-31.
+- **Focus** — Small builds + Level 1 modularization: toolkit OpenAI dispatch tests, asymmetric BATNA flags, game-mode override, extraction examples to JSON, entity types from schema.
+- **Blocked/Broken** — None known; Phase 24 is pure code/test/doc work, no live API required.
 
 ## Phase 21: Module boundary cleanup — Complete
 
@@ -69,22 +69,9 @@ Closed 2026-05-31. Added `Pipeline`, `EventDrivenFlow`, and `RoundSteppedFlow`; 
 
 Closed 2026-05-31. Added `tests/integration/test_phase18_paths.py` (6 tests, 290 total): burst extraction no-drops, reconciler dedup/fulfillment/inconsistency/missed-proposal. Deterministic fake LLM. `ASSESSMENT.md` Block A reconciliation path coverage → closed debt. `diplomat-testing-doc.md` Layer 3 counts updated. See `DEVLOG_archive.md` "Phase 20 close" section.
 
-## Phase 23: Scoring expansion — Pareto efficiency + process signatures (Build)
+## Phase 23: Scoring expansion — Pareto efficiency + process signatures — Complete
 
-Regime: Build. Implements two of the four scoring lenses defined in `ASSESSMENT.md` §3 that don't need operator judgment to define. Output is more diagnostic per-run reporting; no behavioral change to agents.
-
-Prerequisite: None code-wise, but easier after Phase 22 (post-game scoring path becomes cleaner with `Pipeline` abstraction).
-
-Steps:
-- [x] **23.1** Implement `pareto_efficiency` field in `GameEnvironment.score_game()`. Formula: `sum(achieved_scores) / max_pareto_sum`. Compute `max_pareto_sum` by reading the precomputed scenario analysis (`verify_scenario_optimum.py` already enumerates deals; if its result isn't cached, recompute inline at scoring time). Add to the per-run scoring JSON output.
-- [x] **23.2** Add unit tests for the `pareto_efficiency` calculation: (a) a deal at the Pareto-optimum returns 1.0, (b) a deal at BATNA sum returns the BATNA/max ratio, (c) no-deal case handled. Add an integration test that runs a tiny scenario through `score_game()` end-to-end with fake LLM and asserts the field is present and numeric.
-- [x] **23.3** Implement process signatures aggregator in `tests/self_play/analysis.py`. Four deterministic signatures: `broken_promise_rate` (`broken / total_promises`), `coalition_stability` (`survived_to_final / formed`), `time_to_deal` (round number when reached or `null`), `opening_gap` per faction (|round-1 position score − reached-deal score| / max_possible). Add to the post-game report output.
-- [x] **23.4** Tests for process signatures: build a synthetic transcript fixture with known broken-promise count, known coalition trajectory, known opening positions; assert each signature computes to the expected value. ~4 tests.
-- [x] **23.5** Doc update: `ASSESSMENT.md` (§3.2 Pareto efficiency → ✓ implemented with file:line ref to `score_game`; §3.4 process signatures → partial-to-✓-for-4-of-7 deterministic ones; update Block C tech-debt list). Optional: mention in `diplomat-testing-doc.md` if post-game report format is documented there.
-
-Phase review/close are handled by the autonomous loop after the executable checklist is complete.
-
-Expected outcome: every self-play run produces per-faction Pareto efficiency + process signatures alongside the existing BATNA-relative WIN/LOSE verdict. Diagnostic quality of `TUNING_LOG.md` entries improves significantly.
+Closed 2026-05-31. Added `pareto_efficiency` field to `GameEnvironment.score_game()` and `compute_process_signatures()` to `tests/self_play/analysis.py`. Four deterministic process signatures (broken-promise rate, coalition stability, time-to-deal, opening gap). 316 tests passing. See `DEVLOG.md` "Phase 23 close" section.
 
 ## Phase 24: Small builds + Level 1 modularization (Build)
 
