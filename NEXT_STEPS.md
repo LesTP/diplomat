@@ -21,6 +21,46 @@ sequenced into phases — that happens once we pick the next concrete run.
 >
 > Multiple tags = item touches multiple blocks; primary block listed first.
 
+> **Loop-readiness classification (2026-05-31).** Items are also classified for autonomous-loop suitability:
+> - 🔨 **PURE BUILD** — code/refactor only, deterministic, no operator judgment mid-loop. Suitable for autonomous build phases.
+> - 🔀 **MIX** — has a build component but needs operator decisions at boundaries (e.g., schema is build but prompt change is supervised).
+> - 👁 **SUPERVISED** — experiments, prompt tuning, design judgment, or interactive work. Operator-driven only.
+>
+> Current queue: **PURE BUILD items are batched into `DEVPLAN.md` Phases 20-24** (Layer 3 tests → orchestration cleanup → adapter cleanup → Pipeline/Flow split → scoring expansion → small builds + Level 1 modularization). MIX and SUPERVISED items wait for operator-driven sessions. Classification table is below the section listings:
+
+| Section / item | Class | Phase if pure-build |
+|---|---|---|
+| §1.5 Layer 3 integration tests for Phase 18 paths | 🔨 | **Phase 20** |
+| §1.6 OpenRouter + Run 9 | 🔀 | (toolkit code: future build; Run 9: supervised) |
+| §1.7 Module boundary cleanup — orchestration | 🔨 | **Phase 21** |
+| §1.8 Module boundary cleanup — LLM adapter + config dedup | 🔨 | **Phase 21** |
+| §1.9 Pipeline / Flow split | 🔨 | **Phase 22** |
+| §2 Game pressure beyond BATNA | 🔀 | (mechanism code build; scenario design supervised) |
+| §2.5 Strategy routing | 👁 | — |
+| §3 Free conversation + per-round events | 🔀 | (Stage 2a build; Stage 2b convergence design supervised) |
+| §4 Coaching test loop on Pi | 👁 | — |
+| §5 Clankmates exploration | 👁 | — |
+| §6 Pricing audit | 👁 | — |
+| §7 Per-role model strategy | 👁 | — |
+| §8 Reverse scenario builder | 🔀 | (search algorithm build; constraint definition + narrativizer supervised) |
+| §9 Voice / style templates | 👁 | — |
+| ASSESSMENT §3.2 Pareto efficiency scorer | 🔨 | **Phase 23** |
+| ASSESSMENT §3.3 vs Naive baseline | 🔀 | (naive defn needs operator choice) |
+| ASSESSMENT §3.4 process signatures (4 deterministic) | 🔨 | **Phase 23** |
+| ASSESSMENT §3.4 process signatures (persuasion-shifts / concession-curve) | 👁 | — |
+| Per-faction asymmetric `--batna-fractions` | 🔨 | **Phase 24** |
+| `--force-batna-fraction` post-clamp | 🔨 | **Phase 24** |
+| `--game-mode` runtime override flag | 🔨 | **Phase 24** |
+| Toolkit `max_completion_tokens` unit tests | 🔨 | **Phase 24** |
+| Level 1 modularization (extraction examples → JSON; schema-derived entities) | 🔨 | **Phase 24** |
+| Pareto-frontier annotation in analyst output | 🔀 | (schema change build; prompt change Layer 2 supervised) |
+| Promise dedup / fulfillment / inconsistency reconciler validation | 🔨 | **Phase 20** |
+| Persona payment rigidity A/B test | 👁 | — |
+| Persona drift over 8+ rounds | 👁 | — |
+| Persona endgame over-anchoring decision | 👁 | — |
+| Provider-native structured output (`response_format: json_schema`) | 🔀 | (toolkit plumbing build; model selection supervised) |
+| TelegramReviewGate as production default | 👁 | (judgment call) |
+
 ---
 
 ## Suggested Sequencing (recommended order)
@@ -107,7 +147,7 @@ decision and pricing audit are tracked in sections #6 and #7 below.
 
 ---
 
-## 1.5. `[X][B]` OpenRouter + Mistral / Groq / DeepSeek
+## 1.6. `[X][B]` OpenRouter + Mistral / Groq / DeepSeek
 
 **Goal:** Expand the provider matrix cheaply by routing through OpenRouter,
 then promote winners to native integrations if needed.
@@ -138,6 +178,107 @@ entry point exists. This is mostly config + provider routing work.
 | **DeepSeek** | V3 ~$0.27/$1.10 per MTok; R1 reasoning very cheap | No real free tier, but absurdly cheap | Strong reasoning at GPT-4 quality for ~10% the cost; R1 may produce visibly different *strategic* reasoning |
 | **Mistral** | Mistral Large, Codestral, EU-hosted | La Plateforme free tier on smaller models | French RLHF lineage → noticeably different negotiation voice |
 | **OpenRouter** | One key, ~200 models, auto-routing | Some free models (Llama variants, Gemma) | Lets us test any provider with no per-provider plumbing |
+
+---
+
+## 1.7. `[A]` Module boundary cleanup — orchestration
+
+**Why:** Phase 18 added the self-play harness (`tests/self_play/game_environment.py`) on top of the production `Orchestrator`. The composition is correct (GameEnvironment instantiates an Orchestrator per faction), but several boundary leaks accumulated when the harness needed to fit round-driven simulation into a class designed for signal-driven production:
+
+| Symptom | Where | Why it's wrong |
+|---|---|---|
+| Self-play pokes `orchestrator.current_round = N` directly | `tests/self_play/game_environment.py:479` | Bypasses `handle_round_boundary` |
+| Self-play calls private `orchestrator._reset_round_budget()` | `game_environment.py:481` | Underscore-prefixed = private API; production owns the discipline |
+| `auto_response_enabled` attribute on `Orchestrator` | `src/orchestrator.py:125` | Exists *only* because self-play flips it to `False` (`game_environment.py:550`). Production never touches it. |
+| `total_rounds` attribute on `Orchestrator` | `src/orchestrator.py:114-119` | Two ways to set: YAML `game.total_rounds` (production) and direct attribute assignment (self-play L549). Dual-path = drift risk. |
+| `StubAnalyst` entry in production registry | `src/registry.py:21` → `tests.helpers.stub_analyst` | The one production→tests reference. Dormant (only `pipeline_test.yaml` triggers it), but conceptually wrong. |
+| Bare `try/except Exception: pass` in `_reconcile_state` | `orchestrator.py:642,654,673,687` | Silently drops reconciliation results on state-manager failure. Added defensively during Phase 18 tuning. |
+
+**Scope:**
+1. Add public `Orchestrator.advance_to_round(n: int)` that sets `current_round` and resets the per-round budget. Call from `GameEnvironment.run_round` instead of the two private/direct calls.
+2. Extract `OrchestrationOptions` dataclass holding `auto_response_enabled` and `total_rounds`. Pass at construction; remove the attributes from `Orchestrator.__init__`'s signature.
+3. Either move `StubAnalyst` into `src/modules/analyst/stub.py` (it's a generic test double; `DECISIONS.md` debated this) or drop it from `src/registry.py` and have callers use `module_overrides` (already works in `tests/integration/conftest.py:53-54`).
+4. Replace the four bare `except Exception: pass` blocks in `_reconcile_state` with logged exceptions.
+
+**Effort:** ~2-3 hours. Pure refactoring; no behavioral change.
+
+**Definition of done:** Test suite passes (284+); no `_<private>` calls from `tests/self_play/`; `auto_response_enabled` / `total_rounds` no longer attributes of the production `Orchestrator` class; reconciler exception paths log instead of swallow.
+
+---
+
+## 1.8. `[A]` Module boundary cleanup — LLM adapter + config dedup
+
+**Why:** The same Phase 18-19 push that added the self-play harness also accumulated friction at the LLM-adapter layer. Three concrete patterns to fold into proper abstractions:
+
+| Pattern | Where | Why it's wrong |
+|---|---|---|
+| `LoggingLLMClient.set_faction()` + `_TaggedLLMClient` wrapper | `game_environment.py:48-119`, `:135-164` | Two classes implementing what should be one parameter. The `set_faction()` snapshot-at-start logic causes the async race that `_TaggedLLMClient` was created to fix. |
+| `getattr(client, "_inner", client)` to peek through wrapping | `game_environment.py:365,664`, `run_simulation.py:223` | Reaches through private API; breaks silently if anything double-wraps. |
+| `DryRunLLMClient` classifies calls by regex-matching system prompts | `tests/self_play/fake_llm_client.py:33-54` | Detects "is this an extraction call?" by literal first words of the production prompt. Renaming any prompt opening line silently breaks dry-run classification — and no test catches this. |
+| Hardcoded `{"provider": "openai", "models": {"commodity": "gpt-4.1-mini"}, "api_key": os.getenv(...)}` dict | `game_environment.py:373-377` (reconciler), `:666-670` (scorer), `run_simulation.py:225-229` (compiler), `src/tools/scenario_compiler.py:502-506` (CLI) | Four copies of the same dict, none reading from any config file. Provider switch in self-play silently keeps calling OpenAI for these subsystems. |
+| Reconciler wiring duplicated | `src/main.py:107-149` reads YAML; `game_environment.py:362-381` hardcodes provider | Production path correct; self-play path drifts. Comment at `main.py:126-127` acknowledges the duplication. |
+
+**Scope:**
+1. Add `attribution: str | None = None` and `purpose: str | None = None` kwargs to the LLM adapter `complete()` interface. Kills `_TaggedLLMClient` entirely; reduces `LoggingLLMClient` to ~30 lines; removes all three `getattr(..., "_inner", ...)` peeks.
+2. Switch `DryRunLLMClient.classify_call()` to read the new `purpose` kwarg instead of regex-matching the prompt body.
+3. Extract `build_reconciler(llm_client, llm_providers_config)` factory in `src/modules/reconciliation/__init__.py`. Both `src/main.py` and `tests/self_play/game_environment.py` call it; neither has its own copy.
+4. Single helper `subsystem_llm_config(primary_provider_config, tier="commodity")` in `tests/self_play/` (or `src/adapters.py` if production also needs it) that produces the dict currently duplicated four times. All four call sites use it.
+
+**Effort:** ~3-4 hours including tests for the new attribution kwarg.
+
+**Definition of done:** Test suite passes (284+); `_TaggedLLMClient` deleted; `getattr(..., "_inner", ...)` no longer appears anywhere; the provider/model/api_key dict literal is defined once; `DryRunLLMClient` no longer reads prompt text for classification; reconciler wiring is a single factory called from both sides.
+
+---
+
+## 1.9. `[A]` Pipeline / Flow split — separate per-agent capabilities from scheduling
+
+**Why:** Today the per-agent pipeline (extract → reconcile → analyze → generate → adversarial → review → send) and the production *flow* (event loop + signal detection + debounce + direct-address detection) live in the same class (`Orchestrator`). Self-play's `GameEnvironment` is effectively a second flow, but it can't cleanly drive `Orchestrator`'s pipeline because the production flow is bundled in — so it pokes private attributes (`current_round`, `_reset_round_budget`) and re-enters the event loop indirectly by sending `[ROUND END]` through `TestTransport`. This is the structural reason for the entanglement audited in §1.7.
+
+A third application (customer service, contract negotiation, daily-batch summary, Clankmates polling) would either require **another `GameEnvironment`-style hand-rolled driver** that pokes orchestrator internals, OR a real separation of the pipeline surface from the scheduling logic.
+
+**Scope:** Split `Orchestrator` into two concepts:
+
+1. **`Pipeline`** — pure capability object. No event loop. Methods do work when called. Lifecycle: `start`/`shutdown`. Inbound: `store_event`, `extract_from`, `dispatch_operator`. Round: `advance_to_round`, `reconcile_and_analyze`. Response: `run_response(trigger_event=None)`. Queries: `get_state`, `get_intelligence`, `get_ledger`.
+2. **`Flow`** — scheduling strategy. Owns "when to call which Pipeline method." Two concrete implementations:
+   - `EventDrivenFlow(pipeline, transport, round_detector, address_detector)` — production. Owns the async event loop, debounce, signal detection, direct-address detection.
+   - `RoundSteppedFlow(pipelines, moderator, total_rounds)` — self-play. Owns round-stepping, broadcast fan-out, post-game scoring hand-off.
+
+Production: `EventDrivenFlow(Pipeline(...))`. Self-play: `RoundSteppedFlow([Pipeline(...) for each faction])`. Third application: write a third `Flow`.
+
+**Specific behaviors to migrate from `Orchestrator` to `EventDrivenFlow`:**
+
+| Currently in `Orchestrator` | Moves to `EventDrivenFlow` |
+|---|---|
+| `start()` async event loop reading `Transport.listen()` | Top-level `run()` |
+| `_extraction_tasks` set + per-event debounce | Flow-owned task set |
+| `_check_round_boundary` regex matching | Flow-owned `RoundDetector` |
+| `_is_direct_address` | Flow-owned `AddressDetector` |
+| `auto_response_enabled` flag | Flow constructor arg (production: True; self-play uses RoundSteppedFlow which doesn't have this concept) |
+| Direct invocation of `run_response_pipeline` on direct-address match | Flow's per-event handler |
+
+**Specific behaviors that stay on `Pipeline` (unchanged):**
+- `store_event` (renamed from event_store.append direct call)
+- `dispatch_operator` (renamed from `_route_operator_event`)
+- `advance_to_round` (the public method from §1.7)
+- `reconcile_and_analyze` (the contents of `handle_round_boundary`)
+- `run_response(trigger_event=None)` (renamed from `run_response_pipeline`)
+- All module composition (`_build_modules`)
+- All operator-command dispatch (state queries, /preview, /approve)
+
+**Effort:** 1-2 days. Test impact: existing 284 tests should pass with a thin compat shim (`Orchestrator = EventDrivenFlow(Pipeline(...))` factory) and re-route. Probably +6-10 new tests covering Flow contracts.
+
+**Dependencies:** §1.7 (public `advance_to_round`) is a prerequisite. §1.8 (LLM adapter cleanup) is orthogonal; could happen before, after, or in parallel.
+
+**Definition of done:**
+- `Pipeline` class defined with the public method surface above
+- `EventDrivenFlow` reproduces all current production behavior (event loop, signal detection, debounce, direct-address)
+- `RoundSteppedFlow` replaces `GameEnvironment`'s round-stepping logic; no private-attribute pokes remain
+- 284+ tests pass; production smoke (coaching scope, per `SMOKE_RUNBOOK.md`) reproduces
+- A new "writing a new Flow for a new application" stub doc in `ARCH_orchestrator.md` (or a new `ARCH_flow.md`) describes the contract a new Flow must satisfy
+
+**When to do this:** Before Clankmates work (§5). Clankmates will introduce a polling-based transport for game I/O while Telegram continues to be the coaching transport — that's a hybrid (two transports, one pipeline) which is naturally a third `Flow` shape (`HybridFlow` or `MultiTransportFlow`). Doing this refactor first makes Clankmates additive instead of another `GameEnvironment`-shaped hand-roll.
+
+**Connects to the modularization roadmap.** The DEVPLAN `Level 3: Domain-Agnostic Orchestrator` was sketched as the long-form version of this idea. §1.9 is the practical realization: not a state-machine YAML, but a clean Pipeline/Flow split that *enables* state-machine YAMLs if we want them later.
 
 ---
 
@@ -622,3 +763,7 @@ Tracked here for visibility; canonical sources remain authoritative.
 | 2026-05-31 | Live TG re-smoke **PAUSED mid-§3** after operator-side verifications + bot startup confirmed. Documented: bot-to-bot Telegram impossibility (faction-traffic source needed for §3.1–§3.9), service.sh broken via `incus exec` (tmux pattern is the working invocation), 2 real fixes shipped (toolkit max_completion_tokens, test fake signature drift), 2 smoke setup edits pending revert/commit decision, 3 tooling-debt items surfaced. Resume steps documented in the "Live Telegram re-smoke — PAUSED" section. | Operator: "can we document this (in the next steps?) and pause? I need a break" |
 | 2026-05-31 | Live TG re-smoke **CLOSED for coaching scope** (reframed). Telegram is the operator coaching surface; production game traffic comes via Clankmates or equivalent, not Telegram. Unverified extraction/debounce/reconciler/round-flow items moved to new sequencing item #2 "Layer 3 integration tests for Phase 18 paths". Sequencing re-numbered: (1) commit 2 real fixes from smoke, (2) Layer 3 Phase 18 tests, (3) coaching test loop on Pi, (4) OpenRouter+Run 9, (5) divorce scenario, (6) Stage 2a, (7) Clankmates. PAUSED section replaced with compact CLOSED summary. SMOKE_RUNBOOK reframed as coaching/review smoke and shrunk to ~155 lines. | Operator: "oh you know what, this is not how the game will work; we were looking into clankmates exactly for this reason. I assume we tested the coaching part which is the one that meant to stay on tg, and we'll be testing the actual game environment in a different step. we should still test message parsing and extraction somehow." |
 | 2026-05-31 | Added `ASSESSMENT.md` at project root — conceptual framework for what "negotiating well" means (calculation-vs-negotiation tension), ten dimensions of skill, four scoring lenses with formulas (BATNA-relative ✓, Pareto efficiency NOT YET, skill-premium NOT YET, process signatures partial), scenario design properties, three workstream blocks A/B/C. Tagged every section heading + sequencing item in this file with `[A]`/`[B]`/`[C]`/`[X]`. Added pointer in PROJECT.md Success Criteria and DEVPLAN.md cold-start gotchas. | Operator: "let's document this as rationale and potential avenues for exploration - different scores for how well they negotiate, and we should integrate this all into a game setup and analysis/assessment part of work... not sure where best to put this... these are separate but interlocking blocks of work - agent memory and processing arch piece, prompt tuning piece, game creation and scoring piece" |
+| 2026-05-31 | Module boundary audit (code_search subagent) → two new `[A]` cleanup items added: §1.7 orchestration (public `advance_to_round`, extract `OrchestrationOptions` for self-play-only attributes, resolve `StubAnalyst` registry leak, log instead of swallow in `_reconcile_state`); §1.8 LLM adapter + config dedup (per-call attribution/purpose kwargs to kill `_TaggedLLMClient`, factor reconciler wiring, deduplicate 4-copy provider-config dict). Fixed numbering collision: prior `## 1.5` OpenRouter renamed to `## 1.6`. Audit finding: code is structurally healthy at import level (one dormant registry leak aside), but accumulated friction at orchestration-attribute level + LLM-call-attribution level + duplicated-config-dict level during Phase 18-19 tuning push. Normal post-tuning refactoring debt; not blocking. | Operator: "can we consider the broader code structure? we have our main modules, but over phase 18-19 we built a bunch of stuff and made changes here and there, and I want to understand if our changes are confusing the boundaries between the modules and adding a bunch of ad-hoc stuff... or did we manage to keep it compartmentalized?" |
+| 2026-05-31 | Added §1.9 `[A]` Pipeline / Flow split — separate the per-agent capability surface (`Pipeline`: extract → reconcile → analyze → generate → adversarial → review → send) from the scheduling strategy (`Flow`: when to call which Pipeline method). Two concrete Flows currently exist but entangled: production `EventDrivenFlow` lives inside `Orchestrator`; self-play `RoundSteppedFlow` lives in `GameEnvironment` and pokes private orchestrator attributes. Splitting enables adding a third Flow (Clankmates polling, customer service, contract negotiation, batch summary) without further hand-rolled drivers. Depends on §1.7; should land before §5 Clankmates work. Practical realization of DEVPLAN's "Level 3: Domain-Agnostic Orchestrator" without going as far as state-machine YAML. | Operator: "plz discuss how real vs self games are set up — it sounds like there is a different sequence of calls — can we isolate this for potentially adapting to yet another sequence for a different application?" |
+| 2026-05-31 | Loop-readiness classification added (🔨 PURE BUILD / 🔀 MIX / 👁 SUPERVISED). Full table at top of file. Pure-build items batched into DEVPLAN Phases 20-24: Phase 20 Layer 3 tests → Phase 21 cleanup (§1.7+§1.8) → Phase 22 Pipeline/Flow split → Phase 23 scoring expansion (Pareto efficiency + 4 deterministic process signatures from ASSESSMENT §3.2+§3.4) → Phase 24 small builds + Level 1 modularization (toolkit tests + --batna-fractions + --force-batna-fraction + --game-mode + examples→JSON + schema-derived entities). All five phases are autonomous-loop-ready; no operator judgment needed mid-loop. MIX and SUPERVISED items wait for operator-driven sessions. | Operator: "I'll run loops myself. let's consider what other pending work can be queued up next as build. please go over open items in next steps; start with tech debt and classify as pure build/mix/supervised. I'd like to take care of the pure build ones... don't want to include things that touch experiments, anywhere a human call might be needed." |
+| 2026-05-31 | Added "Reference Docs to Keep in Sync" section to both `CLAUDE.md` and `CODEX.md` (worker adapters for the two LLM backends). Lists every non-governance reference doc with its update trigger. Established the rule: every Build phase's step list includes an explicit "doc update" step before phase-review. Added that step to Phases 20-24 in DEVPLAN. Phase 20 step count grew 5 → 6 (steps_remaining frontmatter bumped); other phases each grew by 1 step (per-phase totals: 21=10, 22=9, 23=6, 24=8). CLI_REFERENCE.md is the most-touched doc (Phase 24 adds 3 flags); ASSESSMENT.md is touched in 4 of 5 phases. | Operator: "now please consider the new docs that we have outside of the governance framework... I assume cli_reference would be affected by these changes? anything else? we should include an explicit step to update this doc whenever cli gets touched (and others if necessary?)" |

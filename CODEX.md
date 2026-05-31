@@ -46,6 +46,27 @@ cat ARCH_module.md && echo '---SPLIT---' && cat src/modules/module/impl.py
 - **Combine source + test reads**: `cat src/foo.py && echo '---' && cat tests/test_foo.py`
 - **Fresh reads before edits** — re-read immediately before editing, not at iteration start
 
+## Reference Docs to Keep in Sync
+
+These docs are not loaded by default but **MUST** be updated when their listed triggers fire. Each Build phase's step list should include an explicit "doc update" step before phase-review that names which of these the phase touched (or "none" if no doc impact). Doc updates are part of every phase's definition-of-done — not optional follow-up.
+
+| Doc | Update trigger |
+|---|---|
+| `CLI_REFERENCE.md` | Any new/changed/removed CLI flag, env var, or invocation pattern |
+| `ASSESSMENT.md` | Scoring lens status changes (§3.x ✓ / partial / NOT YET); Block A/B/C tech-debt list changes; new workstream items; new scoring or skill insights |
+| `ARCHITECTURE.md` | Component additions/removals; coupling note changes; key decisions added |
+| `ARCH_<module>.md` | Any change to that module's public interface, internals worth documenting, or data shapes |
+| `diplomat-testing-doc.md` | New test layers/tools; test infrastructure changes; deployment doc changes |
+| `TUNING.md` | BATNA semantics, provider defaults, prompt-tuning practice changes |
+| `SMOKE_RUNBOOK.md` | Bot lifecycle or smoke-checklist change |
+| `RUN_PROTOCOL.md` | Self-play pre-flight or live-run procedure change |
+| `TUNING_LOG.md` | Each live run produces an entry (run number, scenario, providers, cost, observations, decisions) |
+| `DECISIONS.md` | New architectural decision or status change to an existing one |
+
+Phase step examples: Phase 24 (Build) lists a "doc update" step that names `CLI_REFERENCE.md` (3 new flags), `TUNING.md` (asymmetric BATNA fractions + force-clamp semantics), `diplomat-testing-doc.md` (Layer 2 extraction examples location moved). Phase 22 lists `ARCHITECTURE.md` (Pipeline + Flow rows added), `ARCH_orchestrator.md` (compat shim), `ARCH_flow.md` (new, created in 22.7), `ASSESSMENT.md` (Pipeline/Flow tech-debt → ✓).
+
+When updating a doc, **read it fresh first** (it may have changed since the last iteration) and combine the read with the edit in one tool round-trip where possible.
+
 ## Load for Current Module
 
 | Module | ARCH file |

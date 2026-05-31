@@ -1,238 +1,223 @@
 ---
-phase: 19
+phase: 20
 blocked: false
-state: discuss
-steps_remaining: 1
+state: execute
+steps_remaining:
 ---
 
 # Diplomat — Development Plan
 
+<!-- This file is the primary state document for cold-start sessions.
+     Workers read it on every cold start to determine what to do next.
+     Keep it concise — the DEVPLAN should get SHORTER as work progresses.
+
+     For autonomous projects, the frontmatter includes a `state` field:
+       state: plan | execute | review | close
+     See WORKER_SPEC.md for state-machine semantics.
+
+     `steps_remaining` is managed by the state machine at runtime — do NOT
+     pre-populate. -->
+
 ## Cold Start Summary
+
+<!-- Stable section — update on major shifts, not every step.
+     Gotchas: operational knowledge learned through trial-and-error.
+     Prescriptive one-liners only. Historical narrative belongs in
+     DEVLOG_archive.md, not here. -->
 
 - **What this is** — AI faction agent for a multiplayer diplomacy game, with human coaching via Telegram review gate.
 - **Key constraints** — Raspberry Pi deployment, all LLM calls via toolkit/llm_client, all Telegram I/O via toolkit/telegram_client, cost governance via toolkit/cost_accountant, SQLite persistence.
 - **Gotchas** —
-  - Bot vs. user account question must be resolved with game moderator before deployment; implement `TelethonUserTransport` only if bot-to-bot messaging is unavailable
-  - Round structure (signal vs. time-based) must be confirmed before Orchestrator event loop
-  - `toolkit` lives at `../toolkit` and must be installed editable into the diplomat venv (`<venv>/bin/python3 -m pip install -e ../toolkit`). It is not declared in `pyproject.toml` to avoid a misleading install contract — fresh `pip install -e .` cannot resolve `toolkit` from PyPI, so the editable install is a one-time per-host setup step. Module-level tests use dependency-injected fakes for isolation; that pattern is fine and should continue, but integration paths in Orchestrator must exercise real `toolkit` imports
-  - Debounce strategy: **rewritten in Phase 18** from per-message cancel-and-replace to per-event task set. Each game message gets its own extraction task; no cancellation between different messages. The original design (11.2) silently dropped messages in multi-message bursts.
-  - Cost governance: CostAccountant is now wired through `ToolkitLLMAdapter` — every LLM call routes through `accountant.complete()` for budget-check + ledger write. The `DiplomatCostGate` check-before-call pattern remains for round-level budget control. Both share the same accountant instance.
-  - All four LLM modules (extraction, analyst, adversarial, generation) now use `toolkit.structured_llm.structured_call()` for schema-enforced JSON output with automatic retry on validation failure.
+  - `toolkit` lives at `../toolkit` and must be installed editable per host (`<venv>/bin/python3 -m pip install -e ../toolkit`). Not declared in `pyproject.toml` (would be a misleading install contract — can't resolve from PyPI). Module-level tests use dependency-injected fakes; integration paths must exercise real `toolkit` imports.
+  - Toolkit Phase 19 surface must import on the Pi: `from toolkit.llm_client import complete_with_retry` and `from toolkit.cost_accountant import normalize_model_name`. If ImportError, reinstall editable. See `SMOKE_RUNBOOK.md` §1.
+  - **Pi deployment mechanism:** `incus exec claude-code -- sudo -u claude tmux new-window -t bot -n diplomat ...` (adds a window to the long-lived `bot` tmux session that already supervises codexbot). `tools/service.sh start` does NOT work via `incus exec` — the transient cgroup scope is torn down and kills the process even with `nohup`+`setsid`+`</dev/null`. See `CLI_REFERENCE.md` `tools/service.sh` section and `diplomat-testing-doc.md` §5b.
+  - Bot vs. user account: must be resolved with game moderator before deployment. Implement `TelethonUserTransport` only if bot-to-bot is blocked.
+  - Round structure (signal vs. time-based): confirm with moderator before deploying; set in `pipeline.yaml`.
+  - **Telegram bot-to-bot platform limitation:** Telegram does NOT deliver bot-sent messages to other bots in groups, regardless of privacy mode. Non-operator faction-traffic in any Telegram-side test requires either a 2nd human Telegram account on another device, or a temporary de-op cycle (remove operator's user ID from `DIPLOMAT_OPERATOR_USER_IDS`).
+  - **Debounce strategy:** per-event task set (each game message gets its own extraction task; no cancellation between different messages). The original cancel-and-replace design silently dropped messages in multi-message bursts.
+  - **Cost governance:** CostAccountant wired through `ToolkitLLMAdapter` — every LLM call routes through `accountant.complete()` for budget-check + ledger write. `DiplomatCostGate` provides the check-before-call pattern for round-level budget control. Both share the same accountant instance.
+  - All four LLM modules (extraction, analyst, adversarial, generation) use `toolkit.structured_llm.structured_call()` for schema-enforced JSON with retry-on-validation-failure.
   - Self-play cost ledger uses a local temp path (`%TEMP%/diplomat_selfplay/`) to avoid UNC path issues on network shares.
-  - Before deployment, install `../toolkit` editable and run live probes for `llm_client`, `telegram_client`, and `cost_accountant`; this environment cannot import `toolkit`, so Phase 11 close recorded probe specs rather than live matches
-  - Prompt regression runner: `_judge_response_text()` JSON path extraction must be wrapped in try-catch — if a scenario's `path` does not exist in module output, the raw KeyError propagates and crashes the runner. Fixed in Phase 17 review; always validate extraction paths before production scenario runs.
-  - **Cross-provider JSON formatting (Run 8 fix).** Anthropic and Google wrap JSON output in ` ```json ... ``` ` Markdown fences regardless of explicit "return raw JSON" instructions. OpenAI returns raw JSON. Toolkit's `parse_json_response` (in `structured_llm/core.py`) now strips a single surrounding code fence before parsing. Without this, structured_call's retries silently exhaust and downstream modules see "no error" but receive nothing.
-  - **Self-play env loading (Run 8 fix).** `tests/self_play/run_simulation.py` calls `load_dotenv()` at module top. Previously only env vars in the parent shell were visible to subprocess SDKs — typically only `OPENAI_API_KEY` was reliable; Anthropic and Google calls silently failed auth.
-  - **Per-faction provider routing (Run 8).** Use `--per-faction-providers '{"alpha":{"provider":"openai","model":"gpt-4.1-mini"},...}'` to vary only the Generator per faction. Other modules stay on shared primary/secondary. Verify with `verify_dryrun --expect-providers '{"alpha":"openai",...}'`.
-  - **Pre-compiled analysis loader (Run 8).** Use `--analysis-json <path>` to skip live LLM compilation and load a pre-edited analysis JSON (preserves hand-tuned BATNAs, scoring tables, deception tactics). Requires `--scenario` for the seed-message text. Personas are regenerated from the loaded analysis at startup.
-  - ~~**Compiler BATNA anchor (Run 8 surfaced).**~~ **FIXED in Phase 19** (2026-05-30). `tools/scenario_compiler.py` system prompt hardcoded "typically 4-8 total" BATNAs regardless of narrative. Now replaced with a fraction-of-max formula; `--batna-fraction` CLI flag (default 0.50) on both `tools.scenario_compiler` and `tests.self_play.run_simulation`. `validate_batna_pressure()` warns post-hoc if LLM under-sets. See `TUNING.md` §1 BATNA section for semantics; `DEVLOG.md` for the fix.
-  - **Run live probe before multi-provider games.** `python -m tests.self_play.probe_providers --providers '<same JSON as --per-faction-providers>'` hits each provider once with a trivial JSON request and verifies auth + roundtrip + parse. ~$0.001 total. Catches integration bugs (missing API keys, fence wrapping, model name typos) that `DryRunLLMClient` cannot catch by design (DryRun replaces the LLM client entirely with canned responses, so no real auth/parse path runs). Run this before every multi-provider simulation. For Gemini 2.5 *flash* and *pro*, **set `--max-tokens 500` or higher** — their thinking-mode consumes output tokens before producing visible content; default `--max-tokens 50` returns only the opening ` ``` ` fence. `gemini-2.5-flash-lite` has no thinking mode and is unaffected; that's the tuning default.
-  - ~~**Google Gemini free-tier quota on this project: 20 requests/day**~~ **RESOLVED 2026-05-30**. Operator enabled billing on the GCP project + bought $10 credits; now on paid Tier 1 with ~1000+ RPM, hundreds of thousands RPD. Every call billed; at flash-lite rates ($0.10 in / $0.40 out per MTok), $10 buys ~5000 games. No quota concern for normal experimentation. See `TUNING.md` §1 Google defaults.
-  - **Follow `RUN_PROTOCOL.md` for any live multi-agent run.** The doc formalizes the pre-flight sequence: define inputs → verify scenario → probe providers → dry-run plumbing → run live → verify output → document. Skip rules and abort conditions are spelled out. Read it once before the first live run of a session.
-  - **Phase 18 retroactively reclassified Build → Explore.** Started Build-regime (steps 18.1–18.5), morphed into Explore as work shifted to "run sims and tune." Self-time-boxed by spending. Future cold-start sessions should not be surprised that a planned 6-step phase grew to 16 steps + two named runs (Run 7 Prep, Run 8). See `DEVLOG.md` Phase 18 Close entry for full explanation.
-  - **Phase 19 is operating ad-hoc** — driven by `NEXT_STEPS.md` rather than formal step plan. Multiple shipped items already (retry-with-backoff, LoggingLLMClient SCORE/RECON fix, scenario compiler BATNA fix, dated-pricing fix, production reconciler wiring, production endgame-markers config, SMOKE_RUNBOOK). Each lives in its own `DEVLOG.md` Phase 19 entry. No formal step boundaries; close-out happens when `NEXT_STEPS.md` sequencing position #1 is completed and we decide to formalize Phase 20.
-  - **New canonical docs added Phase 19:** `CLI_REFERENCE.md` (every CLI entry point with flags, defaults, examples), `SMOKE_RUNBOOK.md` (operator-side Pi smoke procedure mapping each Phase 18+19 change to a verification step). Both at project root.
-  - **Toolkit Phase 19 surface required on Pi:** `from toolkit.llm_client import complete_with_retry` and `from toolkit.cost_accountant import normalize_model_name`. Both must import successfully — if they raise ImportError on the Pi, reinstall editable: `incus exec claude-code -- bash -c 'cd /home/claude/workspace/diplomat && .venv/bin/python -m pip install -e ../toolkit'`. See `SMOKE_RUNBOOK.md` §1.3.
-  - **Real Pi deployment mechanism:** `tools/service.sh start` (nohup-based) inside `incus exec claude-code`, default config `pipeline_smoke.yaml` (which already has `TelegramReviewGate`). Not systemd — the unit file at `config/diplomat.service` was never installed. See `SMOKE_RUNBOOK.md` §2 and `CLI_REFERENCE.md`.
-  - **Production reconciler now wired** (Phase 19, 2026-05-30). `src/main.py` attaches a `StateReconciler` using the primary provider's commodity tier; fires at every round boundary before analysts. Closes Phase 18 gap. Self-play harness's per-faction wiring still wins via last-write-overrides.
-  - **`game.total_rounds` optional config** (Phase 19, 2026-05-30). When set in `pipeline.yaml`, `Orchestrator.__init__` reads it and the persona's PENULTIMATE/FINAL ROUND markers fire. Unset means production stays endgame-blind — fine for games where the round count is unknown.
-  - **Negotiation framework + scoring + workstream organization** (Phase 19, 2026-05-31). `ASSESSMENT.md` at project root captures (a) the calculation-vs-negotiation tension and why pure math fails, (b) ten dimensions of skill, (c) four scoring lenses with formulas (BATNA-relative ✓ implemented; Pareto efficiency + skill-premium + process signatures NOT YET), (d) properties of skill-testing scenarios, (e) the three workstream blocks A/B/C (agent architecture/memory, prompt tuning, game creation/scoring). `NEXT_STEPS.md` backlog items are tagged A/B/C against that map. Read once at session start to know which block your current item is in.
+  - **Cross-provider JSON formatting:** Anthropic and Google wrap JSON in ` ```json ... ``` ` Markdown fences regardless of explicit "raw JSON" instructions. OpenAI returns raw. Toolkit's `parse_json_response` strips a single surrounding code fence; without this, structured_call's retries silently exhaust.
+  - **Self-play env loading:** `tests/self_play/run_simulation.py` calls `load_dotenv()` at module top. Subprocess SDKs (Anthropic, Google) need this — only `OPENAI_API_KEY` was reliable from parent shell otherwise.
+  - **Probe before live multi-provider runs:** `python -m tests.self_play.probe_providers --providers '<same JSON as --per-faction-providers>'` hits each provider once with a trivial request (~$0.001 total). Catches API keys, fence wrapping, model-name typos that `DryRunLLMClient` can't catch (DryRun replaces the LLM client entirely with canned responses).
+  - For **Gemini 2.5 flash / pro**, set `--max-tokens 500` or higher on probes — thinking-mode consumes output tokens before producing visible content. `gemini-2.5-flash-lite` has no thinking mode and is the tuning default.
+  - **Per-faction provider routing:** `--per-faction-providers '{"alpha":{"provider":"openai","model":"gpt-4.1-mini"},...}'` varies only the Generator per faction; other modules stay on shared primary/secondary. Verify with `verify_dryrun --expect-providers '{"alpha":"openai",...}'`.
+  - **Pre-compiled analysis loader:** `--analysis-json <path>` skips live LLM compilation and loads a pre-edited analysis JSON (preserves hand-tuned BATNAs, scoring, deception tactics). Requires `--scenario` for the seed-message text.
+  - **Prompt regression runner:** `_judge_response_text()` JSON path extraction must be wrapped in try-catch — if a scenario's `path` doesn't exist in module output, raw KeyError crashes the runner.
+  - **Production reconciler is wired** in `src/main.py` via `_attach_reconciler` using primary provider's commodity tier; fires at every round boundary before analysts. Self-play harness has its own per-faction wiring that overrides.
+  - **`game.total_rounds` optional config** in `pipeline.yaml` — when set, `Orchestrator.__init__` reads it and the persona's PENULTIMATE / FINAL ROUND markers fire. Unset = production stays endgame-blind (correct default when round count is unknown).
+  - **Follow `RUN_PROTOCOL.md` for any live multi-agent run** (define inputs → verify scenario → probe providers → dry-run plumbing → run live → verify output → document). Skip rules and abort conditions are spelled out.
+  - **Canonical docs at project root:** `ASSESSMENT.md` (skill framework + 4 scoring lenses + 3 workstream blocks A/B/C; tagged in NEXT_STEPS), `CLI_REFERENCE.md` (every CLI entry point), `SMOKE_RUNBOOK.md` (Telegram coaching/review smoke procedure), `RUN_PROTOCOL.md` (self-play pre-flight), `TUNING.md` (BATNA + provider defaults + prompt-tuning practice), `TUNING_LOG.md` (run-by-run record), `NEXT_STEPS.md` (forward backlog + 🔨/🔀/👁 loop-readiness classification).
+  - **Reference docs to keep in sync** — see CLAUDE.md / CODEX.md "Reference Docs to Keep in Sync" section. Each Build phase's step list includes an explicit "doc update" step before phase-review naming the affected docs.
 
 ## Current Status
 
-- **Phase** — Phase 19 (Execute, ad-hoc per `NEXT_STEPS.md`). Phase 18 closed 2026-05-30 with regime-shift acknowledgment.
-- **Focus** — Live Telegram re-smoke **CLOSED for coaching scope 2026-05-31** (Telegram is the operator coaching surface, not the game-traffic surface; reframed mid-session). Next: `NEXT_STEPS.md` sequencing item #1 — commit the two real fixes shipped during the smoke (toolkit `max_completion_tokens` + test signature drift), then item #2 (Layer 3 integration tests for Phase 18 paths).
-- **Shipped in Phase 19 so far** (each has its own `DEVLOG.md` entry):
-  - `toolkit/llm_client.complete_with_retry` (exponential backoff on 429/5xx/empty)
-  - `toolkit/cost_accountant.normalize_model_name` + refreshed gpt-5.x / Gemini 2.5 prices (fixes ~41× cost-ledger overestimate from dated-ID lookup miss)
-  - LoggingLLMClient SCORE/RECON visibility (`_TaggedLLMClient` wrapper for self-play call attribution)
-  - Scenario compiler BATNA hardcode replaced with fraction-of-max formula + `--batna-fraction` CLI + post-hoc `validate_batna_pressure()`
-  - Production `_attach_reconciler` in `main.py`
-  - Optional `game.total_rounds` in `pipeline.yaml`, read by `Orchestrator.__init__`
-  - `CLI_REFERENCE.md` (project root) — every CLI entry point with flags/defaults/examples
-  - `SMOKE_RUNBOOK.md` (project root) — operator-side Pi smoke procedure
-  - `tools/inspect_ledger.py` rewritten with CLI args (`--selfplay`, `--path`, `--show`) and bug fix
+- **Phase** — Phase 20 (Build). Five-phase Build cycle queued: Phase 20 → 21 → 22 → 23 → 24, all pure-build (no operator judgment mid-loop).
+- **Focus** — Phase 20.1: add `tests/integration/test_phase18_paths.py` skeleton with shared fixtures.
 - **Blocked/Broken** — None.
-- **Reference docs** — `NEXT_STEPS.md` (forward-looking backlog + Run 8 review TODOs), `SMOKE_RUNBOOK.md` (Pi smoke procedure), `CLI_REFERENCE.md` (every flag), `TUNING.md` (operator tuning manual with BATNA + Google sections), `TUNING_LOG.md` (run-by-run record through Run 8), `ARCH_conversation_model.md` (Stage 1/2/3 migration), `RUN_PROTOCOL.md` (pre-flight for self-play live runs).
 
-## Next Steps: Modularization Roadmap
+## Phase 20: Layer 3 integration tests for Phase 18 paths (Build)
 
-The system is functional for the diplomacy game. The following levels of modularization would make it reusable across domains (customer service, contract negotiation, sales, etc.). See `ARCH_reconciliation.md` for reconciliation design.
+Regime: Build. Safety-net phase. Adds deterministic fake-LLM integration tests for the Phase 18 production-code paths that haven't fired in self-play (debounce burst, reconciler fulfillment/inconsistency/missed-proposal). Establishes regression coverage *before* the refactor phases (21 + 22) touch overlapping code.
 
-### Level 1: Config-Driven Prompts and Examples (recommended next)
+Why first: refactoring without these tests means relying on self-play runs (expensive, non-deterministic) to catch regressions. With them, every refactor step can run `pytest tests/ -q` for fast confirmation.
 
-Move all entity-type-specific content out of Python code into config files that sit alongside the schema. The code reads the schema to discover entity types and loads corresponding examples and prompt fragments dynamically.
+Steps:
+- **20.1** Add `tests/integration/test_phase18_paths.py` skeleton with shared fixtures (FakeLLMClient with reconciler-shaped canned responses, transcript-burst helper)
+- **20.2** Implement `test_burst_extraction_no_drops` — inject 5 game events in rapid succession, settle, assert all 5 events stored + all 5 produce state_change_log entries (validates per-event task set from Phase 18.6)
+- **20.3** Implement `test_reconciler_dedup` + `test_reconciler_fulfillment` — extractor produces N duplicate promises → reconciler merges; extractor produces promise then kept-signal → reconciler transitions pending→kept
+- **20.4** Implement `test_reconciler_inconsistency` + `test_reconciler_missed_proposal` — extractor produces position then contradiction → reconciler flags inconsistency; reconciler catches proposals the per-message extractor missed
+- **20.5** Doc update: `ASSESSMENT.md` (Block A tech-debt: reconciliation path coverage → ✓ covered by Layer 3 tests); `diplomat-testing-doc.md` (Layer 3 section: mention `test_phase18_paths.py` and the four new tests).
+- **20.6** Phase review + commit + close. Definition of done: 288+ tests passing (284 current + 4-5 new); each new test runs <2s; deterministic with fake LLM; named docs updated.
 
-**What changes:**
-- Extraction few-shot examples (`_EXTRACTION_EXAMPLES`) → `config/examples/extraction_examples.json`
-- Reconciliation prompt entity references → derived from schema keys
-- Analysis tool entity iteration → reads schema instead of hardcoding "promises", "coalitions"
-- Persona library structure: `config/personas/styles/` for reusable behavioral templates, overlaid with domain-specific scoring by the scenario compiler
+Expected outcome: regression coverage that hardens the Phase 21 + 22 refactors.
 
-**Result:** Switching domains = replace `config/` directory. No code changes.
+## Phase 21: Module boundary cleanup (Build)
 
-**Effort:** 1-2 hours.
+Regime: Build. Targeted cleanups from the audit. Two themes packaged together (§1.7 orchestration + §1.8 LLM adapter + config dedup) because they overlap on the LLM-call attribution surface and benefit from shared review.
 
-### Level 2: Schema-Driven State Manager (needed for true reuse)
+Prerequisite: Phase 20 (Layer 3 tests) must pass — those tests are the safety net for these refactors.
 
-The state manager generates SQLite tables from `state_patch.json` at startup. Each entity type in the schema becomes a table. Upsert/delete/query methods derive field names and primary keys from the schema rather than hardcoding them.
+Steps:
+- **21.1** Add public `Orchestrator.advance_to_round(n)` that sets `current_round` and resets the per-round budget. Update `GameEnvironment.run_round` to call it instead of poking `current_round` directly and calling `_reset_round_budget()` (§1.7 fix #1).
+- **21.2** Extract `OrchestrationOptions` dataclass holding `auto_response_enabled` and `total_rounds`. Pass at construction; remove these attributes from `Orchestrator.__init__`'s top-level signature. Update `main.py` and `GameEnvironment` call sites (§1.7 fix #2).
+- **21.3** Resolve `StubAnalyst` registry leak. Either move `StubAnalyst` to `src/modules/analyst/stub.py` or drop the entry from `src/registry.py` and use `module_overrides` exclusively (already works in `tests/integration/conftest.py`). Update `pipeline_test.yaml` accordingly (§1.7 fix #3).
+- **21.4** Replace the four bare `try/except Exception: pass` blocks in `Orchestrator._reconcile_state` with logged exceptions (§1.7 fix #4).
+- **21.5** Add `attribution: str | None = None` and `purpose: str | None = None` kwargs to LLM adapter `complete()` interface. Update `ToolkitLLMAdapter`, `DiplomatCostGate`, and the toolkit's `complete_with_retry` to thread them through (§1.8 fix #1, prep for the cleanup that follows).
+- **21.6** Delete `_TaggedLLMClient` entirely; reduce `LoggingLLMClient` to ~30 lines that read the new `attribution` kwarg. Remove all three `getattr(client, "_inner", client)` peeks (§1.8 fix #1, completion).
+- **21.7** Switch `DryRunLLMClient.classify_call()` to read the new `purpose` kwarg instead of regex-matching the prompt body (§1.8 fix #2).
+- **21.8** Extract `build_reconciler(llm_client, llm_providers_config, tier)` factory in `src/modules/reconciliation/__init__.py`. Both `src/main.py` (`_attach_reconciler`) and `tests/self_play/game_environment.py` call it; neither has its own copy. Single helper `subsystem_llm_config(primary, tier="commodity")` for the dict currently duplicated four times (§1.8 fix #3 + #4).
+- **21.9** Doc update: `ARCHITECTURE.md` (coupling notes — remove references to private-API access from self-play; reconciler factory mention); `ARCH_orchestrator.md` (public `advance_to_round`; `OrchestrationOptions` dataclass; `auto_response_enabled`/`total_rounds` move out of `__init__`); `ARCH_reconciliation.md` (new `build_reconciler` factory); `ASSESSMENT.md` (Block A tech-debt: orchestration cleanup → ✓, LLM adapter cleanup → ✓); `diplomat-testing-doc.md` (§2.3 if `StubAnalyst` location changed).
+- **21.10** Phase review + commit + close. Definition of done: 288+ tests passing; no `_<private>` calls from `tests/self_play/`; `auto_response_enabled` / `total_rounds` no longer attributes on `Orchestrator`; `_TaggedLLMClient` deleted; `getattr(..., "_inner", ...)` no longer appears anywhere; provider-config dict literal defined once; `DryRunLLMClient` no longer reads prompt text for classification; named docs updated.
 
-**What changes:**
-- `_create_tables()` reads schema and generates `CREATE TABLE` statements
-- `_upsert_promise()` / `_upsert_coalition()` etc. → generic `_upsert_entity(table, item)`
-- Table-to-ID-column mapping derived from schema `required` fields
+Expected outcome: code surface cleaner; private-attribute pokes from self-play eliminated; one factory for reconciler wiring; one source of truth for the subsystem LLM config dict.
 
-**Result:** `state_patch.json` is the single source of truth for both validation and storage.
+## Phase 22: Pipeline / Flow split (Build)
 
-**Effort:** Half a day. Wait until you actually try a second domain to feel the pain first.
+Regime: Build. The architectural payoff. Separates per-agent capability (`Pipeline`) from scheduling strategy (`Flow`). Two concrete Flows extracted from existing code: `EventDrivenFlow` (production, from `Orchestrator`'s event loop) and `RoundSteppedFlow` (self-play, from `GameEnvironment`'s round-stepping). Makes adding a third Flow (Clankmates polling, customer service, contract negotiation, batch summary) additive instead of a new hand-rolled driver.
 
-### Level 3: Domain-Agnostic Orchestrator (future)
+Prerequisite: Phase 21 — specifically §21.1's public `advance_to_round` is the first method that needs to live on `Pipeline`.
 
-Remove game-specific flow assumptions (round boundaries, direct-address triggers). Replace with configurable triggers and a flow definition.
+Steps:
+- **22.1** Define `Pipeline` interface. Methods: `start`/`shutdown`, `store_event(event)`, `extract_from(event)`, `dispatch_operator(content)`, `advance_to_round(n)`, `reconcile_and_analyze()`, `run_response(trigger_event=None)`, plus query methods (`get_state`, `get_intelligence`, `get_ledger`). New file `src/pipeline.py`; methods initially delegate to existing `Orchestrator` internals.
+- **22.2** Implement `EventDrivenFlow` in `src/flows/event_driven.py`. Owns the async event loop reading `Transport.listen()`, the `_extraction_tasks` debounce, the `_check_round_boundary` signal regex, the `_is_direct_address` detector. Constructor takes `pipeline: Pipeline`, `transport: Transport`, optional `round_detector` and `address_detector`.
+- **22.3** Compat shim: `Orchestrator` becomes a thin factory `def Orchestrator(...) -> EventDrivenFlow` returning `EventDrivenFlow(pipeline=Pipeline(...), transport=...)`. Existing `main.py` keeps working without changes.
+- **22.4** Implement `RoundSteppedFlow` in `src/flows/round_stepped.py`. Replaces `GameEnvironment`'s round-stepping logic. Constructor takes `pipelines: list[Pipeline]`, `moderator: Moderator`, `total_rounds: int`. Update `GameEnvironment` to compose `RoundSteppedFlow` (no more `current_round` pokes, no more `[ROUND END]` re-entry trick).
+- **22.5** Add Pipeline-contract tests (`tests/test_pipeline.py`) and Flow-contract tests (`tests/test_flows.py`). Ensure `EventDrivenFlow` reproduces all current production behavior; `RoundSteppedFlow` reproduces all current self-play behavior.
+- **22.6** Verify production smoke (coaching scope, per `SMOKE_RUNBOOK.md`) reproduces. Verify self-play reproduces one known scenario byte-for-byte (or close to it given LLM nondeterminism — use seeded fake LLM for the comparison test).
+- **22.7** Write `ARCH_flow.md` documenting the Flow contract. Include a worked example: "writing a new Flow for a new application" sketching `StreamFlow` (customer service) or `TurnBasedFlow` (negotiation). Update `ARCHITECTURE.md` Component Map to add Pipeline and Flow rows.
+- **22.8** Doc update: `ASSESSMENT.md` (Block A tech-debt: Pipeline/Flow separation → ✓); `ARCH_orchestrator.md` (rewrite as compat shim pointing at `ARCH_flow.md`); `diplomat-testing-doc.md` (any Layer 3 references to `Orchestrator` that should now read `Pipeline` or `EventDrivenFlow`); update `CLAUDE.md` + `CODEX.md` "Load for Current Module" tables with Pipeline + Flow if they become standalone modules. (`ARCH_flow.md` itself is created in 22.7, so it's already a doc deliverable of this phase.)
+- **22.9** Phase review + commit + close. Definition of done: 288+ tests passing including new Pipeline/Flow contract tests; `Orchestrator` is a compat shim; `GameEnvironment` is a thin wrapper over `RoundSteppedFlow`; `ARCH_flow.md` exists with the contract + worked example; production smoke reproduces; named docs updated.
 
-**What changes:**
-- Orchestrator becomes a state machine configured by a flow YAML
-- Round detection → generic "boundary condition" pattern matching
-- Direct-address → generic "response trigger" rules
+Expected outcome: third-application work (Clankmates `HybridFlow`, customer service `StreamFlow`, etc.) becomes additive — write a new Flow class against a stable Pipeline interface.
 
-**Effort:** Multiple days. Only if you have a concrete non-game use case.
+## Phase 23: Scoring expansion — Pareto efficiency + process signatures (Build)
 
-## Open Items and Future Plans
+Regime: Build. Implements two of the four scoring lenses defined in `ASSESSMENT.md` §3 that don't need operator judgment to define. Output is more diagnostic per-run reporting; no behavioral change to agents.
 
-### Immediate (before deployment)
-- [ ] **Live Telegram re-smoke.** Phase 18 changes (debounce fix, structured_call, cost wiring, reconciliation) have only been validated in self-play. Need a manual Telegram smoke test on the Pi covering multi-message burst, review gate, and cost ledger.
-- [ ] **Switch to TelegramReviewGate.** Production `pipeline.yaml` uses `AutoApproveReviewGate` (safe default). Change to `TelegramReviewGate` on the Pi when deploying with real credentials.
-- [ ] **Run scored Three-Party Coalition.** The last attempt failed on a UNC path issue (now fixed). Validates post-game scoring + reconciliation end-to-end.
+Prerequisite: None code-wise, but easier after Phase 22 (post-game scoring path becomes cleaner with `Pipeline` abstraction).
 
-### Self-Play / Multi-Provider Experimentation
-- [ ] **Run 9 — rotated provider assignments.** Water Rights scenario, rotate provider→faction mapping to control for position-vs-provider confound (Alpha won Run 8 by tiebreak with the highest BATNA — coincidence?). Same plumbing as Run 8.
-- [ ] **Persona payment rigidity (recurring across Run 7 + Run 8).** Agents anchor on extreme outcomes on their priority issue and refuse to propose Pareto compromises that beat all BATNAs. The persona-prompt rule "don't accept the first reasonable framework" may be over-anchoring. A/B test a softened variant.
-- [ ] **Google free-tier rate limiting.** Gemini-2.5-flash hit 429 on Run 8 R4. Add retry-with-backoff to toolkit's `llm_client`, OR switch gamma to a paid Gemini tier.
-- [ ] **Compiler BATNA anchor.** `tools/scenario_compiler.py` hardcodes BATNA range guidance regardless of narrative. Add a `--batna-fraction` override, OR relax the range guidance, OR accept the hand-patch workflow (currently using `--analysis-json` to preserve hand-edits).
-- [ ] **`LoggingLLMClient` doesn't see SCORE or RECON calls (Run 7).** Both unwrap the wrapper to call the inner client. Fix the unwrap so all calls go through one observable client.
+Steps:
+- **23.1** Implement `pareto_efficiency` field in `GameEnvironment.score_game()`. Formula: `sum(achieved_scores) / max_pareto_sum`. Compute `max_pareto_sum` by reading the precomputed scenario analysis (`verify_scenario_optimum.py` already enumerates deals; if its result isn't cached, recompute inline at scoring time). Add to the per-run scoring JSON output.
+- **23.2** Add unit tests for the `pareto_efficiency` calculation: (a) a deal at the Pareto-optimum returns 1.0, (b) a deal at BATNA sum returns the BATNA/max ratio, (c) no-deal case handled. Add an integration test that runs a tiny scenario through `score_game()` end-to-end with fake LLM and asserts the field is present and numeric.
+- **23.3** Implement process signatures aggregator in `tests/self_play/analysis.py`. Four deterministic signatures: `broken_promise_rate` (`broken / total_promises`), `coalition_stability` (`survived_to_final / formed`), `time_to_deal` (round number when reached or `null`), `opening_gap` per faction (|round-1 position score − reached-deal score| / max_possible). Add to the post-game report output.
+- **23.4** Tests for process signatures: build a synthetic transcript fixture with known broken-promise count, known coalition trajectory, known opening positions; assert each signature computes to the expected value. ~4 tests.
+- **23.5** Doc update: `ASSESSMENT.md` (§3.2 Pareto efficiency → ✓ implemented with file:line ref to `score_game`; §3.4 process signatures → partial-to-✓-for-4-of-7 deterministic ones; update Block C tech-debt list). Optional: mention in `diplomat-testing-doc.md` if post-game report format is documented there.
+- **23.6** Phase review + commit + close. Every self-play run now produces per-faction `pareto_efficiency` field + process signatures; named docs updated.
 
-### Extraction Quality
-- [ ] **Promise dedup via reconciliation.** Reconciler is built but untested with live LLM. Run 4 showed 5 duplicates of the same $2M commitment.
-- [ ] **Fulfillment detection.** Only 1/21 promises ever marked "kept". Reconciler should fix this — needs live validation.
-- [ ] **Inconsistency detection.** Zero inconsistencies detected across 7 runs despite clear position shifts. Reconciler prompt specifically targets this.
-- [ ] **Under-extraction in coalition games.** Run 6 (Three-Party Coalition) tracked only 1 promise out of 12 concrete proposals. Broadened extraction prompt may help; needs re-test.
+Expected outcome: every self-play run produces per-faction Pareto efficiency + process signatures alongside the existing BATNA-relative WIN/LOSE verdict. Diagnostic quality of `TUNING_LOG.md` entries improves significantly.
 
-### Prompt Tuning
-- [ ] **Persona drift over 8+ rounds.** All runs were 4 rounds. Longer games may show persona drift — agents gradually losing their distinctive voice.
-- [ ] **Provider-native structured output.** OpenAI's `response_format: json_schema` would give near-100% schema compliance at the token level. Requires toolkit `llm_client` changes to pass the parameter through.
-- [ ] **Add more extraction few-shot examples.** Current 5 examples cover promise/coalition/fulfillment/broken/empty. Could add: conditional offer, demand with deadline, position shift, multi-issue proposal.
+## Phase 24: Small builds + Level 1 modularization (Build)
 
-### Infrastructure
-- [ ] **Persona library.** Separate behavioral styles from domain-specific scoring. Reusable templates in `config/personas/styles/`.
-- [ ] **Game-mode runtime override.** `--game-mode` flag on the runner to override the compiler's classification without regenerating personas.
-- [ ] **Level 1 modularization.** Config-driven prompts and examples (see roadmap above).
-- [ ] **Dated model pricing in toolkit.** OpenAI returns `gpt-4.1-mini-2025-04-14` but pricing table has `gpt-4.1-mini`. Fallback pricing works but overestimates cost.
+Regime: Build. Cluster of small standalone improvements that each take 30 min – 2 hr. Pure code, no judgment calls, no live API.
 
-### Game-Specific
-- [ ] **Real game rules.** Game rules are still being finalized. When available, compile them through the scenario compiler to generate the real faction persona.
-- [ ] **ClankmatesTransport.** If the game moves to Clankmates platform, build a polling-based transport (no webhooks). Keep Telegram for operator coaching.
-- [ ] **Multi-game support.** Run multiple instances with different faction prompts and databases for parallel games.
+Prerequisite: None.
 
-## Phase 19: Next Steps (Execute, ad-hoc)
+Steps:
+- **24.1** Add toolkit unit tests for `OpenAIProvider.call` model-prefix dispatch. Two tests in `toolkit/tests/llm_client/`: (a) gpt-5.x / o-series get `max_completion_tokens` in the SDK call kwargs; (b) gpt-4.x / 3.5 keep `max_tokens`. Use a stub `OpenAI` client that records kwargs. Closes the TODO from commit `5763897`.
+- **24.2** Add per-faction asymmetric `--batna-fractions` JSON flag to `tools/scenario_compiler.py` and `tests/self_play/run_simulation.py`. Same parsing pattern as `--per-faction-providers` (JSON map: `{"alpha":0.65,"beta":0.35,"gamma":0.50}`). Falls back to `--batna-fraction` scalar if not provided. Update `validate_batna_pressure()` to validate per-faction targets if asymmetric.
+- **24.3** Add `--force-batna-fraction` post-clamp option to scenario compiler. After LLM produces the analysis JSON, post-process each faction's BATNA to clamp to `target × max_possible_score`. Default off (preserve current behavior); when set, narrative-explicit BATNAs are overridden.
+- **24.4** Add `--game-mode` runtime override flag to `tests/self_play/run_simulation.py`. Allows operator to override the compiler's `game_mode` classification (cooperative/competitive/mixed) at run time without regenerating personas. Persona text gets the override applied as a runtime layer.
+- **24.5** Level 1 modularization, part 1: extract `_EXTRACTION_EXAMPLES` constant from `src/modules/extraction/__init__.py` into `config/examples/extraction_examples.json`. Update `OpenAIStructuredExtractor` to load from JSON at construction time, with path configurable via `pipeline.yaml` `paths.examples.extraction`. Default path: `config/examples/extraction_examples.json`. Add the path to `pipeline.yaml` and `pipeline_smoke.yaml`. Update existing tests.
+- **24.6** Level 1 modularization, part 2: derive entity-type references in reconciliation prompt and analysis tool iteration from `state_patch.json` schema keys instead of hardcoded strings. Both modules currently hardcode "promises", "coalitions", "inconsistencies" — replace with `list(schema['properties'].keys())` or equivalent. Test that adding a new entity type to the schema is visible to both modules without code changes.
+- **24.7** Doc update: **`CLI_REFERENCE.md`** (three new flags — `--batna-fractions`, `--force-batna-fraction`, `--game-mode` — with examples and defaults; one updated section for `--batna-fraction` to note interaction with the new asymmetric flag); `TUNING.md` §1 BATNA section (asymmetric fractions + force-clamp semantics + when to use each); `diplomat-testing-doc.md` (Layer 2: extraction examples location moved to `config/examples/extraction_examples.json`); `ARCH_extraction.md` (examples now loaded from config path); `ARCH_reconciliation.md` (entity types now derived from schema). Toolkit-side: `toolkit/API.md` or `toolkit/ARCH_llm_client.md` (`OpenAIProvider.call` parameter dispatch).
+- **24.8** Phase review + commit + close. Definition of done: 290+ tests passing; `--batna-fractions` + `--force-batna-fraction` + `--game-mode` all visible in `CLI_REFERENCE.md`; `_EXTRACTION_EXAMPLES` no longer in Python; entity types derived from schema in 2 places; named docs updated.
 
-Regime: Execute, driven by `NEXT_STEPS.md` rather than a formal step list. Each completed item has its own `DEVLOG.md` Phase 19 entry. No formal step boundaries between items; phase closes when sequencing position #1 (currently: live TG re-smoke on Pi) is done and we decide whether to formalize Phase 20.
+Expected outcome: tooling debt cluster closed; modularization Level 1 done (Level 2 + Level 3 deferred until a concrete second-domain use case forces them).
 
-**Currently active (sequencing position #1):** live Telegram re-smoke on Pi per `SMOKE_RUNBOOK.md`. Operator-driven, manual checklist. Outcomes get logged in DEVLOG when complete.
+## Phase 19: Execute, ad-hoc — Complete
 
-**Shipped so far in Phase 19** (each has a dedicated DEVLOG entry):
-- toolkit `complete_with_retry` (exponential backoff on 429/5xx/empty)
-- toolkit `normalize_model_name` + refreshed pricing table (closed ~41× cost-ledger overestimate)
-- LoggingLLMClient SCORE/RECON visibility via `_TaggedLLMClient` wrapper
-- scenario_compiler BATNA fraction-of-max formula + `--batna-fraction` CLI + validator
-- production `_attach_reconciler` in `src/main.py`
-- optional `game.total_rounds` in `pipeline.yaml`, read by `Orchestrator.__init__`
-- `CLI_REFERENCE.md`, `SMOKE_RUNBOOK.md` (both at project root)
-- `tools/inspect_ledger.py` rewritten with CLI args + bug fix
+Closed 2026-05-31. Shipped toolkit `complete_with_retry` / `normalize_model_name` / `max_completion_tokens` dispatch; production `_attach_reconciler` + `game.total_rounds`; CLI_REFERENCE.md; SMOKE_RUNBOOK.md (coaching scope); ASSESSMENT.md (skill framework + scoring lenses + workstream blocks); module boundary audit → Phases 20-24 queued. See `DEVLOG_archive.md` "Archived 2026-05-31 — Phase 18 + Phase 19" section.
 
-**Queued after sequencing #1 closes** (per `NEXT_STEPS.md`):
-1. Coaching test loop on Pi (validates the operator-coaching workflow end-to-end)
-2. OpenRouter integration + Run 9 (multi-provider rotated assignments)
-3. Divorce / pressure-mechanism scenario design
-4. Stage 2a (K=2 conversation model) + per-round events
-5. Clankmates discovery → mock → transport
+## Phase 18: Multi-Agent Self-Play + Tuning — Complete
 
-Dedicated investigations tracked separately in `NEXT_STEPS.md` (§6 pricing audit, §7 per-role model strategy, §8 reverse scenario builder, §9 voice/style templates).
+Closed 2026-05-30. Regime shifted Build → Explore mid-phase. Built complete self-play infrastructure (GameEnvironment, scenario compiler, post-game scoring, state reconciliation, game-mode), reusable `structured_call` toolkit, 8 simulations across 4 scenario types (~$5-6 spend). Decisions D-20 through D-24. See `DEVLOG_archive.md` Phase 18 Close section.
 
-## Phase 18: Layer 4 — Multi-Agent Self-Play + Tuning
+## Phase 17: Layer 2 — Prompt Regression Infrastructure — Complete
 
-Complete. Regime shifted Build → Explore mid-phase (planned 6 steps grew to 16 actual + Run 7 Prep + Run 8 multi-provider). Built complete self-play infrastructure (GameEnvironment, scenario compiler, post-game scoring, state reconciliation, game-mode system), fixed critical pipeline bugs (debounce, cost wiring, budget gate), built reusable `structured_call` toolkit function, tuned all 4 LLM prompts empirically. Ran 8 simulations across 4 scenario types (~$5–6 total spend). Decisions D-20 through D-24 added. Phase Close entry in `DEVLOG.md` Phase 18 Close section documents the regime shift and includes the compressed 16-step list. Run-by-run analysis in `TUNING_LOG.md`.
+`tests/prompt_regression/` package: scenario/result dataclasses, JSON-path helpers, LLM-as-judge, runner with CLI, 4 free Extraction + 2 LLM-backed Generation scenarios. 211 tests pass. See `DEVLOG_archive.md` Phase 17.
 
-## Phase 17: Layer 2 — Prompt Regression Infrastructure
+## Phase 16: Deployment Readiness — Complete
 
-Complete. Built `tests/prompt_regression/` package: scenario/result dataclasses, JSON-path helpers, LLM-as-judge, module-builder scenario runner with CLI, 4 free Extraction scenarios, 2 LLM-backed Generation scenarios. Phase Review applied 1 must-fix (safe path extraction in judge) and added 4 edge-case tests. 211 tests pass. Generation scenarios require live injected client on the Pi. See `DEVLOG_archive.md` Phase 17.
+Live-smoke fix regression coverage, two-channel Telegram docs, `config/diplomat.service` unit (later found broken via incus exec — see Pi deployment gotcha), CostAccountant adapter construction fix. 193 tests passing. See `DEVLOG_archive.md`.
 
-## Phase 16: Deployment Readiness
+## Phase 15: Live Smoke Test — Environment Setup — Complete
 
-Complete. Restored regression coverage for live-smoke fixes, documented two-channel Telegram deployment, added `config/diplomat.service`, removed temporary transport debug prints, fixed the CostAccountant adapter construction found during review, and verified 193 passing tests. See `DEVLOG.md`.
+`.env.template` + `config/pipeline_smoke.yaml`; manual Pi smoke confirmed Telegram transport, operator commands, `/preview`, review gate. Five integration fixes applied. See `DEVLOG_archive.md`.
 
-## Phase 15: Live Smoke Test — Environment Setup
+## Phase 14: Layer 3 — Transcript Replay Tests — Complete
 
-Complete. Created `.env.template` and `config/pipeline_smoke.yaml`. Validated startup on Pi with real toolkit imports. Manual smoke test confirmed: Telegram transport receives messages, operator commands (`/status`, `/state`, `/ledger`, `/commands`) respond correctly, `/preview` triggers LLM generation, review gate (`/approve`, `/block`) works. Five integration fixes applied during smoke test:
-1. Transport: added `message_text` to content field lookup (TelegramUpdate compatibility)
-2. Transport: changed `start_polling()` from blocking await to background task with race condition fix
-3. Review Gate: added `message_text` to content field lookup
-4. Orchestrator: added `/commands` handler listing all commands and coaching tags
-5. Orchestrator: added `/block` acknowledgement message
+Two JSON transcript fixtures + 5 replay tests verifying multi-round promise/coalition/inconsistency/intelligence persistence. 187 tests passing. See `DEVLOG_archive.md`.
 
-All fixes committed. See `DEVLOG_archive.md`.
+## Phase 13: Layer 3 — Pipeline Integration Tests — Complete
 
-## Phase 14: Layer 3 — Transcript Replay Tests
+Fake-backed Layer 3 infrastructure + 12 tests (fixture startup, core Orchestrator flow, failure handling). 182 tests passing. See `DEVLOG_archive.md`.
 
-Complete. Two JSON transcript fixtures (`cooperative_3round.json`, `betrayal_arc.json`) and five replay integration tests verify multi-round promise, coalition, inconsistency, and intelligence persistence through the fake-backed Orchestrator pipeline. Full regression: 187 passed. See `DEVLOG.md`.
+## Phase 12: Orchestrator Refactor — Complete
 
-## Phase 13: Layer 3 — Pipeline Integration Tests
+Extracted `ToolkitLLMAdapter` + `DiplomatCostGate` to `src/adapters.py`; expanded State Manager (5 persistence APIs); typed `InboundEvent`; 170 tests passing. See `DEVLOG_archive.md`.
 
-Complete. Implemented fake-backed Layer 3 integration infrastructure and 12 tests covering fixture startup, core Orchestrator flow, and failure handling. Full regression: 182 passed. See `DEVLOG.md`.
+## Phase 11: Orchestrator — Complete
 
-## Phase 12: Orchestrator Refactor
+`pipeline.yaml`, registry lookup, full Orchestrator wiring, `src/main.py`, 44 focused Orchestrator tests + 165 total. Post-phase toolkit integration probes found 3 mismatches; adapters applied and verified on Pi. See `DEVLOG_archive.md`.
 
-Complete. Extracted `ToolkitLLMAdapter` and `DiplomatCostGate` to `src/adapters.py`, expanded State Manager with 5 persistence APIs, removed Orchestrator sqlite3 fallbacks, typed `InboundEvent` on public event/pipeline methods, and verified 170 regression tests. See `DEVLOG.md`.
+## Phase 10: Adversarial — Complete
 
-## Phase 11: Orchestrator
+`AdversarialResult`, `LLMAdversarialReader`, local schema validation, 9 tests + 121 total. See `DEVLOG_archive.md`.
 
-Complete. Implemented `pipeline.yaml`, registry lookup, Orchestrator startup/event-loop/round-management/response-pipeline/cost-governance wiring, `src/main.py`, and 44 focused Orchestrator tests with 165 total regression tests passing. Phase Review applied three should-fix items and no must-fix items. Post-phase toolkit integration probes found 3 mismatches; adapters (`ToolkitLLMAdapter`, `DiplomatCostGate`) applied and verified on Pi. See `DEVLOG.md`.
+## Phase 9: Review Gate — Complete
 
-## Phase 10: Adversarial
+Review decisions, auto-approve mode, Telegram approve/edit/block workflow, optional timeout auto-block, 14 tests + 112 total. See `DEVLOG_archive.md`.
 
-Complete. Implemented `AdversarialResult`, `LLMAdversarialReader`, local adversarial JSON/schema validation, prompt/schema artifacts, and 9 focused tests with 121 total regression tests passing. Phase Review passed with no must-fix or should-fix items. See `DEVLOG_archive.md`.
+## Phase 8: Generation — Complete
 
-## Phase 9: Review Gate
+`GenerationResult`, `LLMGenerator`, review-gate JSON parsing (`response`, `reasoning`), `config/prompts/generation.txt`, 11 tests + 98 total. See `DEVLOG_archive.md`.
 
-Complete. Implemented review decisions, auto-approve mode, Telegram approve/edit/block workflow, optional timeout auto-block, and 14 focused tests with 112 total regression tests passing. Phase Review applied two should-fix items. See `DEVLOG_archive.md`.
+## Phase 7: Context Assembler — Complete
 
-## Phase 8: Generation
+`CoachingEntry`, `DecisionContext`, `DefaultContextAssembler` (pure composition), 7 tests + 87 total. See `DEVLOG_archive.md`.
 
-Complete. Implemented `GenerationResult`, `LLMGenerator`, review-gate JSON parsing (`response`, `reasoning`), plain-text mode, `config/prompts/generation.txt`, and 11 focused tests. Phase Review fixed one must-fix: Context Assembler was instructing LLM with `draft_message`/`rationale` keys while Generation expected `response`/`reasoning`. Full regression: 98 passed. See `DEVLOG_archive.md` Phase 8.
+## Phase 6: Analyst + Divergence — Complete
 
-## Phase 7: Context Assembler
+`LLMAnalyst`, pure divergence comparison, analyst prompt/schema, 12 tests + 80 total. See `DEVLOG_archive.md`.
 
-Complete. Implemented `CoachingEntry`, `DecisionContext`, `DefaultContextAssembler` (pure composition, no external deps), 7-test coverage with 87 total regression tests passing. Phase Review passed with no must-fix or should-fix items. See `DEVLOG.md`.
+## Phase 5: Persona — Complete
 
-## Phase 6: Analyst + Divergence
+`CoachingContext`, `FileBasedPersona` (hot-reload via mtime), section stripping at `## CURRENT ROUND CONTEXT`, dynamic round-context formatting, sample `config/faction_prompt.txt`. 68 tests passing. See `DEVLOG_archive.md`.
 
-Complete. Implemented shared intelligence result types, `LLMAnalyst`, pure divergence comparison, analyst prompt/schema, and 12-test coverage with 80 total regression tests passing. See `DEVLOG.md`.
+## Phase 4: Transport — Complete
 
-## Phase 5: Persona
+Shared Transport API exports, `CLITransport`, dependency-injected `TelegramBotTransport`, 21 tests + 59 total. See `DEVLOG_archive.md`.
 
-Complete. Implemented `CoachingContext`, `FileBasedPersona` (hot-reload via mtime), section stripping at `## CURRENT ROUND CONTEXT` marker, dynamic round-context formatting, and sample `config/faction_prompt.txt`. 68 tests passed. See `DEVLOG_archive.md` Module 5.
+## Phase 3: Coaching — Complete
 
-## Phase 1: Event Store + State Manager
+`config/coaching_routes.yaml`, `CoachingEvent`, `Command`, `RouteRule`, `TaggedCoachingParser`, tagged/free coaching parsing, slash command parsing, 11 tests + 38 total. See `DEVLOG_archive.md`.
 
-Complete. Implemented shared storage types, SQLiteEventStore, SQLiteStateManager, state patch schema validation, audit logging, and Phase 1 test coverage. See `DEVLOG_archive.md` and the 2026-05-25 phase completion entry in `DEVLOG.md`.
+## Phase 2: Extraction — Complete
 
-## Phase 2: Extraction
+`ExtractionResult`, `OpenAIStructuredExtractor`, `RuleBasedExtractor`, local JSON/schema enforcement, `config/prompts/state_updater.txt`, 18 tests + 27 total. See `DEVLOG_archive.md`.
 
-Complete. Implemented `ExtractionResult`, `OpenAIStructuredExtractor`, `RuleBasedExtractor`, local JSON/schema enforcement, rule-based promise/coalition/inconsistency fallback, `config/prompts/state_updater.txt`, and 18-test coverage with fake toolkit client. 27 tests pass (including Phase 1 regression). See `DEVLOG_archive.md` and the 2026-05-25 phase completion entry in `DEVLOG.md`.
+## Phase 1: Event Store + State Manager — Complete
 
-## Phase 3: Coaching
-
-Complete. Implemented `config/coaching_routes.yaml`, `CoachingEvent`, `Command`, `RouteRule`, `TaggedCoachingParser`, config validation, tagged/free coaching parsing, slash command parsing, and 11-test coverage with 38 total regression tests passing. See `DEVLOG_archive.md` and the 2026-05-25 phase completion entry in `DEVLOG.md`.
-
-## Phase 4: Transport
-
-Complete. Implemented shared Transport API exports, `CLITransport`, dependency-injected `TelegramBotTransport` send/listen paths, and 21 focused Transport tests with 59 total regression tests passing. See `DEVLOG_archive.md` and the 2026-05-25 phase completion entry in `DEVLOG.md`.
+Shared storage types, `SQLiteEventStore`, `SQLiteStateManager`, state patch schema validation, audit logging. See `DEVLOG_archive.md`.
