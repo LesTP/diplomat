@@ -358,7 +358,7 @@ class TestAnalysis:
         assert "beta" in captured.out.lower()
 
 
-# ── LoggingLLMClient + _TaggedLLMClient ───────────────────────────────
+# ── LoggingLLMClient ─────────────────────────────────────────────────
 
 
 class _StubInner:
@@ -460,63 +460,50 @@ class TestLoggingLLMClient:
         assert client.call_log[0].faction_id == "alpha"
         assert client._current_faction == "beta"
 
-
-class TestTaggedLLMClient:
     @pytest.mark.asyncio
-    async def test_applies_fixed_tag_per_call(self) -> None:
-        from tests.self_play.game_environment import (
-            LoggingLLMClient,
-            _TaggedLLMClient,
-        )
-
+    async def test_attribution_overrides_current_faction(self) -> None:
+        from tests.self_play.game_environment import LoggingLLMClient
         inner = _StubInner("ok")
-        logging_client = LoggingLLMClient(inner)
-        logging_client.set_faction("alpha")  # would be the "default" tag
+        client = LoggingLLMClient(inner)
+        client.set_faction("alpha")
 
-        # A tagged client pretending to be a RECON caller for faction alpha.
-        tagged = _TaggedLLMClient(logging_client, "recon:alpha")
-
-        await tagged.complete(
+        await client.complete(
             messages=[{"role": "user", "content": "reconcile"}],
             config={"provider": "openai"},
             tier="commodity",
+            attribution="recon:alpha",
         )
 
-        assert len(logging_client.call_log) == 1
-        assert logging_client.call_log[0].faction_id == "recon:alpha"
+        assert len(client.call_log) == 1
+        assert client.call_log[0].faction_id == "recon:alpha"
+        assert inner.calls[0]["attribution"] == "recon:alpha"
 
     @pytest.mark.asyncio
-    async def test_two_tagged_clients_dont_cross_tags_concurrently(self) -> None:
-        """Concurrent calls through differently-tagged clients each record
-        their own tag — relies on LoggingLLMClient's snapshot-at-start."""
-        from tests.self_play.game_environment import (
-            LoggingLLMClient,
-            _TaggedLLMClient,
-        )
+    async def test_two_attributed_calls_dont_cross_tags_concurrently(self) -> None:
+        from tests.self_play.game_environment import LoggingLLMClient
 
         class _PausingInner:
             async def complete(self, **kwargs):
                 await asyncio.sleep(0.02)
                 return "ok"
 
-        logging_client = LoggingLLMClient(_PausingInner())
-
-        recon_alpha = _TaggedLLMClient(logging_client, "recon:alpha")
-        recon_beta = _TaggedLLMClient(logging_client, "recon:beta")
+        client = LoggingLLMClient(_PausingInner())
 
         await asyncio.gather(
-            recon_alpha.complete(
+            client.complete(
                 messages=[{"role": "user", "content": "a"}],
                 config={"provider": "openai"},
                 tier=None,
+                attribution="recon:alpha",
             ),
-            recon_beta.complete(
+            client.complete(
                 messages=[{"role": "user", "content": "b"}],
                 config={"provider": "openai"},
                 tier=None,
+                attribution="recon:beta",
             ),
         )
 
-        assert len(logging_client.call_log) == 2
-        tags = sorted(r.faction_id for r in logging_client.call_log)
+        assert len(client.call_log) == 2
+        tags = sorted(r.faction_id for r in client.call_log)
         assert tags == ["recon:alpha", "recon:beta"]

@@ -148,10 +148,12 @@ class StateReconciler:
         llm_client: Any,
         llm_config: dict[str, Any],
         tier: str = "commodity",
+        attribution: str | None = None,
     ) -> None:
         self.llm_client = llm_client
         self.llm_config = llm_config
         self.tier = tier
+        self.attribution = attribution
 
     async def reconcile(
         self,
@@ -190,6 +192,8 @@ class StateReconciler:
             system_prompt=RECONCILIATION_PROMPT,
             user_prompt=user_prompt,
             max_retries=1,
+            attribution=self.attribution,
+            purpose="reconciliation",
         )
 
         if not result.success:

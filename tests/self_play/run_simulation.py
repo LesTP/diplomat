@@ -218,9 +218,6 @@ async def _compile_scenario(
 
     scenario_text = scenario_path.read_text(encoding="utf-8")
 
-    # The llm_client here is a LoggingLLMClient wrapping the adapter.
-    # We need to get the inner adapter for the compiler call.
-    inner = getattr(llm_client, "_inner", llm_client)
     import os
     llm_config = {
         "provider": "openai",
@@ -235,7 +232,7 @@ async def _compile_scenario(
     print(f"Compiling scenario: {scenario_path.name}")
     print(f"  BATNA target fraction: {effective_fraction:.0%} of each faction's max score")
     analysis = await analyze_scenario(
-        scenario_text, inner, llm_config,
+        scenario_text, llm_client, llm_config,
         tier="commodity",
         batna_fraction=effective_fraction,
     )

@@ -156,9 +156,9 @@ def main() -> int:
             )
 
     # --- Invariant 7: SCORE produced output AND is visible in the call log.
-    # SCORE and RECON calls now route through LoggingLLMClient (via
-    # _TaggedLLMClient) so they appear in the call log. We can assert both
-    # the results JSON and the call-log presence.
+    # SCORE and RECON calls route through LoggingLLMClient with attribution
+    # metadata, so they appear in the call log. We can assert both the
+    # results JSON and the call-log presence.
     if not scores or "faction_scores" not in scores:
         failures.append(
             "Scoring — scores.faction_scores missing; post-game scorer did not run."

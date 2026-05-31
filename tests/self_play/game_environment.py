@@ -62,11 +62,7 @@ class LoggingLLMClient:
         config = kwargs.get("config", {})
         tier = kwargs.get("tier")
         max_tokens = kwargs.get("max_tokens")
-
-        # Snapshot the faction tag at the start so concurrent calls with
-        # different tags don't race on the shared _current_faction field
-        # (relevant for per-subsystem TaggedLLMClient wrappers below).
-        faction_at_start = self._current_faction
+        faction_at_start = kwargs.get("attribution") or self._current_faction
 
         start = time.monotonic()
         error = None
@@ -130,38 +126,6 @@ def _safe_messages(messages: Any) -> list[dict[str, str]]:
         else:
             result.append({"role": getattr(m, "role", "?"), "content": getattr(m, "content", str(m))})
     return result
-
-
-class _TaggedLLMClient:
-    """Pin a fixed faction tag onto every call through a LoggingLLMClient.
-
-    Used by per-subsystem callers (reconciler, scorer) that need their own
-    distinct attribution in the call log without depending on the harness's
-    harness-iteration `set_faction()` timing. The tag is applied at the
-    start of `complete()`'s async body — *after* the coroutine is entered
-    by the event loop — so concurrent tagged clients don't cross-tag each
-    other through `asyncio.gather`. `LoggingLLMClient.complete()` snapshots
-    `_current_faction` at entry, so the correct tag survives even if other
-    tagged clients race to set their tags concurrently.
-
-    Must be async (not sync-returning-coroutine): if `complete` were sync,
-    `set_faction` would run at arg-evaluation time, and `asyncio.gather`
-    evaluating multiple tagged calls would resolve all set_factions before
-    any coroutine ran — leaving every snapshot pointing at the last tag.
-
-    Drop-in for any caller that uses the `complete(**kwargs)` shape
-    (`structured_call`, `StateReconciler`, etc.).
-    """
-
-    def __init__(self, logging_client: "LoggingLLMClient", tag: str) -> None:
-        self._logging = logging_client
-        self._tag = tag
-
-    async def complete(self, **kwargs: Any) -> Any:
-        # Tag must be set INSIDE the coroutine body (after the event loop
-        # enters it), not at sync-call time. See class docstring.
-        self._logging.set_faction(self._tag)
-        return await self._logging.complete(**kwargs)
 
 
 # ---------------------------------------------------------------------------
@@ -359,17 +323,10 @@ class GameEnvironment:
                 base_path=self.base_path,
             )
 
-            # Attach a reconciler for post-round state cleanup.
-            # Route through the LoggingLLMClient (via _TaggedLLMClient) so
-            # RECON calls show up in the call log with a `recon:<faction>`
-            # tag. Falls back to the raw adapter when logging is disabled.
-            inner = getattr(self.llm_client, "_inner", self.llm_client)
-            if self.logging_client is not None:
-                recon_llm_client: Any = _TaggedLLMClient(
-                    self.logging_client, f"recon:{faction_id}"
-                )
-            else:
-                recon_llm_client = inner
+            # Attach a reconciler for post-round state cleanup. Attribution
+            # metadata tags RECON calls in the LLM call log when logging is
+            # enabled.
+            recon_llm_client: Any = self.logging_client or self.llm_client
             import os
             recon_config = {
                 "provider": "openai",
@@ -378,7 +335,10 @@ class GameEnvironment:
             }
             from modules.reconciliation import StateReconciler
             orchestrator.reconciler = StateReconciler(
-                recon_llm_client, recon_config, tier="commodity"
+                recon_llm_client,
+                recon_config,
+                tier="commodity",
+                attribution=f"recon:{faction_id}",
             )
             task = asyncio.create_task(orchestrator.start())
             await asyncio.sleep(0)  # let the event loop start
@@ -645,14 +605,9 @@ class GameEnvironment:
             f"[{fid}] {text}" for fid, text in final_responses.items()
         )
 
-        # Route the scorer call through the LoggingLLMClient (via
-        # _TaggedLLMClient) so SCORE calls show up in the call log with
-        # tag "scorer". Falls back to the raw adapter when logging is
-        # disabled.
-        if self.logging_client is not None:
-            score_llm_client: Any = _TaggedLLMClient(self.logging_client, "scorer")
-        else:
-            score_llm_client = getattr(self.llm_client, "_inner", self.llm_client)
+        # Attribution metadata tags SCORE calls in the LLM call log when
+        # logging is enabled.
+        score_llm_client: Any = self.logging_client or self.llm_client
         import os
         llm_config = {
             "provider": "openai",
@@ -684,6 +639,8 @@ class GameEnvironment:
                 f"Final round proposals:\n{factions_text}"
             ),
             max_retries=1,
+            attribution="scorer",
+            purpose="scoring",
         )
 
         if not result.success:

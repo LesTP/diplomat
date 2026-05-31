@@ -91,3 +91,15 @@ Added Diplomat adapter tests for direct/accounted forwarding plus toolkit tests 
 Tests: `.venv/bin/python -m pytest tests/test_adapters.py tests/test_orchestrator.py -q` (56 passed); `.venv/bin/python -m pytest ../toolkit/tests/llm_client/test_core.py -q` (45 passed); `.venv/bin/python -m pytest ../toolkit/tests/cost_accountant/test_core.py -q` (44 passed); `.venv/bin/python -m pytest -q` (296 passed).
 
 Next step: 21.6 removes `_TaggedLLMClient` and switches logging attribution to the new kwarg.
+
+### Step 21.6: Attribution-based self-play logging
+
+Mode: Build
+Outcome: Deleted `_TaggedLLMClient`, removed the `_inner` unwraps in self-play/scenario compilation paths, and switched RECON/SCORE logging tags to `attribution` metadata. `LoggingLLMClient` now prefers `kwargs["attribution"]` over the current faction tag.
+Contract changes: `toolkit.structured_llm.structured_call()` now accepts optional `attribution` and `purpose` kwargs and forwards them to the injected LLM client. `StateReconciler` accepts optional attribution and passes `purpose="reconciliation"`.
+
+Updated self-play logging tests from wrapper-client assertions to attribution assertions, and updated dry-run verification comments.
+
+Tests: `.venv/bin/python -m pytest tests/test_self_play.py tests/test_reconciliation.py tests/self_play/verify_dryrun.py ../toolkit/tests/structured_llm/test_core.py -q` (54 passed); `.venv/bin/python -m pytest -q` (296 passed); toolkit targeted tests: structured_llm (19 passed), llm_client (45 passed), cost_accountant (44 passed).
+
+Next step: 21.7 switches `DryRunLLMClient.classify_call()` to read `purpose`.
