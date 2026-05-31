@@ -89,7 +89,7 @@ score_normalized = (score_achieved - BATNA) / (max_possible - BATNA)
 - Limitation: doesn't distinguish "barely beat BATNA" from "found the
   optimum." Two agents both above BATNA both "win."
 
-### 3.2 Pareto efficiency (NOT YET implemented)
+### 3.2 Pareto efficiency (implemented)
 
 ```
 pareto_efficiency = sum(achieved_scores) / max_pareto_sum
@@ -100,11 +100,11 @@ that beat every faction's BATNA.
 
 - Range: `[0, 1.0]`. 1.0 = group found the joint optimum.
 - Captures: "Did the group leave value on the table?"
-- Status: not implemented. `tests/self_play/verify_scenario_optimum.py`
-  already enumerates all deals and reports Pareto frontier size, so
-  `max_pareto_sum` is computable; the post-game scorer doesn't use it
-  yet. Add a `pareto_efficiency` field to the scoring output that
-  reads the precomputed scenario optimum.
+- Status: ✓ Implemented in
+  `tests/self_play/game_environment.py:548` and
+  `tests/self_play/game_environment.py:684`. The scorer output now
+  includes `achieved_score_sum`, `max_pareto_sum`, and
+  `pareto_efficiency`.
 - Why diagnostic: directly measures the negotiation skill we care
   about most — surfacing existing-but-hidden joint value through
   communication.
@@ -133,7 +133,7 @@ strategy. Candidates:
   agent on a hard scenario may score lower than a naive agent on an
   easy scenario; this metric controls for that.
 
-### 3.4 Process signatures (PARTIAL data available)
+### 3.4 Process signatures (4 deterministic signatures implemented)
 
 A *bundle* of behavioral metrics. Not a single formula; a vector of
 diagnostics that characterize *how* the deal was reached, not just
@@ -141,20 +141,22 @@ diagnostics that characterize *how* the deal was reached, not just
 
 | Signature | Formula | Currently captured? |
 |---|---|---|
-| **Broken-promise rate** | `broken / total_promises` | ✓ state manager tracks promise status |
+| **Broken-promise rate** | `broken / total_promises` | ✓ implemented |
 | **Position-shift count** | Number of times an agent's stated position on an issue changed in response to another agent's argument | Partial — needs LLM-judge over transcript |
-| **Coalition stability** | % of coalitions formed that survived to the final deal | ✓ state manager tracks coalitions; need aggregation |
-| **Time-to-deal** | Round number when deal reached (or `∞` if no deal) | ✓ implicit |
-| **Opening gap** | `|opening_position_value - reached_deal_value| / max_possible` | Partial — needs round 1 position extraction |
+| **Coalition stability** | % of coalitions formed that survived to the final deal | ✓ implemented |
+| **Time-to-deal** | Round number when deal reached (or `∞` if no deal) | ✓ implemented |
+| **Opening gap** | `|opening_position_value - reached_deal_value| / max_possible` | ✓ implemented for exact outcome-name matches |
 | **Concession curve** | Sequence of per-round position values; categorize as linear, geometric, anchor-then-capitulate | Partial — needs round-by-round extraction |
 | **Persuasion shifts caused** | Times *other* agents changed position in response to *your* arguments | Needs LLM-judge over transcript |
 
 - Captures: skill *signature*, not skill *outcome*. Useful when
   outcomes are similar across runs and you want to compare *how*
   agents got there.
-- Status: post-game analyzer (`tests/self_play/analysis.py`) shows
-  promises and coalitions, but doesn't compute these aggregates. The
-  data is there; the aggregation isn't.
+- Status: ✓ Four deterministic signatures implemented in
+  `tests/self_play/analysis.py:26`; report rendering lives at
+  `tests/self_play/analysis.py:146`. Position-shift count, concession
+  curve, and persuasion shifts remain deferred because they need
+  transcript interpretation beyond exact outcome-name matching.
 
 ### 3.5 How they compose
 
@@ -281,11 +283,11 @@ design or compile a scenario → verify with `verify_scenario_optimum.py`
 over naive baseline; process signature distributions; scenario
 verification pass/fail.
 
-**Tech debt to watch.** Post-game scorer only implements BATNA-relative
-(3.1); Pareto efficiency (3.2) and skill premium (3.3) are unimplemented;
-process signature aggregation (3.4) has data but no aggregator; reverse
-scenario builder doesn't exist; scenario compiler still under-pressures
-BATNAs by default (mitigated by `--batna-fraction`).
+**Tech debt to watch.** Skill premium (3.3) is still unimplemented;
+three process signatures (position-shift count, concession curve,
+persuasion shifts caused) still require transcript interpretation;
+reverse scenario builder doesn't exist; scenario compiler still
+under-pressures BATNAs by default (mitigated by `--batna-fraction`).
 
 **Active items.** Game pressure beyond BATNA §2 (round decay,
 exogenous events, asymmetric deadlines, penalty floors, cascade
@@ -337,3 +339,4 @@ Some items touch multiple blocks or sit outside them:
 | 2026-05-31 | Block A "tech debt to watch" updated with Pipeline/Flow separation as the architectural seam for adding new application sequences (StreamFlow, TurnBasedFlow, Clankmates HybridFlow). Active items list updated with §1.7, §1.8, §1.9 from NEXT_STEPS. |
 | 2026-05-31 | Block A reconciliation path coverage moved from active debt to closed debt after Layer 3 `test_phase18_paths.py` covered burst extraction, dedup, fulfillment, inconsistencies, and missed proposals. |
 | 2026-05-31 | Block A Pipeline/Flow split (§1.9) moved from active debt to closed debt (Phase 22): `Pipeline` interface extracted, `EventDrivenFlow` and `RoundSteppedFlow` implemented, `Orchestrator` compat shim, `GameEnvironment` refactored. Tech-debt-to-watch blurb updated to reflect completion. |
+| 2026-05-31 | Phase 23 implemented scoring lenses §3.2 Pareto efficiency and four deterministic §3.4 process signatures. Block C tech debt now tracks only skill premium, transcript-interpretive process signatures, reverse scenario builder, and BATNA pressure defaults. |

@@ -21,7 +21,7 @@ The modular architecture in the main spec was partly designed with testability i
 | 2 — Prompt regression | Prompt quality and constraint compliance | Slow | Low | Before prompt changes go live | **Complete** — infrastructure + 6 starter scenarios |
 | 3 — Pipeline integration | Cross-module behavior, failure handling, transcript replay, Phase 18 reconciliation paths | Medium | Free | Before deployments | **Complete** — 23 tests, 290 total |
 | — Live smoke test | Real Telegram + real LLM end-to-end | Manual | Low | Before first game | **Complete** |
-| 4 — Multi-agent self-play | Game-level behavior, persona coherence | Slow | Medium-high | Final validation before real game | **In progress** — infrastructure + 24 tests |
+| 4 — Multi-agent self-play | Game-level behavior, persona coherence | Slow | Medium-high | Final validation before real game | **In progress** — infrastructure + 37 tests |
 
 ### What Already Exists
 
@@ -1154,7 +1154,7 @@ Run `python src/main.py` on the Pi, then manually test each path:
 
 Self-play runs multiple agent instances against each other in a simulated environment. It validates game-level behavior, persona coherence, extraction quality, and strategic play. See `TUNING_LOG.md` for the full iterative tuning record.
 
-**Status:** Operational. 7 simulation runs completed across 4 scenario types (~$2.50 total). 35 unit tests.
+**Status:** Operational. 8 simulation runs completed across 4 scenario types. 37 unit tests.
 
 ### 6.1 Architecture
 
@@ -1164,7 +1164,7 @@ Self-play runs multiple agent instances against each other in a simulated enviro
 | LoggingLLMClient | `tests/self_play/game_environment.py` | Wraps any LLM client; records every call with full prompts, responses, and timing |
 | Scenario Compiler | `src/tools/scenario_compiler.py` | Converts narrative scenario descriptions into scored persona files via LLM |
 | Simulation Runner | `tests/self_play/run_simulation.py` | CLI entry point with `--scenario` flag for auto-compiled personas |
-| Analysis | `tests/self_play/analysis.py` | Post-game report: promises, coalitions, communication patterns, promise cross-reference |
+| Analysis | `tests/self_play/analysis.py` | Post-game report: promises, coalitions, communication patterns, process signatures, promise cross-reference |
 | Scenario Library | `Multi-Party Negotiation Scenarios.md` | Catalogue of academic, historical, and game-theoretic negotiation scenarios |
 
 ### 6.2 Running Self-Play
@@ -1191,6 +1191,13 @@ The `--scenario` flag compiles the scenario description into per-faction persona
 ```bash
 python -m tests.self_play.analysis --results tests/self_play/results/run.json
 ```
+
+The analysis report includes deterministic process signatures:
+`broken_promise_rate`, `coalition_stability`, `time_to_deal`, and
+per-faction `opening_gap` when scenario scoring tables are present.
+Scenario-backed simulation JSON also includes `pareto_efficiency`,
+`achieved_score_sum`, `max_pareto_sum`, `process_signatures`, and
+`scenario_analysis`.
 
 ### 6.3 Scenario Compiler
 

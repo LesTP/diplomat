@@ -155,3 +155,11 @@ Outcome: Added a synthetic self-play result fixture covering duplicated promise 
 Contract changes: None; this step verifies the process-signature contract added in 23.3.
 
 Tests: `.venv/bin/python -m pytest tests/test_self_play.py` — 37 passed.
+
+### Step 23.5: Scoring docs
+
+Mode: Build
+Outcome: Updated `ASSESSMENT.md` to mark Pareto efficiency and four deterministic process signatures implemented, with code references and Block C debt narrowed to skill premium, transcript-interpretive signatures, reverse scenario builder, and BATNA defaults. Updated `diplomat-testing-doc.md` Layer 4 status and post-game report notes for process signatures and new scoring JSON fields.
+Contract changes: Documentation now reflects the self-play result JSON additions from Phase 23.
+
+Tests: `.venv/bin/python -m pytest` — 316 passed.
