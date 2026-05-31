@@ -23,7 +23,7 @@ from modules.generation import LLMGenerator
 from modules.persona import FileBasedPersona
 from modules.review_gate import AutoApproveReviewGate
 from modules.state_manager import SQLiteStateManager
-from orchestrator import Orchestrator, PipelineConfigError
+from orchestrator import OrchestrationOptions, Orchestrator, PipelineConfigError
 from registry import REGISTRY, RegistryLookupError, resolve_class
 
 
@@ -282,10 +282,12 @@ def _orchestrator(tmp_path, **overrides):
     extractor = overrides.pop("extractor", FakeExtractor())
     transport = overrides.pop("transport", FakeTransport())
     cost_accountant = overrides.pop("cost_accountant", None)
+    options = overrides.pop("options", None)
     config_path = _copy_project_config(tmp_path)
     orchestrator = Orchestrator(
         config_path,
         base_path=tmp_path,
+        options=options,
         llm_client=FakeLLMClient(),
         cost_accountant=cost_accountant,
         module_overrides={
@@ -387,12 +389,12 @@ def test_total_rounds_unset_defaults_to_none(tmp_path, monkeypatch):
         config_path, base_path=tmp_path,
         llm_client=FakeLLMClient(), telegram_client=FakeTelegramClient(),
     )
-    assert orch.total_rounds is None
+    assert orch.options.total_rounds is None
 
 
 def test_total_rounds_set_from_config(tmp_path, monkeypatch):
     """When `game.total_rounds: N` is present and positive, it populates
-    self.total_rounds so the persona's endgame markers can fire."""
+    options.total_rounds so the persona's endgame markers can fire."""
     config_path = _copy_project_config(tmp_path)
     config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
     config["game"] = {"total_rounds": 6}
@@ -404,7 +406,7 @@ def test_total_rounds_set_from_config(tmp_path, monkeypatch):
         config_path, base_path=tmp_path,
         llm_client=FakeLLMClient(), telegram_client=FakeTelegramClient(),
     )
-    assert orch.total_rounds == 6
+    assert orch.options.total_rounds == 6
 
 
 def test_total_rounds_zero_or_negative_ignored(tmp_path, monkeypatch):
@@ -421,7 +423,7 @@ def test_total_rounds_zero_or_negative_ignored(tmp_path, monkeypatch):
         config_path, base_path=tmp_path,
         llm_client=FakeLLMClient(), telegram_client=FakeTelegramClient(),
     )
-    assert orch.total_rounds is None
+    assert orch.options.total_rounds is None
 
 
 def test_total_rounds_non_int_ignored(tmp_path, monkeypatch):
@@ -437,7 +439,17 @@ def test_total_rounds_non_int_ignored(tmp_path, monkeypatch):
         config_path, base_path=tmp_path,
         llm_client=FakeLLMClient(), telegram_client=FakeTelegramClient(),
     )
-    assert orch.total_rounds is None
+    assert orch.options.total_rounds is None
+
+
+def test_orchestration_options_can_disable_auto_response(tmp_path):
+    orchestrator, _event_store, _state_manager, _extractor, _transport = _orchestrator(
+        tmp_path,
+        options=OrchestrationOptions(auto_response_enabled=False, total_rounds=5),
+    )
+
+    assert orchestrator.options.auto_response_enabled is False
+    assert orchestrator.options.total_rounds == 5
 
 
 def test_advance_to_round_sets_round_and_resets_budget(tmp_path):

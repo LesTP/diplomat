@@ -43,3 +43,15 @@ The new method validates positive integer round numbers, sets `current_round`, a
 Tests: `.venv/bin/python -m pytest tests/test_orchestrator.py tests/integration/test_phase18_paths.py -q` (58 passed); `.venv/bin/python -m pytest -q` (292 passed).
 
 Next step: 21.2 extracts `OrchestrationOptions` for `auto_response_enabled` and `total_rounds`.
+
+### Step 21.2: Orchestration options
+
+Mode: Build
+Outcome: Added `OrchestrationOptions` and moved `auto_response_enabled` / `total_rounds` behind `orchestrator.options`. Updated production `main.py`, integration fixtures, and self-play construction to pass options explicitly.
+Contract changes: Public Orchestrator construction shape changed; `ARCH_orchestrator.md` is queued for the Phase 21 doc-update step.
+
+Production still reads `game.total_rounds` from `pipeline.yaml` through `OrchestrationOptions.from_config_path()`. Self-play constructs orchestrators with auto-response disabled and updates `options.total_rounds` before the seed message using `dataclasses.replace()`.
+
+Tests: `.venv/bin/python -m pytest tests/test_orchestrator.py tests/integration/test_phase18_paths.py tests/test_main.py -q` (63 passed); `.venv/bin/python -m pytest -q` (293 passed).
+
+Next step: 21.3 resolves the `StubAnalyst` registry leak.

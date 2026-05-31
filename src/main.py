@@ -10,7 +10,7 @@ from typing import Any
 from dotenv import load_dotenv
 
 from adapters import DiplomatCostGate, ToolkitLLMAdapter
-from orchestrator import Orchestrator, PipelineConfigError
+from orchestrator import OrchestrationOptions, Orchestrator, PipelineConfigError
 
 
 def main() -> None:
@@ -29,6 +29,7 @@ async def run(config_path: str) -> None:
 
     orchestrator = Orchestrator(
         config_path=config_path,
+        options=OrchestrationOptions.from_config_path(config_path),
         llm_client=llm_adapter,
         telegram_client=telegram_client,
         cost_accountant=cost_gate,

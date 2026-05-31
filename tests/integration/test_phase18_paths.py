@@ -13,7 +13,7 @@ import yaml
 
 from modules.reconciliation import StateReconciler
 from modules.types import EventFilter, InboundEvent
-from orchestrator import Orchestrator
+from orchestrator import OrchestrationOptions, Orchestrator
 from tests.helpers.factories import FakeCostAccountant, make_event, make_round_end_event
 from tests.helpers.stub_analyst import StubAnalyst
 from tests.helpers.test_transport import TestTransport
@@ -101,6 +101,7 @@ async def phase18_pipeline(tmp_path: Path) -> Phase18PipelineHarness:
     fixture_path = Path("tests/integration/fixtures/intelligence_stub.json")
     orchestrator = Orchestrator(
         config_path,
+        options=OrchestrationOptions(auto_response_enabled=False),
         llm_client=llm_client,
         cost_accountant=cost_accountant,
         module_overrides={
@@ -114,7 +115,6 @@ async def phase18_pipeline(tmp_path: Path) -> Phase18PipelineHarness:
         orchestrator.llm_configs["primary"],
         tier="commodity",
     )
-    orchestrator.auto_response_enabled = False
     task = asyncio.create_task(orchestrator.start())
     await asyncio.sleep(0)
     harness = Phase18PipelineHarness(

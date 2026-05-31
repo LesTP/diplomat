@@ -10,7 +10,7 @@ import asyncio
 import contextlib
 import json
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -18,7 +18,7 @@ from typing import Any
 import yaml
 
 from modules.types import InboundEvent
-from orchestrator import Orchestrator
+from orchestrator import OrchestrationOptions, Orchestrator
 from tests.helpers.test_transport import TestTransport
 from tests.self_play.scenario import ROUND_UPDATES as DEFAULT_ROUND_UPDATES
 from tests.self_play.scenario import SEED_MESSAGE as DEFAULT_SEED_MESSAGE
@@ -352,6 +352,7 @@ class GameEnvironment:
             overrides.update(self.extra_module_overrides)
             orchestrator = Orchestrator(
                 config_path,
+                options=OrchestrationOptions(auto_response_enabled=False),
                 llm_client=self.llm_client,
                 cost_accountant=self.cost_accountant,
                 module_overrides=overrides,
@@ -528,21 +529,16 @@ class GameEnvironment:
         print(f"  SELF-PLAY SIMULATION — {len(self.agents)} factions, {total_rounds} rounds")
         print(f"{'#'*60}")
 
-        # Tell each faction's orchestrator the game length so the persona can
-        # surface penultimate/final-round endgame reminders. MUST happen before
-        # the seed broadcast — otherwise any orchestrator auto-response triggered
-        # by the seed message sees `total_rounds=None` and prints "Rounds
-        # remaining: unknown" in the round context.
-        # Also disable auto-response triggers (Stage 1 / Model 1 — see
-        # ARCH_conversation_model.md). Each agent gets exactly one response
-        # per round via the explicit `run_response_pipeline()` call in
-        # `run_round()`. Without this, the orchestrator's `_is_direct_address`
-        # trigger fires 3-5 extra generations per agent per round (one per
-        # inbound message mentioning the faction), most of which are silently
-        # lost to real-LLM-latency races against the transport drain.
+        # Tell each faction's orchestrator the game length before the seed
+        # broadcast so persona endgame reminders can render from the first
+        # generation. Auto-response was disabled when each orchestrator was
+        # constructed; self-play drives exactly one explicit response per agent
+        # per round via run_round().
         for handle in self.agents.values():
-            handle.orchestrator.total_rounds = total_rounds
-            handle.orchestrator.auto_response_enabled = False
+            handle.orchestrator.options = replace(
+                handle.orchestrator.options,
+                total_rounds=total_rounds,
+            )
 
         # Seed message.
         print(f"\n[MODERATOR] {self.seed_message[:200]}...")

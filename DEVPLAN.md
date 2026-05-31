@@ -2,7 +2,7 @@
 phase: 21
 blocked: false
 state: execute
-steps_remaining: 6
+steps_remaining: 5
 ---
 
 # Diplomat — Development Plan
@@ -54,7 +54,7 @@ steps_remaining: 6
 ## Current Status
 
 - **Phase** — Phase 21 (Build). Four-phase Build cycle remaining: Phase 21 → 22 → 23 → 24, all pure-build (no operator judgment mid-loop).
-- **Focus** — Phase 21.2: extract `OrchestrationOptions` for `auto_response_enabled` and `total_rounds`.
+- **Focus** — Phase 21.3: resolve the `StubAnalyst` registry leak.
 - **Blocked/Broken** — None.
 
 ## Phase 20: Layer 3 integration tests for Phase 18 paths — Complete
@@ -69,7 +69,7 @@ Prerequisite: Phase 20 (Layer 3 tests) must pass — those tests are the safety 
 
 Steps:
 - [x] **21.1** Add public `Orchestrator.advance_to_round(n)` that sets `current_round` and resets the per-round budget. Update `GameEnvironment.run_round` to call it instead of poking `current_round` directly and calling `_reset_round_budget()` (§1.7 fix #1).
-- [ ] **21.2** Extract `OrchestrationOptions` dataclass holding `auto_response_enabled` and `total_rounds`. Pass at construction; remove these attributes from `Orchestrator.__init__`'s top-level signature. Update `main.py` and `GameEnvironment` call sites (§1.7 fix #2).
+- [x] **21.2** Extract `OrchestrationOptions` dataclass holding `auto_response_enabled` and `total_rounds`. Pass at construction; remove these attributes from `Orchestrator.__init__`'s top-level signature. Update `main.py` and `GameEnvironment` call sites (§1.7 fix #2).
 - [ ] **21.3** Resolve `StubAnalyst` registry leak. Either move `StubAnalyst` to `src/modules/analyst/stub.py` or drop the entry from `src/registry.py` and use `module_overrides` exclusively (already works in `tests/integration/conftest.py`). Update `pipeline_test.yaml` accordingly (§1.7 fix #3).
 - [ ] **21.4** Replace the four bare `try/except Exception: pass` blocks in `Orchestrator._reconcile_state` with logged exceptions (§1.7 fix #4).
 - [ ] **21.5** Add `attribution: str | None = None` and `purpose: str | None = None` kwargs to LLM adapter `complete()` interface. Update `ToolkitLLMAdapter`, `DiplomatCostGate`, and the toolkit's `complete_with_retry` to thread them through (§1.8 fix #1, prep for the cleanup that follows).
