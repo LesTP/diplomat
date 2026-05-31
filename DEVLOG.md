@@ -8,6 +8,54 @@
      module entries to DEVLOG_archive.md during phase completion cleanup.
      Add a boundary marker: <!-- Entries above archived from Module N, YYYY-MM-DD -->
 
+## Phase 19 — tooling debt: dated OpenAI model pricing
+
+### 2026-05-30 — normalize_model_name + updated gpt-5.x prices + Gemini 2.5 family
+
+**Action:** Closed the third tooling-debt item from `NEXT_STEPS.md` sequencing position #1. Cost accountant now resolves dated provider model IDs (e.g. `gpt-4.1-mini-2025-04-14`) back to their pricing-table aliases. Refreshed gpt-5.x prices from the operator-provided pricing page. Added Gemini 2.5 family explicitly. Retroactive audit of the self-play cost ledger: **41.6× overall overestimate** corrected ($24.38 reported → $0.59 real).
+
+**Toolkit changes (`p:\shared\toolkit`):**
+
+- `src/toolkit/cost_accountant/core.py` — new `normalize_model_name()` strips OpenAI `-YYYY-MM-DD` and Anthropic packed `-YYYYMMDD` date suffixes. Used by `estimate_cost()` as a fallback when the exact ID isn't in the pricing table (original ID is preserved in the returned estimate's `model` field for ledger fidelity).
+- `src/toolkit/cost_accountant/types.py` — updated `DEFAULT_PRICING` for gpt-5.5 ($2/$8 → $5/$30), gpt-5.4 ($2/$8 → $2.50/$15), gpt-5.4-mini ($0.40/$1.60 → $0.75/$4.50) per operator's confirmed pricing page. Added Gemini 2.5 family: flash-lite ($0.10/$0.40), flash ($0.30/$2.50), pro ($1.25/$10) — the tuning default `gemini-2.5-flash-lite` previously had no entry.
+- `src/toolkit/cost_accountant/__init__.py` — exported `normalize_model_name` for callers who need it directly.
+- `tests/cost_accountant/test_core.py` — 13 new tests across `TestNormalizeModelName` (6 — strips OpenAI dated, strips Anthropic packed, no-op on undated, no-op on Gemini -001/-002 suffix, only trailing date stripped), `TestDatedModelLookup` (4 — gpt-4.1-mini dated resolves, model field preserves original, dated Anthropic resolves, exact dated Anthropic still works via direct lookup), `TestUpdatedPricing` (4 — gpt-5.5/5.4/5.4-mini new prices, Gemini 2.5 family added with strict cost ordering).
+
+**Retroactive audit on actual self-play cost ledger** (434 successful entries across all Run 1-8 simulations):
+
+| Model | Old reported | Real (post-fix) | Ratio |
+|---|---|---|---|
+| `gpt-4.1-mini-2025-04-14` | $19.7347 | $0.4931 | **40.0×** (normalized → in-table) |
+| `claude-haiku-4-5-20251001` | $2.9857 | $0.0498 | **60.0×** (normalized → in-table) |
+| `gemini-2.5-flash` | $1.6590 | $0.0426 | **38.9×** (was missing from table, now added) |
+| **Total** | **$24.3794** | **$0.5855** | **41.6×** |
+
+The overestimate was entirely driven by the conservative `$15/$75` per-Mtok fallback being hit on every successful call.
+
+**Implications for past run reports:**
+- TUNING_LOG.md Run 1-8 cost figures ("~$5-6 total spend across 8 runs") were ledger-derived, so they were ~6-40× overstated. Real cumulative spend across all self-play runs was closer to ~$0.10-0.15.
+- This doesn't change any experimental conclusion — the relative cost of different models / scenarios / providers was still directionally right.
+- New runs starting now will produce accurate ledger entries.
+
+**What this is NOT:**
+- Not a full pricing audit (NEXT_STEPS §6) — still need to verify Anthropic cache pricing, Gemini thinking-token billing, and review reasoning-model prices (o3, o4-mini). Tracked separately.
+- Not a re-statement of Run 1-8 cost figures in TUNING_LOG. The ledger files themselves still contain the old values; only future entries are accurate. Could re-tally with a one-time script if a clean cost claim is needed for a stakeholder report.
+
+**Verification:**
+- Full toolkit suite: 230 passed (was 217 + 13 new).
+- Full diplomat suite: 273 passed + 3 pre-existing Windows/network-share flakes (unchanged from baseline).
+- Retroactive audit script on real cost ledger: 41.6× overestimate confirmed.
+
+**Files modified:**
+- `p:\shared\toolkit\src\toolkit\cost_accountant\core.py` (normalize_model_name + estimate_cost lookup)
+- `p:\shared\toolkit\src\toolkit\cost_accountant\types.py` (gpt-5.x prices + Gemini 2.5 family)
+- `p:\shared\toolkit\src\toolkit\cost_accountant\__init__.py` (export normalize_model_name)
+- `p:\shared\toolkit\tests\cost_accountant\test_core.py` (13 new tests)
+
+**Next:** Tooling debt is closed (all 3 items). Next sequencing position is #2: live Telegram re-smoke on the Pi.
+
+---
+
 ## Phase 19 — tooling debt: scenario compiler BATNA hardcode
 
 ### 2026-05-30 — Replace "4-8 total" hardcode with fraction-of-max formula; add validator

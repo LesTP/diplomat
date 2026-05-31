@@ -15,13 +15,12 @@ sequenced into phases — that happens once we pick the next concrete run.
 
 ## Suggested Sequencing (recommended order)
 
-1. **Tooling debt** — small focused fixes from the Run 8 Backlog: `LoggingLLMClient` doesn't see SCORE/RECON calls, scenario compiler hardcoded BATNA range, dated OpenAI model pricing. See `Backlog → Tooling debt` below. Estimated: half a day total. Removes accumulated grit before bigger investments.
-2. **Live Telegram re-smoke on Pi** — bridges self-play maturity back to real-deployment readiness. Validates Phase 18 changes (debounce fix, structured_call, cost wiring, reconciliation, retry-with-backoff) against real Telegram update rates. See `Backlog → Live Telegram re-smoke` below.
-3. **Coaching test loop on Pi** — operator coaches one self-play agent via Telegram while other agents run autonomous. Validates the original use case end-to-end; highest-value test not yet run. See §4 below.
-4. **Add OpenRouter to toolkit + run a 4–6 provider Run 9** — biggest experimental payoff per day of work. Google entry uses `gemini-2.5-flash-lite` per TUNING.md §1 default.
-5. **Divorce / pressure-mechanism scenario design** — extends scenario compiler, sets up Run 10
-6. **Stage 2a (K=2 conversation model) + per-round events** — unlocks the next phase of experimentation
-7. **Clankmates discovery → mock → transport** — timeline depends on platform team
+1. **Live Telegram re-smoke on Pi** — bridges self-play maturity back to real-deployment readiness. Validates Phase 18 changes (debounce fix, structured_call, cost wiring, reconciliation, retry-with-backoff) against real Telegram update rates. See `Backlog → Live Telegram re-smoke` below.
+2. **Coaching test loop on Pi** — operator coaches one self-play agent via Telegram while other agents run autonomous. Validates the original use case end-to-end; highest-value test not yet run. See §4 below.
+3. **Add OpenRouter to toolkit + run a 4–6 provider Run 9** — biggest experimental payoff per day of work. Google entry uses `gemini-2.5-flash-lite` per TUNING.md §1 default.
+4. **Divorce / pressure-mechanism scenario design** — extends scenario compiler, sets up Run 10
+5. **Stage 2a (K=2 conversation model) + per-round events** — unlocks the next phase of experimentation
+6. **Clankmates discovery → mock → transport** — timeline depends on platform team
 
 Strategy routing (item #2.5), per-role model strategy (#7), and pricing/accounting audit (#6) are
 dedicated investigations of their own; they slot in after the experimental program produces enough
@@ -484,11 +483,7 @@ confirmed working in production.
 
 - [ ] **Per-faction asymmetric BATNA fractions.** Currently `--batna-fraction` is one number applied to all factions, but real scenarios have asymmetric outside options (alpha has alternatives, beta doesn't). A `--batna-fractions '{"alpha":0.65,"beta":0.35,"gamma":0.50}'` flag (JSON map, same shape as `--per-faction-providers`) would unlock asymmetric-pressure scenarios. Not urgent; revisit if a planned experiment requires it.
 - [ ] **`--force-batna-fraction` post-clamp.** Currently the LLM tries to honor both narrative-explicit BATNAs and the `--batna-fraction` target — could result in inconsistency. A force-flag would post-process the LLM output to clamp values to `target × max`, overriding whatever the LLM produced. Defer until a real test case demands it (operator: "not excited about flag proliferation but whatever it takes").
-- [ ] **Dated model pricing in toolkit.** OpenAI returns
-      `gpt-4.1-mini-2025-04-14` but `cost_accountant`'s pricing table only has
-      `gpt-4.1-mini`. Fallback pricing works but overestimates cost. Fix:
-      strip date suffix when looking up pricing, or maintain a
-      date-suffix-aware mapping.
+- [x] ~~**Dated model pricing in toolkit.**~~ RESOLVED 2026-05-30. Added `normalize_model_name()` in `toolkit.cost_accountant` that strips OpenAI `-YYYY-MM-DD` and Anthropic packed `-YYYYMMDD` date suffixes; `estimate_cost()` uses it as a fallback when exact ID isn't in the table. Updated gpt-5.x prices to match operator-confirmed pricing page. Added Gemini 2.5 family entries. Retroactive audit of 434 successful ledger entries: **41.6× overall overestimate** in past run reports (real spend was $0.59 vs $24.38 reported). See `DEVLOG.md` Phase 19 "dated OpenAI model pricing" entry.
 
 ### Live Telegram re-smoke
 
@@ -551,3 +546,4 @@ Tracked here for visibility; canonical sources remain authoritative.
 | 2026-05-30 | Re-sequenced to prioritize cleanup before exploration: (1) tooling debt, (2) live Telegram re-smoke, (3) coaching test loop, (4) OpenRouter+Run 9, (5) divorce scenario, (6) Stage 2a, (7) Clankmates. Old #1 (OpenRouter+Run 9) demoted to #4. | Operator: "I think I want to sequence next steps as follows: tooling debt, live TG resmoke, coaching test on pi, then the rest" |
 | 2026-05-30 | Added §8 (Reverse scenario builder) and §9 (Voice/style templates). §8 fills the gap that's been implicit in every scenario-design conversation: we need outcome-shape → scenario generation so skill becomes visible. §9 is fun-priority. | Operator: "we should have a scenario builder that runs the analyzer in reverse... also tune voice from templates like Kissinger, Gen Alpha, Iliad, воровская феня." |
 | 2026-05-30 | Marked tooling-debt items #1 (LoggingLLMClient SCORE/RECON) and #2 (scenario compiler BATNA hardcode) as RESOLVED in the Backlog section with closure references to DEVLOG entries. Surfaced four open design questions on BATNA approach (default value, presets, per-faction asymmetric, force-clamp). | Operator: "don't forget to update the docs after a step is done" |
+| 2026-05-30 | Marked tooling-debt item #3 (dated OpenAI model pricing) RESOLVED. All three tooling-debt items closed; suggested sequencing collapsed by removing #1 (Tooling debt). New sequence: (1) live TG re-smoke, (2) coaching test, (3) OpenRouter+Run 9, (4) divorce scenario, (5) Stage 2a, (6) Clankmates. | Operator provided current OpenAI pricing; audit revealed 41.6× overall overestimate from date-suffix lookup miss. |
