@@ -103,3 +103,21 @@ Updated self-play logging tests from wrapper-client assertions to attribution as
 Tests: `.venv/bin/python -m pytest tests/test_self_play.py tests/test_reconciliation.py tests/self_play/verify_dryrun.py ../toolkit/tests/structured_llm/test_core.py -q` (54 passed); `.venv/bin/python -m pytest -q` (296 passed); toolkit targeted tests: structured_llm (19 passed), llm_client (45 passed), cost_accountant (44 passed).
 
 Next step: 21.7 switches `DryRunLLMClient.classify_call()` to read `purpose`.
+
+## 2026-05-31 — Phase 21.7: DryRunLLMClient purpose-based classification
+
+Added `_PURPOSE_TO_CALL_TYPE` dict to `fake_llm_client.py` mapping semantic purpose strings ("generation", "adversarial", "extraction", "analysis", "reconciliation", "compilation", "scoring", "judge") to the internal call-type tokens (GEN, ADV, EXTRACT, ANALYST, RECON, COMPILE, SCORE, JUDGE). Updated `DryRunLLMClient.complete()` to read the `purpose` kwarg from its kwargs dict and resolve call type via that mapping instead of regex-matching the system prompt body.
+
+Added `purpose=` to six `structured_call` / `complete()` invocations that previously lacked it:
+- `src/modules/adversarial/__init__.py` → `"adversarial"`
+- `src/modules/analyst/__init__.py` → `"analysis"`
+- `src/modules/extraction/__init__.py` → `"extraction"`
+- `src/modules/generation/__init__.py` (both JSON and plain paths) → `"generation"`
+- `src/tools/scenario_compiler.py` → `"compilation"`
+Existing sites (`reconciliation` → `"reconciliation"`, `game_environment` → `"scoring"`) were already correct from prior steps.
+
+`classify_call(sys_prompt)` function retained in `fake_llm_client.py` — still used by `verify_dryrun.py` and `inspect_dryrun.py` to re-classify calls from saved JSON result files. Only `DryRunLLMClient` stops using it.
+
+Tests: 296 passed; integration: 23 passed.
+
+Next step: 21.8 — extract `build_reconciler` factory and `subsystem_llm_config` helper.

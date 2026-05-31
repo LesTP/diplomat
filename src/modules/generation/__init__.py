@@ -60,6 +60,7 @@ class LLMGenerator:
             system_prompt=context.system_prompt,
             user_prompt=context.user_prompt,
             max_retries=1,
+            purpose="generation",
         )
 
         if not result.success:
@@ -104,6 +105,7 @@ class LLMGenerator:
                 config=self.llm_config,
                 tier=self.tier,
                 max_tokens=self.max_tokens,
+                purpose="generation",
             )
             if isawaitable(response):
                 response = await response

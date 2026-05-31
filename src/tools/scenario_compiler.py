@@ -283,6 +283,7 @@ async def analyze_scenario(
         system_prompt=build_compiler_system_prompt(batna_fraction),
         user_prompt=f"Analyze the following negotiation scenario:\n\n{scenario_text}",
         max_retries=2,
+        purpose="compilation",
     )
 
     if not result.success:

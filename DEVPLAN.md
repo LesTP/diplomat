@@ -2,7 +2,7 @@
 phase: 21
 blocked: false
 state: execute
-steps_remaining: 1
+steps_remaining: 3
 ---
 
 # Diplomat — Development Plan
@@ -54,7 +54,7 @@ steps_remaining: 1
 ## Current Status
 
 - **Phase** — Phase 21 (Build). Four-phase Build cycle remaining: Phase 21 → 22 → 23 → 24, all pure-build (no operator judgment mid-loop).
-- **Focus** — Phase 21.7: switch `DryRunLLMClient.classify_call()` to the `purpose` kwarg.
+- **Focus** — Phase 21.8: extract `build_reconciler` factory and `subsystem_llm_config` helper.
 - **Blocked/Broken** — None.
 
 ## Phase 20: Layer 3 integration tests for Phase 18 paths — Complete
@@ -74,7 +74,7 @@ Steps:
 - [x] **21.4** Replace the four bare `try/except Exception: pass` blocks in `Orchestrator._reconcile_state` with logged exceptions (§1.7 fix #4).
 - [x] **21.5** Add `attribution: str | None = None` and `purpose: str | None = None` kwargs to LLM adapter `complete()` interface. Update `ToolkitLLMAdapter`, `DiplomatCostGate`, and the toolkit's `complete_with_retry` to thread them through (§1.8 fix #1, prep for the cleanup that follows).
 - [x] **21.6** Delete `_TaggedLLMClient` entirely; reduce `LoggingLLMClient` to ~30 lines that read the new `attribution` kwarg. Remove all three `getattr(client, "_inner", client)` peeks (§1.8 fix #1, completion).
-- [ ] **21.7** Switch `DryRunLLMClient.classify_call()` to read the new `purpose` kwarg instead of regex-matching the prompt body (§1.8 fix #2).
+- [x] **21.7** Switch `DryRunLLMClient.classify_call()` to read the new `purpose` kwarg instead of regex-matching the prompt body (§1.8 fix #2).
 - [ ] **21.8** Extract `build_reconciler(llm_client, llm_providers_config, tier)` factory in `src/modules/reconciliation/__init__.py`. Both `src/main.py` (`_attach_reconciler`) and `tests/self_play/game_environment.py` call it; neither has its own copy. Single helper `subsystem_llm_config(primary, tier="commodity")` for the dict currently duplicated four times (§1.8 fix #3 + #4).
 - [ ] **21.9** Doc update: `ARCHITECTURE.md` (coupling notes — remove references to private-API access from self-play; reconciler factory mention); `ARCH_orchestrator.md` (public `advance_to_round`; `OrchestrationOptions` dataclass; `auto_response_enabled`/`total_rounds` move out of `__init__`); `ARCH_reconciliation.md` (new `build_reconciler` factory); `ASSESSMENT.md` (Block A tech-debt: orchestration cleanup → ✓, LLM adapter cleanup → ✓); `diplomat-testing-doc.md` (§2.3 if `StubAnalyst` location changed).
 

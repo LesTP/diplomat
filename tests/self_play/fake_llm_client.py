@@ -29,6 +29,20 @@ from typing import Any
 
 _GEN_RE = re.compile(r"^You are ([a-zA-Z][\w-]*?) in ", re.MULTILINE)
 
+# Maps the purpose kwarg (set by each module) to the call-type token used
+# internally and in call records.  DryRunLLMClient reads this instead of
+# regex-matching the prompt body.
+_PURPOSE_TO_CALL_TYPE: dict[str, str] = {
+    "generation": "GEN",
+    "adversarial": "ADV",
+    "extraction": "EXTRACT",
+    "analysis": "ANALYST",
+    "reconciliation": "RECON",
+    "compilation": "COMPILE",
+    "scoring": "SCORE",
+    "judge": "JUDGE",
+}
+
 
 def classify_call(system_prompt: str) -> str:
     """Return one of: GEN, ADV, EXTRACT, ANALYST, RECON, COMPILE, SCORE, JUDGE, UNKNOWN."""
@@ -227,7 +241,8 @@ class DryRunLLMClient:
         sys_prompt = system_msg.get("content", "")
         user_prompt = user_msg.get("content", "")
 
-        call_type = classify_call(sys_prompt)
+        purpose = kwargs.get("purpose")
+        call_type = _PURPOSE_TO_CALL_TYPE.get(purpose, "UNKNOWN") if purpose else "UNKNOWN"
         faction = extract_faction_id(sys_prompt) if call_type == "GEN" else None
         round_hint = extract_round_hint(user_prompt) if call_type == "GEN" else {}
 
@@ -236,7 +251,7 @@ class DryRunLLMClient:
             # Unknown call type — return generic empty JSON object.
             response = "{}"
             if self.verbose:
-                print(f"  [dryrun] UNKNOWN call type, sys head: {sys_prompt[:120]!r}")
+                print(f"  [dryrun] UNKNOWN call type, purpose={purpose!r}")
         else:
             response = builder(faction, round_hint)
 

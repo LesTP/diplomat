@@ -60,6 +60,7 @@ class LLMAnalyst:
             system_prompt=self.system_prompt,
             user_prompt=user_prompt,
             max_retries=1,
+            purpose="analysis",
         )
 
         if not result.success:

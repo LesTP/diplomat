@@ -178,6 +178,7 @@ class OpenAIStructuredExtractor:
             user_prompt=user_prompt,
             examples=_EXTRACTION_EXAMPLES,
             max_retries=1,
+            purpose="extraction",
         )
 
         if not result.success:

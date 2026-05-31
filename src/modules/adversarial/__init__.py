@@ -46,6 +46,7 @@ class LLMAdversarialReader:
             system_prompt=self.system_prompt,
             user_prompt=f"Draft response:\n\n{draft}",
             max_retries=1,
+            purpose="adversarial",
         )
 
         if not result.success:
