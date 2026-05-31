@@ -16,3 +16,11 @@ Outcome: Added `tests/integration/test_phase18_paths.py` with a reusable Phase 1
 Contract changes: None.
 
 Verified with `.venv/bin/python -m pytest tests/integration/test_phase18_paths.py -q` and `.venv/bin/python -m pytest tests/ -q` (285 passed). System `python3` still lacks editable `toolkit`, matching the existing project gotcha; the workspace `.venv` path is the valid test runner here.
+
+### Step 20.2: Burst extraction no-drop coverage
+
+Mode: Build
+Outcome: Added `test_burst_extraction_no_drops` to inject five public game events without waiting between sends, then assert all five events persist and all five message extractions create state-change rows. The Phase 18 harness now disables direct-address auto-response so the test isolates the debounce/extraction task set.
+Contract changes: None.
+
+Verified with `.venv/bin/python -m pytest tests/integration/test_phase18_paths.py -q` and `.venv/bin/python -m pytest tests/ -q` (286 passed).

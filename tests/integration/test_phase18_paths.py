@@ -12,7 +12,7 @@ import pytest
 import yaml
 
 from modules.reconciliation import StateReconciler
-from modules.types import InboundEvent
+from modules.types import EventFilter, InboundEvent
 from orchestrator import Orchestrator
 from tests.helpers.factories import FakeCostAccountant, make_event
 from tests.helpers.stub_analyst import StubAnalyst
@@ -114,6 +114,7 @@ async def phase18_pipeline(tmp_path: Path) -> Phase18PipelineHarness:
         orchestrator.llm_configs["primary"],
         tier="commodity",
     )
+    orchestrator.auto_response_enabled = False
     task = asyncio.create_task(orchestrator.start())
     await asyncio.sleep(0)
     harness = Phase18PipelineHarness(
@@ -208,6 +209,27 @@ async def test_phase18_pipeline_fixture_starts(
     assert phase18_pipeline.orchestrator.current_round == 1
     assert phase18_pipeline.task.done() is False
     assert phase18_pipeline.orchestrator.reconciler is not None
+
+
+async def test_burst_extraction_no_drops(phase18_pipeline: Phase18PipelineHarness):
+    events = transcript_burst()
+
+    await inject_transcript_burst(phase18_pipeline.transport, events)
+    await settle_phase18_pipeline()
+
+    stored_events = await phase18_pipeline.orchestrator.event_store.query(
+        EventFilter(limit=10)
+    )
+    changes = await phase18_pipeline.orchestrator.state_manager.query(
+        "state_change_log",
+        {},
+    )
+
+    assert [row.event.content for row in stored_events] == [
+        event.content for event in events
+    ]
+    assert [row["trigger_type"] for row in changes] == ["message"] * 5
+    assert len(changes) == 5
 
 
 async def settle_phase18_pipeline() -> None:
