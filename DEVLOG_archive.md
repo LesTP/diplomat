@@ -2114,3 +2114,96 @@ Outcome: Code review — no must-fix or should-fix items. 290 tests pass. State 
 ### Phase 20 close — 2026-05-31
 
 Phase: Build. 6 steps. Built 6 deterministic integration tests for Phase 18 paths. 290 tests passing. Docs updated. No new gotchas.
+
+## Archived 2026-05-31 — Phase 21
+
+### Phase 21 plan — 2026-05-31
+
+Phase: Build. Scope is module-boundary cleanup across Orchestrator/self-play and LLM adapter attribution plumbing.
+
+Planned steps: 9 executable steps plus loop-managed review/close. The Phase 21 checklist now uses state-machine checkboxes and frontmatter is set to `phase: 21`, `state: execute`.
+
+No implementation changes in this planning action. Existing dirty worktree changes outside `DEVPLAN.md`, `DEVLOG.md`, and `DECISIONS.md` were left untouched.
+
+### Step 21.1: Public round advancement
+
+Mode: Build
+Outcome: Added `Orchestrator.advance_to_round(round_number)` and updated `GameEnvironment.run_round()` to use it instead of assigning `current_round` and calling `_reset_round_budget()` directly.
+Contract changes: Public Orchestrator API added; `ARCH_orchestrator.md` is queued for the Phase 21 doc-update step.
+
+The new method validates positive integer round numbers, sets `current_round`, and resets the per-round budget through the existing budget lifecycle. Added focused tests for successful advancement and invalid round rejection.
+
+Tests: 292 passed.
+
+### Step 21.2: Orchestration options
+
+Mode: Build
+Outcome: Added `OrchestrationOptions` and moved `auto_response_enabled` / `total_rounds` behind `orchestrator.options`. Updated production `main.py`, integration fixtures, and self-play construction to pass options explicitly.
+Contract changes: Public Orchestrator construction shape changed; `ARCH_orchestrator.md` queued.
+
+Production still reads `game.total_rounds` from `pipeline.yaml` through `OrchestrationOptions.from_config_path()`. Self-play constructs orchestrators with auto-response disabled and updates `options.total_rounds` before the seed message using `dataclasses.replace()`.
+
+Tests: 293 passed.
+
+### Step 21.3: Stub analyst registry cleanup
+
+Mode: Build
+Outcome: Removed the test-only `StubAnalyst` entry from `src/registry.py` and updated `config/pipeline_test.yaml` to name `LLMAnalyst`. Integration tests continue to inject `tests.helpers.stub_analyst.StubAnalyst` through `module_overrides`.
+Contract changes: Production registry no longer resolves test helpers.
+
+Tests: 293 passed.
+
+### Step 21.4: Reconciler exception logging
+
+Mode: Build
+Outcome: Replaced four silent `except Exception: pass` blocks in `_reconcile_state()` with contextual log messages for promise deletes, status updates, inconsistency inserts, and missed-proposal inserts.
+Contract changes: None.
+
+Tests: 294 passed.
+
+### Step 21.5: LLM call metadata kwargs
+
+Mode: Build
+Outcome: Added optional `attribution` and `purpose` kwargs to `ToolkitLLMAdapter.complete()` and forwarded them through both direct and cost-accounted paths. Updated toolkit `llm_client.complete()`, `complete_with_retry()`, and `CostAccountant.complete()` to accept/forward the same metadata.
+Contract changes: LLM adapter/toolkit completion interface now accepts optional call metadata.
+
+Tests: 296 passed.
+
+### Step 21.6: Attribution-based self-play logging
+
+Mode: Build
+Outcome: Deleted `_TaggedLLMClient`, removed the `_inner` unwraps in self-play/scenario compilation paths, and switched RECON/SCORE logging tags to `attribution` metadata. `LoggingLLMClient` now prefers `kwargs["attribution"]` over the current faction tag.
+Contract changes: `toolkit.structured_llm.structured_call()` now accepts optional `attribution` and `purpose` kwargs. `StateReconciler` accepts optional attribution and passes `purpose="reconciliation"`.
+
+Tests: 296 passed.
+
+### Step 21.7: DryRunLLMClient purpose-based classification
+
+Mode: Build
+Outcome: Added `_PURPOSE_TO_CALL_TYPE` dict mapping semantic purpose strings to call-type tokens. Updated `DryRunLLMClient.complete()` to read the `purpose` kwarg instead of regex-matching the system prompt. Added `purpose=` to six `structured_call`/`complete()` invocations. `classify_call(sys_prompt)` retained for post-hoc verification tools.
+Contract changes: None (internal to self-play harness).
+
+Tests: 296 passed.
+
+### Step 21.8: build_reconciler factory + subsystem_llm_config helper
+
+Mode: Build
+Outcome: Added `subsystem_llm_config(primary, tier)` and `build_reconciler(llm_client, llm_providers_config, tier, attribution)` to `src/modules/reconciliation/__init__.py`. Updated `src/main.py` `_attach_reconciler`, `game_environment.py` setup/score_game, and `run_simulation.py` compilation to use these factories.
+Contract changes: Two new public exports in reconciliation module.
+
+Tests: 296 passed.
+
+### Step 21.9: Doc update
+
+Mode: Build
+Outcome: Updated `ARCH_reconciliation.md`, `ARCH_orchestrator.md`, `ARCHITECTURE.md`, `ASSESSMENT.md`, `diplomat-testing-doc.md` to reflect Phase 21 changes. All Phase 21 steps complete. State → review.
+Contract changes: None.
+
+### Step 21.R: Phase 21 review
+
+Mode: Review
+Outcome: Code review — no must-fix or should-fix items. 296 tests pass. All DoD criteria met.
+
+### Phase 21 close — 2026-05-31
+
+Phase: Build. 9 steps. Cleaned module boundaries across Orchestrator, self-play harness, and LLM adapter. 296 tests passing. Docs updated. No new gotchas.

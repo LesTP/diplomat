@@ -1,7 +1,7 @@
 ---
-phase: 21
-blocked: false
-state: review
+phase: 22
+blocked: true
+state: close
 steps_remaining: 0
 ---
 
@@ -53,9 +53,13 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 21 (Build). Four-phase Build cycle remaining: Phase 21 → 22 → 23 → 24, all pure-build (no operator judgment mid-loop).
-- **Focus** — Phase 21 review (all steps complete; state=review).
-- **Blocked/Broken** — None.
+- **Phase** — Phase 22 (Build). Three-phase Build cycle remaining: Phase 22 → 23 → 24, all pure-build (no operator judgment mid-loop).
+- **Focus** — Phase 22 plan (Phase 21 complete; awaiting human audit).
+- **Blocked/Broken** — Blocked: awaiting human audit of Phase 21.
+
+## Phase 21: Module boundary cleanup — Complete
+
+Closed 2026-05-31. `OrchestrationOptions` dataclass; public `advance_to_round(n)`; deleted `_TaggedLLMClient`; `attribution`/`purpose` kwargs threaded through adapter stack; `build_reconciler` + `subsystem_llm_config` factories; `StubAnalyst` out of production registry; reconciler exceptions logged. 296 tests passing. See `DEVLOG_archive.md` "Phase 21 close" section.
 
 ## Phase 20: Layer 3 integration tests for Phase 18 paths — Complete
 
