@@ -2,7 +2,7 @@
 phase: 20
 blocked: false
 state: execute
-steps_remaining:
+steps_remaining: 7
 ---
 
 # Diplomat — Development Plan
@@ -54,7 +54,7 @@ steps_remaining:
 ## Current Status
 
 - **Phase** — Phase 20 (Build). Five-phase Build cycle queued: Phase 20 → 21 → 22 → 23 → 24, all pure-build (no operator judgment mid-loop).
-- **Focus** — Phase 20.1: add `tests/integration/test_phase18_paths.py` skeleton with shared fixtures.
+- **Focus** — Phase 20.2: implement `test_burst_extraction_no_drops`.
 - **Blocked/Broken** — None.
 
 ## Phase 20: Layer 3 integration tests for Phase 18 paths (Build)
@@ -64,7 +64,7 @@ Regime: Build. Safety-net phase. Adds deterministic fake-LLM integration tests f
 Why first: refactoring without these tests means relying on self-play runs (expensive, non-deterministic) to catch regressions. With them, every refactor step can run `pytest tests/ -q` for fast confirmation.
 
 Steps:
-- **20.1** Add `tests/integration/test_phase18_paths.py` skeleton with shared fixtures (FakeLLMClient with reconciler-shaped canned responses, transcript-burst helper)
+- [x] **20.1** Add `tests/integration/test_phase18_paths.py` skeleton with shared fixtures (FakeLLMClient with reconciler-shaped canned responses, transcript-burst helper)
 - **20.2** Implement `test_burst_extraction_no_drops` — inject 5 game events in rapid succession, settle, assert all 5 events stored + all 5 produce state_change_log entries (validates per-event task set from Phase 18.6)
 - **20.3** Implement `test_reconciler_dedup` + `test_reconciler_fulfillment` — extractor produces N duplicate promises → reconciler merges; extractor produces promise then kept-signal → reconciler transitions pending→kept
 - **20.4** Implement `test_reconciler_inconsistency` + `test_reconciler_missed_proposal` — extractor produces position then contradiction → reconciler flags inconsistency; reconciler catches proposals the per-message extractor missed
