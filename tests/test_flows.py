@@ -187,6 +187,25 @@ async def test_event_driven_flow_runs_response_for_direct_address():
 
 
 @pytest.mark.asyncio
+async def test_event_driven_flow_does_not_respond_without_address_match():
+    pipeline = FakePipeline()
+    flow = EventDrivenFlow(
+        pipeline=pipeline,
+        transport=FakeTransport(),
+        address_detector=faction_address_detector("england"),
+        message_debounce_seconds=0,
+    )
+
+    await flow.process_event(_event("France asks Germany for terms."))
+    for task in list(flow._extraction_tasks):
+        await task
+
+    assert pipeline.calls == [
+        ("extract", "France asks Germany for terms.", "event-1")
+    ]
+
+
+@pytest.mark.asyncio
 async def test_event_driven_flow_start_reads_transport_and_shutdown_closes():
     events = [_event("one"), _event("two")]
     pipeline = FakePipeline()

@@ -93,3 +93,13 @@ Contract changes: New public `RoundSteppedFlow` class exported from `flows`.
 The self-play driver now uses `Pipeline.advance_to_round()` and `Pipeline.run_response()`, then calls `Pipeline.reconcile_and_analyze()` directly at round end. `[ROUND END]` is still recorded in the transcript log for continuity, but it is no longer injected back through every agent transport to trigger analysis.
 
 Tests: `.venv/bin/python -m pytest tests/test_flows.py tests/test_self_play.py tests/integration` — 58 passed.
+
+### Step 22.5: Pipeline and Flow contract tests
+
+Mode: Build
+Outcome: Expanded `tests/test_pipeline.py` and `tests/test_flows.py` with missing contract cases: `Pipeline.extract_from()` stores an event when no event id is provided, and `EventDrivenFlow` does not trigger a response when the address detector does not match.
+Contract changes: None; this step verifies the public Pipeline/Flow contracts added in 22.1-22.4.
+
+The full regression suite now exercises the new Pipeline/Flow split alongside the existing integration and self-play coverage.
+
+Tests: `.venv/bin/python -m pytest` — 308 passed.

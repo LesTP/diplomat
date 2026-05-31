@@ -104,6 +104,21 @@ async def test_pipeline_event_and_extraction_methods_delegate():
 
 
 @pytest.mark.asyncio
+async def test_pipeline_extract_from_stores_event_when_needed():
+    orchestrator = FakeOrchestrator()
+    pipeline = Pipeline(orchestrator)
+    event = _event("Germany offers support.")
+
+    event_id = await pipeline.extract_from(event)
+
+    assert event_id == "event-1"
+    assert orchestrator.event_store.appended == [(event, 2)]
+    assert orchestrator.calls == [
+        ("extract", "Germany offers support.", "message", "event-1")
+    ]
+
+
+@pytest.mark.asyncio
 async def test_pipeline_operator_round_and_response_methods_delegate():
     orchestrator = FakeOrchestrator()
     pipeline = Pipeline(orchestrator)
