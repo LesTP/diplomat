@@ -215,14 +215,10 @@ async def test_burst_extraction_no_drops(phase18_pipeline: Phase18PipelineHarnes
     events = transcript_burst()
 
     await inject_transcript_burst(phase18_pipeline.transport, events)
-    await settle_phase18_pipeline()
+    changes = await wait_for_state_change_count(phase18_pipeline, 5)
 
     stored_events = await phase18_pipeline.orchestrator.event_store.query(
         EventFilter(limit=10)
-    )
-    changes = await phase18_pipeline.orchestrator.state_manager.query(
-        "state_change_log",
-        {},
     )
 
     assert [row.event.content for row in stored_events] == [
@@ -301,8 +297,101 @@ async def test_reconciler_fulfillment(phase18_pipeline: Phase18PipelineHarness):
     assert after[0]["resolution"] == "France followed through in the transcript."
 
 
+async def test_reconciler_inconsistency(phase18_pipeline: Phase18PipelineHarness):
+    await phase18_pipeline.transport.inject(
+        make_event("France states it needs 20 million gallons this round.")
+    )
+    await phase18_pipeline.transport.inject(
+        make_event("France now says it only needs 15 million gallons.")
+    )
+    await settle_phase18_pipeline()
+
+    assert (
+        await phase18_pipeline.orchestrator.state_manager.query(
+            "inconsistencies",
+            {},
+        )
+        == []
+    )
+    phase18_pipeline.llm_client.reconciliation_responses = [
+        reconciliation_response(
+            new_inconsistencies=[
+                {
+                    "faction_id": "France",
+                    "description": "shifted stated water need from 20M to 15M",
+                    "leverage_value": 0.8,
+                }
+            ],
+            merge_log=["flagged France water-demand shift"],
+        )
+    ]
+
+    await phase18_pipeline.transport.inject(make_round_end_event())
+    await settle_phase18_pipeline()
+
+    rows = await phase18_pipeline.orchestrator.state_manager.query(
+        "inconsistencies",
+        {},
+    )
+    assert len(rows) == 1
+    assert rows[0]["inconsistency_id"] == "recon-France-r1"
+    assert rows[0]["faction_id"] == "France"
+    assert rows[0]["description"] == "shifted stated water need from 20M to 15M"
+    assert rows[0]["leverage_value"] == 0.8
+
+
+async def test_reconciler_missed_proposal(phase18_pipeline: Phase18PipelineHarness):
+    await phase18_pipeline.transport.inject(
+        make_event(
+            "France offers England support in Belgium if England backs France in Spain."
+        )
+    )
+    await settle_phase18_pipeline()
+
+    assert await phase18_pipeline.orchestrator.state_manager.query("promises", {}) == []
+    missed = promise(
+        "recon-france-england-belgium-support",
+        "France",
+        "England",
+        "support in Belgium if England backs France in Spain",
+    )
+    phase18_pipeline.llm_client.reconciliation_responses = [
+        reconciliation_response(
+            missed_proposals=[missed],
+            merge_log=["added missed France-to-England proposal"],
+        )
+    ]
+
+    await phase18_pipeline.transport.inject(make_round_end_event())
+    await settle_phase18_pipeline()
+
+    rows = await phase18_pipeline.orchestrator.state_manager.query("promises", {})
+    assert len(rows) == 1
+    assert rows[0]["promise_id"] == missed["promise_id"]
+    assert rows[0]["from_faction"] == missed["from_faction"]
+    assert rows[0]["to_faction"] == missed["to_faction"]
+    assert rows[0]["content"] == missed["content"]
+    assert rows[0]["status"] == "pending"
+
+
 async def settle_phase18_pipeline() -> None:
     await asyncio.sleep(0.08)
+
+
+async def wait_for_state_change_count(
+    harness: Phase18PipelineHarness,
+    count: int,
+    *,
+    timeout: float = 1.0,
+) -> list[dict[str, Any]]:
+    deadline = asyncio.get_running_loop().time() + timeout
+    while True:
+        rows = await harness.orchestrator.state_manager.query("state_change_log", {})
+        if len(rows) >= count:
+            return rows
+        if asyncio.get_running_loop().time() >= deadline:
+            return rows
+        await asyncio.sleep(0.01)
 
 
 def _tmp_pipeline_config(tmp_path: Path) -> Path:

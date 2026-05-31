@@ -32,3 +32,11 @@ Outcome: Added `test_reconciler_dedup` and `test_reconciler_fulfillment`, drivin
 Contract changes: None.
 
 Verified with `.venv/bin/python -m pytest tests/integration/test_phase18_paths.py -q` and `.venv/bin/python -m pytest tests/ -q` (288 passed).
+
+### Step 20.4: Reconciler inconsistency and missed-proposal coverage
+
+Mode: Build
+Outcome: Added `test_reconciler_inconsistency` and `test_reconciler_missed_proposal`, covering reconciliation-created inconsistency patches and reconciliation-created promise patches for proposals missed by per-message extraction. Replaced the burst test's fixed wait with polling on state-change count to avoid scheduler-sensitive debounce timing.
+Contract changes: None.
+
+Verified with `.venv/bin/python -m pytest tests/integration/test_phase18_paths.py -q` and `.venv/bin/python -m pytest tests/ -q` (290 passed).
