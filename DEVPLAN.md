@@ -1,8 +1,8 @@
 ---
 phase: 19
 blocked: false
-state: discuss
-steps_remaining: 0
+state: execute
+steps_remaining: 1
 ---
 
 # Diplomat — Development Plan
@@ -25,18 +25,34 @@ steps_remaining: 0
   - **Self-play env loading (Run 8 fix).** `tests/self_play/run_simulation.py` calls `load_dotenv()` at module top. Previously only env vars in the parent shell were visible to subprocess SDKs — typically only `OPENAI_API_KEY` was reliable; Anthropic and Google calls silently failed auth.
   - **Per-faction provider routing (Run 8).** Use `--per-faction-providers '{"alpha":{"provider":"openai","model":"gpt-4.1-mini"},...}'` to vary only the Generator per faction. Other modules stay on shared primary/secondary. Verify with `verify_dryrun --expect-providers '{"alpha":"openai",...}'`.
   - **Pre-compiled analysis loader (Run 8).** Use `--analysis-json <path>` to skip live LLM compilation and load a pre-edited analysis JSON (preserves hand-tuned BATNAs, scoring tables, deception tactics). Requires `--scenario` for the seed-message text. Personas are regenerated from the loaded analysis at startup.
-  - **Compiler BATNA anchor (Run 8 surfaced).** `tools/scenario_compiler.py` hardcodes "BATNAs should be low enough (typically 4-8 total)" in its system prompt regardless of narrative. If you need stronger BATNA pressure, hand-edit the analysis JSON and use `--analysis-json` to feed it back in.
-  - **Run live probe before multi-provider games.** `python -m tests.self_play.probe_providers --providers '<same JSON as --per-faction-providers>'` hits each provider once with a trivial JSON request and verifies auth + roundtrip + parse. ~$0.001 total. Catches integration bugs (missing API keys, fence wrapping, model name typos) that `DryRunLLMClient` cannot catch by design (DryRun replaces the LLM client entirely with canned responses, so no real auth/parse path runs). Run this before every multi-provider simulation — Run 8 burned ~14 Gemini calls on silent retry loops because we didn't probe first; Google's free tier here is **20 requests/day** for gemini-2.5-flash, so two failed iterations exhausts the daily budget.
-  - **Google Gemini free-tier quota on this project: 20 requests/day** for `gemini-2.5-flash` (most other Gemini models return `limit: 0`). With a clean 4-round game using ~4-6 gemini GEN calls, that's comfortably 1-3 games per day. Bug-tax (silent retries) can burn 14+ calls per failed attempt — probe first.
+  - ~~**Compiler BATNA anchor (Run 8 surfaced).**~~ **FIXED in Phase 19** (2026-05-30). `tools/scenario_compiler.py` system prompt hardcoded "typically 4-8 total" BATNAs regardless of narrative. Now replaced with a fraction-of-max formula; `--batna-fraction` CLI flag (default 0.50) on both `tools.scenario_compiler` and `tests.self_play.run_simulation`. `validate_batna_pressure()` warns post-hoc if LLM under-sets. See `TUNING.md` §1 BATNA section for semantics; `DEVLOG.md` for the fix.
+  - **Run live probe before multi-provider games.** `python -m tests.self_play.probe_providers --providers '<same JSON as --per-faction-providers>'` hits each provider once with a trivial JSON request and verifies auth + roundtrip + parse. ~$0.001 total. Catches integration bugs (missing API keys, fence wrapping, model name typos) that `DryRunLLMClient` cannot catch by design (DryRun replaces the LLM client entirely with canned responses, so no real auth/parse path runs). Run this before every multi-provider simulation. For Gemini 2.5 *flash* and *pro*, **set `--max-tokens 500` or higher** — their thinking-mode consumes output tokens before producing visible content; default `--max-tokens 50` returns only the opening ` ``` ` fence. `gemini-2.5-flash-lite` has no thinking mode and is unaffected; that's the tuning default.
+  - ~~**Google Gemini free-tier quota on this project: 20 requests/day**~~ **RESOLVED 2026-05-30**. Operator enabled billing on the GCP project + bought $10 credits; now on paid Tier 1 with ~1000+ RPM, hundreds of thousands RPD. Every call billed; at flash-lite rates ($0.10 in / $0.40 out per MTok), $10 buys ~5000 games. No quota concern for normal experimentation. See `TUNING.md` §1 Google defaults.
   - **Follow `RUN_PROTOCOL.md` for any live multi-agent run.** The doc formalizes the pre-flight sequence: define inputs → verify scenario → probe providers → dry-run plumbing → run live → verify output → document. Skip rules and abort conditions are spelled out. Read it once before the first live run of a session.
   - **Phase 18 retroactively reclassified Build → Explore.** Started Build-regime (steps 18.1–18.5), morphed into Explore as work shifted to "run sims and tune." Self-time-boxed by spending. Future cold-start sessions should not be surprised that a planned 6-step phase grew to 16 steps + two named runs (Run 7 Prep, Run 8). See `DEVLOG.md` Phase 18 Close entry for full explanation.
+  - **Phase 19 is operating ad-hoc** — driven by `NEXT_STEPS.md` rather than formal step plan. Multiple shipped items already (retry-with-backoff, LoggingLLMClient SCORE/RECON fix, scenario compiler BATNA fix, dated-pricing fix, production reconciler wiring, production endgame-markers config, SMOKE_RUNBOOK). Each lives in its own `DEVLOG.md` Phase 19 entry. No formal step boundaries; close-out happens when `NEXT_STEPS.md` sequencing position #1 is completed and we decide to formalize Phase 20.
+  - **New canonical docs added Phase 19:** `CLI_REFERENCE.md` (every CLI entry point with flags, defaults, examples), `SMOKE_RUNBOOK.md` (operator-side Pi smoke procedure mapping each Phase 18+19 change to a verification step). Both at project root.
+  - **Toolkit Phase 19 surface required on Pi:** `from toolkit.llm_client import complete_with_retry` and `from toolkit.cost_accountant import normalize_model_name`. Both must import successfully — if they raise ImportError on the Pi, reinstall editable: `incus exec claude-code -- bash -c 'cd /home/claude/workspace/diplomat && .venv/bin/python -m pip install -e ../toolkit'`. See `SMOKE_RUNBOOK.md` §1.3.
+  - **Real Pi deployment mechanism:** `tools/service.sh start` (nohup-based) inside `incus exec claude-code`, default config `pipeline_smoke.yaml` (which already has `TelegramReviewGate`). Not systemd — the unit file at `config/diplomat.service` was never installed. See `SMOKE_RUNBOOK.md` §2 and `CLI_REFERENCE.md`.
+  - **Production reconciler now wired** (Phase 19, 2026-05-30). `src/main.py` attaches a `StateReconciler` using the primary provider's commodity tier; fires at every round boundary before analysts. Closes Phase 18 gap. Self-play harness's per-faction wiring still wins via last-write-overrides.
+  - **`game.total_rounds` optional config** (Phase 19, 2026-05-30). When set in `pipeline.yaml`, `Orchestrator.__init__` reads it and the persona's PENULTIMATE/FINAL ROUND markers fire. Unset means production stays endgame-blind — fine for games where the round count is unknown.
 
 ## Current Status
 
-- **Phase** — Phase 19 (Discuss). Phase 18 closed 2026-05-30 with regime-shift acknowledgment.
-- **Focus** — Operator selects next concrete work from `NEXT_STEPS.md`. Likely first item: Google billing tier check (item #1) or coaching test loop on Pi (item #4).
+- **Phase** — Phase 19 (Execute, ad-hoc per `NEXT_STEPS.md`). Phase 18 closed 2026-05-30 with regime-shift acknowledgment.
+- **Focus** — `NEXT_STEPS.md` sequencing position #1: **live Telegram re-smoke on Pi**. Operator runs `SMOKE_RUNBOOK.md` end-to-end on the Pi container, then logs outcomes in DEVLOG. All Phase 18+19 changes (debounce fix, structured_call, cost wiring + dated-pricing normalization, retry-with-backoff, production reconciler, production endgame-markers config, SMOKE_RUNBOOK) are in place ready to be exercised by the smoke.
+- **Shipped in Phase 19 so far** (each has its own `DEVLOG.md` entry):
+  - `toolkit/llm_client.complete_with_retry` (exponential backoff on 429/5xx/empty)
+  - `toolkit/cost_accountant.normalize_model_name` + refreshed gpt-5.x / Gemini 2.5 prices (fixes ~41× cost-ledger overestimate from dated-ID lookup miss)
+  - LoggingLLMClient SCORE/RECON visibility (`_TaggedLLMClient` wrapper for self-play call attribution)
+  - Scenario compiler BATNA hardcode replaced with fraction-of-max formula + `--batna-fraction` CLI + post-hoc `validate_batna_pressure()`
+  - Production `_attach_reconciler` in `main.py`
+  - Optional `game.total_rounds` in `pipeline.yaml`, read by `Orchestrator.__init__`
+  - `CLI_REFERENCE.md` (project root) — every CLI entry point with flags/defaults/examples
+  - `SMOKE_RUNBOOK.md` (project root) — operator-side Pi smoke procedure
+  - `tools/inspect_ledger.py` rewritten with CLI args (`--selfplay`, `--path`, `--show`) and bug fix
 - **Blocked/Broken** — None.
-- **Reference docs** — `NEXT_STEPS.md` (forward-looking backlog), `TUNING_LOG.md` (run-by-run record through Run 8), `ARCH_conversation_model.md` (Stage 1/2/3 migration), `RUN_PROTOCOL.md` (pre-flight for live runs).
+- **Reference docs** — `NEXT_STEPS.md` (forward-looking backlog + Run 8 review TODOs), `SMOKE_RUNBOOK.md` (Pi smoke procedure), `CLI_REFERENCE.md` (every flag), `TUNING.md` (operator tuning manual with BATNA + Google sections), `TUNING_LOG.md` (run-by-run record through Run 8), `ARCH_conversation_model.md` (Stage 1/2/3 migration), `RUN_PROTOCOL.md` (pre-flight for self-play live runs).
 
 ## Next Steps: Modularization Roadmap
 
@@ -116,19 +132,30 @@ Remove game-specific flow assumptions (round boundaries, direct-address triggers
 - [ ] **ClankmatesTransport.** If the game moves to Clankmates platform, build a polling-based transport (no webhooks). Keep Telegram for operator coaching.
 - [ ] **Multi-game support.** Run multiple instances with different faction prompts and databases for parallel games.
 
-## Phase 19: Next Steps (Discuss)
+## Phase 19: Next Steps (Execute, ad-hoc)
 
-Regime: Discuss → likely Explore once a concrete first item is selected. Scope is set by operator review of `NEXT_STEPS.md`. No specific steps committed yet; this phase starts when the operator picks a first work item.
+Regime: Execute, driven by `NEXT_STEPS.md` rather than a formal step list. Each completed item has its own `DEVLOG.md` Phase 19 entry. No formal step boundaries between items; phase closes when sequencing position #1 (currently: live TG re-smoke on Pi) is done and we decide whether to formalize Phase 20.
 
-Candidate first items (from NEXT_STEPS.md suggested sequencing):
-1. Google billing tier check (10 min, may unlock items #1 and #1.5)
-2. OpenRouter integration + Run 9 (1 day, biggest experimental payoff)
-3. Coaching test loop on Pi (1 day, validates original use case)
-4. Divorce / pressure-mechanism scenario design (2–3 days, sets up Run 10)
-5. Stage 2a conversation model + per-round events (2 days)
-6. Clankmates discovery → mock → transport (timeline depends on platform team)
+**Currently active (sequencing position #1):** live Telegram re-smoke on Pi per `SMOKE_RUNBOOK.md`. Operator-driven, manual checklist. Outcomes get logged in DEVLOG when complete.
 
-Open-ended TODO backlog in NEXT_STEPS.md covers: Run 8 follow-up investigations (Pareto-optimal Shared deal, reconciliation status transitions, inconsistency detection), tooling debt (LoggingLLMClient wrapper unwrap, scenario compiler BATNA hardcoding, dated model pricing), and live Telegram re-smoke.
+**Shipped so far in Phase 19** (each has a dedicated DEVLOG entry):
+- toolkit `complete_with_retry` (exponential backoff on 429/5xx/empty)
+- toolkit `normalize_model_name` + refreshed pricing table (closed ~41× cost-ledger overestimate)
+- LoggingLLMClient SCORE/RECON visibility via `_TaggedLLMClient` wrapper
+- scenario_compiler BATNA fraction-of-max formula + `--batna-fraction` CLI + validator
+- production `_attach_reconciler` in `src/main.py`
+- optional `game.total_rounds` in `pipeline.yaml`, read by `Orchestrator.__init__`
+- `CLI_REFERENCE.md`, `SMOKE_RUNBOOK.md` (both at project root)
+- `tools/inspect_ledger.py` rewritten with CLI args + bug fix
+
+**Queued after sequencing #1 closes** (per `NEXT_STEPS.md`):
+1. Coaching test loop on Pi (validates the operator-coaching workflow end-to-end)
+2. OpenRouter integration + Run 9 (multi-provider rotated assignments)
+3. Divorce / pressure-mechanism scenario design
+4. Stage 2a (K=2 conversation model) + per-round events
+5. Clankmates discovery → mock → transport
+
+Dedicated investigations tracked separately in `NEXT_STEPS.md` (§6 pricing audit, §7 per-role model strategy, §8 reverse scenario builder, §9 voice/style templates).
 
 ## Phase 18: Layer 4 — Multi-Agent Self-Play + Tuning
 

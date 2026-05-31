@@ -17,7 +17,7 @@ Cross-references point at fuller discussion in `TUNING.md`, `DEVPLAN.md`,
 
 | I want to... | Use |
 |---|---|
-| Run the production Telegram bot | [`src/main.py`](#srcmainpy--diplomat-bot-production-entry-point) |
+| Run the production Telegram bot | [`tools/service.sh`](#toolsservicesh--bot-lifecycle-manager) (wraps [`src/main.py`](#srcmainpy--diplomat-bot-production-entry-point)) |
 | Run a multi-agent self-play game | [`tests.self_play.run_simulation`](#testsself_playrun_simulation--multi-agent-self-play-runner) |
 | Validate plumbing without spending money | `--dry-run` flag on `run_simulation` |
 | Compile a narrative scenario into personas | [`tools.scenario_compiler`](#toolsscenario_compiler--narrative--scored-personas) |
@@ -36,8 +36,11 @@ Cross-references point at fuller discussion in `TUNING.md`, `DEVPLAN.md`,
 
 ### `src/main.py` — Diplomat bot (production entry point)
 
+Direct invocation. Most operators should use `tools/service.sh` instead
+(see below) — it wraps this with nohup + PID tracking + log redirection.
+
 ```bash
-python src/main.py
+PYTHONPATH=src python src/main.py
 ```
 
 No CLI flags. Configuration via environment variables (read from `.env` or shell):
@@ -54,8 +57,34 @@ No CLI flags. Configuration via environment variables (read from `.env` or shell
 | `GOOGLE_API_KEY` | depends | Required when any module routes to `google` |
 | `OPENROUTER_API_KEY` | depends | Required when any module routes to `openrouter` |
 
-Lifecycle managed by `config/diplomat.service` on the Pi (systemd).
-See `diplomat-testing-doc.md` §5b for two-channel Telegram setup walkthrough.
+Lifecycle (when not using `tools/service.sh`) managed by `config/diplomat.service`
+on the Pi (systemd). See `diplomat-testing-doc.md` §5b for two-channel Telegram
+setup walkthrough.
+
+### `tools/service.sh` — bot lifecycle manager
+
+The established mechanism for running the bot in the Pi container. Wraps
+`src/main.py` with nohup, a PID file (`.diplomat.pid`), and log redirection
+(`logs/diplomat.log`). Designed to be callable from inside or outside the
+container (wrap with `incus exec claude-code -- bash <path>` from outside).
+
+```bash
+bash tools/service.sh start              # background, default config
+bash tools/service.sh status             # show PID + running state
+bash tools/service.sh logs [N]           # tail N lines (default 50)
+bash tools/service.sh stop               # SIGTERM → 5s wait → SIGKILL
+bash tools/service.sh restart            # stop + start
+
+# With non-default config:
+DIPLOMAT_PIPELINE_CONFIG=config/pipeline.yaml bash tools/service.sh start
+```
+
+| Env var | Default | Notes |
+|---|---|---|
+| `DIPLOMAT_PIPELINE_CONFIG` | `config/pipeline_smoke.yaml` | Override to use production config or any other |
+
+See `SMOKE_RUNBOOK.md` §2 for the canonical wrapped-in-incus invocation
+sequence.
 
 ---
 
@@ -240,12 +269,21 @@ a different results file. (Not yet flag-driven.)
 ### `tools/inspect_ledger.py`
 
 ```bash
-python tools/inspect_ledger.py
+python tools/inspect_ledger.py                  # production ledger (data/cost_ledger.jsonl)
+python tools/inspect_ledger.py --selfplay       # self-play temp ledger
+python tools/inspect_ledger.py --path some/path # explicit path
+python tools/inspect_ledger.py --show 50        # more timeline rows
 ```
 
-Reads `%TEMP%/diplomat_selfplay/cost_ledger.jsonl` (hardcoded). Prints total
-spend, by-operation breakdown, and a cumulative timeline. Use after a live
-run to sanity-check costs against the LLM provider dashboard.
+| Flag | Default | Notes |
+|---|---|---|
+| `--selfplay` | off | Use `$TMPDIR/diplomat_selfplay/cost_ledger.jsonl` instead of production |
+| `--path PATH` | — | Explicit path (overrides both above) |
+| `--show N` | `30` | Leading-rows count in the cumulative-spend timeline (trailing rows = max(10, N/3)) |
+
+Prints total entries, total spend, by-operation breakdown, by-model
+breakdown, cumulative timeline, and any failures. Use after a live run
+to sanity-check costs against the LLM provider dashboard.
 
 ### `tools/inspect_run7.py`
 
@@ -339,3 +377,4 @@ procedure to validate the Diplomat bot on the Raspberry Pi after code changes.
 |---|---|
 | 2026-05-30 | Initial draft — covers production entry, self-play, scenario_compiler, prompt regression. |
 | 2026-05-30 | Expanded: added inspection-tools section, env-var table for `main.py`, workflow examples, by-purpose quick index, toolkit cross-reference, examples for every command. |
+| 2026-05-30 | Documented `tools/service.sh` (the actual bot-lifecycle mechanism — nohup-based wrapper around `src/main.py`). Updated `tools/inspect_ledger.py` entry to match the new flag-driven version (`--selfplay`, `--path`, `--show`). Updated by-purpose quick index to route "run the bot" at `service.sh`. |

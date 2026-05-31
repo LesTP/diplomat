@@ -15,118 +15,198 @@ try; longer if any check fails.
 
 ## 1. Pre-flight (do not skip)
 
-### 1.1 Sync code on Pi
+**Architecture reminder.** The Pi mounts the network share, and an **incus
+container `claude-code`** re-mounts that share at
+`/home/claude/workspace/`. The diplomat venv lives **inside the container**
+at `/home/claude/workspace/diplomat/.venv` (not on the share). Code edits
+made on the P: share are visible inside the container immediately (same
+files via the mount), but the venv + Python must be reached via
+`incus exec`. Almost every command below is prefixed accordingly.
+
+### 1.1 No code sync needed
+
+Code on the P: share *is* code in the container (same files via mount).
+If the bot was already running in foreground or systemd, restart it to
+pick up Python import changes — but you don't need to `git pull`.
+
+### 1.2 Verify the container is alive and reachable
 
 ```bash
-ssh claude@<pi>
-cd /home/claude/workspace/diplomat
-git fetch && git status -sb
-# Confirm we're on main and up-to-date with origin
-git pull --ff-only
+incus list claude-code
+# Should show RUNNING.
 
-cd /home/claude/workspace/toolkit
-git fetch && git status -sb
-git pull --ff-only
+incus exec claude-code -- ls /home/claude/workspace/diplomat/src/main.py
+incus exec claude-code -- ls /home/claude/workspace/toolkit/src/toolkit
+# Both should succeed (workspace mounted).
 ```
 
-Latest commits expected (as of 2026-05-30):
-- diplomat HEAD: `acae7af [diplomat] docs: close tooling-debt #3...`
-- toolkit HEAD: `bce696b cost_accountant: normalize dated model IDs...`
+### 1.3 Verify the venv + toolkit + Phase 19 surface
 
-### 1.2 Reinstall toolkit editable
-
-Toolkit shipped two changes since the last smoke (`complete_with_retry`,
-`normalize_model_name`). The editable install needs to see them.
+This is the single most important pre-flight check.
 
 ```bash
-cd /home/claude/workspace/diplomat
-.venv/bin/python -m pip install -e ../toolkit
-.venv/bin/python -c "from toolkit.llm_client import complete_with_retry; print('retry OK')"
-.venv/bin/python -c "from toolkit.cost_accountant import normalize_model_name; print('normalize OK')"
+incus exec claude-code -- bash -c "cd /home/claude/workspace/diplomat && \
+  .venv/bin/python --version && \
+  .venv/bin/python -c 'import toolkit; print(toolkit.__file__)' && \
+  .venv/bin/python -c 'from toolkit.llm_client import complete_with_retry; print(\"retry OK\")' && \
+  .venv/bin/python -c 'from toolkit.cost_accountant import normalize_model_name; print(\"normalize OK\")' && \
+  .venv/bin/python -c 'from modules.reconciliation import StateReconciler; print(\"reconciler OK\")'"
 ```
 
-Both lines should print without ImportError.
-
-### 1.3 Verify `.env`
-
-```bash
-grep -E '^(TELEGRAM_BOT_TOKEN|DIPLOMAT_PUBLIC_CHANNEL_ID|DIPLOMAT_COACHING_CHANNEL_ID|DIPLOMAT_OPERATOR_USER_IDS|OPENAI_API_KEY|ANTHROPIC_API_KEY)=' .env | cut -d= -f1
+Expected output (5 lines, no errors):
+```
+Python 3.X.Y
+/home/claude/workspace/toolkit/src/toolkit/__init__.py
+retry OK
+normalize OK
+reconciler OK
 ```
 
-All 6 keys should print. Don't echo values.
-
-### 1.4 Flip review_gate to TelegramReviewGate
-
-Currently `config/pipeline.yaml` defaults to `AutoApproveReviewGate` (safe).
-For this smoke we want the real review gate:
+If line 2 shows a `site-packages/` path instead of `/home/claude/workspace/`,
+the toolkit install is non-editable. Re-install editable:
 
 ```bash
-# Confirm current state
-grep -A1 'review_gate:' config/pipeline.yaml | head -4
-# Should show: class: AutoApproveReviewGate
-
-# Flip it
-sed -i 's/class: AutoApproveReviewGate/class: TelegramReviewGate/' config/pipeline.yaml
-grep 'class: TelegramReviewGate' config/pipeline.yaml
-# Should show one match
+incus exec claude-code -- bash -c "cd /home/claude/workspace/diplomat && \
+  .venv/bin/python -m pip install -e ../toolkit"
 ```
 
-**Do not commit this change unless you decide to flip the production default.**
-Either revert after the smoke (`git checkout config/pipeline.yaml`) or commit
-intentionally with a clear message.
+If lines 3-5 fail with ImportError, the toolkit version in the container
+is pre-Phase-19. Same fix.
 
-### 1.5 Run the full test suite locally on the Pi
+If `modules.reconciliation` import fails (line 5), check `PYTHONPATH=src`
+is being passed when needed — it's not in this raw probe.
+
+### 1.4 Verify `.env`
 
 ```bash
-PYTHONPATH=src .venv/bin/python -m pytest tests/ -q
+incus exec claude-code -- bash -c "cd /home/claude/workspace/diplomat && \
+  grep -E '^(TELEGRAM_BOT_TOKEN|DIPLOMAT_PUBLIC_CHANNEL_ID|DIPLOMAT_COACHING_CHANNEL_ID|DIPLOMAT_OPERATOR_USER_IDS|OPENAI_API_KEY|ANTHROPIC_API_KEY)=' .env | cut -d= -f1"
 ```
 
-Expected: 273 passed + up to 3 pre-existing Windows/network-share timing
-flakes. On the Pi (Linux, local disk) the flakes may not reproduce — should
-be cleanly 273 passed. If anything else fails, stop and investigate before
-the live smoke.
+All 6 keys should print (`TELEGRAM_BOT_TOKEN`, `DIPLOMAT_PUBLIC_CHANNEL_ID`,
+`DIPLOMAT_COACHING_CHANNEL_ID`, `DIPLOMAT_OPERATOR_USER_IDS`,
+`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`). Don't echo values.
 
-### 1.6 Inspect existing cost ledger (one-time forensic)
+### 1.5 Choose pipeline config
 
-```bash
-ls -la $TMPDIR/diplomat_selfplay/cost_ledger.jsonl 2>/dev/null || \
-    ls -la /tmp/diplomat_selfplay/cost_ledger.jsonl 2>/dev/null
+Two configs are available:
+
+| Config | When | What it gives you |
+|---|---|---|
+| `config/pipeline_smoke.yaml` | **This smoke** — matches what the bot was running before | Both providers OpenAI (no Anthropic key needed), all tiers `gpt-5.4-mini`, `TelegramReviewGate` already set, tight budgets ($0.50/round, $2.00/session), adversarial disabled |
+| `config/pipeline.yaml` | Production (real game with full quality) | OpenAI + Anthropic, varied tiers, defaults to `AutoApproveReviewGate` (safe), larger budgets, adversarial enabled |
+
+For this re-smoke, **stay on `pipeline_smoke.yaml`** — it's what was running
+before, has TelegramReviewGate already, and is cheap. No edits to it needed.
+The default for `tools/service.sh` is already `pipeline_smoke.yaml`.
+
+If you want to test the production config later (with Anthropic secondary
+and adversarial), set `DIPLOMAT_PIPELINE_CONFIG=config/pipeline.yaml` when
+running the service.
+
+### 1.6 (Optional) Enable endgame markers
+
+For an even more realistic smoke that exercises §3.9, uncomment the
+`game:` section in `config/pipeline_smoke.yaml` (or `config/pipeline.yaml`
+if you're using that). The block isn't currently in `pipeline_smoke.yaml`
+— add it after `cost:` if you want endgame markers:
+
+```yaml
+game:
+  total_rounds: 4    # any small number; lets you cycle through PENULTIMATE/FINAL
 ```
 
-If present and large, this is the historical ledger. After the smoke we'll
-inspect the *new* entries to confirm the dated-pricing fix took effect.
-Note current line count for the diff:
+Skip if you'd rather keep the smoke minimal and verify endgame markers
+later. Either way is fine — production default leaves it off.
+
+### 1.7 Run the test suite inside the container
 
 ```bash
-wc -l /tmp/diplomat_selfplay/cost_ledger.jsonl
+incus exec claude-code -- bash -c "cd /home/claude/workspace/diplomat && \
+  PYTHONPATH=src .venv/bin/python -m pytest tests/ -q"
+```
+
+Expected: 280 passed. On the container's local disk (vs the P: network
+share where tests run on Windows), the pre-existing Windows/network-share
+timing flakes should NOT reproduce. If anything other than "280 passed"
+appears, stop and investigate before the live smoke.
+
+### 1.8 Snapshot the current cost ledger
+
+Production ledger lives in `data/cost_ledger.jsonl` per `pipeline.yaml`
+`cost.ledger_path` (not the self-play temp path). Use the production
+inspector:
+
+```bash
+incus exec claude-code -- bash -c "cd /home/claude/workspace/diplomat && \
+  python tools/inspect_ledger.py"
+```
+
+If "NO LEDGER FOUND" or "(empty ledger)" — that's fine, file gets created
+on first call. Note the line count for the diff:
+
+```bash
+incus exec claude-code -- bash -c "cd /home/claude/workspace/diplomat && \
+  wc -l data/cost_ledger.jsonl 2>/dev/null || echo 'ledger does not exist yet'"
 ```
 
 ---
 
 ## 2. Start the bot
 
-### 2.1 Foreground mode (recommended for first smoke run)
+### 2.1 Start via `tools/service.sh` (matches prior deployment)
+
+The bot was previously run via `tools/service.sh start` — a nohup-based
+mini-service manager. Use the same mechanism for the smoke so you're
+testing the actual deployment path.
 
 ```bash
-cd /home/claude/workspace/diplomat
-PYTHONPATH=src .venv/bin/python src/main.py
+# Start the bot (uses pipeline_smoke.yaml by default)
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh start
+
+# Confirm it's running
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh status
+
+# Tail the log to watch live activity
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh logs 100
 ```
 
-**Expected first-line output:**
+**Expected first lines in `logs/diplomat.log`:**
 ```
-DIPLOMAT ONLINE - Round 1 - <faction_id> - session budget $10.00
+DIPLOMAT ONLINE - Round 1 - <faction_id> - session budget $2.00
 ```
 
-If you get import errors or `TELEGRAM_BOT_TOKEN is required`, stop and fix.
+(Note: `$2.00` not `$10.00` because `pipeline_smoke.yaml` has a tight
+session budget. Production `pipeline.yaml` would show `$10.00`.)
 
-### 2.2 (Alternative) systemd mode
+For continuous log watching:
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl restart diplomat.service
-sudo systemctl status diplomat.service
-journalctl -u diplomat.service -f
+incus exec claude-code -- bash -c "tail -f /home/claude/workspace/diplomat/logs/diplomat.log"
 ```
+
+(Open this in a second terminal so you can keep the first one for issuing
+service commands.)
+
+### 2.2 Stop and restart
+
+```bash
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh stop
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh restart
+```
+
+`stop` is graceful (SIGTERM, 5-sec wait, then SIGKILL if still alive).
+`restart` is just `stop` + `start`.
+
+### 2.3 If you want production config (with Anthropic + adversarial)
+
+```bash
+incus exec claude-code -- bash -c "cd /home/claude/workspace/diplomat && \
+  DIPLOMAT_PIPELINE_CONFIG=config/pipeline.yaml bash tools/service.sh start"
+```
+
+Requires `ANTHROPIC_API_KEY` in `.env`. Cost will be higher per round
+(~$0.05–0.15 vs ~$0.005–0.01 for smoke).
 
 ---
 
@@ -175,14 +255,16 @@ Indirect check (if you don't see errors and the report is populated, structured_
 
 Every LLM call should now route through `CostAccountant.complete()` and
 write a ledger entry. Combined with the Phase 19 fixes:
-- Dated model IDs (e.g. `gpt-4.1-mini-2025-04-14`) should resolve correctly
+- Dated model IDs (e.g. `gpt-4.1-mini-2025-04-14`, `claude-haiku-4-5-20251001`) should resolve correctly via `normalize_model_name`
 - gpt-5.x and Gemini 2.5 prices should be accurate
 
-- [ ] After the round-end analyst calls fire (§3.3), check the cost ledger:
+- [ ] After the round-end analyst calls fire (§3.3), inspect the production cost ledger:
   ```bash
-  tail -5 /tmp/diplomat_selfplay/cost_ledger.jsonl
+  incus exec claude-code -- bash -c "cd /home/claude/workspace/diplomat && \
+    python tools/inspect_ledger.py"
   ```
-- [ ] **NEW entries** (those after step 1.6's snapshot) should have realistic per-call costs (e.g. ~$0.0005-$0.005 per analyst call on gpt-4.1-mini), NOT the conservative $15/$75 fallback (would show as $0.01-$0.10 per call for small token counts)
+  (Defaults to production `data/cost_ledger.jsonl`. Pass `--selfplay` for the temp self-play ledger.)
+- [ ] **NEW entries** (those after §1.8's snapshot) should have realistic per-call costs (e.g. ~$0.0005-$0.005 per analyst call on gpt-5.4-mini, the primary commodity tier), NOT the conservative $15/$75 fallback (would show as $0.01-$0.10 per call for small token counts)
 - [ ] `/ledger` from coaching channel should match the on-disk total
 - [ ] After 4-5 LLM calls, `/ledger` should show non-trivial-but-reasonable spend (think pennies, not dollars)
 
@@ -237,7 +319,12 @@ path end-to-end in production.
 - [ ] Send `ROUND 1` (or matching `round_detection.pattern`) to trigger round boundary
 - [ ] Wait ~10–20 sec for round-boundary processing (reconciler + analysts)
 - [ ] `/state` from coaching channel should show **one** promise entry, not three duplicates
-- [ ] Cost ledger should show a NEW entry tagged with the scorer's prompt OR — for the production path — a RECON call (look at the system prompt prefix in `tail` of the JSONL — should contain "negotiation state reconciler")
+- [ ] Cost ledger should show a NEW entry corresponding to the RECON call — easiest to spot via `inspect_ledger.py`:
+  ```bash
+  incus exec claude-code -- bash -c "cd /home/claude/workspace/diplomat && \
+    python tools/inspect_ledger.py | tail -20"
+  ```
+  Look for the "Cumulative spend timeline" — a new entry should have appeared since §1.8's snapshot, with timestamp near the round-boundary fire.
 - [ ] Log output: no exceptions from `_reconcile_state`; if reconciler crashes, orchestrator alerts the operator
 
 **If reconciler fires but doesn't dedup:** reconciler ran but LLM didn't
@@ -319,15 +406,17 @@ disabling if budget is tight; the review gate provides the human-eye check.
 ### 5.1 Diff the cost ledger
 
 ```bash
-# Compare new entries to baseline from §1.6
-wc -l /tmp/diplomat_selfplay/cost_ledger.jsonl   # should be > baseline
-tail -20 /tmp/diplomat_selfplay/cost_ledger.jsonl
+# Compare new entries to baseline from §1.8
+incus exec claude-code -- bash -c "cd /home/claude/workspace/diplomat && \
+  python tools/inspect_ledger.py --show 50"
 ```
 
-Spot-check a few new entries:
-- `model` field shows the dated ID (e.g. `gpt-4.1-mini-2025-04-14`)
-- `cost_usd` is in the cents range, not dollars
-- `cumulative_session_usd` is consistent across entries
+Spot-check:
+- "Total entries" went up by ~6-20 (round-boundary + response-pipeline calls during the smoke)
+- "Total spent" is in the cents range (e.g. $0.02–0.20), not dollars
+- "By operation" shows `analysis`, `generation`, `reconciler` (or similar) — not just `?`
+- "By model" shows the dated ID (`gpt-5.4-mini-YYYY-MM-DD`) resolved correctly (cost per entry is realistic — `$0.0005–0.005`-ish per call, NOT `$0.05+` per call which would indicate the fallback hit)
+- "Failures" section either absent or contains transient errors only (rate limits, etc.)
 
 ### 5.2 Restore review_gate (or commit the flip)
 
@@ -349,9 +438,12 @@ git push
 ### 5.3 Stop bot
 
 ```bash
-# Foreground: Ctrl-C
-# systemd: sudo systemctl stop diplomat.service
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh stop
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh status
 ```
+
+`stop` is graceful: SIGTERM, 5-sec wait, SIGKILL if still alive. Removes
+the PID file.
 
 ### 5.4 Capture results
 
@@ -363,6 +455,29 @@ re-smoke" entry. Include:
 - Cost ledger before/after line counts
 - Which checklist items passed, which failed, which were skipped
 
+### 5.5 (Optional) Install as systemd service
+
+The `diplomat.service` unit file exists at `config/diplomat.service` but
+the bot has been running via `tools/service.sh` (nohup) — that's the
+established pattern. If you want a true systemd service that survives
+container reboots automatically:
+
+```bash
+incus exec claude-code -- sudo install -m 0644 \
+  /home/claude/workspace/diplomat/config/diplomat.service \
+  /etc/systemd/system/diplomat.service
+incus exec claude-code -- sudo systemctl daemon-reload
+incus exec claude-code -- sudo systemctl enable --now diplomat.service
+incus exec claude-code -- systemctl status diplomat.service
+incus exec claude-code -- journalctl -u diplomat.service -f
+```
+
+Requires `sudo` and `systemd` working inside the container. If those
+aren't available (e.g. unprivileged container without systemd), keep
+running via `tools/service.sh` — it's the established working path. For
+restart-on-reboot in that case, add a cron `@reboot` entry or a small
+container-startup hook that calls `tools/service.sh start`.
+
 ---
 
 ## 6. Abort conditions
@@ -370,10 +485,12 @@ re-smoke" entry. Include:
 Stop the smoke and investigate (don't push through) if:
 
 - Bot fails to start with a config or import error → fix locally before continuing
-- Cost ledger entries show $0.01+ per analyst call on gpt-4.1-mini → the dated-pricing fix didn't take effect; check toolkit install (§1.2)
+- Cost ledger entries show $0.01+ per analyst call on gpt-5.4-mini → the dated-pricing fix didn't take effect; check toolkit install (§1.3)
 - Multi-message burst (§3.2) drops messages → debounce regression; check `_extraction_tasks` set in orchestrator.py
 - Review gate doesn't respond to `/approve` → TelegramReviewGate may have stale state; restart bot
 - Unexpected 429s on any provider → check `.env` keys and per-provider quotas
+- `systemctl status diplomat.service` returns "Unit not found" or "No medium found" → systemd unit isn't installed in the container (it's intentionally not installed). Use foreground mode (§2.1) instead; install systemd post-smoke per §5.5 only if you want it.
+- Toolkit import succeeds but `complete_with_retry` / `normalize_model_name` raise ImportError → toolkit version inside container is pre-Phase-19. Reinstall editable per §1.3.
 
 ---
 
@@ -382,3 +499,5 @@ Stop the smoke and investigate (don't push through) if:
 | Date | Change |
 |---|---|
 | 2026-05-30 | Initial draft. Covers Phase 18 + Phase 19 deltas since Phase 16 baseline. |
+| 2026-05-30 | §1 + §2 + §5 rewritten for the actual deployment architecture: incus container `claude-code` with `/home/claude/workspace/` mount of the P: share; venv inside container. Removed `git pull` step (code-on-Pi = code-on-share, same files via mount). Cost-ledger path corrected from self-play temp dir to production `data/cost_ledger.jsonl`. Added §5.5 optional systemd install. Added two abort conditions covering the "no medium found / unit not found" symptom and pre-Phase-19 toolkit. |
+| 2026-05-30 | §1.5 + §2 corrected to match actual deployment mechanism: `tools/service.sh` (nohup-based; the script the bot was actually running under previously), defaulting to `config/pipeline_smoke.yaml` (which already has TelegramReviewGate set). Dropped the "flip review_gate" step since the smoke config has it. `inspect_ledger.py` now used throughout instead of raw `tail`/`wc -l`. §5.5 systemd discussion clarified: nohup is the established path; systemd install is optional / depends on container privilege. |
