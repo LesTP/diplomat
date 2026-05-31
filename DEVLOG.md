@@ -185,3 +185,11 @@ DEVLOG learning review: No trial-and-error patterns observed. Phase 23 ran clean
 Contract changes: Self-play result JSON gains `achieved_score_sum`, `max_pareto_sum`, `pareto_efficiency`, `process_signatures`, and `scenario_analysis` fields. No production module contracts changed — all additions are in `tests/self_play/`.
 
 Tests: `python -m pytest tests/` — 316 passed.
+
+## 2026-05-31 — Phase 24 plan
+
+Action: PLAN
+Mode: Build
+Outcome: Activated Phase 24 as the current Build phase and converted its small-build scope into seven state-machine executable steps: toolkit OpenAI dispatch tests, asymmetric BATNA flags, force-clamped BATNAs, runtime game-mode override, extraction examples JSON config, schema-derived entity types, and named doc updates.
+
+Scope decision: Phase 24 is pure code/test/doc work with no live API requirement. Review and close remain controller-managed actions rather than checklist steps.

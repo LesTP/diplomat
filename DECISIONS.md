@@ -195,3 +195,10 @@ Priority: Important
 Decision: Phase 23 will add Pareto efficiency and four deterministic process signatures as post-game diagnostic outputs only. It will not change agent prompts, negotiation behavior, provider routing, or live run protocol.
 Rationale: The scoring lenses are meant to improve assessment quality before further tuning. Keeping them out of runtime decision-making avoids coupling evaluation metrics to agent behavior while tests lock down the calculations.
 Revisit if: A later tuning phase explicitly uses these metrics as feedback signals for prompt or strategy changes.
+
+D-28: Phase 24 closes small tooling debt in Build regime
+Date: 2026-05-31 | Status: Accepted
+Priority: Important
+Decision: Phase 24 will execute a fixed Build checklist of small standalone improvements: toolkit OpenAI dispatch tests, asymmetric BATNA CLI support, force-clamped BATNAs, game-mode runtime override, extraction examples moved to config JSON, and schema-derived entity type references. Review and close remain state-machine actions, not executable checklist items.
+Rationale: These items are already scoped, testable, and do not require live provider calls or product judgment. Keeping them in one Build phase closes known tooling and Level 1 modularization debt while preserving the autonomous loop's review gate.
+Revisit if: Any step requires expanding runtime contracts outside the named CLI/self-play/extraction/reconciliation surfaces.
