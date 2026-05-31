@@ -165,14 +165,14 @@ diplomat/
 │   └── modules/
 │       ├── analyst/
 │       │   ├── __init__.py            # LLMAnalyst
-│       │   ├── divergence.py          # compare()
-│       │   └── stub.py                # ADD: StubAnalyst
+│       │   └── divergence.py          # compare()
 │       └── ...                        # (existing modules unchanged)
 ├── tests/
 │   ├── test_*.py                      # existing unit tests (Layer 1)
 │   ├── helpers/                       # ADD: shared test infrastructure
 │   │   ├── __init__.py
 │   │   ├── test_transport.py          # TestTransport
+│   │   ├── stub_analyst.py           # StubAnalyst (via module_overrides)
 │   │   └── factories.py              # InboundEvent/patch factories
 │   ├── integration/                   # ADD: Layer 3
 │   │   ├── test_pipeline_flow.py

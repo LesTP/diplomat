@@ -76,8 +76,22 @@ Round increment
 ### Interface
 
 ```python
+# Factory helpers (Phase 21.8) — preferred over constructing StateReconciler directly.
+def subsystem_llm_config(primary: dict, tier: str = "commodity") -> dict:
+    """Build {provider, models: {tier: model}, api_key} from a pipeline.yaml primary config."""
+    ...
+
+def build_reconciler(
+    llm_client,
+    llm_providers_config: dict,  # the full llm_providers dict (must have "primary" key)
+    tier: str = "commodity",
+    attribution: str | None = None,
+) -> StateReconciler | None:
+    """Factory: returns StateReconciler or None if primary config is missing."""
+    ...
+
 class StateReconciler:
-    def __init__(self, llm_client, llm_config, tier="commodity"):
+    def __init__(self, llm_client, llm_config, tier="commodity", attribution=None):
         ...
 
     async def reconcile(

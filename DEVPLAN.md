@@ -1,8 +1,8 @@
 ---
 phase: 21
 blocked: false
-state: execute
-steps_remaining: 1
+state: review
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -54,7 +54,7 @@ steps_remaining: 1
 ## Current Status
 
 - **Phase** — Phase 21 (Build). Four-phase Build cycle remaining: Phase 21 → 22 → 23 → 24, all pure-build (no operator judgment mid-loop).
-- **Focus** — Phase 21.9: doc update (ARCHITECTURE.md, ARCH_orchestrator.md, ARCH_reconciliation.md, ASSESSMENT.md, diplomat-testing-doc.md).
+- **Focus** — Phase 21 review (all steps complete; state=review).
 - **Blocked/Broken** — None.
 
 ## Phase 20: Layer 3 integration tests for Phase 18 paths — Complete
@@ -76,7 +76,7 @@ Steps:
 - [x] **21.6** Delete `_TaggedLLMClient` entirely; reduce `LoggingLLMClient` to ~30 lines that read the new `attribution` kwarg. Remove all three `getattr(client, "_inner", client)` peeks (§1.8 fix #1, completion).
 - [x] **21.7** Switch `DryRunLLMClient.classify_call()` to read the new `purpose` kwarg instead of regex-matching the prompt body (§1.8 fix #2).
 - [x] **21.8** Extract `build_reconciler(llm_client, llm_providers_config, tier)` factory in `src/modules/reconciliation/__init__.py`. Both `src/main.py` (`_attach_reconciler`) and `tests/self_play/game_environment.py` call it; neither has its own copy. Single helper `subsystem_llm_config(primary, tier="commodity")` for the dict currently duplicated four times (§1.8 fix #3 + #4).
-- [ ] **21.9** Doc update: `ARCHITECTURE.md` (coupling notes — remove references to private-API access from self-play; reconciler factory mention); `ARCH_orchestrator.md` (public `advance_to_round`; `OrchestrationOptions` dataclass; `auto_response_enabled`/`total_rounds` move out of `__init__`); `ARCH_reconciliation.md` (new `build_reconciler` factory); `ASSESSMENT.md` (Block A tech-debt: orchestration cleanup → ✓, LLM adapter cleanup → ✓); `diplomat-testing-doc.md` (§2.3 if `StubAnalyst` location changed).
+- [x] **21.9** Doc update: `ARCHITECTURE.md` (coupling notes — remove references to private-API access from self-play; reconciler factory mention); `ARCH_orchestrator.md` (public `advance_to_round`; `OrchestrationOptions` dataclass; `auto_response_enabled`/`total_rounds` move out of `__init__`); `ARCH_reconciliation.md` (new `build_reconciler` factory); `ASSESSMENT.md` (Block A tech-debt: orchestration cleanup → ✓, LLM adapter cleanup → ✓); `diplomat-testing-doc.md` (§2.3 if `StubAnalyst` location changed).
 
 Phase review and close are handled by the loop's REVIEW and CLOSE states after all checkboxes are complete. Definition of done: 288+ tests passing; no `_<private>` calls from `tests/self_play/`; `auto_response_enabled` / `total_rounds` no longer attributes on `Orchestrator`; `_TaggedLLMClient` deleted; `getattr(..., "_inner", ...)` no longer appears anywhere; provider-config dict literal defined once; `DryRunLLMClient` no longer reads prompt text for classification; named docs updated.
 

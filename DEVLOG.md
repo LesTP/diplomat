@@ -141,3 +141,15 @@ Both helpers exported in `__all__`.
 Tests: 296 passed; integration: 23 passed.
 
 Next step: 21.9 doc update.
+
+## 2026-05-31 — Phase 21.9: Doc update
+
+Updated five reference docs to reflect Phase 21 changes:
+
+- `ARCH_reconciliation.md` (§Interface): added `subsystem_llm_config` and `build_reconciler` factory to the public interface listing.
+- `ARCH_orchestrator.md` (§State → §Construction): renamed to "Construction — OrchestrationOptions"; documented `OrchestrationOptions` dataclass (`auto_response_enabled`, `total_rounds`); documented `advance_to_round(n)` public method; updated State section to reference `options.auto_response_enabled` / `options.total_rounds` instead of top-level Orchestrator attributes.
+- `ARCHITECTURE.md` (§Coupling Notes): added reconciler factory coupling note (`build_reconciler` + `subsystem_llm_config`).
+- `ASSESSMENT.md` (§Block A): moved §1.7 orchestration cleanup and §1.8 LLM adapter + config cleanup from "Active items" to "Closed debt (Phase 21)". Removed those items from Active items.
+- `diplomat-testing-doc.md` (§2.3 directory tree): removed `src/modules/analyst/stub.py # ADD: StubAnalyst` (file was never created; StubAnalyst lives at `tests/helpers/stub_analyst.py` and is injected via `module_overrides`). Added `stub_analyst.py` to `tests/helpers/` in the tree.
+
+All steps in Phase 21 now complete. State → review.

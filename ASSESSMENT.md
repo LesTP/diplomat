@@ -235,10 +235,9 @@ tests in `tests/integration/test_phase18_paths.py`: burst extraction
 without dropped messages, duplicate promise merge, promise fulfillment,
 new inconsistency detection, and missed proposal insertion.
 
-**Active items.** Module boundary cleanup orchestration (§1.7), module
-boundary cleanup LLM adapter + config (§1.8), Pipeline/Flow split
-(§1.9), Stage 2a conversation model (#3), structured per-event logging
-(smoke tooling debt).
+**Active items.** Pipeline/Flow split (§1.9), Stage 2a conversation model (#3), structured per-event logging (smoke tooling debt).
+
+**Closed debt (Phase 21).** Module boundary cleanup orchestration (§1.7 — `OrchestrationOptions` dataclass, `advance_to_round` public API, reconciler logged exceptions) ✓. Module boundary cleanup LLM adapter + config (§1.8 — `_TaggedLLMClient` deleted, `LoggingLLMClient` reduced, `purpose` kwarg threaded through all modules, `DryRunLLMClient` purpose-based classification, `build_reconciler` / `subsystem_llm_config` factories) ✓.
 
 ### Block B — Prompt tuning
 

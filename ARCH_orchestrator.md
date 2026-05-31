@@ -109,10 +109,27 @@ Budget lifecycle: the Orchestrator creates a CostBudget per round from pipeline.
 - Operator notifications via Transport coaching channel (alerts, status responses)
 - Side effects: all database writes flow through Event Store and State Manager
 
+## Construction — OrchestrationOptions
+
+`Orchestrator(config_path, options=OrchestrationOptions(...), ...)` accepts an `OrchestrationOptions` dataclass:
+
+```python
+@dataclass
+class OrchestrationOptions:
+    auto_response_enabled: bool = True   # False in self-play (explicit round stepping)
+    total_rounds: int | None = None      # None = production (endgame-blind)
+```
+
+Pass `options=OrchestrationOptions(auto_response_enabled=False, total_rounds=4)` to override defaults. These are NOT attributes on `Orchestrator` itself — only the `options` object is stored.
+
+## Public Round Management
+
+`advance_to_round(n: int)` — sets `current_round` to `n` and resets the per-round budget. Used by self-play harnesses to step through rounds. Replaces direct `orchestrator.current_round = n` pokes.
+
 ## State
 - Round counter (persisted in game_state table)
-- `total_rounds: int | None` — in-memory attribute. Default `None` (production games don't know the count). Self-play harnesses set this before running so the Persona's round-context formatter can render "Round N of M" and emit penultimate/final-round endgame reminders.
-- `auto_response_enabled: bool` — in-memory attribute. Default `True` (production reacts to direct-address messages). The self-play harness sets this to `False` so that `_is_direct_address` triggers don't auto-fire response pipelines — self-play wants exactly one explicit response per agent per round (Model 1 in `ARCH_conversation_model.md`).
+- `options.total_rounds: int | None` — Default `None` (production games don't know the count). Persona uses this for "Round N of M" rendering and penultimate/final-round endgame reminders.
+- `options.auto_response_enabled: bool` — Default `True` (production reacts to direct-address messages). Self-play sets `False` so `_is_direct_address` triggers don't auto-fire response pipelines.
 - Module instances (in-memory, reconstructed on restart)
 - CostAccountant session totals (in-memory, ledger persisted to data/cost_ledger.jsonl)
 - Coaching queue consumption tracking (in coaching table, managed via State Manager)
