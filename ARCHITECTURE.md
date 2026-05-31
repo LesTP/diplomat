@@ -18,7 +18,9 @@
 | Coaching | Parse and route operator input by tag | none (pure parsing) |
 | Review Gate | Human approval workflow: approve/edit/block | toolkit/telegram_client |
 | Scenario Compiler | Narrative scenario → scored persona files with point tables, BATNAs, deception tactics, game-mode | toolkit/structured_llm |
-| Orchestrator | Pipeline topology, event loop, round management, reconciliation, cost accountant wiring | All modules, toolkit/cost_accountant |
+| Pipeline | Per-agent capability surface: event storage, extraction, operator dispatch, round advancement, reconciliation/analysis, response generation, and query APIs | All runtime modules, toolkit/cost_accountant |
+| Flow | Scheduling strategies that drive one or more Pipelines; current implementations are EventDrivenFlow and RoundSteppedFlow | Pipeline, Transport or moderator/application driver |
+| Orchestrator | Compatibility constructor that builds the old composition core and returns EventDrivenFlow(Pipeline(core)) | Pipeline, Flow, all modules |
 
 ## Data Flow
 

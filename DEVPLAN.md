@@ -2,7 +2,7 @@
 phase: 22
 blocked: false
 state: execute
-steps_remaining: 1
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -99,7 +99,7 @@ Steps:
 - [x] **22.4** Implement `RoundSteppedFlow` in `src/flows/round_stepped.py`. Replaces `GameEnvironment`'s round-stepping logic. Constructor takes `pipelines: list[Pipeline]`, `moderator: Moderator`, `total_rounds: int`. Update `GameEnvironment` to compose `RoundSteppedFlow` (no more `current_round` pokes, no more `[ROUND END]` re-entry trick).
 - [x] **22.5** Add Pipeline-contract tests (`tests/test_pipeline.py`) and Flow-contract tests (`tests/test_flows.py`). Ensure `EventDrivenFlow` reproduces all current production behavior; `RoundSteppedFlow` reproduces all current self-play behavior.
 - [x] **22.6** Verify production smoke (coaching scope, per `SMOKE_RUNBOOK.md`) reproduces. Verify self-play reproduces one known scenario byte-for-byte (or close to it given LLM nondeterminism — use seeded fake LLM for the comparison test).
-- [ ] **22.7** Write `ARCH_flow.md` documenting the Flow contract. Include a worked example: "writing a new Flow for a new application" sketching `StreamFlow` (customer service) or `TurnBasedFlow` (negotiation). Update `ARCHITECTURE.md` Component Map to add Pipeline and Flow rows.
+- [x] **22.7** Write `ARCH_flow.md` documenting the Flow contract. Include a worked example: "writing a new Flow for a new application" sketching `StreamFlow` (customer service) or `TurnBasedFlow` (negotiation). Update `ARCHITECTURE.md` Component Map to add Pipeline and Flow rows.
 - [ ] **22.8** Doc update: `ASSESSMENT.md` (Block A tech-debt: Pipeline/Flow separation → ✓); `ARCH_orchestrator.md` (rewrite as compat shim pointing at `ARCH_flow.md`); `diplomat-testing-doc.md` (any Layer 3 references to `Orchestrator` that should now read `Pipeline` or `EventDrivenFlow`); update `CLAUDE.md` + `CODEX.md` "Load for Current Module" tables with Pipeline + Flow if they become standalone modules. (`ARCH_flow.md` itself is created in 22.7, so it's already a doc deliverable of this phase.)
 
 Phase review and close are handled by the loop's REVIEW and CLOSE states after all checkboxes are complete. Definition of done: 288+ tests passing including new Pipeline/Flow contract tests; `Orchestrator` is a compat shim; `GameEnvironment` is a thin wrapper over `RoundSteppedFlow`; `ARCH_flow.md` exists with the contract + worked example; production smoke reproduces; named docs updated.
