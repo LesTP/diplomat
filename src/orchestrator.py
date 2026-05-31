@@ -188,6 +188,12 @@ class Orchestrator:
             await self.run_response_pipeline(trigger_event=event)
         return event_id
 
+    def advance_to_round(self, round_number: int) -> None:
+        if not isinstance(round_number, int) or round_number < 1:
+            raise ValueError("round_number must be a positive integer")
+        self.current_round = round_number
+        self._reset_round_budget()
+
     async def _route_operator_event(self, event: Any, event_id: str) -> None:
         parsed = self.coaching_parser.parse(event.content)
         if isinstance(parsed, Command):

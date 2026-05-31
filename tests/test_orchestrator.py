@@ -440,6 +440,29 @@ def test_total_rounds_non_int_ignored(tmp_path, monkeypatch):
     assert orch.total_rounds is None
 
 
+def test_advance_to_round_sets_round_and_resets_budget(tmp_path):
+    cost_accountant = FakeCostAccountant([])
+    orchestrator, _event_store, _state_manager, _extractor, _transport = _orchestrator(
+        tmp_path,
+        cost_accountant=cost_accountant,
+    )
+
+    cost_accountant.resets.clear()
+    orchestrator.advance_to_round(4)
+
+    assert orchestrator.current_round == 4
+    assert cost_accountant.resets == [1.0]
+
+
+def test_advance_to_round_rejects_invalid_round(tmp_path):
+    orchestrator, _event_store, _state_manager, _extractor, _transport = _orchestrator(
+        tmp_path
+    )
+
+    with pytest.raises(ValueError, match="positive integer"):
+        orchestrator.advance_to_round(0)
+
+
 @pytest.mark.parametrize(
     ("name", "expected"),
     [

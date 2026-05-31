@@ -471,16 +471,11 @@ class GameEnvironment:
         # which our moderator doesn't send — so without this, current_round would
         # stay pinned at 1 for the entire game and the persona's PENULTIMATE /
         # FINAL ROUND reminders would never fire.
-        # We also explicitly reset the per-round cost budget, because the same
-        # round-boundary signal would normally do that. Without the reset, the
-        # round-budget tracker accumulates spend monotonically across all rounds
-        # and eventually trips, silently skipping generation in later rounds.
         for handle in self.agents.values():
-            handle.orchestrator.current_round = round_number
             try:
-                handle.orchestrator._reset_round_budget()
+                handle.orchestrator.advance_to_round(round_number)
             except Exception as exc:
-                print(f"  [{handle.faction_id}] _reset_round_budget failed: {exc}")
+                print(f"  [{handle.faction_id}] advance_to_round failed: {exc}")
 
         # 1. Inject moderator round update.
         update = self.round_updates.get(round_number)

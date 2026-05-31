@@ -31,3 +31,15 @@ Phase: Build. Scope is module-boundary cleanup across Orchestrator/self-play and
 Planned steps: 9 executable steps plus loop-managed review/close. The Phase 21 checklist now uses state-machine checkboxes and frontmatter is set to `phase: 21`, `state: execute`.
 
 No implementation changes in this planning action. Existing dirty worktree changes outside `DEVPLAN.md`, `DEVLOG.md`, and `DECISIONS.md` were left untouched.
+
+### Step 21.1: Public round advancement
+
+Mode: Build
+Outcome: Added `Orchestrator.advance_to_round(round_number)` and updated `GameEnvironment.run_round()` to use it instead of assigning `current_round` and calling `_reset_round_budget()` directly.
+Contract changes: Public Orchestrator API added; `ARCH_orchestrator.md` is queued for the Phase 21 doc-update step.
+
+The new method validates positive integer round numbers, sets `current_round`, and resets the per-round budget through the existing budget lifecycle. Added focused tests for successful advancement and invalid round rejection.
+
+Tests: `.venv/bin/python -m pytest tests/test_orchestrator.py tests/integration/test_phase18_paths.py -q` (58 passed); `.venv/bin/python -m pytest -q` (292 passed).
+
+Next step: 21.2 extracts `OrchestrationOptions` for `auto_response_enabled` and `total_rounds`.
