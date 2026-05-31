@@ -39,6 +39,7 @@ def _make_env(
     tmp_path: Path,
     factions: dict[str, Path] | None = None,
     llm_responses: list | None = None,
+    scenario_analysis: dict | None = None,
 ) -> GameEnvironment:
     responses = llm_responses or [
         {
@@ -72,7 +73,25 @@ def _make_env(
         base_path=PROJECT_ROOT,
         tmp_dir=tmp_path,
         extra_module_overrides=extra_overrides,
+        scenario_analysis=scenario_analysis,
     )
+
+
+def _pareto_scenario() -> dict:
+    return {
+        "factions": ["alpha", "beta"],
+        "issues": [
+            {
+                "name": "resource_split",
+                "outcomes": ["optimum", "fallback"],
+            }
+        ],
+        "scoring": {
+            "alpha": {"resource_split": {"optimum": 10, "fallback": 4}},
+            "beta": {"resource_split": {"optimum": 10, "fallback": 6}},
+        },
+        "batna": {"alpha": 4, "beta": 6},
+    }
 
 
 # ── Config generation ────────────────────────────────────────────────
@@ -356,6 +375,93 @@ class TestAnalysis:
         assert "SELF-PLAY ANALYSIS REPORT" in captured.out
         assert "alpha" in captured.out.lower()
         assert "beta" in captured.out.lower()
+
+
+# ── Pareto efficiency scoring ───────────────────────────────────────
+
+
+class TestParetoEfficiency:
+    def test_optimal_deal_returns_full_efficiency(self) -> None:
+        from tests.self_play.game_environment import _pareto_efficiency_metrics
+
+        metrics = _pareto_efficiency_metrics(
+            _pareto_scenario(),
+            {
+                "deal_reached": True,
+                "faction_scores": {
+                    "alpha": {"points": 10, "batna": 4},
+                    "beta": {"points": 10, "batna": 6},
+                },
+            },
+        )
+
+        assert metrics["max_pareto_sum"] == 20
+        assert metrics["achieved_score_sum"] == 20
+        assert metrics["pareto_efficiency"] == 1.0
+
+    def test_batna_sum_returns_batna_to_pareto_ratio(self) -> None:
+        from tests.self_play.game_environment import _pareto_efficiency_metrics
+
+        metrics = _pareto_efficiency_metrics(
+            _pareto_scenario(),
+            {
+                "deal_reached": True,
+                "faction_scores": {
+                    "alpha": {"points": 4, "batna": 4},
+                    "beta": {"points": 6, "batna": 6},
+                },
+            },
+        )
+
+        assert metrics["achieved_score_sum"] == 10
+        assert metrics["pareto_efficiency"] == pytest.approx(0.5)
+
+    def test_no_deal_case_uses_returned_batna_scores(self) -> None:
+        from tests.self_play.game_environment import _pareto_efficiency_metrics
+
+        metrics = _pareto_efficiency_metrics(
+            _pareto_scenario(),
+            {
+                "deal_reached": False,
+                "faction_scores": {
+                    "alpha": {"points": 4, "batna": 4},
+                    "beta": {"points": 6, "batna": 6},
+                },
+            },
+        )
+
+        assert metrics["pareto_efficiency"] == pytest.approx(0.5)
+
+    @pytest.mark.asyncio
+    async def test_score_game_outputs_numeric_pareto_efficiency(
+        self, tmp_path: Path
+    ) -> None:
+        env = _make_env(
+            tmp_path,
+            llm_responses=[
+                {
+                    "deal_reached": True,
+                    "agreed_outcomes": {"resource_split": "optimum"},
+                    "faction_scores": {
+                        "alpha": {"points": 10, "batna": 4},
+                        "beta": {"points": 10, "batna": 6},
+                    },
+                    "reasoning": "All factions agreed to the optimum.",
+                }
+            ],
+            scenario_analysis=_pareto_scenario(),
+        )
+
+        scores = await env.score_game(
+            {
+                "alpha": "We agree to optimum.",
+                "beta": "We agree to optimum.",
+            }
+        )
+
+        assert isinstance(scores["pareto_efficiency"], float)
+        assert scores["pareto_efficiency"] == 1.0
+        assert scores["max_pareto_sum"] == 20
 
 
 # ── LoggingLLMClient ─────────────────────────────────────────────────

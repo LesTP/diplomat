@@ -131,3 +131,11 @@ Outcome: `GameEnvironment.score_game()` now post-processes the structured scorer
 Contract changes: Self-play scoring JSON now includes three deterministic aggregate scoring fields.
 
 Tests: `.venv/bin/python -m pytest tests/test_self_play.py` — 29 passed.
+
+### Step 23.2: Pareto efficiency tests
+
+Mode: Build
+Outcome: Added deterministic Pareto-efficiency tests for optimum, BATNA-ratio, and no-deal scoring cases, plus a fake-backed async `score_game()` test that verifies `pareto_efficiency` is present and numeric in scorer output.
+Contract changes: None; this step verifies the scoring JSON fields added in 23.1.
+
+Tests: `.venv/bin/python -m pytest tests/test_self_play.py` — 33 passed.
