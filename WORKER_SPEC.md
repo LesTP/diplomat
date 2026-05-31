@@ -59,6 +59,26 @@ execute→review transition (when all steps are checked off), stop-before-review
 and close→blocked. The worker never computes transitions or checks exit
 conditions — it reads ACTION/NEXT and does the work.
 
+### Loop discipline (critical)
+
+Two contracts you must NOT break. Both have already cost work in this project.
+
+**1. Single call per iteration.** Call `state_machine.sh` exactly ONCE per loop iteration — at the top, before the action. Never re-call inside or after the action. The script decrements budget on every call. "Defensive" re-calls ("let me check the controller before touching files") drop a step.
+
+If your context feels fuzzy mid-action — long file read, session resume, internal recovery moment — assume the action the script dispatched is **still in flight** and complete it. Re-read your own previous tool output to reorient if needed. Only call `state_machine.sh` again after you have completed steps 4–7 of the LOOP (commit + DEVLOG + state-write).
+
+**2. Trust the script's verdict; never self-judge.** The script decides EXIT, REVIEW, EXECUTE, etc. — based on `STEP_BUDGET`, `STOP_BEFORE_REVIEW`, unchecked-steps count, and the `blocked` flag. Your job is to do what it returns and then call it again. Do NOT:
+
+- Pre-compute budget exhaustion (`"5 - 3 = exhausted, stopping"` is wrong arithmetic AND wrong process — `5 - 3 = 2`)
+- Decide on your own that REVIEW is next
+- Skip the call because "I know what it will say"
+
+If the script keeps returning EXECUTE and you have completed all named steps in the phase, that means an unchecked checkbox exists somewhere — check the DEVPLAN and resolve it, don't bypass the script.
+
+**Documented incidents these rules address:**
+- *Iter 53 (Codex):* re-called `state_machine.sh` after a 105k-char `cat` read; lost the final budgeted action (budget=8, only 7 actions performed).
+- *Iter 54 (Claude):* self-judged "STEP_BUDGET of 5 exhausted (used 3 actions)" and exited with 2 actions still available.
+
 ### Turn health check (Codex only)
 
 If `ITERATION_JSONL` was provided in the prompt, check the turn count

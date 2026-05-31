@@ -45,6 +45,7 @@ cat ARCH_module.md && echo '---SPLIT---' && cat src/modules/module/impl.py
 - **Never read one file per tool call** when you need multiple files
 - **Combine source + test reads**: `cat src/foo.py && echo '---' && cat tests/test_foo.py`
 - **Fresh reads before edits** — re-read immediately before editing, not at iteration start
+- **Megareads can fragment context.** Single `cat`/`sed` commands producing >40k chars of output sometimes trigger an internal "let me reorient" moment where the temptation is to re-call `state_machine.sh`. **Do not.** Once you have an `ACTION` from the script, complete that action — committing, writing DEVLOG, updating state — before calling the script again. If a large read genuinely confuses you, re-read your own previous tool output rather than re-querying the controller. Re-calling the script decrements budget and will drop a step. See `WORKER_SPEC.md` §3 "Loop discipline" — iter 53 (this project) lost its final step exactly this way.
 
 ## Reference Docs to Keep in Sync
 
