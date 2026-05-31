@@ -40,3 +40,11 @@ Outcome: Added `test_reconciler_inconsistency` and `test_reconciler_missed_propo
 Contract changes: None.
 
 Verified with `.venv/bin/python -m pytest tests/integration/test_phase18_paths.py -q` and `.venv/bin/python -m pytest tests/ -q` (290 passed).
+
+### Step 20.5: Phase 20 documentation update
+
+Mode: Build
+Outcome: Updated `ASSESSMENT.md` to move reconciliation path coverage from active Block A debt to closed debt, with a pointer to `tests/integration/test_phase18_paths.py`. Updated `diplomat-testing-doc.md` Layer 3 counts and notes to include the Phase 18 path coverage tests and fake reconciler LLM.
+Contract changes: `ASSESSMENT.md`, `diplomat-testing-doc.md`.
+
+Verified with `.venv/bin/python -m pytest tests/ -q` (290 passed).

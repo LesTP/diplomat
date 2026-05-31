@@ -19,7 +19,7 @@ The modular architecture in the main spec was partly designed with testability i
 |---|---|---|---|---|---|
 | 1 — Unit | Module correctness | Fast | Free | Every commit | **Complete** — 176 tests |
 | 2 — Prompt regression | Prompt quality and constraint compliance | Slow | Low | Before prompt changes go live | **Complete** — infrastructure + 6 starter scenarios |
-| 3 — Pipeline integration | Cross-module behavior, failure handling, transcript replay | Medium | Free | Before deployments | **Complete** — 17 tests, 207 total |
+| 3 — Pipeline integration | Cross-module behavior, failure handling, transcript replay, Phase 18 reconciliation paths | Medium | Free | Before deployments | **Complete** — 23 tests, 290 total |
 | — Live smoke test | Real Telegram + real LLM end-to-end | Manual | Low | Before first game | **Complete** |
 | 4 — Multi-agent self-play | Game-level behavior, persona coherence | Slow | Medium-high | Final validation before real game | **In progress** — infrastructure + 24 tests |
 
@@ -28,7 +28,7 @@ The modular architecture in the main spec was partly designed with testability i
 | Artifact | Location | Notes |
 |---|---|---|
 | 12 unit test files | `tests/test_*.py` | One per module, 176 tests total |
-| Pipeline integration tests | `tests/integration/` | 12 flow/failure tests + 5 transcript replay tests |
+| Pipeline integration tests | `tests/integration/` | 12 flow/failure tests + 5 transcript replay tests + 6 Phase 18 path tests |
 | Transcript fixtures | `tests/integration/fixtures/transcripts/` | cooperative_3round.json, betrayal_arc.json |
 | CLITransport | `src/modules/transport/__init__.py` | JSON reader/writer, no inject() |
 | TestTransport | `tests/helpers/test_transport.py` | Queue-backed event injection and output capture |
@@ -36,7 +36,7 @@ The modular architecture in the main spec was partly designed with testability i
 | RuleBasedExtractor | `src/modules/extraction/__init__.py` | Regex-based promise/coalition/inconsistency detection |
 | Pipeline config | `config/pipeline.yaml` | Production configuration |
 | Test pipeline config | `config/pipeline_test.yaml` | Fake-backed integration configuration |
-| Fake LLM clients | `tests/test_*.py` (inline), `tests/helpers/factories.py` | Per-module and integration fakes for dependency injection |
+| Fake LLM clients | `tests/test_*.py` (inline), `tests/helpers/factories.py`, `tests/integration/test_phase18_paths.py` | Per-module and integration fakes for dependency injection |
 | Prompt regression runner | `tests/prompt_regression/runner.py` | Scenario loader, structural checks, LLM-as-judge checks, CLI |
 | Prompt regression scenarios | `tests/prompt_regression/scenarios/` | 4 extraction scenarios + 2 generation scenarios |
 
@@ -605,6 +605,13 @@ production LLM adapter on the Pi.
 ## 5. Layer 3 — Pipeline Integration Tests
 
 Integration tests run the full Orchestrator with test implementations substituted via `module_overrides`. They verify cross-module behavior and failure handling. **No real API calls** — uses `StubAnalyst`, `RuleBasedExtractor`, fake LLM client, and `AutoApproveReviewGate`.
+
+Phase 20 added deterministic coverage for Phase 18 production paths in
+`tests/integration/test_phase18_paths.py`: burst extraction without
+dropped per-event tasks, reconciler duplicate merge, fulfillment update,
+new inconsistency insertion, and missed proposal insertion. These tests
+attach `StateReconciler` to the normal `Orchestrator` fixture and use a
+fake LLM client that returns reconciler-shaped structured JSON.
 
 ### 5.1 Test Fixture Pattern
 
@@ -1306,6 +1313,7 @@ Recurring patterns in `constraint_enforcement` or `persona_correction` indicate 
 | **Done** | Layer 3 infrastructure: TestTransport, StubAnalyst, pipeline_test.yaml | Phase 12 |
 | **Done** | Layer 3 tests: pipeline flow and failure handling | TestTransport + StubAnalyst |
 | **Done** | Layer 3 transcript replay: 2 fixtures, 5 replay tests | TestTransport + StubAnalyst |
+| **Done** | Layer 3 Phase 18 path coverage: debounce burst, reconciliation dedup/fulfillment/inconsistency/missed proposal | TestTransport + StubAnalyst + fake reconciler LLM |
 | **Done** | Live smoke test: real Telegram bot + real LLM, manual validation | Bot token + API keys + channel IDs |
 | **Done** | Deployment readiness: regression coverage, two-channel Telegram docs, systemd unit, production log cleanup (193 total) | Live smoke fixes |
 | **Done** | Layer 2 infrastructure: scenario runner, LLM-as-judge | Live API keys for paid scenario execution |

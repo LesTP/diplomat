@@ -2,7 +2,7 @@
 phase: 20
 blocked: false
 state: execute
-steps_remaining: 4
+steps_remaining: 3
 ---
 
 # Diplomat — Development Plan
@@ -54,7 +54,7 @@ steps_remaining: 4
 ## Current Status
 
 - **Phase** — Phase 20 (Build). Five-phase Build cycle queued: Phase 20 → 21 → 22 → 23 → 24, all pure-build (no operator judgment mid-loop).
-- **Focus** — Phase 20.5: update ASSESSMENT.md and diplomat-testing-doc.md for Phase 20 coverage.
+- **Focus** — Phase 20.6: phase review + commit + close.
 - **Blocked/Broken** — None.
 
 ## Phase 20: Layer 3 integration tests for Phase 18 paths (Build)
@@ -68,7 +68,7 @@ Steps:
 - [x] **20.2** Implement `test_burst_extraction_no_drops` — inject 5 game events in rapid succession, settle, assert all 5 events stored + all 5 produce state_change_log entries (validates per-event task set from Phase 18.6)
 - [x] **20.3** Implement `test_reconciler_dedup` + `test_reconciler_fulfillment` — extractor produces N duplicate promises → reconciler merges; extractor produces promise then kept-signal → reconciler transitions pending→kept
 - [x] **20.4** Implement `test_reconciler_inconsistency` + `test_reconciler_missed_proposal` — extractor produces position then contradiction → reconciler flags inconsistency; reconciler catches proposals the per-message extractor missed
-- **20.5** Doc update: `ASSESSMENT.md` (Block A tech-debt: reconciliation path coverage → ✓ covered by Layer 3 tests); `diplomat-testing-doc.md` (Layer 3 section: mention `test_phase18_paths.py` and the four new tests).
+- [x] **20.5** Doc update: `ASSESSMENT.md` (Block A tech-debt: reconciliation path coverage → ✓ covered by Layer 3 tests); `diplomat-testing-doc.md` (Layer 3 section: mention `test_phase18_paths.py` and the four new tests).
 - **20.6** Phase review + commit + close. Definition of done: 288+ tests passing (284 current + 4-5 new); each new test runs <2s; deterministic with fake LLM; named docs updated.
 
 Expected outcome: regression coverage that hardens the Phase 21 + 22 refactors.
