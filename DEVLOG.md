@@ -8,43 +8,7 @@
      module entries to DEVLOG_archive.md during phase completion cleanup.
      Add a boundary marker: <!-- Entries above archived from Module N, YYYY-MM-DD -->
 
-<!-- Entries above archived from Phase 20, 2026-05-31 -->
-
-### Phase 20 close — 2026-05-31
-
-Phase: Build. 6 steps, ~$0.30 iteration cost.
-
-Built: `tests/integration/test_phase18_paths.py` — 6 deterministic integration tests covering the Phase 18 production paths not previously tested: burst extraction without dropped events, reconciler duplicate merge, promise fulfillment, inconsistency detection, and missed-proposal insertion.
-
-Tests: 290 passing (DoD: 288+). Each new test runs under 2s with fake LLM.
-
-Docs updated: `ASSESSMENT.md` (Block A reconciliation path coverage → closed debt), `diplomat-testing-doc.md` (Layer 3 count updated to 23 tests / 290 total).
-
-No new gotchas beyond what is already in DEVPLAN. Key technique: `wait_for_state_change_count` polling preferred over fixed `asyncio.sleep` for debounce-adjacent assertions.
-
-Phase 21 is next.
-
 <!-- Entries above archived from Phase 21, 2026-05-31 -->
-
-### Phase 21 close — 2026-05-31
-
-Phase: Build. 9 steps.
-
-Built: Module boundary cleanup across Orchestrator, self-play harness, and LLM adapter.
-- `OrchestrationOptions` dataclass extracts `auto_response_enabled` and `total_rounds` off `Orchestrator.__init__`
-- Public `Orchestrator.advance_to_round(n)` replaces direct attribute pokes from self-play
-- `_TaggedLLMClient` deleted; `LoggingLLMClient` reads `attribution` kwarg; all `getattr(_inner)` peeks removed
-- `attribution`/`purpose` kwargs threaded through `ToolkitLLMAdapter`, toolkit `complete_with_retry`, `CostAccountant`
-- `DryRunLLMClient` classifies calls via `purpose` kwarg instead of regex on prompt body
-- `build_reconciler` + `subsystem_llm_config` factories eliminate 4× duplicated provider-config dict
-- `StubAnalyst` removed from production registry; injected via `module_overrides` only
-- Four silent `except Exception: pass` blocks in reconciler replaced with contextual log messages
-
-Tests: 296 passing (DoD: 288+).
-
-Docs updated: `ARCH_orchestrator.md`, `ARCH_reconciliation.md`, `ARCHITECTURE.md` (coupling notes), `ASSESSMENT.md` (Block A: orchestration + LLM adapter cleanup → ✓), `diplomat-testing-doc.md` (StubAnalyst location).
-
-No new gotchas. Phase 22 is next.
 
 ### Phase 22 plan — 2026-05-31
 
@@ -139,3 +103,15 @@ Mode: Build
 Outcome: Reviewed the Pipeline / Flow split against `ARCH_flow.md`, `ARCH_orchestrator.md`, the `Pipeline`, `EventDrivenFlow`, `RoundSteppedFlow`, Orchestrator compat shim, self-play wrapper, and contract tests. No must-fix or should-fix defects found. The remaining duplicated scheduling helpers on `_OrchestratorCore` are migration scaffolding behind the compat shim and stay out of public Flow callers.
 
 Tests: `.venv/bin/python3 -m pytest tests/test_pipeline.py tests/test_flows.py tests/test_orchestrator.py tests/test_self_play.py` — 95 passed. Full suite: `.venv/bin/python3 -m pytest` — 308 passed.
+
+## 2026-05-31 — Phase 22 close
+
+Action: CLOSE
+Mode: Build
+Outcome: Closed the Pipeline / Flow split. `Pipeline` is now the public per-agent capability surface; `EventDrivenFlow` owns production event scheduling; `RoundSteppedFlow` owns self-play round scheduling; `Orchestrator(...)` remains as a compatibility factory returning `EventDrivenFlow(Pipeline(core))`; `GameEnvironment` delegates round execution to `RoundSteppedFlow`.
+
+Docs updated during close: `DEVPLAN.md` reduced Phase 22 to a completion summary and set Current Status to the human audit gate before Phase 23; `ARCHITECTURE.md` Implementation Sequence rows for Pipeline and Flow marked Phase 22 complete; `DECISIONS.md` closed D-26 and the stale D-25 status.
+
+DEVLOG learning review: no new gotchas promoted. Contract changes were already propagated in 22.7 and 22.8 (`ARCH_flow.md`, `ARCH_orchestrator.md`, `ARCHITECTURE.md`, `ASSESSMENT.md`, `diplomat-testing-doc.md`, `CLAUDE.md`, `CODEX.md`).
+
+Tests: `.venv/bin/python -m pytest` — 308 passed. Dependency probe: not rerun; Phase 22 introduced no new external dependency surface, and the local smoke-equivalent import/tests passed in 22.6.

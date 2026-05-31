@@ -1,6 +1,6 @@
 ---
 phase: 22
-blocked: false
+blocked: true
 state: close
 steps_remaining: 0
 ---
@@ -53,58 +53,21 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 22 (Build). Three-phase Build cycle remaining: Phase 22 → 23 → 24, all pure-build (no operator judgment mid-loop).
-- **Focus** — Phase 22 execution: Pipeline / Flow split.
-- **Blocked/Broken** — None.
+- **Phase** — Phase 22 (Build) closed. Remaining queued Build phases: Phase 23 → 24.
+- **Focus** — Human audit gate before Phase 23: scoring expansion (Pareto efficiency + process signatures).
+- **Blocked/Broken** — Blocked intentionally after close; no known broken build.
 
 ## Phase 21: Module boundary cleanup — Complete
 
 Closed 2026-05-31. `OrchestrationOptions` dataclass; public `advance_to_round(n)`; deleted `_TaggedLLMClient`; `attribution`/`purpose` kwargs threaded through adapter stack; `build_reconciler` + `subsystem_llm_config` factories; `StubAnalyst` out of production registry; reconciler exceptions logged. 296 tests passing. See `DEVLOG_archive.md` "Phase 21 close" section.
 
+## Phase 22: Pipeline / Flow split — Complete
+
+Closed 2026-05-31. Added `Pipeline`, `EventDrivenFlow`, and `RoundSteppedFlow`; converted `Orchestrator` to a compatibility factory returning `EventDrivenFlow(Pipeline(core))`; made `GameEnvironment` a thin `RoundSteppedFlow` wrapper; documented `ARCH_flow.md`. 308 tests passing. See `DEVLOG.md` "Phase 22 close" section.
+
 ## Phase 20: Layer 3 integration tests for Phase 18 paths — Complete
 
 Closed 2026-05-31. Added `tests/integration/test_phase18_paths.py` (6 tests, 290 total): burst extraction no-drops, reconciler dedup/fulfillment/inconsistency/missed-proposal. Deterministic fake LLM. `ASSESSMENT.md` Block A reconciliation path coverage → closed debt. `diplomat-testing-doc.md` Layer 3 counts updated. See `DEVLOG_archive.md` "Phase 20 close" section.
-
-## Phase 21: Module boundary cleanup (Build)
-
-Regime: Build. Targeted cleanups from the audit. Two themes packaged together (§1.7 orchestration + §1.8 LLM adapter + config dedup) because they overlap on the LLM-call attribution surface and benefit from shared review.
-
-Prerequisite: Phase 20 (Layer 3 tests) must pass — those tests are the safety net for these refactors.
-
-Steps:
-- [x] **21.1** Add public `Orchestrator.advance_to_round(n)` that sets `current_round` and resets the per-round budget. Update `GameEnvironment.run_round` to call it instead of poking `current_round` directly and calling `_reset_round_budget()` (§1.7 fix #1).
-- [x] **21.2** Extract `OrchestrationOptions` dataclass holding `auto_response_enabled` and `total_rounds`. Pass at construction; remove these attributes from `Orchestrator.__init__`'s top-level signature. Update `main.py` and `GameEnvironment` call sites (§1.7 fix #2).
-- [x] **21.3** Resolve `StubAnalyst` registry leak. Either move `StubAnalyst` to `src/modules/analyst/stub.py` or drop the entry from `src/registry.py` and use `module_overrides` exclusively (already works in `tests/integration/conftest.py`). Update `pipeline_test.yaml` accordingly (§1.7 fix #3).
-- [x] **21.4** Replace the four bare `try/except Exception: pass` blocks in `Orchestrator._reconcile_state` with logged exceptions (§1.7 fix #4).
-- [x] **21.5** Add `attribution: str | None = None` and `purpose: str | None = None` kwargs to LLM adapter `complete()` interface. Update `ToolkitLLMAdapter`, `DiplomatCostGate`, and the toolkit's `complete_with_retry` to thread them through (§1.8 fix #1, prep for the cleanup that follows).
-- [x] **21.6** Delete `_TaggedLLMClient` entirely; reduce `LoggingLLMClient` to ~30 lines that read the new `attribution` kwarg. Remove all three `getattr(client, "_inner", client)` peeks (§1.8 fix #1, completion).
-- [x] **21.7** Switch `DryRunLLMClient.classify_call()` to read the new `purpose` kwarg instead of regex-matching the prompt body (§1.8 fix #2).
-- [x] **21.8** Extract `build_reconciler(llm_client, llm_providers_config, tier)` factory in `src/modules/reconciliation/__init__.py`. Both `src/main.py` (`_attach_reconciler`) and `tests/self_play/game_environment.py` call it; neither has its own copy. Single helper `subsystem_llm_config(primary, tier="commodity")` for the dict currently duplicated four times (§1.8 fix #3 + #4).
-- [x] **21.9** Doc update: `ARCHITECTURE.md` (coupling notes — remove references to private-API access from self-play; reconciler factory mention); `ARCH_orchestrator.md` (public `advance_to_round`; `OrchestrationOptions` dataclass; `auto_response_enabled`/`total_rounds` move out of `__init__`); `ARCH_reconciliation.md` (new `build_reconciler` factory); `ASSESSMENT.md` (Block A tech-debt: orchestration cleanup → ✓, LLM adapter cleanup → ✓); `diplomat-testing-doc.md` (§2.3 if `StubAnalyst` location changed).
-
-Phase review and close are handled by the loop's REVIEW and CLOSE states after all checkboxes are complete. Definition of done: 288+ tests passing; no `_<private>` calls from `tests/self_play/`; `auto_response_enabled` / `total_rounds` no longer attributes on `Orchestrator`; `_TaggedLLMClient` deleted; `getattr(..., "_inner", ...)` no longer appears anywhere; provider-config dict literal defined once; `DryRunLLMClient` no longer reads prompt text for classification; named docs updated.
-
-Expected outcome: code surface cleaner; private-attribute pokes from self-play eliminated; one factory for reconciler wiring; one source of truth for the subsystem LLM config dict.
-
-## Phase 22: Pipeline / Flow split (Build)
-
-Regime: Build. The architectural payoff. Separates per-agent capability (`Pipeline`) from scheduling strategy (`Flow`). Two concrete Flows extracted from existing code: `EventDrivenFlow` (production, from `Orchestrator`'s event loop) and `RoundSteppedFlow` (self-play, from `GameEnvironment`'s round-stepping). Makes adding a third Flow (Clankmates polling, customer service, contract negotiation, batch summary) additive instead of a new hand-rolled driver.
-
-Prerequisite: Phase 21 — specifically §21.1's public `advance_to_round` is the first method that needs to live on `Pipeline`.
-
-Steps:
-- [x] **22.1** Define `Pipeline` interface. Methods: `start`/`shutdown`, `store_event(event)`, `extract_from(event)`, `dispatch_operator(content)`, `advance_to_round(n)`, `reconcile_and_analyze()`, `run_response(trigger_event=None)`, plus query methods (`get_state`, `get_intelligence`, `get_ledger`). New file `src/pipeline.py`; methods initially delegate to existing `Orchestrator` internals.
-- [x] **22.2** Implement `EventDrivenFlow` in `src/flows/event_driven.py`. Owns the async event loop reading `Transport.listen()`, the `_extraction_tasks` debounce, the `_check_round_boundary` signal regex, the `_is_direct_address` detector. Constructor takes `pipeline: Pipeline`, `transport: Transport`, optional `round_detector` and `address_detector`.
-- [x] **22.3** Compat shim: `Orchestrator` becomes a thin factory `def Orchestrator(...) -> EventDrivenFlow` returning `EventDrivenFlow(pipeline=Pipeline(...), transport=...)`. Existing `main.py` keeps working without changes.
-- [x] **22.4** Implement `RoundSteppedFlow` in `src/flows/round_stepped.py`. Replaces `GameEnvironment`'s round-stepping logic. Constructor takes `pipelines: list[Pipeline]`, `moderator: Moderator`, `total_rounds: int`. Update `GameEnvironment` to compose `RoundSteppedFlow` (no more `current_round` pokes, no more `[ROUND END]` re-entry trick).
-- [x] **22.5** Add Pipeline-contract tests (`tests/test_pipeline.py`) and Flow-contract tests (`tests/test_flows.py`). Ensure `EventDrivenFlow` reproduces all current production behavior; `RoundSteppedFlow` reproduces all current self-play behavior.
-- [x] **22.6** Verify production smoke (coaching scope, per `SMOKE_RUNBOOK.md`) reproduces. Verify self-play reproduces one known scenario byte-for-byte (or close to it given LLM nondeterminism — use seeded fake LLM for the comparison test).
-- [x] **22.7** Write `ARCH_flow.md` documenting the Flow contract. Include a worked example: "writing a new Flow for a new application" sketching `StreamFlow` (customer service) or `TurnBasedFlow` (negotiation). Update `ARCHITECTURE.md` Component Map to add Pipeline and Flow rows.
-- [x] **22.8** Doc update: `ASSESSMENT.md` (Block A tech-debt: Pipeline/Flow separation → ✓); `ARCH_orchestrator.md` (rewrite as compat shim pointing at `ARCH_flow.md`); `diplomat-testing-doc.md` (any Layer 3 references to `Orchestrator` that should now read `Pipeline` or `EventDrivenFlow`); update `CLAUDE.md` + `CODEX.md` "Load for Current Module" tables with Pipeline + Flow if they become standalone modules. (`ARCH_flow.md` itself is created in 22.7, so it's already a doc deliverable of this phase.)
-
-Phase review and close are handled by the loop's REVIEW and CLOSE states after all checkboxes are complete. Definition of done: 288+ tests passing including new Pipeline/Flow contract tests; `Orchestrator` is a compat shim; `GameEnvironment` is a thin wrapper over `RoundSteppedFlow`; `ARCH_flow.md` exists with the contract + worked example; production smoke reproduces; named docs updated.
-
-Expected outcome: third-application work (Clankmates `HybridFlow`, customer service `StreamFlow`, etc.) becomes additive — write a new Flow class against a stable Pipeline interface.
 
 ## Phase 23: Scoring expansion — Pareto efficiency + process signatures (Build)
 

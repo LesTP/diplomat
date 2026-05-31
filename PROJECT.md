@@ -103,7 +103,7 @@ MVP is the configuration that closes the core loop: messages arrive → state up
 - [watch] **Bot vs. user accounts** — TelegramBotTransport is implemented for MVP; add TelethonUserTransport only if the moderator confirms bot-to-bot messaging is unavailable
 - [watch] **Round structure** — Orchestrator supports signal and time-based modes; set the deployed `pipeline.yaml` to match the moderator's final round format
 - [closed] **Structured output enforcement** — resolved in Phase 2: Extraction handles schema enforcement locally via prompt + parse + jsonschema.validate. Empty patch `{}` is valid.
-- [closed] **Debounce strategy** — resolved in Phase 11 as per-message cooldown: each new game message cancels and reschedules extraction
+- [closed] **Debounce strategy** — resolved in Phase 18 and preserved in Phase 22 Flow split as a per-event task set; different messages do not cancel each other's extraction
 - [closed] **Review gate timeout** — resolved in Phase 9 as configurable auto-block when `timeout_seconds` is set
 - [watch] **Response rate** — if posts are capped per round, affects Orchestrator response trigger logic
 - [watch] **Total round count** — unknown at start; affects spend schedule in Analyst output

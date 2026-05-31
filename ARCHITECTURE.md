@@ -127,14 +127,14 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 | 12 | Orchestrator | Wires everything. Event loop, round management, cost accountant, failure handling. Last because it requires all modules. | Complete |
 | 13 | Reconciliation | Post-round state cleanup via LLM. Merges duplicate promises, detects fulfillments and broken commitments, flags inconsistencies. | Phase 18 complete |
 | 14 | Scenario Compiler | Pre-game tool. Narrative → scored personas. Not a pipeline module — operator runs it before game start. | Phase 18 complete |
-| 15 | Pipeline | Per-agent capability surface extracted from Orchestrator: persistence, extraction, coaching dispatch, round advancement, reconciliation/analysis, response generation, and query APIs. | Phase 22 in progress |
-| 16 | Flow | Scheduling strategies that drive one or more Pipelines, starting with event-driven production and round-stepped self-play. | Phase 22 in progress |
+| 15 | Pipeline | Per-agent capability surface extracted from Orchestrator: persistence, extraction, coaching dispatch, round advancement, reconciliation/analysis, response generation, and query APIs. | Phase 22 complete |
+| 16 | Flow | Scheduling strategies that drive one or more Pipelines, starting with event-driven production and round-stepped self-play. | Phase 22 complete |
 
 ## Testing Status
 
 | Layer | Status |
 |-------|--------|
-| Unit and regression tests | Complete — 240+ tests across 14 test files |
+| Unit and regression tests | Complete — 308 tests across the regression suite |
 | Pipeline integration | Complete — 23 fake-backed Orchestrator integration tests (Phase 18 path coverage added Phase 20) |
 | Transcript replay | Complete — 2 transcript fixtures, 5 replay tests |
 | Prompt regression | Complete — 6 starter scenarios (4 extraction free, 2 generation require live LLM) |
