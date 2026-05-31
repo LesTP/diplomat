@@ -8,50 +8,18 @@
      module entries to DEVLOG_archive.md during phase completion cleanup.
      Add a boundary marker: <!-- Entries above archived from Module N, YYYY-MM-DD -->
 
+<!-- Entries above archived from Phase 20, 2026-05-31 -->
 
-### Step 20.1: Phase 18 path test skeleton
+### Phase 20 close — 2026-05-31
 
-Mode: Build
-Outcome: Added `tests/integration/test_phase18_paths.py` with a reusable Phase 18 integration harness, reconciler-shaped fake LLM responses, reconciliation payload helpers, and transcript-burst injection helpers. Included a fixture smoke test so the scaffold is collected immediately.
-Contract changes: None.
+Phase: Build. 6 steps, ~$0.30 iteration cost.
 
-Verified with `.venv/bin/python -m pytest tests/integration/test_phase18_paths.py -q` and `.venv/bin/python -m pytest tests/ -q` (285 passed). System `python3` still lacks editable `toolkit`, matching the existing project gotcha; the workspace `.venv` path is the valid test runner here.
+Built: `tests/integration/test_phase18_paths.py` — 6 deterministic integration tests covering the Phase 18 production paths not previously tested: burst extraction without dropped events, reconciler duplicate merge, promise fulfillment, inconsistency detection, and missed-proposal insertion.
 
-### Step 20.2: Burst extraction no-drop coverage
+Tests: 290 passing (DoD: 288+). Each new test runs under 2s with fake LLM.
 
-Mode: Build
-Outcome: Added `test_burst_extraction_no_drops` to inject five public game events without waiting between sends, then assert all five events persist and all five message extractions create state-change rows. The Phase 18 harness now disables direct-address auto-response so the test isolates the debounce/extraction task set.
-Contract changes: None.
+Docs updated: `ASSESSMENT.md` (Block A reconciliation path coverage → closed debt), `diplomat-testing-doc.md` (Layer 3 count updated to 23 tests / 290 total).
 
-Verified with `.venv/bin/python -m pytest tests/integration/test_phase18_paths.py -q` and `.venv/bin/python -m pytest tests/ -q` (286 passed).
+No new gotchas beyond what is already in DEVPLAN. Key technique: `wait_for_state_change_count` polling preferred over fixed `asyncio.sleep` for debounce-adjacent assertions.
 
-### Step 20.3: Reconciler dedup and fulfillment coverage
-
-Mode: Build
-Outcome: Added `test_reconciler_dedup` and `test_reconciler_fulfillment`, driving the production round-boundary reconciliation hook with fake structured responses. The shared fake LLM now recognizes toolkit `structured_call(messages=...)` prompts, so reconciler responses exercise the same adapter path used in production.
-Contract changes: None.
-
-Verified with `.venv/bin/python -m pytest tests/integration/test_phase18_paths.py -q` and `.venv/bin/python -m pytest tests/ -q` (288 passed).
-
-### Step 20.4: Reconciler inconsistency and missed-proposal coverage
-
-Mode: Build
-Outcome: Added `test_reconciler_inconsistency` and `test_reconciler_missed_proposal`, covering reconciliation-created inconsistency patches and reconciliation-created promise patches for proposals missed by per-message extraction. Replaced the burst test's fixed wait with polling on state-change count to avoid scheduler-sensitive debounce timing.
-Contract changes: None.
-
-Verified with `.venv/bin/python -m pytest tests/integration/test_phase18_paths.py -q` and `.venv/bin/python -m pytest tests/ -q` (290 passed).
-
-### Step 20.5: Phase 20 documentation update
-
-Mode: Build
-Outcome: Updated `ASSESSMENT.md` to move reconciliation path coverage from active Block A debt to closed debt, with a pointer to `tests/integration/test_phase18_paths.py`. Updated `diplomat-testing-doc.md` Layer 3 counts and notes to include the Phase 18 path coverage tests and fake reconciler LLM.
-Contract changes: `ASSESSMENT.md`, `diplomat-testing-doc.md`.
-
-Verified with `.venv/bin/python -m pytest tests/ -q` (290 passed).
-
-### Step 20.6: Phase 20 review
-
-Mode: Build
-Outcome: Code review of Phase 20 changes. All 290 tests pass (DoD: 288+). No must-fix or should-fix items found. `test_phase18_paths.py` (420 lines, 6 tests) is clean — `Phase18FakeLLMClient` dispatches correctly by prompt content, burst test uses `wait_for_state_change_count` with timeout instead of raw sleep. `ASSESSMENT.md` and `diplomat-testing-doc.md` correctly updated per 20.5 plan.
-
-State: close.
+Phase 21 is next.

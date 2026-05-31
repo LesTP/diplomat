@@ -2065,3 +2065,52 @@ See `TUNING_LOG.md` for the full iterative tuning record with per-run analysis.
 
 **Next steps:** See DEVPLAN.md "Next Steps: Modularization Roadmap" and "Open Items and Future Plans" sections.
 
+
+## Archived 2026-05-31 — Phase 20
+
+### Step 20.1: Phase 18 path test skeleton
+
+Mode: Build
+Outcome: Added `tests/integration/test_phase18_paths.py` with a reusable Phase 18 integration harness, reconciler-shaped fake LLM responses, reconciliation payload helpers, and transcript-burst injection helpers. Included a fixture smoke test so the scaffold is collected immediately.
+Contract changes: None.
+
+Verified with `.venv/bin/python -m pytest tests/integration/test_phase18_paths.py -q` and `.venv/bin/python -m pytest tests/ -q` (285 passed).
+
+### Step 20.2: Burst extraction no-drop coverage
+
+Mode: Build
+Outcome: Added `test_burst_extraction_no_drops` to inject five public game events without waiting between sends, then assert all five events persist and all five message extractions create state-change rows.
+Contract changes: None.
+
+Verified with `.venv/bin/python -m pytest tests/ -q` (286 passed).
+
+### Step 20.3: Reconciler dedup and fulfillment coverage
+
+Mode: Build
+Outcome: Added `test_reconciler_dedup` and `test_reconciler_fulfillment`, driving the production round-boundary reconciliation hook with fake structured responses.
+Contract changes: None.
+
+Verified with `.venv/bin/python -m pytest tests/ -q` (288 passed).
+
+### Step 20.4: Reconciler inconsistency and missed-proposal coverage
+
+Mode: Build
+Outcome: Added `test_reconciler_inconsistency` and `test_reconciler_missed_proposal`. Replaced burst test's fixed wait with polling on state-change count to avoid scheduler-sensitive debounce timing.
+Contract changes: None.
+
+Verified with `.venv/bin/python -m pytest tests/ -q` (290 passed).
+
+### Step 20.5: Phase 20 documentation update
+
+Mode: Build
+Outcome: Updated `ASSESSMENT.md` (Block A reconciliation path coverage → closed debt) and `diplomat-testing-doc.md` (Layer 3 counts updated to 23 tests / 290 total).
+Contract changes: `ASSESSMENT.md`, `diplomat-testing-doc.md`.
+
+### Step 20.6: Phase 20 review
+
+Mode: Build
+Outcome: Code review — no must-fix or should-fix items. 290 tests pass. State → close.
+
+### Phase 20 close — 2026-05-31
+
+Phase: Build. 6 steps. Built 6 deterministic integration tests for Phase 18 paths. 290 tests passing. Docs updated. No new gotchas.
