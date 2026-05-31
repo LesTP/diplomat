@@ -18,6 +18,7 @@ from typing import Any
 import yaml
 
 from modules.types import InboundEvent
+from flows.round_stepped import RoundSteppedFlow
 from orchestrator import OrchestrationOptions, Orchestrator
 from tests.helpers.test_transport import TestTransport
 from tests.self_play.scenario import ROUND_UPDATES as DEFAULT_ROUND_UPDATES
@@ -191,6 +192,7 @@ class GameEnvironment:
         self.scenario_analysis = scenario_analysis
         self.per_faction_providers = per_faction_providers or {}
         self.agents: dict[str, AgentHandle] = {}
+        self.round_flow: RoundSteppedFlow | None = None
         self.channel_log: list[dict[str, Any]] = []
         # Wrap in a logging client if it isn't one already.
         if isinstance(llm_client, LoggingLLMClient):
@@ -351,6 +353,11 @@ class GameEnvironment:
                 transport=transport,
                 task=task,
             )
+        self.round_flow = RoundSteppedFlow(
+            pipelines=[handle.orchestrator.pipeline for handle in self.agents.values()],
+            moderator=self,
+            total_rounds=0,
+        )
 
     async def teardown(self) -> None:
         """Shut down all agents gracefully."""
@@ -359,6 +366,7 @@ class GameEnvironment:
             handle.task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await handle.task
+        self.round_flow = None
 
     # ------------------------------------------------------------------
     # Message routing
@@ -391,6 +399,22 @@ class GameEnvironment:
                         content=content,
                     )
                 )
+
+    def record_channel_message(
+        self,
+        sender_id: str,
+        content: str,
+        *,
+        channel: str = "public",
+    ) -> None:
+        self.channel_log.append(
+            {
+                "sender": sender_id,
+                "channel": channel,
+                "content": content,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
     async def broadcast_to_all(
         self,
@@ -425,65 +449,15 @@ class GameEnvironment:
 
     async def run_round(self, round_number: int) -> dict[str, str]:
         """Execute one round: moderator update → each agent responds → round end."""
-        print(f"\n{'='*60}")
-        print(f"  ROUND {round_number}")
-        print(f"{'='*60}")
-
-        # Tell each orchestrator we've advanced to this round. The orchestrator's
-        # built-in round-boundary signal detection looks for "^ROUND N" markers,
-        # which our moderator doesn't send — so without this, current_round would
-        # stay pinned at 1 for the entire game and the persona's PENULTIMATE /
-        # FINAL ROUND reminders would never fire.
-        for handle in self.agents.values():
-            try:
-                handle.orchestrator.advance_to_round(round_number)
-            except Exception as exc:
-                print(f"  [{handle.faction_id}] advance_to_round failed: {exc}")
-
-        # 1. Inject moderator round update.
-        update = self.round_updates.get(round_number)
-        if update:
-            print(f"\n[MODERATOR] {update[:120]}...")
-            await self.broadcast_to_all("moderator", update)
-            await asyncio.sleep(0.5)  # settle for extraction of moderator message
-
-        # 2. Each agent generates a response.
-        round_responses: dict[str, str] = {}
-        for faction_id, handle in self.agents.items():
-            # Tag LLM calls with the current faction.
-            if self.logging_client:
-                self.logging_client.set_faction(faction_id)
-            try:
-                await handle.orchestrator.run_response_pipeline()
-            except Exception as exc:
-                print(f"  [{faction_id}] response pipeline error: {exc}")
-                continue
-
-            await asyncio.sleep(0.05)  # settle
-
-            outputs = await handle.transport.get_output()
-            public = [m for m in outputs if m.channel == "public"]
-            if public:
-                response_text = public[-1].content
-                round_responses[faction_id] = response_text
-                truncated = (
-                    response_text[:200] + "..."
-                    if len(response_text) > 200
-                    else response_text
-                )
-                print(f"\n  [{faction_id.upper()}] {truncated}")
-
-        # 3. Broadcast each agent's response to all others.
-        for faction_id, response in round_responses.items():
-            await self.broadcast(faction_id, response)
-
-        await asyncio.sleep(2.0)  # settle for extraction of all received messages
-
-        # 4. Signal round end.
-        await self.broadcast_to_all("moderator", "[ROUND END]")
-        await asyncio.sleep(1.0)  # settle for analysis
-
-        return round_responses
+        if self.round_flow is None:
+            self.round_flow = RoundSteppedFlow(
+                pipelines=[
+                    handle.orchestrator.pipeline for handle in self.agents.values()
+                ],
+                moderator=self,
+                total_rounds=0,
+            )
+        return await self.round_flow.run_round(round_number)
 
     async def run_game(self, total_rounds: int = 4) -> dict[str, Any]:
         """Run a full multi-round game and return results."""
@@ -501,6 +475,8 @@ class GameEnvironment:
                 handle.orchestrator.options,
                 total_rounds=total_rounds,
             )
+        if self.round_flow is not None:
+            self.round_flow.total_rounds = total_rounds
 
         # Seed message.
         print(f"\n[MODERATOR] {self.seed_message[:200]}...")

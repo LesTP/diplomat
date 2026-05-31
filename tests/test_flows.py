@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from types import SimpleNamespace
 
 import pytest
 
@@ -9,6 +10,8 @@ from flows.event_driven import (
     faction_address_detector,
     signal_round_detector,
 )
+from flows.round_stepped import RoundSteppedFlow
+from modules.transport import OutboundMessage
 from modules.types import InboundEvent
 
 
@@ -48,6 +51,49 @@ class FakeTransport:
 
     async def close(self):
         self.closed = True
+
+
+class FakeOutputTransport:
+    def __init__(self, content: str) -> None:
+        self.content = content
+
+    async def get_output(self):
+        return [OutboundMessage(content=self.content, channel="public")]
+
+
+class FakeRoundPipeline:
+    def __init__(self, faction_id: str, response: str) -> None:
+        self.orchestrator = SimpleNamespace(
+            faction_id=faction_id,
+            transport=FakeOutputTransport(response),
+        )
+        self.calls = []
+
+    def advance_to_round(self, round_number):
+        self.calls.append(("advance", round_number))
+
+    async def run_response(self):
+        self.calls.append(("response",))
+
+    async def reconcile_and_analyze(self):
+        self.calls.append(("reconcile",))
+
+
+class FakeModerator:
+    def __init__(self) -> None:
+        self.round_updates = {1: "Opening update"}
+        self.broadcasts = []
+        self.records = []
+        self.logging_client = None
+
+    async def broadcast_to_all(self, sender_id, content, *, channel="public"):
+        self.broadcasts.append(("all", sender_id, content, channel))
+
+    async def broadcast(self, sender_id, content, *, channel="public"):
+        self.broadcasts.append(("others", sender_id, content, channel))
+
+    def record_channel_message(self, sender_id, content, *, channel="public"):
+        self.records.append((sender_id, content, channel))
 
 
 def _event(
@@ -158,3 +204,34 @@ async def test_event_driven_flow_start_reads_transport_and_shutdown_closes():
 
     assert [event.content for _event_id, event in pipeline.events] == ["one", "two"]
     assert transport.closed is True
+
+
+@pytest.mark.asyncio
+async def test_round_stepped_flow_drives_responses_and_direct_round_analysis():
+    pipelines = [
+        FakeRoundPipeline("alpha", "Alpha response"),
+        FakeRoundPipeline("beta", "Beta response"),
+    ]
+    moderator = FakeModerator()
+    flow = RoundSteppedFlow(
+        pipelines=pipelines,
+        moderator=moderator,
+        total_rounds=1,
+    )
+    flow.round_update_settle_seconds = 0
+    flow.response_settle_seconds = 0
+    flow.message_settle_seconds = 0
+    flow.round_end_settle_seconds = 0
+
+    responses = await flow.run_round(1)
+
+    assert responses == {
+        "alpha": "Alpha response",
+        "beta": "Beta response",
+    }
+    assert pipelines[0].calls == [("advance", 1), ("response",), ("reconcile",)]
+    assert pipelines[1].calls == [("advance", 1), ("response",), ("reconcile",)]
+    assert ("all", "moderator", "Opening update", "public") in moderator.broadcasts
+    assert ("others", "alpha", "Alpha response", "public") in moderator.broadcasts
+    assert ("others", "beta", "Beta response", "public") in moderator.broadcasts
+    assert moderator.records == [("moderator", "[ROUND END]", "public")]
