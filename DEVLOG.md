@@ -121,3 +121,14 @@ Outcome: Added `ARCH_flow.md` documenting the Pipeline contract, Flow responsibi
 Contract changes: Architecture docs now treat Pipeline and Flow as first-class components.
 
 Updated `ARCHITECTURE.md` Component Map with Pipeline and Flow rows and rewrote the Orchestrator row as a compatibility constructor over EventDrivenFlow.
+
+---
+
+## 2026-05-31 — Phase 22.8: Doc updates for Pipeline/Flow split
+
+Step: 22.8
+Mode: Build
+Outcome: All doc updates for the Pipeline/Flow split complete. ASSESSMENT.md Block A Pipeline/Flow separation moved from active debt to closed debt (Phase 22). ARCH_orchestrator.md rewritten as a compat-shim pointer doc (canonical architecture now lives in ARCH_flow.md). diplomat-testing-doc.md Layer 3 section intro updated to reference EventDrivenFlow/Pipeline. CLAUDE.md and CODEX.md Tier 2 lookup table and Available Modules updated with Pipeline + Flow entries.
+
+All 308 tests still passing.
+
