@@ -36,7 +36,7 @@ async def test_extraction_failure_keeps_pipeline_running_and_event_stored(
 
 
 async def test_secondary_analyst_failure_stores_primary_only(pipeline, monkeypatch):
-    async def fail_secondary(state):
+    async def fail_secondary(state, recent_events=None):
         return AnalysisResult(
             success=False,
             provider_id="secondary",
