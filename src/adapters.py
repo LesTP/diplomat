@@ -28,6 +28,8 @@ class ToolkitLLMAdapter:
         config: dict[str, Any],
         tier: Any = None,
         max_tokens: int | None = None,
+        attribution: str | None = None,
+        purpose: str | None = None,
         **kwargs: Any,
     ) -> str:
         Message = self._toolkit.Message
@@ -66,6 +68,8 @@ class ToolkitLLMAdapter:
                 messages=tk_messages,
                 config=tk_config,
                 tier=tk_tier,
+                attribution=attribution,
+                purpose=purpose,
             )
         else:
             # Use complete_with_retry for the direct path so test/offline
@@ -77,6 +81,8 @@ class ToolkitLLMAdapter:
                 messages=tk_messages,
                 config=tk_config,
                 tier=tk_tier,
+                attribution=attribution,
+                purpose=purpose,
             )
         return response.content
 
