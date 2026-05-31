@@ -181,3 +181,10 @@ Priority: Important
 Decision: Phase 21 will execute the existing module-boundary cleanup plan as nine state-machine-tracked Build steps, with review and close handled by the autonomous loop rather than as an executable checkbox.
 Rationale: The work is already scoped to concrete API cleanup, adapter attribution plumbing, and duplicate wiring removal. Keeping review/close out of the executable checklist prevents the loop from treating governance actions as code steps and lets `STOP_BEFORE_REVIEW=true` stop at the intended review gate.
 Revisit if: A Phase 21 step requires a contract change outside Orchestrator/self-play/LLM adapter boundaries.
+
+D-26: Phase 22 extracts Pipeline and Flow in Build regime
+Date: 2026-05-31 | Status: Open
+Priority: Important
+Decision: Phase 22 will split Orchestrator into a per-agent `Pipeline` capability interface plus `Flow` scheduling strategies, with review and close handled by the autonomous loop rather than as an executable checkbox.
+Rationale: Production and self-play already share the same module capabilities but differ in scheduling. Making that boundary explicit lets new applications add a Flow without copying Orchestrator internals or inventing a parallel driver.
+Revisit if: Extraction exposes a cross-module contract change that cannot be contained inside Orchestrator, Pipeline, Flow, and self-play wiring.

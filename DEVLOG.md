@@ -45,3 +45,11 @@ Tests: 296 passing (DoD: 288+).
 Docs updated: `ARCH_orchestrator.md`, `ARCH_reconciliation.md`, `ARCHITECTURE.md` (coupling notes), `ASSESSMENT.md` (Block A: orchestration + LLM adapter cleanup → ✓), `diplomat-testing-doc.md` (StubAnalyst location).
 
 No new gotchas. Phase 22 is next.
+
+### Phase 22 plan — 2026-05-31
+
+Phase: Build. Planned 8 executable steps for the Pipeline / Flow split.
+
+Scope: Extract a `Pipeline` capability interface from Orchestrator internals, move production scheduling into `EventDrivenFlow`, move self-play round stepping into `RoundSteppedFlow`, preserve `Orchestrator` as a compatibility shim, add contract tests, and update the named architecture/testing docs.
+
+Plan hygiene: Converted Phase 22 steps to state-machine checkboxes and kept phase review/close outside the executable checklist so `STOP_BEFORE_REVIEW=true` stops at the review gate.

@@ -1,8 +1,8 @@
 ---
 phase: 22
-blocked: true
-state: close
-steps_remaining: 0
+blocked: false
+state: execute
+steps_remaining: 7
 ---
 
 # Diplomat — Development Plan
@@ -54,8 +54,8 @@ steps_remaining: 0
 ## Current Status
 
 - **Phase** — Phase 22 (Build). Three-phase Build cycle remaining: Phase 22 → 23 → 24, all pure-build (no operator judgment mid-loop).
-- **Focus** — Phase 22 plan (Phase 21 complete; awaiting human audit).
-- **Blocked/Broken** — Blocked: awaiting human audit of Phase 21.
+- **Focus** — Phase 22 execution: Pipeline / Flow split.
+- **Blocked/Broken** — None.
 
 ## Phase 21: Module boundary cleanup — Complete
 
@@ -93,15 +93,16 @@ Regime: Build. The architectural payoff. Separates per-agent capability (`Pipeli
 Prerequisite: Phase 21 — specifically §21.1's public `advance_to_round` is the first method that needs to live on `Pipeline`.
 
 Steps:
-- **22.1** Define `Pipeline` interface. Methods: `start`/`shutdown`, `store_event(event)`, `extract_from(event)`, `dispatch_operator(content)`, `advance_to_round(n)`, `reconcile_and_analyze()`, `run_response(trigger_event=None)`, plus query methods (`get_state`, `get_intelligence`, `get_ledger`). New file `src/pipeline.py`; methods initially delegate to existing `Orchestrator` internals.
-- **22.2** Implement `EventDrivenFlow` in `src/flows/event_driven.py`. Owns the async event loop reading `Transport.listen()`, the `_extraction_tasks` debounce, the `_check_round_boundary` signal regex, the `_is_direct_address` detector. Constructor takes `pipeline: Pipeline`, `transport: Transport`, optional `round_detector` and `address_detector`.
-- **22.3** Compat shim: `Orchestrator` becomes a thin factory `def Orchestrator(...) -> EventDrivenFlow` returning `EventDrivenFlow(pipeline=Pipeline(...), transport=...)`. Existing `main.py` keeps working without changes.
-- **22.4** Implement `RoundSteppedFlow` in `src/flows/round_stepped.py`. Replaces `GameEnvironment`'s round-stepping logic. Constructor takes `pipelines: list[Pipeline]`, `moderator: Moderator`, `total_rounds: int`. Update `GameEnvironment` to compose `RoundSteppedFlow` (no more `current_round` pokes, no more `[ROUND END]` re-entry trick).
-- **22.5** Add Pipeline-contract tests (`tests/test_pipeline.py`) and Flow-contract tests (`tests/test_flows.py`). Ensure `EventDrivenFlow` reproduces all current production behavior; `RoundSteppedFlow` reproduces all current self-play behavior.
-- **22.6** Verify production smoke (coaching scope, per `SMOKE_RUNBOOK.md`) reproduces. Verify self-play reproduces one known scenario byte-for-byte (or close to it given LLM nondeterminism — use seeded fake LLM for the comparison test).
-- **22.7** Write `ARCH_flow.md` documenting the Flow contract. Include a worked example: "writing a new Flow for a new application" sketching `StreamFlow` (customer service) or `TurnBasedFlow` (negotiation). Update `ARCHITECTURE.md` Component Map to add Pipeline and Flow rows.
-- **22.8** Doc update: `ASSESSMENT.md` (Block A tech-debt: Pipeline/Flow separation → ✓); `ARCH_orchestrator.md` (rewrite as compat shim pointing at `ARCH_flow.md`); `diplomat-testing-doc.md` (any Layer 3 references to `Orchestrator` that should now read `Pipeline` or `EventDrivenFlow`); update `CLAUDE.md` + `CODEX.md` "Load for Current Module" tables with Pipeline + Flow if they become standalone modules. (`ARCH_flow.md` itself is created in 22.7, so it's already a doc deliverable of this phase.)
-- **22.9** Phase review + commit + close. Definition of done: 288+ tests passing including new Pipeline/Flow contract tests; `Orchestrator` is a compat shim; `GameEnvironment` is a thin wrapper over `RoundSteppedFlow`; `ARCH_flow.md` exists with the contract + worked example; production smoke reproduces; named docs updated.
+- [ ] **22.1** Define `Pipeline` interface. Methods: `start`/`shutdown`, `store_event(event)`, `extract_from(event)`, `dispatch_operator(content)`, `advance_to_round(n)`, `reconcile_and_analyze()`, `run_response(trigger_event=None)`, plus query methods (`get_state`, `get_intelligence`, `get_ledger`). New file `src/pipeline.py`; methods initially delegate to existing `Orchestrator` internals.
+- [ ] **22.2** Implement `EventDrivenFlow` in `src/flows/event_driven.py`. Owns the async event loop reading `Transport.listen()`, the `_extraction_tasks` debounce, the `_check_round_boundary` signal regex, the `_is_direct_address` detector. Constructor takes `pipeline: Pipeline`, `transport: Transport`, optional `round_detector` and `address_detector`.
+- [ ] **22.3** Compat shim: `Orchestrator` becomes a thin factory `def Orchestrator(...) -> EventDrivenFlow` returning `EventDrivenFlow(pipeline=Pipeline(...), transport=...)`. Existing `main.py` keeps working without changes.
+- [ ] **22.4** Implement `RoundSteppedFlow` in `src/flows/round_stepped.py`. Replaces `GameEnvironment`'s round-stepping logic. Constructor takes `pipelines: list[Pipeline]`, `moderator: Moderator`, `total_rounds: int`. Update `GameEnvironment` to compose `RoundSteppedFlow` (no more `current_round` pokes, no more `[ROUND END]` re-entry trick).
+- [ ] **22.5** Add Pipeline-contract tests (`tests/test_pipeline.py`) and Flow-contract tests (`tests/test_flows.py`). Ensure `EventDrivenFlow` reproduces all current production behavior; `RoundSteppedFlow` reproduces all current self-play behavior.
+- [ ] **22.6** Verify production smoke (coaching scope, per `SMOKE_RUNBOOK.md`) reproduces. Verify self-play reproduces one known scenario byte-for-byte (or close to it given LLM nondeterminism — use seeded fake LLM for the comparison test).
+- [ ] **22.7** Write `ARCH_flow.md` documenting the Flow contract. Include a worked example: "writing a new Flow for a new application" sketching `StreamFlow` (customer service) or `TurnBasedFlow` (negotiation). Update `ARCHITECTURE.md` Component Map to add Pipeline and Flow rows.
+- [ ] **22.8** Doc update: `ASSESSMENT.md` (Block A tech-debt: Pipeline/Flow separation → ✓); `ARCH_orchestrator.md` (rewrite as compat shim pointing at `ARCH_flow.md`); `diplomat-testing-doc.md` (any Layer 3 references to `Orchestrator` that should now read `Pipeline` or `EventDrivenFlow`); update `CLAUDE.md` + `CODEX.md` "Load for Current Module" tables with Pipeline + Flow if they become standalone modules. (`ARCH_flow.md` itself is created in 22.7, so it's already a doc deliverable of this phase.)
+
+Phase review and close are handled by the loop's REVIEW and CLOSE states after all checkboxes are complete. Definition of done: 288+ tests passing including new Pipeline/Flow contract tests; `Orchestrator` is a compat shim; `GameEnvironment` is a thin wrapper over `RoundSteppedFlow`; `ARCH_flow.md` exists with the contract + worked example; production smoke reproduces; named docs updated.
 
 Expected outcome: third-application work (Clankmates `HybridFlow`, customer service `StreamFlow`, etc.) becomes additive — write a new Flow class against a stable Pipeline interface.
 
