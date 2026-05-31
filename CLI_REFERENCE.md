@@ -328,7 +328,8 @@ python tools/inspect_ledger.py
 ```
 
 See `RUN_PROTOCOL.md` for the canonical version of this protocol with skip
-rules and abort conditions.
+rules and abort conditions. See `SMOKE_RUNBOOK.md` for the operator-side
+procedure to validate the Diplomat bot on the Raspberry Pi after code changes.
 
 ---
 

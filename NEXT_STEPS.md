@@ -15,7 +15,7 @@ sequenced into phases — that happens once we pick the next concrete run.
 
 ## Suggested Sequencing (recommended order)
 
-1. **Live Telegram re-smoke on Pi** — bridges self-play maturity back to real-deployment readiness. Validates Phase 18 changes (debounce fix, structured_call, cost wiring, reconciliation, retry-with-backoff) against real Telegram update rates. See `Backlog → Live Telegram re-smoke` below.
+1. **Live Telegram re-smoke on Pi** — bridges self-play maturity back to real-deployment readiness. Validates Phase 18 + Phase 19 changes (debounce fix, structured_call, cost wiring, retry-with-backoff, dated-pricing normalization) against real Telegram update rates. **Procedure: `SMOKE_RUNBOOK.md`.**
 2. **Coaching test loop on Pi** — operator coaches one self-play agent via Telegram while other agents run autonomous. Validates the original use case end-to-end; highest-value test not yet run. See §4 below.
 3. **Add OpenRouter to toolkit + run a 4–6 provider Run 9** — biggest experimental payoff per day of work. Google entry uses `gemini-2.5-flash-lite` per TUNING.md §1 default.
 4. **Divorce / pressure-mechanism scenario design** — extends scenario compiler, sets up Run 10
@@ -487,22 +487,16 @@ confirmed working in production.
 
 ### Live Telegram re-smoke
 
-Phase 18 changes (debounce fix, structured_call, cost wiring, reconciliation)
-have only been validated in self-play. Need a Pi-side smoke test to bridge
-self-play maturity back to real-deployment readiness.
+**Procedure documented in `SMOKE_RUNBOOK.md`** at the project root. Covers
+all Phase 18 + Phase 19 changes since the Phase 16 baseline smoke, with
+per-change verification steps, known gaps (reconciler not wired in
+production, endgame markers don't fire in production), and abort
+conditions. Runbook is operator-facing — assumes Pi access and credentials.
 
-- [ ] Run `python src/main.py` on the Pi with current production config.
-- [ ] Verify multi-message burst handling (per-event extraction tasks, not
-      cancel-and-replace) works against real Telegram update rates.
-- [ ] Verify review gate end-to-end: draft posted to coaching channel,
-      `/approve` posts to public, `/edit:` posts modified, `/block` posts
-      nothing.
-- [ ] Verify cost ledger writes per call (Phase 18 wiring) and `/ledger`
-      reflects real spend.
-- [ ] Verify reconciliation runs at round boundary against a real `[ROUND END]`
-      signal.
-- [ ] Switch production `pipeline.yaml` from `AutoApproveReviewGate` to
-      `TelegramReviewGate` once smoke passes.
+Open items not closed by this runbook (defer per scope or upgrade later):
+- [ ] Wire reconciler into `src/main.py` (currently only in self-play harness; production skips post-round reconciliation entirely)
+- [ ] Decide whether to commit the `pipeline.yaml` flip to `TelegramReviewGate` as the new default, or keep `AutoApproveReviewGate` as the safe default with per-deploy override
+- [ ] If the real game has a fixed round count, surface it as a config option so endgame markers fire (currently only self-play sets `orchestrator.total_rounds`)
 
 ---
 
@@ -547,3 +541,4 @@ Tracked here for visibility; canonical sources remain authoritative.
 | 2026-05-30 | Added §8 (Reverse scenario builder) and §9 (Voice/style templates). §8 fills the gap that's been implicit in every scenario-design conversation: we need outcome-shape → scenario generation so skill becomes visible. §9 is fun-priority. | Operator: "we should have a scenario builder that runs the analyzer in reverse... also tune voice from templates like Kissinger, Gen Alpha, Iliad, воровская феня." |
 | 2026-05-30 | Marked tooling-debt items #1 (LoggingLLMClient SCORE/RECON) and #2 (scenario compiler BATNA hardcode) as RESOLVED in the Backlog section with closure references to DEVLOG entries. Surfaced four open design questions on BATNA approach (default value, presets, per-faction asymmetric, force-clamp). | Operator: "don't forget to update the docs after a step is done" |
 | 2026-05-30 | Marked tooling-debt item #3 (dated OpenAI model pricing) RESOLVED. All three tooling-debt items closed; suggested sequencing collapsed by removing #1 (Tooling debt). New sequence: (1) live TG re-smoke, (2) coaching test, (3) OpenRouter+Run 9, (4) divorce scenario, (5) Stage 2a, (6) Clankmates. | Operator provided current OpenAI pricing; audit revealed 41.6× overall overestimate from date-suffix lookup miss. |
+| 2026-05-30 | Added `SMOKE_RUNBOOK.md` at project root — step-by-step Pi smoke procedure mapping every Phase 18+19 change to a verification step. Surfaced two not-blocking gaps: reconciler not wired in production `main.py`, endgame markers don't fire in production. Both tracked as remaining items under `Live Telegram re-smoke` Backlog section. | Operator: "Live Telegram re-smoke on Pi — verify deployment readiness" |
