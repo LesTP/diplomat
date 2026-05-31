@@ -376,6 +376,70 @@ def test_missing_required_key_raises(tmp_path):
         Orchestrator(config_path, base_path=tmp_path)
 
 
+def test_total_rounds_unset_defaults_to_none(tmp_path, monkeypatch):
+    """Without a `game.total_rounds` config key, total_rounds stays None
+    (production default — round count unknown)."""
+    config_path = _copy_project_config(tmp_path)
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-key")
+
+    orch = Orchestrator(
+        config_path, base_path=tmp_path,
+        llm_client=FakeLLMClient(), telegram_client=FakeTelegramClient(),
+    )
+    assert orch.total_rounds is None
+
+
+def test_total_rounds_set_from_config(tmp_path, monkeypatch):
+    """When `game.total_rounds: N` is present and positive, it populates
+    self.total_rounds so the persona's endgame markers can fire."""
+    config_path = _copy_project_config(tmp_path)
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    config["game"] = {"total_rounds": 6}
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-key")
+
+    orch = Orchestrator(
+        config_path, base_path=tmp_path,
+        llm_client=FakeLLMClient(), telegram_client=FakeTelegramClient(),
+    )
+    assert orch.total_rounds == 6
+
+
+def test_total_rounds_zero_or_negative_ignored(tmp_path, monkeypatch):
+    """Defensive: invalid values are ignored, not raised, since this is an
+    optional config knob and a typo shouldn't crash startup."""
+    config_path = _copy_project_config(tmp_path)
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    config["game"] = {"total_rounds": 0}
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-key")
+
+    orch = Orchestrator(
+        config_path, base_path=tmp_path,
+        llm_client=FakeLLMClient(), telegram_client=FakeTelegramClient(),
+    )
+    assert orch.total_rounds is None
+
+
+def test_total_rounds_non_int_ignored(tmp_path, monkeypatch):
+    """String value also ignored (typo-tolerance)."""
+    config_path = _copy_project_config(tmp_path)
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    config["game"] = {"total_rounds": "six"}
+    config_path.write_text(yaml.safe_dump(config, sort_keys=False), encoding="utf-8")
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-key")
+
+    orch = Orchestrator(
+        config_path, base_path=tmp_path,
+        llm_client=FakeLLMClient(), telegram_client=FakeTelegramClient(),
+    )
+    assert orch.total_rounds is None
+
+
 @pytest.mark.parametrize(
     ("name", "expected"),
     [

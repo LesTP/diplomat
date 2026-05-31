@@ -68,11 +68,14 @@ modules:
 cost:
   per_round_budget_usd: 1.00
   session_budget_usd: 10.00
-
 round_detection:
   mode: signal
   pattern: "^ROUND\\s+(?P<round>\\d+)"
-
+# Optional: if the game has a fixed round count known in advance, set it
+# here so the persona's PENULTIMATE / FINAL ROUND endgame markers fire.
+# Leave commented out when the round count is unknown (most real games).
+# game:
+#   total_rounds: 6
 feature_flags:
   adversarial:
     enabled: true

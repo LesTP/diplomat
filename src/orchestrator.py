@@ -107,9 +107,16 @@ class Orchestrator:
         )
         self.current_round = 1
         # Set by self-play harness to communicate game length to the persona's
-        # endgame reminders. Production games leave this as None — there's no
-        # known total round count.
+        # endgame reminders. Production reads from `game.total_rounds` in
+        # pipeline.yaml when present; absent in pipeline.yaml means production
+        # leaves this as None (no endgame markers — real games where the round
+        # count is unknown).
         self.total_rounds: int | None = None
+        game_config = self.config.get("game")
+        if isinstance(game_config, dict):
+            total_rounds_value = game_config.get("total_rounds")
+            if isinstance(total_rounds_value, int) and total_rounds_value > 0:
+                self.total_rounds = total_rounds_value
         # When False, suppresses the orchestrator's `_is_direct_address`
         # auto-trigger that fires response pipelines on every inbound message
         # mentioning this faction. Self-play sets this to False so that exactly

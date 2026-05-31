@@ -8,6 +8,73 @@
      module entries to DEVLOG_archive.md during phase completion cleanup.
      Add a boundary marker: <!-- Entries above archived from Module N, YYYY-MM-DD -->
 
+## Phase 19 — production reconciler + endgame-marker wiring
+
+### 2026-05-30 — Close the two SMOKE_RUNBOOK gaps before the live smoke
+
+**Action:** Wired two pieces that had been documented as known gaps in `SMOKE_RUNBOOK.md`. Done before the actual smoke run on the Pi (operator: "let's have the tests as realistic as we can").
+
+**Gap 1: Reconciler not wired in production.**
+`src/main.py` now calls a new `_attach_reconciler(orchestrator, llm_adapter, config_path)` helper after orchestrator construction. The helper:
+- Reads `llm_providers.primary` from `pipeline.yaml`
+- Builds a recon-specific config dict (provider + models + api_key from env)
+- Instantiates `StateReconciler` with the production llm_adapter, recon config, and tier="commodity"
+- Attaches as `orchestrator.reconciler`
+
+If `llm_providers.primary` is missing, skip silently (orchestrator's `_reconcile_state` handles missing reconciler gracefully). To disable reconciliation in production, comment out the `_attach_reconciler(...)` call. No new feature flag — keeping the production wiring lean.
+
+Self-play harness keeps its own per-faction reconciler wiring (using `_TaggedLLMClient` for SCORE/RECON visibility); the harness's last write wins, so the production wiring doesn't interfere with self-play tests.
+
+**Gap 2: Endgame markers don't fire in production.**
+`Orchestrator.__init__` now reads optional `game.total_rounds` from `pipeline.yaml`:
+- When set to a positive int, `self.total_rounds = N` so `build_round_context` renders "Round K of N" headers and adds `### PENULTIMATE ROUND` / `### FINAL ROUND` blocks in the last two rounds.
+- When unset, missing, zero, negative, or non-int: `self.total_rounds = None` (current production default — unchanged behavior for games where the round count is unknown).
+- Self-play harness continues to set `total_rounds` via direct attribute assignment, overriding any config value.
+
+Added commented example to `config/pipeline.yaml`:
+```yaml
+# game:
+#   total_rounds: 6
+```
+
+**Tests:** 8 new in `tests/test_orchestrator.py` + `tests/test_main.py`:
+- `test_total_rounds_unset_defaults_to_none` — production default
+- `test_total_rounds_set_from_config` — explicit positive int wires through
+- `test_total_rounds_zero_or_negative_ignored` — defensive (no crash on typo)
+- `test_total_rounds_non_int_ignored` — defensive (string value rejected)
+- `TestAttachReconciler::test_attaches_when_primary_provider_present` — happy path
+- `TestAttachReconciler::test_no_primary_means_no_attach` — skip silently
+- `TestAttachReconciler::test_missing_api_key_env_handled` — partial config
+- `TestAttachReconciler::test_unset_api_key_env_produces_empty_string` — env var absent
+
+`tests/test_main.py` is new — first unit-level coverage for production entry point wiring.
+
+**Verification:**
+- Full diplomat suite: 280 passed + 4 pre-existing Windows/network-share flakes (unchanged from baseline + the timing-race flake that sometimes appears as 3, sometimes 4).
+- `tests/test_main.py`: 4 passed.
+- `tests/test_orchestrator.py::test_total_rounds_*`: 4 passed.
+- `tests/test_orchestrator.py::test_successful_instantiation_with_fakes`: still passes (existing test using `_copy_project_config` works with the new optional config section).
+
+**SMOKE_RUNBOOK updates:**
+- §4.1 (reconciler) → ~~FIXED~~ + cross-reference to new §3.8 verification step
+- §4.2 (endgame markers) → ~~CONFIGURABLE~~ + cross-reference to new §3.9 verification step
+- §3.8 added: trigger duplicate promises, ROUND signal, verify dedup in `/state` + RECON call in ledger
+- §3.9 added: enable `game.total_rounds: 4`, `/preview` across rounds, verify PENULTIMATE/FINAL ROUND blocks appear in draft
+
+**Files modified:**
+- `src/orchestrator.py` (total_rounds read from config)
+- `src/main.py` (`_attach_reconciler` helper + call after orchestrator construction)
+- `config/pipeline.yaml` (commented `game:` example)
+- `tests/test_orchestrator.py` (4 new total_rounds tests)
+- `tests/test_main.py` (NEW — 4 reconciler-wiring tests)
+- `SMOKE_RUNBOOK.md` (§4 gaps removed/marked fixed, §3.8 + §3.9 verification steps added)
+- `NEXT_STEPS.md` (closure refs updated)
+- `DEVLOG.md` (this entry)
+
+**Next:** Live smoke on Pi per the updated runbook.
+
+---
+
 ## Phase 19 — tooling debt: dated OpenAI model pricing
 
 ### 2026-05-30 — normalize_model_name + updated gpt-5.x prices + Gemini 2.5 family

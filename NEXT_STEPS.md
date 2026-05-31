@@ -489,14 +489,17 @@ confirmed working in production.
 
 **Procedure documented in `SMOKE_RUNBOOK.md`** at the project root. Covers
 all Phase 18 + Phase 19 changes since the Phase 16 baseline smoke, with
-per-change verification steps, known gaps (reconciler not wired in
-production, endgame markers don't fire in production), and abort
-conditions. Runbook is operator-facing — assumes Pi access and credentials.
+per-change verification steps and abort conditions. Runbook is
+operator-facing — assumes Pi access and credentials.
 
-Open items not closed by this runbook (defer per scope or upgrade later):
-- [ ] Wire reconciler into `src/main.py` (currently only in self-play harness; production skips post-round reconciliation entirely)
-- [ ] Decide whether to commit the `pipeline.yaml` flip to `TelegramReviewGate` as the new default, or keep `AutoApproveReviewGate` as the safe default with per-deploy override
-- [ ] If the real game has a fixed round count, surface it as a config option so endgame markers fire (currently only self-play sets `orchestrator.total_rounds`)
+**Two production gaps that were going to be deferred have now been fixed**
+(2026-05-30):
+
+- [x] ~~Wire reconciler into `src/main.py`~~ — RESOLVED. New `_attach_reconciler` helper in main.py uses the primary provider's commodity tier. See `DEVLOG.md` Phase 19 "production reconciler + endgame-marker wiring" entry. SMOKE_RUNBOOK §3.8 verifies.
+- [x] ~~Surface `total_rounds` as a config option~~ — RESOLVED. New optional `game.total_rounds` in `pipeline.yaml`; `Orchestrator.__init__` reads it. Leave commented out when round count is unknown (production default). SMOKE_RUNBOOK §3.9 verifies.
+
+Remaining decision point:
+- [ ] After successful smoke, decide whether to commit the `pipeline.yaml` flip to `TelegramReviewGate` as the new default, or keep `AutoApproveReviewGate` as the safe default with per-deploy override
 
 ---
 

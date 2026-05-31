@@ -33,6 +33,7 @@ async def run(config_path: str) -> None:
         telegram_client=telegram_client,
         cost_accountant=cost_gate,
     )
+    _attach_reconciler(orchestrator, llm_adapter, config_path)
     loop = asyncio.get_running_loop()
     stop_event = asyncio.Event()
 
@@ -101,6 +102,51 @@ def _build_cost_gate(config_path: str) -> DiplomatCostGate | None:
 
     accountant = CostAccountant(ledger_path=ledger_path)
     return DiplomatCostGate(accountant, per_round_budget_usd=per_round)
+
+
+def _attach_reconciler(
+    orchestrator: Any,
+    llm_client: Any,
+    config_path: str,
+) -> None:
+    """Attach a StateReconciler for post-round state cleanup.
+
+    Reconciliation runs at the end of every round (before analyst calls) and:
+    - Merges duplicate promises that the extractor logged with different IDs
+    - Transitions promises pending → kept/broken when fulfilled or contradicted
+    - Flags inconsistencies from position shifts
+    - Catches proposals the per-message extractor missed
+
+    Uses the *primary* provider's commodity tier (cheapest model on the main
+    provider). The reconciler shares the same llm_client adapter as the rest
+    of the pipeline, so calls flow through the cost accountant.
+
+    To disable reconciliation in production, comment out the call to this
+    function in run(). No feature flag — keeping the production path lean.
+    Self-play has its own per-faction reconciler wiring that overrides this
+    one with a LoggingLLMClient-tagged version for SCORE/RECON visibility.
+    """
+    from modules.reconciliation import StateReconciler
+
+    import yaml
+    config = yaml.safe_load(Path(config_path).read_text(encoding="utf-8"))
+    primary = config.get("llm_providers", {}).get("primary", {})
+    if not primary:
+        # Without a primary provider config we can't build a reconciler;
+        # silently skip (orchestrator handles missing reconciler gracefully).
+        return
+
+    api_key_env = primary.get("api_key_env", "")
+    recon_config = {
+        "provider": primary.get("provider", "openai"),
+        "models": primary.get("models", {}),
+        "api_key": os.getenv(api_key_env, "") if api_key_env else "",
+    }
+    orchestrator.reconciler = StateReconciler(
+        llm_client=llm_client,
+        llm_config=recon_config,
+        tier="commodity",
+    )
 
 
 if __name__ == "__main__":

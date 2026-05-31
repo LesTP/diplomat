@@ -227,39 +227,83 @@ Requires `TelegramReviewGate` (you flipped this in §1.4).
 - [ ] `/preview` triggers the response pipeline without auto-posting
 - [ ] Unknown command receives a polite "unknown command" reply
 
+### 3.8 Reconciler (wired into production 2026-05-30)
+
+Reconciler is now attached at startup by `src/main.py`. It fires at every
+round boundary, before analysts run. Validates the post-round state cleanup
+path end-to-end in production.
+
+- [ ] Trigger 2–3 promises from the same faction via game messages in the public channel (e.g. multiple messages mentioning "Alpha commits $2M to Beta", paraphrased)
+- [ ] Send `ROUND 1` (or matching `round_detection.pattern`) to trigger round boundary
+- [ ] Wait ~10–20 sec for round-boundary processing (reconciler + analysts)
+- [ ] `/state` from coaching channel should show **one** promise entry, not three duplicates
+- [ ] Cost ledger should show a NEW entry tagged with the scorer's prompt OR — for the production path — a RECON call (look at the system prompt prefix in `tail` of the JSONL — should contain "negotiation state reconciler")
+- [ ] Log output: no exceptions from `_reconcile_state`; if reconciler crashes, orchestrator alerts the operator
+
+**If reconciler fires but doesn't dedup:** reconciler ran but LLM didn't
+flag the duplicates as mergeable. Check the LLM's reconciler response in
+the log. May indicate the model is too weak — primary commodity tier is
+`gpt-5.4-mini`, which should handle this fine; if it doesn't, try bumping
+to `default` or `quality` tier in `_attach_reconciler` in main.py.
+
+### 3.9 Endgame markers (configurable as of 2026-05-30)
+
+Persona's `PENULTIMATE` / `FINAL ROUND` blocks render when
+`orchestrator.total_rounds` is set. Production now reads
+`game.total_rounds` from `pipeline.yaml` when present.
+
+**Optional setup before smoke** — uncomment in `config/pipeline.yaml`:
+```yaml
+game:
+  total_rounds: 4    # short; easy to hit the endgame markers
+```
+
+- [ ] Start bot
+- [ ] Send a normal game message + `/preview` from coaching channel
+- [ ] In the draft sent to coaching, the system prompt context should mention "Round 1 of 4" (header), not just "Round 1"
+- [ ] Advance round: send `ROUND 3` in public channel
+- [ ] `/preview` again
+- [ ] Draft system prompt should contain `### PENULTIMATE ROUND` block
+- [ ] Advance to ROUND 4
+- [ ] `/preview` should now show `### FINAL ROUND` block instead
+
+If `game.total_rounds` is left commented out, markers don't fire (expected —
+production default for unknown-length real games).
+
 ---
 
 ## 4. Known gaps (don't expect these to work; not blocking)
 
-### 4.1 Reconciler not wired in production
+### 4.1 ~~Reconciler not wired in production~~ — FIXED 2026-05-30
 
-`src/modules/reconciliation/StateReconciler` exists and is exercised by
-self-play (`tests/self_play/game_environment.py` creates one and attaches it
-to each orchestrator). **Production `src/main.py` does not.** The
-orchestrator's `_reconcile_state()` checks `getattr(self, "reconciler",
-None)` and returns silently when missing.
+`src/main.py` now attaches a `StateReconciler` to the orchestrator at
+startup (commit-ID-pending — see latest `[diplomat] main: wire reconciler...`
+commit). Uses the *primary* provider's commodity tier. Reconciliation fires
+at the end of every round (before analyst calls) and:
 
-**Consequence for this smoke:** post-round reconciliation (dedup, fulfillment
-detection, inconsistency flagging) will not fire. The promise ledger will
-have duplicates that self-play would have merged.
+- Merges duplicate promises that the extractor logged with different IDs
+- Transitions promises pending → kept/broken when fulfilled or contradicted
+- Flags inconsistencies from position shifts
+- Catches proposals the per-message extractor missed
 
-**Fix path** (deferred — separate phase): add reconciler wiring to `main.py`
-similar to game_environment's setup. ~30 min change. Worth doing before
-the first real game but not blocking the smoke.
+**Verification step (added to §3):** see §3.8 below.
 
-### 4.2 Endgame markers don't fire in production
+### 4.2 ~~Endgame markers don't fire in production~~ — CONFIGURABLE 2026-05-30
 
-`PENULTIMATE` / `FINAL ROUND` markers in `build_round_context` only render
-when `orchestrator.total_rounds` is set. Self-play sets it explicitly.
-Production doesn't know the round count, so `total_rounds = None` and the
-markers never appear.
+`Orchestrator.__init__` now reads optional `game.total_rounds` from
+`pipeline.yaml`. When set, `PENULTIMATE` / `FINAL ROUND` blocks in the
+persona render correctly. When absent (current default), behavior is
+unchanged from prior baseline.
 
-**Consequence for this smoke:** persona context will not include endgame
-reminders. Agents won't get the "close the deal" pressure cue.
+**To enable for the smoke (optional):** uncomment the `game:` block in
+`config/pipeline.yaml`:
 
-**Fix path** (deferred — game-design decision): either ask the moderator
-how many rounds the real game has and add a `total_rounds` config option,
-or accept that production stays endgame-blind. Tracked in NEXT_STEPS §2.
+```yaml
+game:
+  total_rounds: 6   # or whatever matches the planned game length
+```
+
+**Verification step:** see §3.9 below.
 
 ### 4.3 Adversarial reader rate
 
