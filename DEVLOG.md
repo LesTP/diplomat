@@ -48,3 +48,10 @@ Outcome: Updated `ASSESSMENT.md` to move reconciliation path coverage from activ
 Contract changes: `ASSESSMENT.md`, `diplomat-testing-doc.md`.
 
 Verified with `.venv/bin/python -m pytest tests/ -q` (290 passed).
+
+### Step 20.6: Phase 20 review
+
+Mode: Build
+Outcome: Code review of Phase 20 changes. All 290 tests pass (DoD: 288+). No must-fix or should-fix items found. `test_phase18_paths.py` (420 lines, 6 tests) is clean — `Phase18FakeLLMClient` dispatches correctly by prompt content, burst test uses `wait_for_state_change_count` with timeout instead of raw sleep. `ASSESSMENT.md` and `diplomat-testing-doc.md` correctly updated per 20.5 plan.
+
+State: close.
