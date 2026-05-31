@@ -28,6 +28,30 @@ Configuration file: `config/pipeline.yaml` (production) or `config/pipeline_smok
 | **Adversarial** | OpenAI | gpt-5.4-mini | Deliberately different provider from generator; cheap model sufficient for pattern matching |
 | **Extractor** | OpenAI | gpt-5.4-mini | Structured extraction is straightforward; cheap model is sufficient |
 
+### Scenario BATNA tuning (`--batna-fraction`)
+
+Available on both `tools.scenario_compiler` and `tests.self_play.run_simulation`. Sets the target BATNA value as a fraction of each faction's maximum possible score across all issues.
+
+**Semantics — which direction does what?**
+
+| Fraction | Effect | When to use |
+|---|---|---|
+| **High (0.6–0.8)** | BATNA is close to the best possible deal. Agents must find a Pareto-optimal trade to beat BATNA — *mediocre deals fail*. Skill becomes visible: bad negotiators settle too soon and lose; good ones find the joint optimum and win. | Testing strategic skill, comparing model/strategy quality, generating non-trivial games |
+| **Medium (0.4–0.6)** | Balanced. Pareto deals win, but moderately good deals also beat BATNA. Default. | General self-play, scenario validation |
+| **Low (0.2–0.4)** | "Any deal beats no deal." Agents converge fast on whatever's on the table. Skill is invisible because everyone clears BATNA. | Testing "settling pressure" or coordination scenarios where the question is *whether* agents can agree, not *how well* |
+
+**Common mistake.** Lower BATNA feels like "more pressure to negotiate" — and it is, in the narrow sense of "you must agree to *something*." But for measuring negotiation *quality*, higher BATNA creates more pressure because it rules out lazy settlements. Run 8 pre-patch had 0.19–0.34 BATNAs and we couldn't tell strategic skill apart because every agent easily beat BATNA. Hand-patching to 0.40–0.61 made the deadlock and the missed Pareto optimum visible.
+
+**Default `0.50`.** Calibrated from Run 8 hand-patch experience.
+
+**The `validate_batna_pressure()` helper** (called automatically by both CLIs after compilation) prints a warning per faction whose BATNA lands more than 10 percentage points below the target. It never blocks — operator can ignore if low BATNA is intentional.
+
+**Workflows:**
+- **Own scenarios, want defaults:** just run with `--scenario <path>`
+- **Own scenarios, want specific pressure:** add `--batna-fraction 0.65` (or whatever)
+- **External scenario with explicit BATNAs in the narrative:** prompt instructs the LLM to honor those; `--batna-fraction` becomes a soft target the LLM weighs against narrative
+- **Hand-tuned reproducible runs:** compile once, edit `scenario_analysis.json`, then `--analysis-json` to replay (skips compile entirely; `--batna-fraction` is ignored on this path)
+
 ### Google (Gemini) defaults for tuning and multi-provider runs
 
 Set 2026-05-30. Google moved from free tier to **paid (Tier 1)** after the
@@ -286,4 +310,6 @@ date        | what changed                          | why                       
 2026-05-30  | Google paid tier enabled, $10 credits | Run 8 hit 250 RPD on free tier| 5-call burst probe passed; all 3 Gemini 2.5 models accessible incl. pro
 2026-05-30  | gemini-2.5-flash-lite set as default  | Avoid thinking-token gotcha   | Cheapest ($0.10/MTok), no thinking-mode overhead; revisit during dedicated provider/tier testing
 2026-05-30  | toolkit complete_with_retry shipped   | Transient 429/5xx/empty handling at scale | Exponential backoff + retry-after honoring; wired through CostAccountant + Diplomat adapter; 15 new toolkit tests; live 3-provider probe green
+2026-05-30  | LoggingLLMClient SCORE/RECON unwrap fixed | Calls were bypassing the logger; verify_dryrun couldn't assert on them | _TaggedLLMClient wrapper applies recon:<faction> / scorer tags; verify_dryrun invariant 7 now asserts SCORE >= 1; 5 new tests
+2026-05-30  | scenario compiler BATNA hardcode removed | Run 8 needed hand-patched BATNAs because compiler forced "4-8 total" regardless of scenario size | Replaced with fraction-of-max formula (default 50%); new --batna-fraction CLI on tools.scenario_compiler AND tests.self_play.run_simulation; validate_batna_pressure() warns when LLM under-sets; 13 new tests
 ```

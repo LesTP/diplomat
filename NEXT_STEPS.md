@@ -477,17 +477,13 @@ confirmed working in production.
 
 ### Tooling debt
 
-- [ ] **`LoggingLLMClient` doesn't see SCORE or RECON calls.** Both unwrap
-      the wrapper to use the inner client directly. Fix: route both through
-      the wrapper, or add a parallel logging layer at the adapter level.
-      Affects `verify_dryrun` completeness and the call-log inspector.
-- [ ] **Scenario compiler hardcodes BATNA range.** `tools/scenario_compiler.py`
-      system prompt says "BATNAs should be low enough (typically 4-8 total)"
-      regardless of narrative. Currently worked around with `--analysis-json`
-      hand-patches. Options:
-  - Add a `--batna-fraction` CLI override (e.g. "BATNA = 0.5 × max possible")
-  - Relax range guidance to let narrative drive it
-  - Make the compiler read explicit BATNA hints from the narrative spec
+- [x] ~~**`LoggingLLMClient` doesn't see SCORE or RECON calls.**~~ RESOLVED 2026-05-30. Routed reconciler and scorer through `_TaggedLLMClient` wrapper; SCORE and RECON now appear in the call log with `recon:<faction>` / `scorer` tags. See `DEVLOG.md` Phase 19 "LoggingLLMClient SCORE/RECON visibility" entry.
+- [x] ~~**Scenario compiler hardcodes BATNA range.**~~ RESOLVED 2026-05-30. Replaced "typically 4-8 total" with fraction-of-max formula (default 0.50). Added `--batna-fraction` CLI flag to both `tools.scenario_compiler` and `tests.self_play.run_simulation`. Added `validate_batna_pressure()` post-hoc check that flags under-pressure with a fix-hint. See `DEVLOG.md` Phase 19 "scenario compiler BATNA hardcode" entry and `TUNING.md` §1 BATNA tuning section for full semantics. **Decisions confirmed 2026-05-30:** default 0.50, numeric fraction (not presets) with semantics documented in TUNING.md, validator warns (never blocks).
+
+### Open BATNA follow-ups (deferred, low-priority)
+
+- [ ] **Per-faction asymmetric BATNA fractions.** Currently `--batna-fraction` is one number applied to all factions, but real scenarios have asymmetric outside options (alpha has alternatives, beta doesn't). A `--batna-fractions '{"alpha":0.65,"beta":0.35,"gamma":0.50}'` flag (JSON map, same shape as `--per-faction-providers`) would unlock asymmetric-pressure scenarios. Not urgent; revisit if a planned experiment requires it.
+- [ ] **`--force-batna-fraction` post-clamp.** Currently the LLM tries to honor both narrative-explicit BATNAs and the `--batna-fraction` target — could result in inconsistency. A force-flag would post-process the LLM output to clamp values to `target × max`, overriding whatever the LLM produced. Defer until a real test case demands it (operator: "not excited about flag proliferation but whatever it takes").
 - [ ] **Dated model pricing in toolkit.** OpenAI returns
       `gpt-4.1-mini-2025-04-14` but `cost_accountant`'s pricing table only has
       `gpt-4.1-mini`. Fallback pricing works but overestimates cost. Fix:
@@ -554,3 +550,4 @@ Tracked here for visibility; canonical sources remain authoritative.
 | 2026-05-30 | Shipped `complete_with_retry` in `toolkit.llm_client` (exponential backoff, `retry-after` honoring, 15 new tests). Wired through `CostAccountant.complete` and Diplomat's `ToolkitLLMAdapter`. Safety-filter empty-response audit closed: existing `LLMResponseError` already catches them; retry now handles transient cases. §1 closure block updated; suggested sequencing item #1 (retry+empty audit) collapsed. | Operator: "no reason to postpone, let's build retry with backoff... let's test empty response too." |
 | 2026-05-30 | Re-sequenced to prioritize cleanup before exploration: (1) tooling debt, (2) live Telegram re-smoke, (3) coaching test loop, (4) OpenRouter+Run 9, (5) divorce scenario, (6) Stage 2a, (7) Clankmates. Old #1 (OpenRouter+Run 9) demoted to #4. | Operator: "I think I want to sequence next steps as follows: tooling debt, live TG resmoke, coaching test on pi, then the rest" |
 | 2026-05-30 | Added §8 (Reverse scenario builder) and §9 (Voice/style templates). §8 fills the gap that's been implicit in every scenario-design conversation: we need outcome-shape → scenario generation so skill becomes visible. §9 is fun-priority. | Operator: "we should have a scenario builder that runs the analyzer in reverse... also tune voice from templates like Kissinger, Gen Alpha, Iliad, воровская феня." |
+| 2026-05-30 | Marked tooling-debt items #1 (LoggingLLMClient SCORE/RECON) and #2 (scenario compiler BATNA hardcode) as RESOLVED in the Backlog section with closure references to DEVLOG entries. Surfaced four open design questions on BATNA approach (default value, presets, per-faction asymmetric, force-clamp). | Operator: "don't forget to update the docs after a step is done" |
