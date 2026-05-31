@@ -1018,9 +1018,45 @@ Routing verification:
 - Send `/state` from the public group only as a negative check. Operator commands belong in the coaching chat; if the public sender is not in `DIPLOMAT_OPERATOR_USER_IDS`, the message should be treated as game traffic.
 - If every public sender appears as `system`, fill in `transport.faction_map` with the real Telegram user IDs for the other players.
 
-### Systemd Service
+### Running the bot on the Pi (current container)
 
-`config/diplomat.service` runs the bot as a long-lived Pi service. It assumes the project lives at `/home/claude/workspace/diplomat`, the venv Python is `.venv/bin/python`, and `.env` lives in the project root. If the checkout path or user differs, edit `User=`, `WorkingDirectory=`, `EnvironmentFile=`, `PYTHONPATH`, and `ExecStart` before installing.
+The Pi mounts the P: network share into an **incus container `claude-code`** at `/home/claude/workspace/`. The diplomat venv lives at `/home/claude/workspace/diplomat/.venv` (inside the container). Long-lived processes in this container (codexbot, claude telegram plugin) all run inside a **tmux session `bot`** owned by user `claude`, started May 3 by `/tmp/claude-bot-loop.sh`. tmux is the supervisor; service units and `nohup`-via-`incus exec` do not work here.
+
+**Canonical start command:**
+
+```bash
+incus exec claude-code -- sudo -u claude tmux new-window -t bot -n diplomat \
+  "cd /home/claude/workspace/diplomat && \
+   PYTHONPATH=src DIPLOMAT_PIPELINE_CONFIG=config/pipeline_smoke.yaml \
+   .venv/bin/python -u src/main.py 2>&1 | tee -a logs/diplomat.log"
+```
+
+Swap `pipeline_smoke.yaml` → `pipeline.yaml` for the production config (requires `ANTHROPIC_API_KEY`).
+
+**Status / logs / stop:**
+
+```bash
+# Status: window list inside the bot session
+incus exec claude-code -- sudo -u claude tmux list-windows -t bot
+
+# Live log tail (separate terminal)
+incus exec claude-code -- bash -c "tail -f /home/claude/workspace/diplomat/logs/diplomat.log"
+
+# Stop: kill the tmux window — supervisor bash + python child both die
+incus exec claude-code -- sudo -u claude tmux kill-window -t bot:diplomat
+```
+
+**What doesn't work in this container:**
+
+| Approach | Why it fails |
+|---|---|
+| `incus exec ... bash tools/service.sh start` (nohup) | `incus exec` creates a transient cgroup scope; when the immediate command exits, the scope is torn down and all processes in it die — `nohup` + `setsid` + `</dev/null` do not survive it. Verified 2026-05-31. |
+| `systemctl enable diplomat.service` | The container has no usable systemd-as-PID-1 (unprivileged or systemd-less). `config/diplomat.service` is kept for hosts where it would work but does not install here. |
+| `incus exec ... -- tmux ...` without `sudo -u claude` | tmux server runs as user `claude`; `incus exec` defaults to root and cannot reach claude's socket. `sudo -u claude` drops to the right user. |
+
+### Systemd Service (kept for non-container hosts)
+
+`config/diplomat.service` runs the bot as a long-lived systemd service on hosts where systemd-as-PID-1 is available (bare-metal Pi or privileged container). It assumes the project lives at `/home/claude/workspace/diplomat`, the venv Python is `.venv/bin/python`, and `.env` lives in the project root. If the checkout path or user differs, edit `User=`, `WorkingDirectory=`, `EnvironmentFile=`, `PYTHONPATH`, and `ExecStart` before installing.
 
 Install and start:
 

@@ -7,31 +7,34 @@ build/
 *.egg
 .venv/
 venv/
-
 # Data
 data/*.db
+data/*.db-shm
+data/*.db-wal
 data/*.jsonl
 src/data/
-
 # Config secrets
 config/.env
 .env
+# Logs
+logs/*.log
 logs/loop/*.jsonl
 logs/loop/*.txt
 logs/loop/*.log
 logs/loop/.*.tmp
+# Runtime
+.diplomat.pid
 # Self-play noisy artifacts (regenerable; results JSONs are kept)
 tests/self_play/results/*.log
 tests/self_play/results/*.txt
 tests/self_play/results/dryrun_*.json
-
 # Config secrets
 config/.env
-
 # IDE
 .vscode/
 .idea/
-
 # OS
+.DS_Store
+Thumbs.db
 .DS_Store
 Thumbs.db

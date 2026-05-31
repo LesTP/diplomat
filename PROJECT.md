@@ -71,6 +71,8 @@ The human operator coaching the faction. The system handles the cognitive load o
 - The system runs unattended for the duration of a game (hours to days) without manual restart
 - Cost stays within the configured per-round and per-session budgets
 
+> **What "negotiating well" means + how we score it.** Conceptual rationale (calculation-vs-negotiation tension, dimensions of skill, four scoring lenses, scenario properties) and the three-workstream organization (A: agent architecture & memory, B: prompt tuning, C: game creation & scoring) live in `ASSESSMENT.md`. Backlog items in `NEXT_STEPS.md` are tagged A/B/C against that map.
+
 ## MVP Definition
 
 MVP is the configuration that closes the core loop: messages arrive → state updates → analysis runs → response generated → adversarial check → human review → message posted. The operator can coach between rounds and refine the faction prompt based on the edit log.

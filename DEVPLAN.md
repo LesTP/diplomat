@@ -1,7 +1,7 @@
 ---
 phase: 19
 blocked: false
-state: execute
+state: discuss
 steps_remaining: 1
 ---
 
@@ -36,11 +36,12 @@ steps_remaining: 1
   - **Real Pi deployment mechanism:** `tools/service.sh start` (nohup-based) inside `incus exec claude-code`, default config `pipeline_smoke.yaml` (which already has `TelegramReviewGate`). Not systemd — the unit file at `config/diplomat.service` was never installed. See `SMOKE_RUNBOOK.md` §2 and `CLI_REFERENCE.md`.
   - **Production reconciler now wired** (Phase 19, 2026-05-30). `src/main.py` attaches a `StateReconciler` using the primary provider's commodity tier; fires at every round boundary before analysts. Closes Phase 18 gap. Self-play harness's per-faction wiring still wins via last-write-overrides.
   - **`game.total_rounds` optional config** (Phase 19, 2026-05-30). When set in `pipeline.yaml`, `Orchestrator.__init__` reads it and the persona's PENULTIMATE/FINAL ROUND markers fire. Unset means production stays endgame-blind — fine for games where the round count is unknown.
+  - **Negotiation framework + scoring + workstream organization** (Phase 19, 2026-05-31). `ASSESSMENT.md` at project root captures (a) the calculation-vs-negotiation tension and why pure math fails, (b) ten dimensions of skill, (c) four scoring lenses with formulas (BATNA-relative ✓ implemented; Pareto efficiency + skill-premium + process signatures NOT YET), (d) properties of skill-testing scenarios, (e) the three workstream blocks A/B/C (agent architecture/memory, prompt tuning, game creation/scoring). `NEXT_STEPS.md` backlog items are tagged A/B/C against that map. Read once at session start to know which block your current item is in.
 
 ## Current Status
 
 - **Phase** — Phase 19 (Execute, ad-hoc per `NEXT_STEPS.md`). Phase 18 closed 2026-05-30 with regime-shift acknowledgment.
-- **Focus** — `NEXT_STEPS.md` sequencing position #1: **live Telegram re-smoke on Pi**. Operator runs `SMOKE_RUNBOOK.md` end-to-end on the Pi container, then logs outcomes in DEVLOG. All Phase 18+19 changes (debounce fix, structured_call, cost wiring + dated-pricing normalization, retry-with-backoff, production reconciler, production endgame-markers config, SMOKE_RUNBOOK) are in place ready to be exercised by the smoke.
+- **Focus** — Live Telegram re-smoke **CLOSED for coaching scope 2026-05-31** (Telegram is the operator coaching surface, not the game-traffic surface; reframed mid-session). Next: `NEXT_STEPS.md` sequencing item #1 — commit the two real fixes shipped during the smoke (toolkit `max_completion_tokens` + test signature drift), then item #2 (Layer 3 integration tests for Phase 18 paths).
 - **Shipped in Phase 19 so far** (each has its own `DEVLOG.md` entry):
   - `toolkit/llm_client.complete_with_retry` (exponential backoff on 429/5xx/empty)
   - `toolkit/cost_accountant.normalize_model_name` + refreshed gpt-5.x / Gemini 2.5 prices (fixes ~41× cost-ledger overestimate from dated-ID lookup miss)

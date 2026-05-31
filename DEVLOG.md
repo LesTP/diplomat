@@ -8,6 +8,126 @@
      module entries to DEVLOG_archive.md during phase completion cleanup.
      Add a boundary marker: <!-- Entries above archived from Module N, YYYY-MM-DD -->
 
+## Phase 19 — live Telegram re-smoke (in progress)
+
+### 2026-05-31 — Pre-flight complete
+
+**Action:** Started live Telegram re-smoke per `SMOKE_RUNBOOK.md`. Pre-flight §1.2–§1.8 ran on Pi (incus container `claude-code`).
+
+**Results:**
+- §1.2 container alive, workspace mounted ✓
+- §1.3 venv + Phase 19 surface — toolkit editable at `/home/claude/workspace/toolkit/`, `complete_with_retry` / `normalize_model_name` / `StateReconciler` all import ✓
+- §1.4 `.env` has all 6 required keys ✓
+- §1.7 test suite: initial run had 1 fail / 1 error (Fix 1 below). After fix: **284 passed** in 16.27s ✓
+- §1.8 cost ledger baseline: 0 entries (clean baseline for post-smoke diff) ✓
+
+**Setup edit:** Added `game.total_rounds: 4` to `config/pipeline_smoke.yaml` per §1.6 so §3.9 endgame markers can be exercised.
+
+**Fix 1 — stale integration test fake.**
+`tests/integration/test_failure_handling.py::test_secondary_analyst_failure_stores_primary_only` had `async def fail_secondary(state):` — a monkeypatched stub that did not accept the `recent_events` kwarg Phase 18 added to the analyst signature. The orchestrator passes `recent_events` on every analyst call (`orchestrator.py:384`), so the stub raised `TypeError`, cascading to `IndexError: list index out of range` on the assertion. Production `LLMAnalyst.analyze(state, recent_events=None)` was always correct — this was a test artifact, not a production bug. One-line fix: signature updated to `async def fail_secondary(state, recent_events=None):`. Verified with full suite re-run (284 passed).
+
+**Runbook fixes applied:**
+- `SMOKE_RUNBOOK.md` §1.8 / §3.4 / §3.8 / §5.1 invoked `python tools/inspect_ledger.py` but the container has no system `python` on PATH — only `.venv/bin/python`. Fixed throughout the runbook.
+- Test count expectation updated: was 280, now 284 (matches the 280-baseline + 4 new from the reconciler/endgame-markers entry below).
+
+**Fix 2 — `tools/service.sh` does not work via `incus exec`.**
+Starting the bot with `incus exec claude-code -- bash tools/service.sh start` reports a PID but the process is dead within ~1 second; log file 0 bytes (no output, even with `python -u`). Tried `nohup` + `setsid` + `< /dev/null` (three-pronged detachment) — same result. Root cause: `incus exec` creates a transient cgroup scope tied to the exec command; when the immediate command (bash) exits, the scope is torn down and **all processes in it are killed**, regardless of session/detachment flags. The codexbot (running for 5 days) survives because it was launched inside a **tmux session `bot`** started May 3 by `/tmp/claude-bot-loop.sh`, which is parented to PID 1 and outside any `incus exec` scope. The tmux server runs as user `claude`; `incus exec` defaults to root and so cannot reach the existing socket without `sudo -u claude`.
+
+**Working pattern (used for this smoke):**
+```bash
+incus exec claude-code -- sudo -u claude tmux new-window -t bot -n diplomat \
+  "cd /home/claude/workspace/diplomat && \
+   PYTHONPATH=src DIPLOMAT_PIPELINE_CONFIG=config/pipeline_smoke.yaml \
+   .venv/bin/python -u src/main.py 2>&1 | tee -a logs/diplomat.log"
+```
+
+Bot is up: `DIPLOMAT ONLINE - Round 1 - england - session budget $2.00` in log, python PID 2418355 alive, attached to pts/5 inside tmux.
+
+**Follow-up:** `tools/service.sh` should be rewritten around `tmux new-window` instead of `nohup`. Open question: how to track the diplomat PID for `stop`/`status` when the supervisor is tmux. Probably: store the tmux window name (`bot:diplomat`) and use `tmux kill-window` for stop; use `tmux list-windows -t bot` + `ps` for status. Not blocking the smoke; deferred to post-smoke.
+
+**SMOKE_RUNBOOK updates:**
+- §1 collapsed to status summary (pre-flight done)
+- §2 rewritten around the tmux pattern; old §2.1 service.sh approach documented as broken-for-incus-exec with cross-reference here
+- §3+ left detailed (not yet verified)
+
+**Next:** §3 verification checklist (interactive — operator-driven Telegram messages).
+
+### 2026-05-31 — Smoke CLOSED for coaching scope (reframed mid-session)
+
+**Action:** Continued the smoke through §3 partial verification, paused, then reframed and closed once we recognized the scope error. Captured all findings + real fixes shipped + tooling debt surfaced. The unverified game-traffic items moved to a new "Layer 3 integration tests for Phase 18 paths" entry in `NEXT_STEPS.md` (sequencing item #2).
+
+**Reframe.** The original SMOKE_RUNBOOK assumed Telegram was the deployment surface for game traffic. It is not. Production game traffic comes via `ClankmatesTransport` (or equivalent, when built). Telegram is the operator coaching + review interface. So the §3.1 / 3.2 / 3.3 / 3.8 / 3.9 items, which require non-operator faction senders, were testing the wrong deployment shape. The reframe split the smoke into:
+- **Coaching scope (✓ closed):** operator commands, two-channel routing, `/preview` → review gate, cost ledger — all verified.
+- **Game-traffic scope (moved):** extraction quality, debounce burst, reconciler paths, round-flow, endgame markers — moved to Layer 3 integration tests (new) + already-covered-by-self-play.
+
+**§3 verification — what's verified ✓:**
+- §3.1 operator commands partial: `/status`, `/state`, `/commands` all work; coaching-channel routing → `_route_operator_event` confirmed in event store rows tagged `[operator] @ coaching`.
+- §3.6 review gate via `/preview`: end-to-end works. `LLMGenerator` produced plausible text, draft posted to coaching, `TelegramReviewGate` waited for `/approve`.
+- §3.4 cost ledger: `/preview` produced a real ledger entry at a realistic per-call cost (after Fix 3 below).
+
+**§3 verification — what moved out of Telegram scope:**
+- §3.1 extraction path, §3.2 debounce burst, §3.3 round-end → analyst, §3.8 reconciler dedup/fulfillment/inconsistency, §3.9 endgame markers — all require non-operator senders of faction-traffic. None are Telegram concerns in production. New venues:
+  - §3.2 + §3.8 → Layer 3 integration tests (new — see `NEXT_STEPS.md` §1.5)
+  - §3.3 + §3.9 → already covered by 8 self-play runs (see `TUNING_LOG.md`)
+  - §3.1 extraction quality → Layer 2 prompt regression (already exists, 4 starter scenarios) + Layer 3 transcript replay
+
+**Fix 3 — `OpenAIProvider.call` rejected by gpt-5.x for sending `max_tokens`.**
+First `/preview` attempt failed with `400 - Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead.` The toolkit's `OpenAIProvider.call` (in `toolkit/src/toolkit/llm_client/providers.py`) was unconditionally passing `max_tokens` to the OpenAI chat completions endpoint. OpenAI's gpt-5.x and o-series reasoning models reject this. Fix: model-prefix dispatch — `gpt-5*`, `o1*`, `o3*`, `o4*` get `max_completion_tokens`; everything else keeps `max_tokens` (preserves gpt-4.x and gpt-3.5 compatibility). After restart, `/preview` worked end-to-end. **Toolkit needs unit tests + commit** (tracked in NEXT_STEPS sequencing item #1).
+
+**Fix 4 — `tools/service.sh` doesn't work via `incus exec`.**
+First documented as nohup-buffering issue; pivoted through three failed attempts (added `setsid` + `-u` + `</dev/null`), still no output and process died within ~1 sec. Root cause: `incus exec` creates a transient cgroup scope; when the immediate command exits, the scope is torn down and **all processes in it are killed**, regardless of session/detachment flags. The codexbot has been alive for 5 days because it was launched inside a long-lived **tmux session `bot`** (started May 3 by `/tmp/claude-bot-loop.sh`), which is parented to PID 1 and outside any `incus exec` scope. Working pattern documented in `SMOKE_RUNBOOK.md` §2, `CLI_REFERENCE.md` `tools/service.sh` section, and `diplomat-testing-doc.md` §5b: `incus exec -- sudo -u claude tmux new-window -t bot -n diplomat ...`. **Service.sh rewrite around tmux** is a follow-up; tracked in `NEXT_STEPS.md` "Tooling debt surfaced" under Live Telegram re-smoke CLOSED section.
+
+**Telegram bot-to-bot delivery impossibility.**
+Attempted to use a separate BotFather bot (`8210148662`) as a non-operator faction-traffic source. Bot was confirmed real (not a userbot), correctly added to the public group, privacy disabled. **Messages from that bot never reached our diplomat bot.** Verified by adding a temporary `print` to `_event_from_update` that logged every inbound `chat_id`/`channel`/`user_id`/`sender_faction` — only operator-sent messages appeared. Conclusion: Telegram's bot platform does not deliver bot-sent messages to other bots in groups, regardless of privacy mode. This is a hard-coded platform restriction. Not actually a blocker for production (Telegram isn't the game-traffic surface), but worth knowing for any future Telegram-side test. The temporary `print` was reverted at session end.
+
+**Uncommitted real fixes (need separate commits before next session):**
+- `toolkit/src/toolkit/llm_client/providers.py` — `OpenAIProvider.call` model-aware parameter dispatch (Fix 3 above). **Needs tests** in `toolkit/tests/llm_client/`.
+- `tests/integration/test_failure_handling.py::test_secondary_analyst_failure_stores_primary_only` — `fail_secondary` fake gained `recent_events` kwarg (Fix 1 from earlier in this session).
+
+**Smoke setup edits pending revert/commit:**
+- `config/pipeline_smoke.yaml` — `game.total_rounds: 4` added for §3.9. Recommend revert (§3.9 no longer in Telegram scope).
+- `tools/service.sh` — `setsid` + `-u` + `</dev/null` additions. Didn't fix the cgroup-teardown issue. Either revert or keep as small hardening; the real fix is the rewrite around tmux.
+
+**State at close:**
+- Bot still running as `diplomat` window in `bot` tmux session, PID 2419646 (idle, costs nothing unless `/preview` invoked). Stop via `incus exec claude-code -- sudo -u claude tmux kill-window -t bot:diplomat`.
+- DB at `data/game.db` has ~25 events from this session.
+- Cost ledger has new entries from the successful `/preview`.
+- All temporary smoke instrumentation removed; only real fixes + smoke setup edits remain dirty.
+
+**Docs updated this session:**
+- `SMOKE_RUNBOOK.md` — rewritten as coaching/review smoke. Shrunk 377 → ~155 lines.
+- `NEXT_STEPS.md` — closed the "Live Telegram re-smoke" item, added "Layer 3 integration tests for Phase 18 paths" (new §1.5), re-sequenced (now: commit fixes → Layer 3 tests → coaching loop → OpenRouter+Run 9 → …).
+- `CLI_REFERENCE.md` — `tools/service.sh` section flagged as broken-via-incus-exec; canonical tmux pattern documented.
+- `diplomat-testing-doc.md` §5b — new "Running the bot on the Pi (current container)" subsection with the tmux pattern and a "what doesn't work" table.
+- `DEVPLAN.md` — state → discuss; Current Status reflects close.
+
+### 2026-05-31 — ASSESSMENT.md: skill framework + scoring + workstream blocks
+
+**Action:** Conversation with operator about a foundational question: "what does it mean to negotiate well, in this case? if we mathemat-ize the outcomes, then the bots will just need to calculate the optimum... which is not negotiation but calculation. but if we don't do that, then how can we assess who 'won'?" Distilled the discussion into a new top-level conceptual doc.
+
+**`ASSESSMENT.md` created.** Contents:
+1. **Calculation-vs-negotiation tension.** Full info + rational actors + costless commitment → pure math suffices. Remove any one and skill emerges. Diplomat preserves the gap via private scoring tables + private BATNAs + configurable deception + multi-round communication. Run 8's missed Pareto-optimal Shared deal (existed but agents didn't find it) is the canonical illustration.
+2. **Ten dimensions of skill.** Preference elicitation, signaling, anchoring, concession sequencing, threat credibility, coalition arithmetic, time pressure handling, reputation management, deception detection, persuasion. Each mapped to the Diplomat module that implements/supports it.
+3. **Four scoring lenses with formulas.**
+   - 3.1 BATNA-relative — `(score - BATNA) / (max - BATNA)` — ✓ implemented in `score_game`
+   - 3.2 Pareto efficiency — `sum(scores) / max_pareto_sum` — NOT YET; `verify_scenario_optimum.py` already computes the denominator
+   - 3.3 vs Naive baseline — `(score - baseline) / (max - baseline)` — NOT YET; recommend equal-split as starting baseline definition
+   - 3.4 Process signatures — vector of behavioral metrics (broken-promise rate, position-shift count, coalition stability, time-to-deal, opening gap, concession curve, persuasion shifts caused) — PARTIAL data; aggregator missing
+4. **Scenario design properties.** Five requirements: meaningful gap between BATNA-equilibrium and Pareto-optimum, logrolling opportunity, asymmetric private information, clear loss condition, optional time pressure. Reverse scenario builder (§8) is the systematic answer; hand-patching is the manual workaround.
+5. **Three workstream blocks.** A (agent architecture & memory), B (prompt tuning), C (game creation & scoring), plus a cross-cutting X bucket. Each block has its own iteration loop, evaluation signal, tech debt list, and active items.
+6. **Cross-references** to all other docs.
+
+**Other doc updates:**
+- `NEXT_STEPS.md` — added workstream tags `[A]`/`[B]`/`[C]`/`[X]` to every section heading + every sequencing item. Operator can now see at a glance which block any given backlog item is in.
+- `PROJECT.md` — added one-paragraph pointer in Success Criteria.
+- `DEVPLAN.md` — added cold-start gotcha pointer so future sessions know `ASSESSMENT.md` exists.
+
+**No code changes.** Pure documentation pass capturing rationale that's been implicit across many decisions but never written down. Unblocks future work in Block C (Pareto efficiency scoring, skill premium baseline, process signature aggregation) by giving it a definition first.
+
+**Implications for backlog:** §3.2 + §3.3 + §3.4 of ASSESSMENT.md become implementation candidates in their own right. Not added as separate NEXT_STEPS items yet — operator's call when to slot them.
+
+---
+
 ## Phase 19 — production reconciler + endgame-marker wiring
 
 ### 2026-05-30 — Close the two SMOKE_RUNBOOK gaps before the live smoke

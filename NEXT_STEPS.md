@@ -4,30 +4,91 @@
 > Updated 2026-05-30.
 >
 > Related: `DEVPLAN.md` (canonical phase plan), `TUNING_LOG.md` (run-by-run record),
-> `ARCH_conversation_model.md` (Stage 1/2/3 migration), `RUN_PROTOCOL.md` (pre-flight).
+> `ARCH_conversation_model.md` (Stage 1/2/3 migration), `RUN_PROTOCOL.md` (pre-flight),
+> `ASSESSMENT.md` (scoring framework + workstream blocks).
 
 This document captures a discussion between the operator and Devmate
 synthesizing six directions for future work, plus a backlog of specific
 TODOs surfaced from Run 8 review and tooling debt. Items are not yet
 sequenced into phases — that happens once we pick the next concrete run.
 
+> **Workstream block tags.** Every section heading and item carries one
+> of `[A]`, `[B]`, `[C]`, or `[X]` per `ASSESSMENT.md` §5:
+> - `[A]` agent architecture & memory (pipeline modules, state, conversation model)
+> - `[B]` prompt tuning (personas, module prompts, strategy library, voice)
+> - `[C]` game creation & scoring (compiler, BATNA, pressure, verification, scoring lenses)
+> - `[X]` cross-cutting (toolkit infra, deployment, integration tests, meta-tests)
+>
+> Multiple tags = item touches multiple blocks; primary block listed first.
+
 ---
 
 ## Suggested Sequencing (recommended order)
 
-1. **Live Telegram re-smoke on Pi** — bridges self-play maturity back to real-deployment readiness. Validates Phase 18 + Phase 19 changes (debounce fix, structured_call, cost wiring, retry-with-backoff, dated-pricing normalization) against real Telegram update rates. **Procedure: `SMOKE_RUNBOOK.md`.**
-2. **Coaching test loop on Pi** — operator coaches one self-play agent via Telegram while other agents run autonomous. Validates the original use case end-to-end; highest-value test not yet run. See §4 below.
-3. **Add OpenRouter to toolkit + run a 4–6 provider Run 9** — biggest experimental payoff per day of work. Google entry uses `gemini-2.5-flash-lite` per TUNING.md §1 default.
-4. **Divorce / pressure-mechanism scenario design** — extends scenario compiler, sets up Run 10
-5. **Stage 2a (K=2 conversation model) + per-round events** — unlocks the next phase of experimentation
-6. **Clankmates discovery → mock → transport** — timeline depends on platform team
+1. **`[X]` Commit the two real fixes shipped during the 2026-05-31 smoke** — `toolkit/llm_client/providers.py` (gpt-5.x / o-series `max_completion_tokens` dispatch — needs unit tests in toolkit) and `tests/integration/test_failure_handling.py` (Phase 18 `recent_events` signature drift in `fail_secondary` fake). Both are blockers for any deployment on gpt-5.x.
+2. **`[A][X]` Layer 3 integration tests for Phase 18 paths** — deterministic fake-LLM tests for the debounce burst + three reconciler paths that haven't fired in self-play (fulfillment, inconsistency, missed-proposal). Closes the validation gap that the Telegram smoke couldn't cover. ~1 day. See §1.5 below.
+3. **`[X]` Coaching test loop on Pi** — operator coaches one self-play agent via Telegram while other agents run autonomous. Validates the original product hypothesis end-to-end. Telegram coaching surface is already verified by the 2026-05-31 smoke; this builds on it. Meta-test that exercises all three blocks. See §4 below.
+4. **`[X][B]` Add OpenRouter to toolkit + run a 4–6 provider Run 9** — biggest experimental payoff per day of work. Google entry uses `gemini-2.5-flash-lite` per TUNING.md §1 default.
+5. **`[C]` Divorce / pressure-mechanism scenario design** — extends scenario compiler, sets up Run 10
+6. **`[A]` Stage 2a (K=2 conversation model) + per-round events** — unlocks the next phase of experimentation
+7. **`[X]` Clankmates discovery → mock → transport** — timeline depends on platform team
 
-Strategy routing (item #2.5), per-role model strategy (#7), and pricing/accounting audit (#6) are
+Strategy routing (`[B]` item #2.5), per-role model strategy (`[B]` #7), and pricing/accounting audit (`[X]` #6) are
 dedicated investigations of their own; they slot in after the experimental program produces enough
 signal to inform the questions.
 
 *Items completed and absorbed into canonical docs are removed from this file.*
 *See Change History at the bottom for the audit trail.*
+
+---
+
+## 1.5. `[A][X]` Layer 3 integration tests for Phase 18 paths
+
+**Why:** The 2026-05-31 Telegram smoke confirmed the Telegram bot serves
+its coaching/review scope correctly. Game-traffic ingestion is not a
+Telegram concern (production game traffic comes via `ClankmatesTransport`
+or equivalent). The Phase 18 production-code changes (debounce rewrite,
+structured_call rewiring, cost-accountant wiring, reconciler,
+`game.total_rounds` config) are exercised in self-play, but a few paths
+have never fired with deterministic coverage:
+
+| Path | Current coverage | Gap |
+|---|---|---|
+| Per-message debounce (Phase 18.6, D-20) | Self-play runs with single messages per round | Multi-message burst (3+ in <1s) never tested |
+| Reconciler dedup | Self-play Run 7 confirmed live | None — fake-LLM Layer 3 test would harden |
+| Reconciler fulfillment (`pending → kept`) | Never fired (no scenario reached "deal") | Need a deterministic Layer 3 test |
+| Reconciler inconsistency | Zero hits across 8 self-play runs | Need a deterministic Layer 3 test with explicit contradiction |
+| Reconciler missed-proposal catch | Self-play surfaced once | Layer 3 test would pin behavior |
+| Endgame markers PENULTIMATE/FINAL | Self-play Runs 7, 8 hit FINAL ROUND | None — already validated |
+
+**Scope:** Add 1–2 Layer 3 integration tests using the existing fixture
+pattern (`tests/integration/` + `TestTransport` + `FakeLLMClient` from
+`tests/helpers/factories.py`):
+
+1. **`test_burst_extraction_no_drops`** — inject 5 game-message events
+   in rapid succession via `TestTransport.inject()`, settle, assert all
+   5 events appear in `event_store` AND all 5 trigger extraction (each
+   produces a state_change_log entry, even if the extractor returns
+   empty). Validates the per-event task set fix (Phase 18.6).
+
+2. **`test_reconciler_paths`** — single test or three sub-tests:
+   - dedup: extractor produces 3 promises with same from/to/content,
+     reconciler merges to one
+   - fulfillment: extractor produces a promise, then a "kept" signal in
+     the next round, reconciler transitions status `pending → kept`
+   - inconsistency: extractor produces a position, then an explicit
+     contradiction next round, reconciler flags `inconsistencies` entry
+
+Both tests should use `FakeLLMClient` with canned responses that match
+the reconciler's expected output schema. Wire via `module_overrides` per
+`tests/integration/conftest.py` pattern.
+
+**Effort:** ~half a day for the burst test + reconciler dedup/fulfillment;
+inconsistency may take longer if the schema or prompt needs
+tightening.
+
+**Definition of done:** 286+ tests passing (284 current + 2 new); both
+new tests run in <2s; both deterministic with fake LLM.
 
 ---
 
@@ -46,7 +107,7 @@ decision and pricing audit are tracked in sections #6 and #7 below.
 
 ---
 
-## 1.5. OpenRouter + Mistral / Groq / DeepSeek
+## 1.5. `[X][B]` OpenRouter + Mistral / Groq / DeepSeek
 
 **Goal:** Expand the provider matrix cheaply by routing through OpenRouter,
 then promote winners to native integrations if needed.
@@ -80,7 +141,7 @@ entry point exists. This is mostly config + provider routing work.
 
 ---
 
-## 2. Game pressure beyond BATNA
+## 2. `[C]` Game pressure beyond BATNA
 
 **Run 8 observation:** Agents sat at BATNA because BATNA was *survivable*. Alpha
 won the tiebreak with score 11 = BATNA 11; nobody had structural urgency to
@@ -142,7 +203,7 @@ That's loss aversion made explicit.
 
 ---
 
-## 2.5. Strategy routing
+## 2.5. `[B]` Strategy routing
 
 Treat as a separate experimental axis from scenario design. Build a small
 strategy library, A/B test per-faction.
@@ -173,7 +234,7 @@ strategy library, A/B test per-faction.
 
 ---
 
-## 3. Free conversation + per-round game events
+## 3. `[A]` Free conversation + per-round game events
 
 `ARCH_conversation_model.md` already maps the staged migration. Realistic
 sequencing:
@@ -207,7 +268,7 @@ evolution from a single narrative spec.
 
 ---
 
-## 4. Coaching test loop on Pi
+## 4. `[X]` Coaching test loop on Pi
 
 **Highest-value test not yet run.** Validates the original use case end-to-end:
 operator coaches a self-play agent via Telegram while other agents run
@@ -242,7 +303,7 @@ Most of the wiring already exists:
 
 ---
 
-## 5. Clankmates exploration
+## 5. `[X]` Clankmates exploration
 
 Three angles to weigh:
 
@@ -268,7 +329,7 @@ Three angles to weigh:
 
 ---
 
-## 6. Pricing & accounting audit (cross-provider)
+## 6. `[X][C]` Pricing & accounting audit (cross-provider)
 
 **Scope:** Audit `toolkit.cost_accountant` pricing accuracy across all providers
 and models we actually use. Tally observed spend vs predicted spend across
@@ -300,7 +361,7 @@ that 2× drift on $0.005/game is invisible. Best done in a dedicated session
 when we want clean accounting for a budget claim (e.g. proposal for ongoing
 game deployment, or finalizing per-game cost for the operator's report).
 
-## 7. Per-role model strategy (cross-provider, with guardrails experiments)
+## 7. `[B]` Per-role model strategy (cross-provider, with guardrails experiments)
 
 **Scope:** Systematically decide which model goes in which module slot
 (Generator / Primary Analyst / Secondary Analyst / Adversarial / Extractor /
@@ -340,7 +401,7 @@ Natural slot: between Run 9 (rotation control) and Run 10 (pressure scenarios).
 
 ---
 
-## 8. Reverse scenario builder (outcome-shape → scenario)
+## 8. `[C]` Reverse scenario builder (outcome-shape → scenario)
 
 **Scope:** Inverse of the existing forward pipeline. Operator specifies desired
 outcome-distribution properties; tool generates issues / outcomes / scoring
@@ -388,7 +449,7 @@ because hand-authoring one such scenario surfaces the constraint vocabulary.
 Also benefits from `verify_scenario_optimum.py` already existing as the
 validation oracle.
 
-## 9. Voice / style templates (for fun)
+## 9. `[B]` Voice / style templates (for fun)
 
 **Scope:** Layer a voice/style overlay on top of the strategic persona,
 independent of scoring / BATNA / strategy. Makes transcripts more entertaining
@@ -485,21 +546,34 @@ confirmed working in production.
 - [ ] **`--force-batna-fraction` post-clamp.** Currently the LLM tries to honor both narrative-explicit BATNAs and the `--batna-fraction` target — could result in inconsistency. A force-flag would post-process the LLM output to clamp values to `target × max`, overriding whatever the LLM produced. Defer until a real test case demands it (operator: "not excited about flag proliferation but whatever it takes").
 - [x] ~~**Dated model pricing in toolkit.**~~ RESOLVED 2026-05-30. Added `normalize_model_name()` in `toolkit.cost_accountant` that strips OpenAI `-YYYY-MM-DD` and Anthropic packed `-YYYYMMDD` date suffixes; `estimate_cost()` uses it as a fallback when exact ID isn't in the table. Updated gpt-5.x prices to match operator-confirmed pricing page. Added Gemini 2.5 family entries. Retroactive audit of 434 successful ledger entries: **41.6× overall overestimate** in past run reports (real spend was $0.59 vs $24.38 reported). See `DEVLOG.md` Phase 19 "dated OpenAI model pricing" entry.
 
-### Live Telegram re-smoke
+### Live Telegram re-smoke — ✓ CLOSED 2026-05-31 (for coaching scope)
 
-**Procedure documented in `SMOKE_RUNBOOK.md`** at the project root. Covers
-all Phase 18 + Phase 19 changes since the Phase 16 baseline smoke, with
-per-change verification steps and abort conditions. Runbook is
-operator-facing — assumes Pi access and credentials.
+**Scope reframed during smoke:** Telegram is the operator coaching + review interface; production game traffic is **not** expected to flow through Telegram (Clankmates or equivalent handles game I/O). The original SMOKE_RUNBOOK §3.1 / 3.2 / 3.3 / 3.8 / 3.9 items required non-operator faction senders in Telegram, which is the wrong deployment shape. Those items moved to "Layer 3 integration tests for Phase 18 paths" (§1.5 above).
 
-**Two production gaps that were going to be deferred have now been fixed**
-(2026-05-30):
+**Coaching-scope verifications passed:**
+- Pre-flight: container alive, venv + toolkit editable, Phase 19 surface (`complete_with_retry`, `normalize_model_name`, `StateReconciler`) imports, `.env` complete, **284 tests pass**, cost ledger baseline = 0
+- Bot startup via tmux: `incus exec -- sudo -u claude tmux new-window -t bot -n diplomat ...` works (service.sh-via-incus-exec is broken — see Tooling debt below)
+- Operator commands: `/status`, `/state`, `/commands` respond on coaching only ✓
+- Review gate via `/preview`: `LLMGenerator` produces plausible text, draft → coaching, `/approve` flow works ✓
+- Cost ledger: `/preview` produces realistic per-call cost (no $15/$75 fallback)
+- Two-channel routing: operator-in-coaching → `_route_operator_event` confirmed in event store rows
 
-- [x] ~~Wire reconciler into `src/main.py`~~ — RESOLVED. New `_attach_reconciler` helper in main.py uses the primary provider's commodity tier. See `DEVLOG.md` Phase 19 "production reconciler + endgame-marker wiring" entry. SMOKE_RUNBOOK §3.8 verifies.
-- [x] ~~Surface `total_rounds` as a config option~~ — RESOLVED. New optional `game.total_rounds` in `pipeline.yaml`; `Orchestrator.__init__` reads it. Leave commented out when round count is unknown (production default). SMOKE_RUNBOOK §3.9 verifies.
+**Real fixes shipped during smoke (need separate commits):**
+- [ ] **`toolkit/src/toolkit/llm_client/providers.py`** — `OpenAIProvider.call` dispatches `max_completion_tokens` (gpt-5.x / o-series) vs `max_tokens` (gpt-4.x / 3.5) by model prefix. Without this, any deployment on gpt-5.x 400s. Needs unit tests in toolkit. See sequencing item #1.
+- [ ] **`tests/integration/test_failure_handling.py`** — `fail_secondary` fake gained `recent_events` kwarg (Phase 18 signature drift). Production was always correct; test stub was stale. Brings test count from 280 → 284. See sequencing item #1.
 
-Remaining decision point:
-- [ ] After successful smoke, decide whether to commit the `pipeline.yaml` flip to `TelegramReviewGate` as the new default, or keep `AutoApproveReviewGate` as the safe default with per-deploy override
+**Smoke setup edits pending decision (revert or commit):**
+- `config/pipeline_smoke.yaml` `game.total_rounds: 4` — added for §3.9 endgame markers exercise; no longer needed since §3.9 is out of Telegram scope. Recommend revert.
+- `tools/service.sh` setsid + `-u` + `</dev/null` additions — didn't fix the cgroup-teardown issue. Either keep as harmless hardening or revert. Real fix is the rewrite around tmux (see Tooling debt).
+
+**Tooling debt surfaced (track separately, low priority):**
+- [ ] **Rewrite `tools/service.sh` around `tmux new-window -t bot`** so the canonical bot lifecycle works via `incus exec`. Open design question: how to track diplomat's PID for `stop`/`status` when the supervisor is tmux. Probably: use `tmux kill-window` + `tmux list-windows` for state. Add `sudo -u claude` automatically inside the script.
+- [ ] **Add structured per-event logging** to orchestrator + transport so future smokes don't need ad-hoc `print` instrumentation. Log: inbound chat_id → channel mapping, sender_id → faction tagging, extraction success/skip, round-boundary trigger, response-pipeline trigger.
+
+**Telegram-platform finding (worth knowing):** Telegram does **not** deliver bot-to-bot messages in groups regardless of privacy mode. This is a hard-coded platform restriction. Confirmed during the smoke by adding a temporary `_event_from_update` debug `print` and watching only operator-sourced messages appear. The "use another bot as a faction sender" workaround is structurally impossible. If a future Telegram-side test needs simulated faction traffic, options are (a) second human Telegram account on another device, or (b) temporary de-op cycle (remove operator's user ID from `DIPLOMAT_OPERATOR_USER_IDS`, restart, send game messages from own account, then re-op). The temporary `print` was reverted at session end.
+
+**Remaining decision for production `pipeline.yaml`:**
+- [ ] Decide whether to commit the `pipeline.yaml` flip to `TelegramReviewGate` as the new default, or keep `AutoApproveReviewGate` as the safe default with per-deploy override. The smoke ran on `pipeline_smoke.yaml` which already has `TelegramReviewGate`; production-config flip is a separate decision.
 
 ---
 
@@ -545,3 +619,6 @@ Tracked here for visibility; canonical sources remain authoritative.
 | 2026-05-30 | Marked tooling-debt items #1 (LoggingLLMClient SCORE/RECON) and #2 (scenario compiler BATNA hardcode) as RESOLVED in the Backlog section with closure references to DEVLOG entries. Surfaced four open design questions on BATNA approach (default value, presets, per-faction asymmetric, force-clamp). | Operator: "don't forget to update the docs after a step is done" |
 | 2026-05-30 | Marked tooling-debt item #3 (dated OpenAI model pricing) RESOLVED. All three tooling-debt items closed; suggested sequencing collapsed by removing #1 (Tooling debt). New sequence: (1) live TG re-smoke, (2) coaching test, (3) OpenRouter+Run 9, (4) divorce scenario, (5) Stage 2a, (6) Clankmates. | Operator provided current OpenAI pricing; audit revealed 41.6× overall overestimate from date-suffix lookup miss. |
 | 2026-05-30 | Added `SMOKE_RUNBOOK.md` at project root — step-by-step Pi smoke procedure mapping every Phase 18+19 change to a verification step. Surfaced two not-blocking gaps: reconciler not wired in production `main.py`, endgame markers don't fire in production. Both tracked as remaining items under `Live Telegram re-smoke` Backlog section. | Operator: "Live Telegram re-smoke on Pi — verify deployment readiness" |
+| 2026-05-31 | Live TG re-smoke **PAUSED mid-§3** after operator-side verifications + bot startup confirmed. Documented: bot-to-bot Telegram impossibility (faction-traffic source needed for §3.1–§3.9), service.sh broken via `incus exec` (tmux pattern is the working invocation), 2 real fixes shipped (toolkit max_completion_tokens, test fake signature drift), 2 smoke setup edits pending revert/commit decision, 3 tooling-debt items surfaced. Resume steps documented in the "Live Telegram re-smoke — PAUSED" section. | Operator: "can we document this (in the next steps?) and pause? I need a break" |
+| 2026-05-31 | Live TG re-smoke **CLOSED for coaching scope** (reframed). Telegram is the operator coaching surface; production game traffic comes via Clankmates or equivalent, not Telegram. Unverified extraction/debounce/reconciler/round-flow items moved to new sequencing item #2 "Layer 3 integration tests for Phase 18 paths". Sequencing re-numbered: (1) commit 2 real fixes from smoke, (2) Layer 3 Phase 18 tests, (3) coaching test loop on Pi, (4) OpenRouter+Run 9, (5) divorce scenario, (6) Stage 2a, (7) Clankmates. PAUSED section replaced with compact CLOSED summary. SMOKE_RUNBOOK reframed as coaching/review smoke and shrunk to ~155 lines. | Operator: "oh you know what, this is not how the game will work; we were looking into clankmates exactly for this reason. I assume we tested the coaching part which is the one that meant to stay on tg, and we'll be testing the actual game environment in a different step. we should still test message parsing and extraction somehow." |
+| 2026-05-31 | Added `ASSESSMENT.md` at project root — conceptual framework for what "negotiating well" means (calculation-vs-negotiation tension), ten dimensions of skill, four scoring lenses with formulas (BATNA-relative ✓, Pareto efficiency NOT YET, skill-premium NOT YET, process signatures partial), scenario design properties, three workstream blocks A/B/C. Tagged every section heading + sequencing item in this file with `[A]`/`[B]`/`[C]`/`[X]`. Added pointer in PROJECT.md Success Criteria and DEVPLAN.md cold-start gotchas. | Operator: "let's document this as rationale and potential avenues for exploration - different scores for how well they negotiate, and we should integrate this all into a game setup and analysis/assessment part of work... not sure where best to put this... these are separate but interlocking blocks of work - agent memory and processing arch piece, prompt tuning piece, game creation and scoring piece" |
