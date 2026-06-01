@@ -2,7 +2,7 @@
 phase: 24
 blocked: false
 state: execute
-steps_remaining: 6
+steps_remaining: 4
 ---
 
 # Diplomat — Development Plan
@@ -81,7 +81,7 @@ Prerequisite: None.
 
 Steps:
 - [x] **24.1** Add toolkit unit tests for `OpenAIProvider.call` model-prefix dispatch. Two parametrized tests in `toolkit/tests/llm_client/test_core.py::TestOpenAIProviderTokenParam`: (a) reasoning models (`gpt-5*`, `o1*`, `o3*`, `o4*`) get `max_completion_tokens`; (b) legacy models (`gpt-4*`, `gpt-3.5*`) keep `max_tokens`. 10 test cases total, all passing. Closes the TODO from commit `5763897`. **Completed directly by operator** (toolkit-touching step; outside diplomat worker's permitted tree).
-- [ ] **24.2** Add per-faction asymmetric `--batna-fractions` JSON flag to `tools/scenario_compiler.py` and `tests/self_play/run_simulation.py`. Same parsing pattern as `--per-faction-providers` (JSON map: `{"alpha":0.65,"beta":0.35,"gamma":0.50}`). Falls back to `--batna-fraction` scalar if not provided. Update `validate_batna_pressure()` to validate per-faction targets if asymmetric.
+- [x] **24.2** Add per-faction asymmetric `--batna-fractions` JSON flag to `tools/scenario_compiler.py` and `tests/self_play/run_simulation.py`. Same parsing pattern as `--per-faction-providers` (JSON map: `{"alpha":0.65,"beta":0.35,"gamma":0.50}`). Falls back to `--batna-fraction` scalar if not provided. Update `validate_batna_pressure()` to validate per-faction targets if asymmetric. 321 tests passing.
 - [ ] **24.3** Add `--force-batna-fraction` post-clamp option to scenario compiler. After LLM produces the analysis JSON, post-process each faction's BATNA to clamp to `target × max_possible_score`. Default off (preserve current behavior); when set, narrative-explicit BATNAs are overridden.
 - [ ] **24.4** Add `--game-mode` runtime override flag to `tests/self_play/run_simulation.py`. Allows operator to override the compiler's `game_mode` classification (cooperative/competitive/mixed) at run time without regenerating personas. Persona text gets the override applied as a runtime layer.
 - [ ] **24.5** Level 1 modularization, part 1: extract `_EXTRACTION_EXAMPLES` constant from `src/modules/extraction/__init__.py` into `config/examples/extraction_examples.json`. Update `OpenAIStructuredExtractor` to load from JSON at construction time, with path configurable via `pipeline.yaml` `paths.examples.extraction`. Default path: `config/examples/extraction_examples.json`. Add the path to `pipeline.yaml` and `pipeline_smoke.yaml`. Update existing tests.

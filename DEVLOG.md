@@ -205,3 +205,11 @@ Also completed the toolkit-side portion of step 24.7 in the same pass: added "To
 DEVPLAN edits: step 24.1 marked `[x]` with a "Completed directly by operator" note; step 24.7 trimmed to diplomat docs only with explicit "do NOT attempt to modify toolkit" guard. The loop can now run steps 24.2–24.6 then 24.7 (diplomat docs only) → REVIEW → CLOSE without hitting the project-tree boundary again.
 
 Audit of remaining queue (Phase 24 was the only active phase): no other steps in 24.2–24.7 touch `../toolkit`. Phase 25+ not yet planned.
+
+### Step 24.2: Asymmetric BATNA fractions
+
+Mode: Build
+Outcome: Added `--batna-fractions` JSON parsing for `tools.scenario_compiler` and `tests.self_play.run_simulation`, with scalar `--batna-fraction` retained as the fallback for factions not listed in the map. The compiler prompt now includes per-faction BATNA targets when supplied, and `validate_batna_pressure()` validates each faction against its asymmetric target.
+Contract changes: CLI surface gains `--batna-fractions`; `analyze_scenario()` and `validate_batna_pressure()` now accept optional per-faction BATNA target maps.
+
+Tests: `python3 -m pytest tests/test_scenario_compiler.py tests/test_self_play.py` — 66 passed. `python3 -m pytest` — 321 passed.

@@ -10,6 +10,7 @@ from tools.scenario_compiler import (
     build_compiler_system_prompt,
     generate_persona,
     max_possible_score,
+    parse_batna_fractions_json,
     save_analysis,
     save_persona,
     validate_batna_pressure,
@@ -128,6 +129,15 @@ class TestBuildCompilerSystemPrompt:
         prompt = build_compiler_system_prompt(batna_fraction=0.30)
         assert "30%" in prompt
 
+    def test_per_faction_fractions_render_as_overrides(self) -> None:
+        prompt = build_compiler_system_prompt(
+            batna_fraction=0.50,
+            batna_fractions={"alpha": 0.65, "beta": 0.35},
+        )
+        assert "Faction-specific BATNA targets override" in prompt
+        assert "alpha: 65%" in prompt
+        assert "beta: 35%" in prompt
+
     def test_invalid_fraction_zero_raises(self) -> None:
         import pytest
         with pytest.raises(ValueError):
@@ -195,6 +205,37 @@ class TestValidateBatnaPressure:
         assert len(warnings) == 1
         assert warnings[0].startswith("low:")
 
+    def test_per_faction_targets_override_scalar(self) -> None:
+        # alpha: 6/18=33%, beta: 6/19=32%, gamma: 6/19=32%.
+        # Only alpha has a high asymmetric target; beta/gamma use low scalar fallback.
+        warnings = validate_batna_pressure(
+            _SAMPLE_ANALYSIS,
+            target_fraction=0.30,
+            target_fractions={"alpha": 0.60},
+            tolerance=0.10,
+        )
+        assert len(warnings) == 1
+        assert warnings[0].startswith("alpha:")
+        assert "--batna-fractions" in warnings[0]
+
     def test_default_fraction_matches_module_constant(self) -> None:
         # Smoke check that the validator and CLI default agree
         assert 0.0 < DEFAULT_BATNA_FRACTION < 1.0
+
+
+class TestParseBatnaFractionsJson:
+    def test_parses_numeric_map(self) -> None:
+        assert parse_batna_fractions_json('{"alpha":0.65,"beta":0.35}') == {
+            "alpha": 0.65,
+            "beta": 0.35,
+        }
+
+    def test_rejects_non_object(self) -> None:
+        import pytest
+        with pytest.raises(ValueError, match="JSON object"):
+            parse_batna_fractions_json("[0.5]")
+
+    def test_rejects_out_of_range_fraction(self) -> None:
+        import pytest
+        with pytest.raises(ValueError, match="alpha"):
+            parse_batna_fractions_json('{"alpha":1.0}')

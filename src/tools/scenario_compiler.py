@@ -134,15 +134,58 @@ Rules:
 DEFAULT_BATNA_FRACTION = 0.50
 
 
-def build_compiler_system_prompt(batna_fraction: float = DEFAULT_BATNA_FRACTION) -> str:
-    """Return the compiler system prompt with the BATNA fraction inlined."""
-    if not 0.0 < batna_fraction < 1.0:
-        raise ValueError(
-            f"batna_fraction must be in (0.0, 1.0); got {batna_fraction}"
+def _validate_batna_fraction(value: float, *, label: str) -> float:
+    """Validate and normalize a BATNA fraction."""
+    if not 0.0 < value < 1.0:
+        raise ValueError(f"{label} must be in (0.0, 1.0); got {value}")
+    return value
+
+
+def parse_batna_fractions_json(raw: str) -> dict[str, float]:
+    """Parse a JSON map of faction_id -> BATNA fraction."""
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"--batna-fractions is not valid JSON: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ValueError("--batna-fractions must be a JSON object")
+
+    fractions: dict[str, float] = {}
+    for faction_id, value in data.items():
+        if not isinstance(faction_id, str) or not faction_id:
+            raise ValueError("--batna-fractions keys must be non-empty strings")
+        if not isinstance(value, int | float):
+            raise ValueError(f"--batna-fractions[{faction_id}] must be a number")
+        fractions[faction_id] = _validate_batna_fraction(
+            float(value), label=f"--batna-fractions[{faction_id}]"
         )
-    return COMPILER_SYSTEM_PROMPT_TEMPLATE.format(
+    return fractions
+
+
+def build_compiler_system_prompt(
+    batna_fraction: float = DEFAULT_BATNA_FRACTION,
+    batna_fractions: dict[str, float] | None = None,
+) -> str:
+    """Return the compiler system prompt with the BATNA fraction inlined."""
+    _validate_batna_fraction(batna_fraction, label="batna_fraction")
+    if batna_fractions:
+        for faction_id, fraction in batna_fractions.items():
+            _validate_batna_fraction(
+                fraction, label=f"batna_fractions[{faction_id}]"
+            )
+
+    prompt = COMPILER_SYSTEM_PROMPT_TEMPLATE.format(
         batna_fraction_pct=int(round(batna_fraction * 100)),
     )
+    if batna_fractions:
+        lines = [
+            "",
+            "Faction-specific BATNA targets override the default where listed:",
+        ]
+        for faction_id, fraction in sorted(batna_fractions.items()):
+            lines.append(f"- {faction_id}: {int(round(fraction * 100))}% of maximum score")
+        prompt += "\n".join(lines) + "\n"
+    return prompt
 
 
 # Backwards-compatible: keep the old constant as a default-rendered version.
@@ -258,6 +301,7 @@ async def analyze_scenario(
     llm_config: dict[str, Any],
     tier: str = "commodity",
     batna_fraction: float = DEFAULT_BATNA_FRACTION,
+    batna_fractions: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     """Parse a scenario description into structured scoring data.
 
@@ -272,6 +316,9 @@ async def analyze_scenario(
         score across all issues. Default 0.50. Higher = more pressure toward
         Pareto-optimal deals; lower = easier for BATNA fallback to "win."
         Operator hand-patches in Run 8 landed in 0.40-0.61. Must be in (0, 1).
+    batna_fractions : dict[str, float] | None
+        Optional per-faction overrides. Factions not present fall back to
+        ``batna_fraction``.
     """
     from toolkit.structured_llm import structured_call
 
@@ -280,7 +327,7 @@ async def analyze_scenario(
         llm_config,
         tier,
         schema=SCENARIO_ANALYSIS_SCHEMA,
-        system_prompt=build_compiler_system_prompt(batna_fraction),
+        system_prompt=build_compiler_system_prompt(batna_fraction, batna_fractions),
         user_prompt=f"Analyze the following negotiation scenario:\n\n{scenario_text}",
         max_retries=2,
         purpose="compilation",
@@ -311,11 +358,13 @@ def max_possible_score(analysis: dict[str, Any], faction_id: str) -> int:
 def validate_batna_pressure(
     analysis: dict[str, Any],
     target_fraction: float = DEFAULT_BATNA_FRACTION,
+    target_fractions: dict[str, float] | None = None,
     tolerance: float = 0.10,
 ) -> list[str]:
     """Return per-faction warnings where BATNA is significantly below target.
 
-    Compares each faction's BATNA against ``target_fraction * max_score``.
+    Compares each faction's BATNA against its per-faction target when
+    ``target_fractions`` is provided, otherwise ``target_fraction * max_score``.
     Emits a warning when BATNA is more than ``tolerance`` fractional units
     below the target (e.g. target=0.50, tolerance=0.10 → warn if BATNA is
     below 0.40 of max). Returns an empty list when all factions clear the
@@ -325,22 +374,28 @@ def validate_batna_pressure(
     where the LLM under-set BATNAs — a recurring issue in Runs 4-8 that
     required hand-patching via ``--analysis-json``.
     """
+    _validate_batna_fraction(target_fraction, label="target_fraction")
+    target_fractions = target_fractions or {}
+    for faction_id, fraction in target_fractions.items():
+        _validate_batna_fraction(fraction, label=f"target_fractions[{faction_id}]")
+
     warnings: list[str] = []
-    floor = max(0.0, target_fraction - tolerance)
     for faction_id in analysis.get("factions", []):
+        faction_target = target_fractions.get(faction_id, target_fraction)
+        floor = max(0.0, faction_target - tolerance)
         max_score = max_possible_score(analysis, faction_id)
         if max_score == 0:
             continue
         batna = analysis.get("batna", {}).get(faction_id, 0)
         actual_fraction = batna / max_score
         if actual_fraction < floor:
-            target_batna = int(round(max_score * target_fraction))
+            target_batna = int(round(max_score * faction_target))
             warnings.append(
                 f"{faction_id}: BATNA={batna} is {actual_fraction:.0%} of "
-                f"max={max_score} (target ~{target_fraction:.0%} ~= "
+                f"max={max_score} (target ~{faction_target:.0%} ~= "
                 f"{target_batna}). Negotiation pressure may be too low; "
                 f"consider hand-patching via --analysis-json or rerunning "
-                f"with a higher --batna-fraction."
+                f"with a higher --batna-fraction/--batna-fractions."
             )
     return warnings
 
@@ -477,6 +532,16 @@ def _parse_args() -> argparse.Namespace:
             f"BATNA. Run 8 hand-patches landed in 0.40-0.61."
         ),
     )
+    parser.add_argument(
+        "--batna-fractions",
+        type=str,
+        default=None,
+        help=(
+            'JSON map of faction_id -> BATNA fraction. Overrides '
+            '--batna-fraction for listed factions; unlisted factions use '
+            'the scalar fallback. Example: \'{"alpha":0.65,"beta":0.35}\''
+        ),
+    )
     return parser.parse_args()
 
 
@@ -509,12 +574,27 @@ async def _run(args: argparse.Namespace) -> None:
         print("ERROR: toolkit not importable.", file=sys.stderr)
         sys.exit(1)
 
+    try:
+        batna_fractions = (
+            parse_batna_fractions_json(args.batna_fractions)
+            if args.batna_fractions
+            else None
+        )
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        sys.exit(1)
+
     print(f"Analyzing scenario: {scenario_path.name}")
-    print(f"  BATNA target fraction: {args.batna_fraction:.0%} of each faction's max score")
+    if batna_fractions:
+        print(f"  BATNA scalar fallback: {args.batna_fraction:.0%} of max score")
+        print(f"  BATNA per-faction targets: {batna_fractions}")
+    else:
+        print(f"  BATNA target fraction: {args.batna_fraction:.0%} of each faction's max score")
     analysis = await analyze_scenario(
         scenario_text, llm_client, llm_config,
         tier="commodity",
         batna_fraction=args.batna_fraction,
+        batna_fractions=batna_fractions,
     )
 
     analysis_path = save_analysis(analysis, output_dir)
@@ -523,7 +603,11 @@ async def _run(args: argparse.Namespace) -> None:
     print(f"Issues: {', '.join(i['name'] for i in analysis['issues'])}")
 
     # Validate BATNA pressure against the requested target.
-    warnings = validate_batna_pressure(analysis, target_fraction=args.batna_fraction)
+    warnings = validate_batna_pressure(
+        analysis,
+        target_fraction=args.batna_fraction,
+        target_fractions=batna_fractions,
+    )
     if warnings:
         print("\nBATNA pressure warnings:")
         for w in warnings:
