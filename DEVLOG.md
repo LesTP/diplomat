@@ -471,3 +471,13 @@ Contract changes: Documentation now defines the operator-facing logging configur
 Notes: `ARCH_reconciliation.md` documents current round-boundary reconciliation dispatch logs and explicitly calls out that lower-level `reconciliation.*` records are a possible later cleanup, since this phase logs reconciliation through `round.boundary` stages.
 
 Tests: Not run; documentation-only step.
+
+### Step 26.8: Pre-review readiness
+
+Mode: Build
+Outcome: Completed the final Phase 26 checklist item and verified the phase is ready for formal review. Structured logging code, config defaults, logging tests, CLI/env docs, ARCH docs, smoke runbook, and testing guide updates are in place.
+Contract changes: None beyond the logging config/env and documented event-name surface already captured in 26.5 and 26.7.
+
+Notes: Live bot-log verification (`incus exec ... cat logs/diplomat.log`) remains a smoke/deployment activity, not something this local test run can perform.
+
+Tests: `.venv/bin/python -m pytest` — 337 passed.
