@@ -1,16 +1,11 @@
 # Diplomat — Next Steps
 
-> Working document for post-Run 8 / post-Phase 18 priorities.
-> Updated 2026-05-30.
+> Working document for post-Phase 24 priorities.
+> Updated 2026-06-01.
 >
 > Related: `DEVPLAN.md` (canonical phase plan), `TUNING_LOG.md` (run-by-run record),
 > `ARCH_conversation_model.md` (Stage 1/2/3 migration), `RUN_PROTOCOL.md` (pre-flight),
 > `ASSESSMENT.md` (scoring framework + workstream blocks).
-
-This document captures a discussion between the operator and Devmate
-synthesizing six directions for future work, plus a backlog of specific
-TODOs surfaced from Run 8 review and tooling debt. Items are not yet
-sequenced into phases — that happens once we pick the next concrete run.
 
 > **Workstream block tags.** Every section heading and item carries one
 > of `[A]`, `[B]`, `[C]`, or `[X]` per `ASSESSMENT.md` §5:
@@ -21,129 +16,96 @@ sequenced into phases — that happens once we pick the next concrete run.
 >
 > Multiple tags = item touches multiple blocks; primary block listed first.
 
-> **Loop-readiness classification (2026-05-31).** Items are also classified for autonomous-loop suitability:
+> **Loop-readiness classification.** Items are also classified for autonomous-loop suitability:
 > - 🔨 **PURE BUILD** — code/refactor only, deterministic, no operator judgment mid-loop. Suitable for autonomous build phases.
-> - 🔀 **MIX** — has a build component but needs operator decisions at boundaries (e.g., schema is build but prompt change is supervised).
+> - 🔀 **MIX** — has a build component but needs operator decisions at boundaries.
 > - 👁 **SUPERVISED** — experiments, prompt tuning, design judgment, or interactive work. Operator-driven only.
 >
-> Current queue: **PURE BUILD items are batched into `DEVPLAN.md` Phases 20-24** (Layer 3 tests → orchestration cleanup → adapter cleanup → Pipeline/Flow split → scoring expansion → small builds + Level 1 modularization). MIX and SUPERVISED items wait for operator-driven sessions. Classification table is below the section listings:
+> **State as of 2026-06-01:** all 🔨 PURE BUILD items shipped via Phases 19 (ad-hoc) and 20–24 (Build cycle). No PURE BUILD items in the queue. Open items below are MIX or SUPERVISED.
 
-| Section / item | Class | Phase if pure-build |
+---
+
+## Closed since 2026-05-30
+
+Audit trail; details in `DEVLOG.md` / `DEVLOG_archive.md` under the corresponding phase or Phase 19 ad-hoc entries.
+
+| Item | Where | Status |
 |---|---|---|
-| §1.5 Layer 3 integration tests for Phase 18 paths | 🔨 | **Phase 20** |
-| §1.6 OpenRouter + Run 9 | 🔀 | (toolkit code: future build; Run 9: supervised) |
-| §1.7 Module boundary cleanup — orchestration | 🔨 | **Phase 21** |
-| §1.8 Module boundary cleanup — LLM adapter + config dedup | 🔨 | **Phase 21** |
-| §1.9 Pipeline / Flow split | 🔨 | **Phase 22** |
-| §2 Game pressure beyond BATNA | 🔀 | (mechanism code build; scenario design supervised) |
-| §2.5 Strategy routing | 👁 | — |
-| §3 Free conversation + per-round events | 🔀 | (Stage 2a build; Stage 2b convergence design supervised) |
-| §4 Coaching test loop on Pi | 👁 | — |
-| §5 Clankmates exploration | 👁 | — |
-| §6 Pricing audit | 👁 | — |
-| §7 Per-role model strategy | 👁 | — |
-| §8 Reverse scenario builder | 🔀 | (search algorithm build; constraint definition + narrativizer supervised) |
-| §9 Voice / style templates | 👁 | — |
-| ASSESSMENT §3.2 Pareto efficiency scorer | 🔨 | **Phase 23** |
-| ASSESSMENT §3.3 vs Naive baseline | 🔀 | (naive defn needs operator choice) |
-| ASSESSMENT §3.4 process signatures (4 deterministic) | 🔨 | **Phase 23** |
-| ASSESSMENT §3.4 process signatures (persuasion-shifts / concession-curve) | 👁 | — |
-| Per-faction asymmetric `--batna-fractions` | 🔨 | **Phase 24** |
-| `--force-batna-fraction` post-clamp | 🔨 | **Phase 24** |
-| `--game-mode` runtime override flag | 🔨 | **Phase 24** |
-| Toolkit `max_completion_tokens` unit tests | 🔨 | **Phase 24** |
-| Level 1 modularization (extraction examples → JSON; schema-derived entities) | 🔨 | **Phase 24** |
-| Pareto-frontier annotation in analyst output | 🔀 | (schema change build; prompt change Layer 2 supervised) |
-| Promise dedup / fulfillment / inconsistency reconciler validation | 🔨 | **Phase 20** |
-| Persona payment rigidity A/B test | 👁 | — |
-| Persona drift over 8+ rounds | 👁 | — |
-| Persona endgame over-anchoring decision | 👁 | — |
-| Provider-native structured output (`response_format: json_schema`) | 🔀 | (toolkit plumbing build; model selection supervised) |
-| TelegramReviewGate as production default | 👁 | (judgment call) |
+| Layer 3 integration tests for Phase 18 paths | Phase 20 | ✓ Closed 2026-05-31 |
+| Reconciler dedup / fulfillment / inconsistency / missed-proposal (fake-LLM coverage) | Phase 20 | ✓ Closed 2026-05-31 |
+| Module boundary cleanup — orchestration (public `advance_to_round`, `OrchestrationOptions`, `StubAnalyst` registry leak, logged reconciler exceptions) | Phase 21 | ✓ Closed 2026-05-31 |
+| Module boundary cleanup — LLM adapter + config dedup (`_TaggedLLMClient` deleted, `attribution`/`purpose` kwargs threaded, `build_reconciler` + `subsystem_llm_config` factories, `DryRunLLMClient` `purpose`-kwarg classification) | Phase 21 | ✓ Closed 2026-05-31 |
+| Pipeline / Flow split (`Pipeline`, `EventDrivenFlow`, `RoundSteppedFlow`; `Orchestrator` as compat factory; `ARCH_flow.md`) | Phase 22 | ✓ Closed 2026-05-31 |
+| ASSESSMENT §3.2 Pareto efficiency scorer | Phase 23 | ✓ Closed 2026-05-31 |
+| ASSESSMENT §3.4 process signatures (4 deterministic: broken-promise rate, coalition stability, time-to-deal, opening gap) | Phase 23 | ✓ Closed 2026-05-31 |
+| Toolkit `OpenAIProvider.call` `max_completion_tokens` dispatch + unit tests + ARCH_llm_client + API.md | Phase 24.1 + operator-direct | ✓ Closed 2026-05-31 |
+| Per-faction asymmetric `--batna-fractions` JSON flag | Phase 24.2 | ✓ Closed 2026-05-31 |
+| `--force-batna-fraction` post-clamp option | Phase 24.3 | ✓ Closed 2026-05-31 |
+| `--game-mode` runtime override flag | Phase 24.4 | ✓ Closed 2026-05-31 |
+| Level 1 modularization — extraction examples → `config/examples/extraction_examples.json` | Phase 24.5 | ✓ Closed 2026-05-31 |
+| Level 1 modularization — reconciliation + analysis derive entity types from `state_patch.json` schema | Phase 24.6 | ✓ Closed 2026-05-31 |
+| Phase 24 doc updates (CLI_REFERENCE, TUNING, diplomat-testing-doc, ARCH_extraction, ARCH_reconciliation) | Phase 24.7 + operator-direct | ✓ Closed 2026-06-01 |
+| Toolkit `complete_with_retry` (exponential backoff on 429/5xx/empty) | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
+| Toolkit `normalize_model_name` + refreshed pricing (closed ~41× cost-ledger overestimate) | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
+| Scenario compiler BATNA fraction-of-max formula + `--batna-fraction` CLI + `validate_batna_pressure()` | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
+| LoggingLLMClient SCORE/RECON visibility | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
+| Production reconciler wired in `src/main.py` (`_attach_reconciler`) | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
+| Optional `game.total_rounds` in `pipeline.yaml` | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
+| `tools/inspect_ledger.py` rewritten with CLI args | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
+| `CLI_REFERENCE.md` + `SMOKE_RUNBOOK.md` created | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
+| `ASSESSMENT.md` created (skill framework + scoring lenses + workstream blocks) | Phase 19 ad-hoc | ✓ Closed 2026-05-31 |
+| Live Telegram re-smoke (for coaching scope only — game-traffic is not a Telegram concern) | Phase 19 ad-hoc | ✓ Closed 2026-05-31 |
+| WORKER_SPEC loop-discipline hardening (single-call contract, no self-judge budget) | Phase 19 ad-hoc | ✓ Closed 2026-05-31 |
 
 ---
 
-## Suggested Sequencing (recommended order)
+## Open — current state
 
-1. **`[X]` Commit the two real fixes shipped during the 2026-05-31 smoke** — `toolkit/llm_client/providers.py` (gpt-5.x / o-series `max_completion_tokens` dispatch — needs unit tests in toolkit) and `tests/integration/test_failure_handling.py` (Phase 18 `recent_events` signature drift in `fail_secondary` fake). Both are blockers for any deployment on gpt-5.x.
-2. **`[A][X]` Layer 3 integration tests for Phase 18 paths** — deterministic fake-LLM tests for the debounce burst + three reconciler paths that haven't fired in self-play (fulfillment, inconsistency, missed-proposal). Closes the validation gap that the Telegram smoke couldn't cover. ~1 day. See §1.5 below.
-3. **`[X]` Coaching test loop on Pi** — operator coaches one self-play agent via Telegram while other agents run autonomous. Validates the original product hypothesis end-to-end. Telegram coaching surface is already verified by the 2026-05-31 smoke; this builds on it. Meta-test that exercises all three blocks. See §4 below.
-4. **`[X][B]` Add OpenRouter to toolkit + run a 4–6 provider Run 9** — biggest experimental payoff per day of work. Google entry uses `gemini-2.5-flash-lite` per TUNING.md §1 default.
-5. **`[C]` Divorce / pressure-mechanism scenario design** — extends scenario compiler, sets up Run 10
-6. **`[A]` Stage 2a (K=2 conversation model) + per-round events** — unlocks the next phase of experimentation
-7. **`[X]` Clankmates discovery → mock → transport** — timeline depends on platform team
+### Loop-readiness classification
 
-Strategy routing (`[B]` item #2.5), per-role model strategy (`[B]` #7), and pricing/accounting audit (`[X]` #6) are
-dedicated investigations of their own; they slot in after the experimental program produces enough
-signal to inform the questions.
-
-*Items completed and absorbed into canonical docs are removed from this file.*
-*See Change History at the bottom for the audit trail.*
-
----
-
-## 1.5. `[A][X]` Layer 3 integration tests for Phase 18 paths
-
-**Why:** The 2026-05-31 Telegram smoke confirmed the Telegram bot serves
-its coaching/review scope correctly. Game-traffic ingestion is not a
-Telegram concern (production game traffic comes via `ClankmatesTransport`
-or equivalent). The Phase 18 production-code changes (debounce rewrite,
-structured_call rewiring, cost-accountant wiring, reconciler,
-`game.total_rounds` config) are exercised in self-play, but a few paths
-have never fired with deterministic coverage:
-
-| Path | Current coverage | Gap |
+| Item | Class | Notes |
 |---|---|---|
-| Per-message debounce (Phase 18.6, D-20) | Self-play runs with single messages per round | Multi-message burst (3+ in <1s) never tested |
-| Reconciler dedup | Self-play Run 7 confirmed live | None — fake-LLM Layer 3 test would harden |
-| Reconciler fulfillment (`pending → kept`) | Never fired (no scenario reached "deal") | Need a deterministic Layer 3 test |
-| Reconciler inconsistency | Zero hits across 8 self-play runs | Need a deterministic Layer 3 test with explicit contradiction |
-| Reconciler missed-proposal catch | Self-play surfaced once | Layer 3 test would pin behavior |
-| Endgame markers PENULTIMATE/FINAL | Self-play Runs 7, 8 hit FINAL ROUND | None — already validated |
+| §1.6 OpenRouter + Run 9 | 🔀 | Toolkit code is build (Phase 25 candidate); Run 9 itself is supervised |
+| §2 Game pressure beyond BATNA + divorce scenario | 🔀 | Mechanism code is build; scenario design supervised |
+| §2.5 Strategy routing | 👁 | Pure prompt design |
+| §3 Stage 2a (K=2 conversation model) + per-round events | 🔀 | Architecture is build (Phase 25 candidate); convergence detection (Stage 2b) supervised |
+| §4 Coaching test loop on Pi | 👁 | Interactive operator-in-loop |
+| §5 Clankmates exploration | 👁 | Platform team coordination |
+| §6 Pricing audit | 👁 | Judgment vs provider dashboards |
+| §7 Per-role model strategy | 👁 | Cross-provider experiment |
+| §8 Reverse scenario builder | 🔀 | Search algorithm build; constraint definition + narrativizer supervised |
+| §9 Voice / style templates | 👁 | Prompt design |
+| ASSESSMENT §3.3 vs Naive baseline | 🔀 | Naive defn needs operator choice (equal-split is the universal candidate) |
+| ASSESSMENT §3.4 persuasion-shifts / concession-curve signatures | 👁 | Need LLM-judge over transcripts |
+| Pareto-frontier annotation in analyst output | 🔀 | Schema change build; prompt-side change needs Layer 2 supervised validation |
+| Persona payment rigidity / drift / endgame over-anchoring | 👁 | Prompt design |
+| Provider-native structured output (`response_format: json_schema`) | 🔀 | Toolkit plumbing build; model selection supervised |
+| TelegramReviewGate as production default in `pipeline.yaml` | 👁 | Judgment call |
+| Rewrite `tools/service.sh` around `tmux new-window` | 🔨 | **Phase 25 queued** (`DEVPLAN.md`) |
+| Structured per-event logging in orchestrator + transport | 🔨 | Outstanding tooling debt — not in any phase yet |
 
-**Scope:** Add 1–2 Layer 3 integration tests using the existing fixture
-pattern (`tests/integration/` + `TestTransport` + `FakeLLMClient` from
-`tests/helpers/factories.py`):
+### Suggested Sequencing (operator-driven)
 
-1. **`test_burst_extraction_no_drops`** — inject 5 game-message events
-   in rapid succession via `TestTransport.inject()`, settle, assert all
-   5 events appear in `event_store` AND all 5 trigger extraction (each
-   produces a state_change_log entry, even if the extractor returns
-   empty). Validates the per-event task set fix (Phase 18.6).
+All Phases 20–24 closed → no PURE BUILD items in autonomous queue. Next moves are operator-driven sessions, ordered by leverage:
 
-2. **`test_reconciler_paths`** — single test or three sub-tests:
-   - dedup: extractor produces 3 promises with same from/to/content,
-     reconciler merges to one
-   - fulfillment: extractor produces a promise, then a "kept" signal in
-     the next round, reconciler transitions status `pending → kept`
-   - inconsistency: extractor produces a position, then an explicit
-     contradiction next round, reconciler flags `inconsistencies` entry
+1. **`[X]` Coaching test loop on Pi** (§4) — highest-value test not yet run; validates the original product hypothesis end-to-end. The Telegram coaching surface was verified by the 2026-05-31 smoke; this builds on it.
+2. **`[X][B]` OpenRouter integration + Run 9** (§1.6) — biggest experimental payoff per day of work.
+3. **`[C]` Divorce / pressure-mechanism scenario design** (§2) — extends scenario compiler; sets up Run 10.
+4. **`[A]` Stage 2a (K=2 conversation model) + per-round events** (§3) — unlocks the next phase of experimentation.
+5. **`[X]` Clankmates discovery → mock → transport** (§5) — timeline depends on platform team.
 
-Both tests should use `FakeLLMClient` with canned responses that match
-the reconciler's expected output schema. Wire via `module_overrides` per
-`tests/integration/conftest.py` pattern.
+Strategy routing (§2.5), per-role model strategy (§7), and pricing audit (§6) are dedicated investigations of their own; they slot in after the experimental program produces enough signal to inform them.
 
-**Effort:** ~half a day for the burst test + reconciler dedup/fulfillment;
-inconsistency may take longer if the schema or prompt needs
-tightening.
+### Pure-build extensions (if extending the autonomous queue)
 
-**Definition of done:** 286+ tests passing (284 current + 2 new); both
-new tests run in <2s; both deterministic with fake LLM.
+If you want to keep the loop fed rather than pivot to operator-driven work, three items have a clean "build half" that could be split off as their own Phase 25 / 26 / 27:
 
----
-
-## ~~1. Google API~~ — RESOLVED 2026-05-30
-
-Canonical recommendation now lives in **`TUNING.md` §1** (Google defaults
-section) and **§6 Tuning Changelog**. Summary of closure:
-- Operator enabled billing on GCP project + bought $10 credits → paid Tier 1, no more 250 RPD limit
-- `gemini-2.5-flash-lite` adopted as tuning default (cheapest, no thinking-mode overhead)
-- Thinking-token gotcha documented for flash and pro models
-- CLI examples in `probe_providers.py` and `run_simulation.py` updated to match
-- **Retry-with-backoff + safety-filter empty-response handling shipped to toolkit 2026-05-30.** `complete_with_retry` in `toolkit.llm_client` retries on 429 / 5xx / network errors / empty responses with exponential backoff and `retry-after` honoring. CostAccountant routes through it; Diplomat's `ToolkitLLMAdapter` uses it on the direct path. 15 new toolkit tests; 217 toolkit tests + 254 diplomat tests pass (4 pre-existing Windows flakes unchanged). Live 3-provider probe through the new path: all green.
-
-All original Google-specific TODOs are now closed. Per-role real-game model
-decision and pricing audit are tracked in sections #6 and #7 below.
+| Candidate | Build slice | What stays supervised |
+|---|---|---|
+| §1.6 OpenRouter | Add OpenRouter as a provider in `toolkit/llm_client/providers.py` + factory branch + tests | Run 9 itself; writing TUNING notes about its behavior |
+| §3 Stage 2a | Add `RoundSteppedFlow` configuration for 2-pass rounds (open + react) + `MultiPassMode` plumbing; round-events injection between passes | Stage 2b convergence detection; judging quality of multi-pass transcripts |
+| ASSESSMENT §3.3 vs-Naive baseline (equal-split) | Implement equal-split baseline scorer (universal definition) + add to scoring output alongside Pareto efficiency | Choosing whether equal-split is "the" baseline vs Nash bargaining vs BATNA-clearing |
+| Structured per-event logging | Add log lines in orchestrator + transport (inbound chat→channel, sender→faction, extraction success/skip, round-boundary trigger, response-pipeline trigger). Sibling of Phase 25 service.sh work; could be Phase 26. | None — pure build |
 
 ---
 
@@ -181,107 +143,6 @@ entry point exists. This is mostly config + provider routing work.
 
 ---
 
-## 1.7. `[A]` Module boundary cleanup — orchestration
-
-**Why:** Phase 18 added the self-play harness (`tests/self_play/game_environment.py`) on top of the production `Orchestrator`. The composition is correct (GameEnvironment instantiates an Orchestrator per faction), but several boundary leaks accumulated when the harness needed to fit round-driven simulation into a class designed for signal-driven production:
-
-| Symptom | Where | Why it's wrong |
-|---|---|---|
-| Self-play pokes `orchestrator.current_round = N` directly | `tests/self_play/game_environment.py:479` | Bypasses `handle_round_boundary` |
-| Self-play calls private `orchestrator._reset_round_budget()` | `game_environment.py:481` | Underscore-prefixed = private API; production owns the discipline |
-| `auto_response_enabled` attribute on `Orchestrator` | `src/orchestrator.py:125` | Exists *only* because self-play flips it to `False` (`game_environment.py:550`). Production never touches it. |
-| `total_rounds` attribute on `Orchestrator` | `src/orchestrator.py:114-119` | Two ways to set: YAML `game.total_rounds` (production) and direct attribute assignment (self-play L549). Dual-path = drift risk. |
-| `StubAnalyst` entry in production registry | `src/registry.py:21` → `tests.helpers.stub_analyst` | The one production→tests reference. Dormant (only `pipeline_test.yaml` triggers it), but conceptually wrong. |
-| Bare `try/except Exception: pass` in `_reconcile_state` | `orchestrator.py:642,654,673,687` | Silently drops reconciliation results on state-manager failure. Added defensively during Phase 18 tuning. |
-
-**Scope:**
-1. Add public `Orchestrator.advance_to_round(n: int)` that sets `current_round` and resets the per-round budget. Call from `GameEnvironment.run_round` instead of the two private/direct calls.
-2. Extract `OrchestrationOptions` dataclass holding `auto_response_enabled` and `total_rounds`. Pass at construction; remove the attributes from `Orchestrator.__init__`'s signature.
-3. Either move `StubAnalyst` into `src/modules/analyst/stub.py` (it's a generic test double; `DECISIONS.md` debated this) or drop it from `src/registry.py` and have callers use `module_overrides` (already works in `tests/integration/conftest.py:53-54`).
-4. Replace the four bare `except Exception: pass` blocks in `_reconcile_state` with logged exceptions.
-
-**Effort:** ~2-3 hours. Pure refactoring; no behavioral change.
-
-**Definition of done:** Test suite passes (284+); no `_<private>` calls from `tests/self_play/`; `auto_response_enabled` / `total_rounds` no longer attributes of the production `Orchestrator` class; reconciler exception paths log instead of swallow.
-
----
-
-## 1.8. `[A]` Module boundary cleanup — LLM adapter + config dedup
-
-**Why:** The same Phase 18-19 push that added the self-play harness also accumulated friction at the LLM-adapter layer. Three concrete patterns to fold into proper abstractions:
-
-| Pattern | Where | Why it's wrong |
-|---|---|---|
-| `LoggingLLMClient.set_faction()` + `_TaggedLLMClient` wrapper | `game_environment.py:48-119`, `:135-164` | Two classes implementing what should be one parameter. The `set_faction()` snapshot-at-start logic causes the async race that `_TaggedLLMClient` was created to fix. |
-| `getattr(client, "_inner", client)` to peek through wrapping | `game_environment.py:365,664`, `run_simulation.py:223` | Reaches through private API; breaks silently if anything double-wraps. |
-| `DryRunLLMClient` classifies calls by regex-matching system prompts | `tests/self_play/fake_llm_client.py:33-54` | Detects "is this an extraction call?" by literal first words of the production prompt. Renaming any prompt opening line silently breaks dry-run classification — and no test catches this. |
-| Hardcoded `{"provider": "openai", "models": {"commodity": "gpt-4.1-mini"}, "api_key": os.getenv(...)}` dict | `game_environment.py:373-377` (reconciler), `:666-670` (scorer), `run_simulation.py:225-229` (compiler), `src/tools/scenario_compiler.py:502-506` (CLI) | Four copies of the same dict, none reading from any config file. Provider switch in self-play silently keeps calling OpenAI for these subsystems. |
-| Reconciler wiring duplicated | `src/main.py:107-149` reads YAML; `game_environment.py:362-381` hardcodes provider | Production path correct; self-play path drifts. Comment at `main.py:126-127` acknowledges the duplication. |
-
-**Scope:**
-1. Add `attribution: str | None = None` and `purpose: str | None = None` kwargs to the LLM adapter `complete()` interface. Kills `_TaggedLLMClient` entirely; reduces `LoggingLLMClient` to ~30 lines; removes all three `getattr(..., "_inner", ...)` peeks.
-2. Switch `DryRunLLMClient.classify_call()` to read the new `purpose` kwarg instead of regex-matching the prompt body.
-3. Extract `build_reconciler(llm_client, llm_providers_config)` factory in `src/modules/reconciliation/__init__.py`. Both `src/main.py` and `tests/self_play/game_environment.py` call it; neither has its own copy.
-4. Single helper `subsystem_llm_config(primary_provider_config, tier="commodity")` in `tests/self_play/` (or `src/adapters.py` if production also needs it) that produces the dict currently duplicated four times. All four call sites use it.
-
-**Effort:** ~3-4 hours including tests for the new attribution kwarg.
-
-**Definition of done:** Test suite passes (284+); `_TaggedLLMClient` deleted; `getattr(..., "_inner", ...)` no longer appears anywhere; the provider/model/api_key dict literal is defined once; `DryRunLLMClient` no longer reads prompt text for classification; reconciler wiring is a single factory called from both sides.
-
----
-
-## 1.9. `[A]` Pipeline / Flow split — separate per-agent capabilities from scheduling
-
-**Why:** Today the per-agent pipeline (extract → reconcile → analyze → generate → adversarial → review → send) and the production *flow* (event loop + signal detection + debounce + direct-address detection) live in the same class (`Orchestrator`). Self-play's `GameEnvironment` is effectively a second flow, but it can't cleanly drive `Orchestrator`'s pipeline because the production flow is bundled in — so it pokes private attributes (`current_round`, `_reset_round_budget`) and re-enters the event loop indirectly by sending `[ROUND END]` through `TestTransport`. This is the structural reason for the entanglement audited in §1.7.
-
-A third application (customer service, contract negotiation, daily-batch summary, Clankmates polling) would either require **another `GameEnvironment`-style hand-rolled driver** that pokes orchestrator internals, OR a real separation of the pipeline surface from the scheduling logic.
-
-**Scope:** Split `Orchestrator` into two concepts:
-
-1. **`Pipeline`** — pure capability object. No event loop. Methods do work when called. Lifecycle: `start`/`shutdown`. Inbound: `store_event`, `extract_from`, `dispatch_operator`. Round: `advance_to_round`, `reconcile_and_analyze`. Response: `run_response(trigger_event=None)`. Queries: `get_state`, `get_intelligence`, `get_ledger`.
-2. **`Flow`** — scheduling strategy. Owns "when to call which Pipeline method." Two concrete implementations:
-   - `EventDrivenFlow(pipeline, transport, round_detector, address_detector)` — production. Owns the async event loop, debounce, signal detection, direct-address detection.
-   - `RoundSteppedFlow(pipelines, moderator, total_rounds)` — self-play. Owns round-stepping, broadcast fan-out, post-game scoring hand-off.
-
-Production: `EventDrivenFlow(Pipeline(...))`. Self-play: `RoundSteppedFlow([Pipeline(...) for each faction])`. Third application: write a third `Flow`.
-
-**Specific behaviors to migrate from `Orchestrator` to `EventDrivenFlow`:**
-
-| Currently in `Orchestrator` | Moves to `EventDrivenFlow` |
-|---|---|
-| `start()` async event loop reading `Transport.listen()` | Top-level `run()` |
-| `_extraction_tasks` set + per-event debounce | Flow-owned task set |
-| `_check_round_boundary` regex matching | Flow-owned `RoundDetector` |
-| `_is_direct_address` | Flow-owned `AddressDetector` |
-| `auto_response_enabled` flag | Flow constructor arg (production: True; self-play uses RoundSteppedFlow which doesn't have this concept) |
-| Direct invocation of `run_response_pipeline` on direct-address match | Flow's per-event handler |
-
-**Specific behaviors that stay on `Pipeline` (unchanged):**
-- `store_event` (renamed from event_store.append direct call)
-- `dispatch_operator` (renamed from `_route_operator_event`)
-- `advance_to_round` (the public method from §1.7)
-- `reconcile_and_analyze` (the contents of `handle_round_boundary`)
-- `run_response(trigger_event=None)` (renamed from `run_response_pipeline`)
-- All module composition (`_build_modules`)
-- All operator-command dispatch (state queries, /preview, /approve)
-
-**Effort:** 1-2 days. Test impact: existing 284 tests should pass with a thin compat shim (`Orchestrator = EventDrivenFlow(Pipeline(...))` factory) and re-route. Probably +6-10 new tests covering Flow contracts.
-
-**Dependencies:** §1.7 (public `advance_to_round`) is a prerequisite. §1.8 (LLM adapter cleanup) is orthogonal; could happen before, after, or in parallel.
-
-**Definition of done:**
-- `Pipeline` class defined with the public method surface above
-- `EventDrivenFlow` reproduces all current production behavior (event loop, signal detection, debounce, direct-address)
-- `RoundSteppedFlow` replaces `GameEnvironment`'s round-stepping logic; no private-attribute pokes remain
-- 284+ tests pass; production smoke (coaching scope, per `SMOKE_RUNBOOK.md`) reproduces
-- A new "writing a new Flow for a new application" stub doc in `ARCH_orchestrator.md` (or a new `ARCH_flow.md`) describes the contract a new Flow must satisfy
-
-**When to do this:** Before Clankmates work (§5). Clankmates will introduce a polling-based transport for game I/O while Telegram continues to be the coaching transport — that's a hybrid (two transports, one pipeline) which is naturally a third `Flow` shape (`HybridFlow` or `MultiTransportFlow`). Doing this refactor first makes Clankmates additive instead of another `GameEnvironment`-shaped hand-roll.
-
-**Connects to the modularization roadmap.** The DEVPLAN `Level 3: Domain-Agnostic Orchestrator` was sketched as the long-form version of this idea. §1.9 is the practical realization: not a state-machine YAML, but a clean Pipeline/Flow split that *enables* state-machine YAMLs if we want them later.
-
----
-
 ## 2. `[C]` Game pressure beyond BATNA
 
 **Run 8 observation:** Agents sat at BATNA because BATNA was *survivable*. Alpha
@@ -299,7 +160,7 @@ incentive to negotiate.
    Builds urgency without explicit endgame talk.
 2. **Exogenous events per round** — e.g. "Round 3: drought reduces water
    supply 30%" — recomputes BATNAs mid-game and forces position revision.
-   Connects directly to item #3.
+   Connects directly to §3 (per-round events injection).
 3. **Asymmetric clocks** — one faction has a hard deadline (election, market
    close, covenant expiring); others can wait. Creates structural urgency for
    one player only.
@@ -341,6 +202,11 @@ That's loss aversion made explicit.
     parenting, mixed on the house
   - Asymmetric BATNAs (one party may have an exit option — new job, family
     support)
+- [ ] **Pareto-frontier annotation in analyst output.** Schema change build;
+      prompt change needs Layer 2 supervised validation. Add a "compromise
+      opportunities" field that enumerates deals beating all known BATNAs.
+      Currently the analyst identifies leverage and threats; this would surface
+      the Pareto-optimal deals explicitly.
 
 ---
 
@@ -393,14 +259,15 @@ sequencing:
    never necessary for the diplomacy game; possibly necessary for some
    real-world domains.
 
-Per-round events tie back to item #2 — they're the *mechanism* for game
+Per-round events tie back to §2 — they're the *mechanism* for game
 pressure. The scenario compiler should produce both starting conditions and
 evolution from a single narrative spec.
 
 ### TODOs
 
 - [ ] Implement Stage 2a (`K=2 passes per round`) — open then react. Update
-      `GameEnvironment.run_round` and orchestrator to support multi-pass.
+      `RoundSteppedFlow` to support multi-pass. (Architecture is build —
+      Phase 25 candidate.)
 - [ ] Add round-events injection point between passes; round-events come
       from scenario data.
 - [ ] Convergence detection for Stage 2b: heuristic (no new commitments for
@@ -437,7 +304,7 @@ Most of the wiring already exists:
       only.
 - [ ] Test scenario: Trade Summit or Water Rights (~4 rounds, bounded
       session, strong differentiation already proven).
-- [ ] Run on the Pi (systemd unit already exists per Phase 16).
+- [ ] Run on the Pi (start via tmux pattern per `CLI_REFERENCE.md`).
 - [ ] After session: inspect edit log, classify edits per `diplomat-testing-doc.md`
       §7.3 categories (tone_softer, commitment_removed, constraint_enforcement,
       etc.), feed recurring patterns back into faction_prompt.
@@ -466,7 +333,9 @@ Three angles to weigh:
       that can swap to the real transport once available.
 - [ ] Hybrid deployment plan: Clankmates handles game-facing communication,
       Telegram handles private operator coaching + review gate (already in
-      PROJECT.md as design intent).
+      PROJECT.md as design intent). With the Phase 22 Pipeline/Flow split,
+      this can land as a new `HybridFlow` driving one `Pipeline` per agent
+      with two transports — additive, not a fork.
 
 ---
 
@@ -476,31 +345,26 @@ Three angles to weigh:
 and models we actually use. Tally observed spend vs predicted spend across
 the Run 1–8 archive to find drift.
 
-**Surfaced by Run 8 review (2026-05-30):** Operator notes that OpenAI cost
-estimates were significantly overstated. Combined with the dated-model-pricing
-gotcha (OpenAI returns `gpt-4.1-mini-2025-04-14` but pricing table has
-`gpt-4.1-mini` so it falls back to a conservative default), the cost ledger
-is probably wrong by 1.5–2×.
-
-**Other known gaps:**
+**Known gaps:**
 - Gemini 2.5 thinking-token billing not modeled (becomes relevant when we promote flash/pro)
 - Anthropic cache-hit / cache-write pricing not modeled
 - Per-call vs per-session vs per-round budget reconciliation has been fragile (multiple Phase 18 fixes)
+- Dated-suffix normalization shipped Phase 19; further drift may exist for non-OpenAI/non-Anthropic providers
 
 **Approach (rough):**
 1. Pull `data/cost_ledger.jsonl` + `data/selfplay_cost_ledger.jsonl` across all runs
 2. Cross-reference against the provider dashboards (OpenAI, Anthropic, Google billing) for the same date ranges
 3. Identify drift > 20% per model/provider
 4. Update `toolkit/cost_accountant/types.py` pricing table:
-   - Strip date suffix when looking up pricing (`gpt-4.1-mini-2025-04-14` → `gpt-4.1-mini`)
    - Add Gemini 2.5 thinking-token line items
    - Add Anthropic cache pricing if we start using it
 5. Re-validate against a fresh self-play run
 
 **Why not now:** Not blocking tuning work; cost is small enough at flash-lite scale
 that 2× drift on $0.005/game is invisible. Best done in a dedicated session
-when we want clean accounting for a budget claim (e.g. proposal for ongoing
-game deployment, or finalizing per-game cost for the operator's report).
+when we want clean accounting for a budget claim.
+
+---
 
 ## 7. `[B]` Per-role model strategy (cross-provider, with guardrails experiments)
 
@@ -508,11 +372,7 @@ game deployment, or finalizing per-game cost for the operator's report).
 (Generator / Primary Analyst / Secondary Analyst / Adversarial / Extractor /
 Reconciliation) across providers. Not Google-specific.
 
-**Operator hypothesis (2026-05-30):** *Strong guardrails could let us use
-lighter models in some slots.* If the structured_call retry loop is robust
-and the schema validation catches drift, a cheap model that occasionally
-produces bad JSON but always recovers might be functionally equivalent to
-an expensive model that produces good JSON first try — at 1/10th the cost.
+**Operator hypothesis:** *Strong guardrails could let us use lighter models in some slots.* If the structured_call retry loop is robust and the schema validation catches drift, a cheap model that occasionally produces bad JSON but always recovers might be functionally equivalent to an expensive model that produces good JSON first try — at 1/10th the cost.
 
 **Hypothesis to test:** Replacing the Extractor (currently the most
 schema-disciplined slot) with `gpt-4.1-mini` or `gemini-2.5-flash-lite` (vs
@@ -532,13 +392,11 @@ decrease in promise/coalition tracking accuracy.
 
 **Specific open question carried from Google work:** Should Generator use
 `gemini-2.5-flash` or `pro` for stronger reasoning while Extraction /
-Analyst / Adversarial stay on `flash-lite`? Same question applies cross-provider
-(could be `gpt-5.4` Generator with `gpt-4.1-mini` Extractor, etc.).
+Analyst / Adversarial stay on `flash-lite`? Same question applies cross-provider.
 
-**Why not now:** Best done after retry-with-backoff and safety-filter audit
-are in (need robust failure handling before testing lighter models), and
-ideally after pricing audit (so we can quantify the cost savings precisely).
-Natural slot: between Run 9 (rotation control) and Run 10 (pressure scenarios).
+**Why not now:** Best done after pricing audit (§6) so cost savings can be
+quantified precisely. Natural slot: between Run 9 (rotation control) and
+Run 10 (pressure scenarios).
 
 ---
 
@@ -564,45 +422,37 @@ tables / BATNAs that satisfy them.
 - Output passes `verify_scenario_optimum.py` automatically (round-trip validation)
 
 **Why this matters:** This is the missing piece for per-role model experiments
-(§7) and for making negotiation skill visible in transcripts. Right now, agents
-converge to BATNA regardless of skill because most scenarios don't force
-divergence between good and bad play. Run 8's Water Rights had to be
-hand-patched (alpha 7.5→11, beta 4→8, gamma 6→10) to create pressure;
-the compiler's defaults under-pressure scenarios.
-
-With a reverse builder, we could say *"give me a 3-faction / 3-issue scenario
-where the Pareto-optimal score is 2× the BATNA but only 1 of 27 deals
-achieves it"* — and get a scenario where agents who find the optimum win
-clearly and agents who settle for BATNA lose clearly. Negotiation skill
-becomes measurable.
+(§7) and for making negotiation skill visible in transcripts. Run 8's Water
+Rights had to be hand-patched to create pressure; the compiler's defaults
+under-pressure scenarios. With a reverse builder, we could request
+*"give me a 3-faction / 3-issue scenario where the Pareto-optimal score is
+2× the BATNA but only 1 of 27 deals achieves it"* — and get a scenario where
+skill matters.
 
 **Approach (rough):**
 1. Define a `ScenarioConstraints` dataclass with the properties above
 2. Search algorithm: candidate generator + scoring-table sampler + `verify_scenario_optimum`-style validator
-   - Could be: random sampling + reject-non-matching (slow but simple)
-   - Or: LLM-guided generation with `structured_call` (faster, less guaranteed)
-   - Or: combinatorial search over small parameter spaces (deterministic, exhaustive for 3×3×3)
-3. Output: scoring tables + BATNAs in same format as `scenario_compiler` output, ready to feed into personas
-4. Optional: LLM "narrativizer" to wrap the scoring tables in a plausible cover story (Water Rights, Trade Summit, etc.)
+   - Random sampling + reject-non-matching (slow but simple)
+   - Or LLM-guided generation with `structured_call`
+   - Or combinatorial search over small parameter spaces
+3. Output: scoring tables + BATNAs in same format as `scenario_compiler` output
+4. Optional: LLM "narrativizer" to wrap the scoring tables in a plausible cover story
 
-**Why not now:** Best done after the divorce scenario (item #5 in sequencing)
-because hand-authoring one such scenario surfaces the constraint vocabulary.
-Also benefits from `verify_scenario_optimum.py` already existing as the
-validation oracle.
+**Why not now:** Best done after the divorce scenario (§2) because
+hand-authoring one such scenario surfaces the constraint vocabulary.
+
+---
 
 ## 9. `[B]` Voice / style templates (for fun)
 
 **Scope:** Layer a voice/style overlay on top of the strategic persona,
-independent of scoring / BATNA / strategy. Makes transcripts more entertaining
-to read and might surface edge cases in how strategy translates through
-different linguistic registers.
+independent of scoring / BATNA / strategy.
 
 **Candidate voice templates** (operator's brainstorm):
 - Henry Kissinger speeches — weighty, hedged, geopolitical
 - Gen Alpha speak — "this opp's brain rot fr fr no cap"
 - The Iliad — epic invocation, kennings, hexameter cadence
 - воровская феня (Russian thieves' cant) — menacing argot
-- (others suggested by operator at runtime)
 
 **Why this matters (beyond fun):**
 - Stress-test for prompt overrides: does the strategic core hold when voice changes dramatically?
@@ -611,110 +461,82 @@ different linguistic registers.
 
 **Approach (rough):**
 1. Create `config/personas/voices/` with one file per voice. Each contains
-   a 5–10 line VOICE block: tone descriptors + 2–3 example sentences in
-   the voice.
+   a 5–10 line VOICE block: tone descriptors + 2–3 example sentences.
 2. Extend persona template to accept an optional `voice_overlay` field.
-   Inject after the strategic content as: *"\n\nVOICE: write all responses
-   in this style: <voice block>".*
-3. Add `--voice` CLI flag to `run_simulation.py` that loads a voice file
-   and applies it to all factions (or `--per-faction-voices` for per-faction).
-4. Run one tournament with mixed voices and laugh at the transcripts.
+3. Add `--voice` CLI flag to `run_simulation.py`; or `--per-faction-voices` for asymmetric.
+4. Run one tournament with mixed voices.
 
 **Why not now:** Genuinely low priority. Slot into a slow afternoon when
-the primary backlog is empty, or when we want to entertain a stakeholder
-at a demo. Doesn't block anything.
+the primary backlog is empty.
 
-## Backlog — Run 8 Review TODOs
+---
 
-Surfaced during operator review of Run 8.
+## Backlog — still-open items
 
-### Why no agent proposed the Pareto-optimal Shared deal
+### Why no agent proposed the Pareto-optimal Shared deal (Run 8)
 
 Run 8's Pareto-optimal solution was **High + Shared + Joint-Funded** →
 alpha=14, beta=20, gamma=22 (all beat BATNA comfortably: alpha 11, beta 8,
 gamma 10). No agent proposed it. Everyone stayed at extremes on Payment.
 
-- [ ] **Investigate why no agent found the Shared compromise.** Hypotheses to
-      test:
+- [ ] **Investigate why no agent found the Shared compromise.** Hypotheses:
   - Is the "don't accept the first reasonable framework" persona rule
     over-anchoring agents to extreme positions?
   - Does the analyst surface Pareto-optimal compromises explicitly, or only
-    threats/leverage? If not, add it.
-  - Would adding a *Pareto-seeker* strategy (item #2.5) in even one faction
+    threats/leverage? If not, add it (see §2 Pareto-frontier annotation).
+  - Would adding a *Pareto-seeker* strategy (§2.5) in even one faction
     surface the optimum?
   - Is the LLM capable of enumerating "all 27 outcomes, score each" in-context
     when asked, or does it need explicit scratchpad / tool support?
 - [ ] **A/B test softened "don't accept first framework" rule.** Variant A:
       current persona. Variant B: "actively look for compromises that beat all
       BATNAs; propose at least one Pareto-improving alternative per round."
-- [ ] **Add Pareto-frontier annotation to analyst output.** Currently the
-      analyst identifies leverage and threats. Add a "compromise opportunities"
-      field that enumerates deals beating all known BATNAs.
 
-### Reconciliation paths still untested live
+### Reconciliation: live validation in real scenarios
 
-Reconciliation was added in Phase 18.14 with four jobs: dedup, status
-transitions, inconsistency flagging, missed proposals. Dedup is the only one
-confirmed working in production.
+Phase 20 added Layer 3 fake-LLM tests for all four reconciler paths (dedup,
+fulfillment, inconsistency, missed-proposal). Status-transition (`pending →
+kept/broken`) and inconsistency-flagging still need **live** validation in
+a real self-play scenario, not just deterministic fixtures.
 
-- [ ] **Status transitions (`pending → kept/broken`)** never triggered because
-      Runs 7 and 8 both reached "no deal." Needs:
-  - A scenario where at least one promise resolves mid-game (e.g. a one-shot
-    favor in early rounds that the receiving faction acknowledges)
-  - Or a scenario where a faction makes an explicit commitment and then
-    visibly contradicts it
-  - Possibly a *staged* scenario: round 1 sets up testable promises, round 2+
-    plays out their resolution
-- [ ] **Inconsistency detection — zero hits across 8 runs** despite obvious
-      position shifts. Reconciler reads them as legitimate moves. Possible fixes:
+- [ ] **Status transitions live** — needs a scenario where at least one promise
+      resolves mid-game (e.g. a one-shot favor in early rounds that the
+      receiving faction acknowledges), OR a faction makes an explicit
+      commitment and then visibly contradicts it. A staged scenario from §2
+      (divorce) is the natural venue.
+- [ ] **Inconsistency detection live — zero hits across 8 runs to date** despite
+      obvious position shifts. Reconciler reads them as legitimate moves.
+      Possible fixes:
   - Strengthen reconciler prompt to flag position shifts on *specific
     quantitative claims* (number changes, named-outcome changes) rather than
-    "position evolution"
-  - Add a specific scenario designed to provoke a clean contradiction (e.g.
-    Faction X explicitly commits "I will never accept Y" in round 1, then
-    accepts Y in round 3)
+    generic "position evolution"
+  - Add a specific scenario designed to provoke a clean contradiction
   - Consider whether the reconciler needs round-by-round position tracking
     in its prompt rather than just the final state
 
-### Tooling debt
+### Outstanding tooling debt (🔨 PURE BUILD)
 
-- [x] ~~**`LoggingLLMClient` doesn't see SCORE or RECON calls.**~~ RESOLVED 2026-05-30. Routed reconciler and scorer through `_TaggedLLMClient` wrapper; SCORE and RECON now appear in the call log with `recon:<faction>` / `scorer` tags. See `DEVLOG.md` Phase 19 "LoggingLLMClient SCORE/RECON visibility" entry.
-- [x] ~~**Scenario compiler hardcodes BATNA range.**~~ RESOLVED 2026-05-30. Replaced "typically 4-8 total" with fraction-of-max formula (default 0.50). Added `--batna-fraction` CLI flag to both `tools.scenario_compiler` and `tests.self_play.run_simulation`. Added `validate_batna_pressure()` post-hoc check that flags under-pressure with a fix-hint. See `DEVLOG.md` Phase 19 "scenario compiler BATNA hardcode" entry and `TUNING.md` §1 BATNA tuning section for full semantics. **Decisions confirmed 2026-05-30:** default 0.50, numeric fraction (not presets) with semantics documented in TUNING.md, validator warns (never blocks).
+- [x] ~~**Rewrite `tools/service.sh` around `tmux new-window -t bot`**~~ — **Queued as Phase 25 in `DEVPLAN.md`.** Closes the broken-via-incus-exec issue. 7 steps; auto-loop-ready.
+- [ ] **Add structured per-event logging** to orchestrator + transport so future smokes don't need ad-hoc `print` instrumentation. Log: inbound chat_id → channel mapping, sender_id → faction tagging, extraction success/skip, round-boundary trigger, response-pipeline trigger. Could be Phase 26 if you want one more autonomous-loop pass.
 
-### Open BATNA follow-ups (deferred, low-priority)
+### Telegram-platform finding (worth knowing)
 
-- [ ] **Per-faction asymmetric BATNA fractions.** Currently `--batna-fraction` is one number applied to all factions, but real scenarios have asymmetric outside options (alpha has alternatives, beta doesn't). A `--batna-fractions '{"alpha":0.65,"beta":0.35,"gamma":0.50}'` flag (JSON map, same shape as `--per-faction-providers`) would unlock asymmetric-pressure scenarios. Not urgent; revisit if a planned experiment requires it.
-- [ ] **`--force-batna-fraction` post-clamp.** Currently the LLM tries to honor both narrative-explicit BATNAs and the `--batna-fraction` target — could result in inconsistency. A force-flag would post-process the LLM output to clamp values to `target × max`, overriding whatever the LLM produced. Defer until a real test case demands it (operator: "not excited about flag proliferation but whatever it takes").
-- [x] ~~**Dated model pricing in toolkit.**~~ RESOLVED 2026-05-30. Added `normalize_model_name()` in `toolkit.cost_accountant` that strips OpenAI `-YYYY-MM-DD` and Anthropic packed `-YYYYMMDD` date suffixes; `estimate_cost()` uses it as a fallback when exact ID isn't in the table. Updated gpt-5.x prices to match operator-confirmed pricing page. Added Gemini 2.5 family entries. Retroactive audit of 434 successful ledger entries: **41.6× overall overestimate** in past run reports (real spend was $0.59 vs $24.38 reported). See `DEVLOG.md` Phase 19 "dated OpenAI model pricing" entry.
+Telegram does **not** deliver bot-sent messages to other bots in groups
+regardless of privacy mode. This is a hard-coded platform restriction.
+If any future Telegram-side test needs simulated faction traffic, options
+are (a) a second human Telegram account on another device, or (b) a temporary
+de-op cycle (remove operator's user ID from `DIPLOMAT_OPERATOR_USER_IDS`,
+restart, send game messages from operator's own account, then re-op). Not a
+blocker for production since the game-traffic surface is Clankmates (§5),
+not Telegram.
 
-### Live Telegram re-smoke — ✓ CLOSED 2026-05-31 (for coaching scope)
+### Remaining decisions for production deployment
 
-**Scope reframed during smoke:** Telegram is the operator coaching + review interface; production game traffic is **not** expected to flow through Telegram (Clankmates or equivalent handles game I/O). The original SMOKE_RUNBOOK §3.1 / 3.2 / 3.3 / 3.8 / 3.9 items required non-operator faction senders in Telegram, which is the wrong deployment shape. Those items moved to "Layer 3 integration tests for Phase 18 paths" (§1.5 above).
-
-**Coaching-scope verifications passed:**
-- Pre-flight: container alive, venv + toolkit editable, Phase 19 surface (`complete_with_retry`, `normalize_model_name`, `StateReconciler`) imports, `.env` complete, **284 tests pass**, cost ledger baseline = 0
-- Bot startup via tmux: `incus exec -- sudo -u claude tmux new-window -t bot -n diplomat ...` works (service.sh-via-incus-exec is broken — see Tooling debt below)
-- Operator commands: `/status`, `/state`, `/commands` respond on coaching only ✓
-- Review gate via `/preview`: `LLMGenerator` produces plausible text, draft → coaching, `/approve` flow works ✓
-- Cost ledger: `/preview` produces realistic per-call cost (no $15/$75 fallback)
-- Two-channel routing: operator-in-coaching → `_route_operator_event` confirmed in event store rows
-
-**Real fixes shipped during smoke (need separate commits):**
-- [ ] **`toolkit/src/toolkit/llm_client/providers.py`** — `OpenAIProvider.call` dispatches `max_completion_tokens` (gpt-5.x / o-series) vs `max_tokens` (gpt-4.x / 3.5) by model prefix. Without this, any deployment on gpt-5.x 400s. Needs unit tests in toolkit. See sequencing item #1.
-- [ ] **`tests/integration/test_failure_handling.py`** — `fail_secondary` fake gained `recent_events` kwarg (Phase 18 signature drift). Production was always correct; test stub was stale. Brings test count from 280 → 284. See sequencing item #1.
-
-**Smoke setup edits pending decision (revert or commit):**
-- `config/pipeline_smoke.yaml` `game.total_rounds: 4` — added for §3.9 endgame markers exercise; no longer needed since §3.9 is out of Telegram scope. Recommend revert.
-- `tools/service.sh` setsid + `-u` + `</dev/null` additions — didn't fix the cgroup-teardown issue. Either keep as harmless hardening or revert. Real fix is the rewrite around tmux (see Tooling debt).
-
-**Tooling debt surfaced (track separately, low priority):**
-- [ ] **Rewrite `tools/service.sh` around `tmux new-window -t bot`** so the canonical bot lifecycle works via `incus exec`. Open design question: how to track diplomat's PID for `stop`/`status` when the supervisor is tmux. Probably: use `tmux kill-window` + `tmux list-windows` for state. Add `sudo -u claude` automatically inside the script.
-- [ ] **Add structured per-event logging** to orchestrator + transport so future smokes don't need ad-hoc `print` instrumentation. Log: inbound chat_id → channel mapping, sender_id → faction tagging, extraction success/skip, round-boundary trigger, response-pipeline trigger.
-
-**Telegram-platform finding (worth knowing):** Telegram does **not** deliver bot-to-bot messages in groups regardless of privacy mode. This is a hard-coded platform restriction. Confirmed during the smoke by adding a temporary `_event_from_update` debug `print` and watching only operator-sourced messages appear. The "use another bot as a faction sender" workaround is structurally impossible. If a future Telegram-side test needs simulated faction traffic, options are (a) second human Telegram account on another device, or (b) temporary de-op cycle (remove operator's user ID from `DIPLOMAT_OPERATOR_USER_IDS`, restart, send game messages from own account, then re-op). The temporary `print` was reverted at session end.
-
-**Remaining decision for production `pipeline.yaml`:**
-- [ ] Decide whether to commit the `pipeline.yaml` flip to `TelegramReviewGate` as the new default, or keep `AutoApproveReviewGate` as the safe default with per-deploy override. The smoke ran on `pipeline_smoke.yaml` which already has `TelegramReviewGate`; production-config flip is a separate decision.
+- [ ] Decide whether to flip `pipeline.yaml` `review_gate` to
+      `TelegramReviewGate` as the new default, or keep `AutoApproveReviewGate`
+      as the safe default with per-deploy override. The smoke ran on
+      `pipeline_smoke.yaml` which already has `TelegramReviewGate`; production
+      `pipeline.yaml` flip is a separate decision.
 
 ---
 
@@ -726,24 +548,17 @@ Tracked here for visibility; canonical sources remain authoritative.
       position confound). See `TUNING_LOG.md` Run 8 → Run 9 transition. Use
       `gemini-2.5-flash-lite` for Google per `TUNING.md` §1 default.
 - [ ] **Persona payment rigidity** — recurring across Runs 7, 8. See
-      TUNING_LOG.
+      TUNING_LOG. A/B test the persona rule.
 - [ ] **Scoring rule strictness** — partial-deal scoring mode for cases
       where most issues converge but one deadlocks.
-- [ ] **Promise dedup via reconciliation** — reconciler built, live-validated
-      in Run 7 for dedup; other paths still pending (see above).
 - [ ] **Persona drift over 8+ rounds** — all runs were 4 rounds; longer
       games may show drift.
 - [ ] **Provider-native structured output** — OpenAI `response_format:
       json_schema` would give token-level schema compliance. Requires toolkit
       `llm_client` parameter passthrough.
-- [ ] **Level 1 modularization** (DEVPLAN roadmap) — pull entity-type
-      content out of Python into `config/`. 1–2 hours. Unlocks
-      domain-portability for the divorce scenario and beyond.
 - [ ] **Persona endgame over-anchoring (Run 7)** — static `ENDGAME:`
       paragraph leaks into early rounds. Decide whether to soften, move to
       dynamic-only, or accept.
-- [ ] **Conversation model Stage 2+** — `ARCH_conversation_model.md` Stage 2a
-      is item #3 above. Stage 2b and Stage 3 stay deferred.
 
 ---
 
@@ -752,18 +567,16 @@ Tracked here for visibility; canonical sources remain authoritative.
 | Date | What Changed | Why |
 |------|--------------|-----|
 | 2026-05-30 | Initial NEXT_STEPS.md created from operator/Devmate discussion | Capture six directions + Run 8 review TODOs in one place |
-| 2026-05-30 | Section #1 (Google API) collapsed to 1-paragraph closure note + 4 follow-up TODOs. Canonical content moved to `TUNING.md` §1 and §6 changelog. Items now absorbed elsewhere: "document thinking-token budgeting" (→ TUNING.md §1), "decide default Google model for tuning" (→ TUNING.md §1, flash-lite). Per-role real-game model decision reworded as still-open. | Operator: "prefer next steps file to shrink as we progress — document in existing framework, then remove or shrink the entry." |
-| 2026-05-30 | Promoted retry-with-backoff to active work (was "low priority"). Split off two cross-provider concerns into new top-level sections: #6 Pricing & accounting audit (operator: OpenAI estimates significantly overstated), #7 Per-role model strategy with guardrails experiments (operator: strong guardrails could allow lighter models). §1 keeps only the two Google-specific items actively being worked. | Operator clarified that per-role model decision and pricing audit aren't Google-specific footnotes — each deserves its own dedicated effort. |
-| 2026-05-30 | Shipped `complete_with_retry` in `toolkit.llm_client` (exponential backoff, `retry-after` honoring, 15 new tests). Wired through `CostAccountant.complete` and Diplomat's `ToolkitLLMAdapter`. Safety-filter empty-response audit closed: existing `LLMResponseError` already catches them; retry now handles transient cases. §1 closure block updated; suggested sequencing item #1 (retry+empty audit) collapsed. | Operator: "no reason to postpone, let's build retry with backoff... let's test empty response too." |
-| 2026-05-30 | Re-sequenced to prioritize cleanup before exploration: (1) tooling debt, (2) live Telegram re-smoke, (3) coaching test loop, (4) OpenRouter+Run 9, (5) divorce scenario, (6) Stage 2a, (7) Clankmates. Old #1 (OpenRouter+Run 9) demoted to #4. | Operator: "I think I want to sequence next steps as follows: tooling debt, live TG resmoke, coaching test on pi, then the rest" |
-| 2026-05-30 | Added §8 (Reverse scenario builder) and §9 (Voice/style templates). §8 fills the gap that's been implicit in every scenario-design conversation: we need outcome-shape → scenario generation so skill becomes visible. §9 is fun-priority. | Operator: "we should have a scenario builder that runs the analyzer in reverse... also tune voice from templates like Kissinger, Gen Alpha, Iliad, воровская феня." |
-| 2026-05-30 | Marked tooling-debt items #1 (LoggingLLMClient SCORE/RECON) and #2 (scenario compiler BATNA hardcode) as RESOLVED in the Backlog section with closure references to DEVLOG entries. Surfaced four open design questions on BATNA approach (default value, presets, per-faction asymmetric, force-clamp). | Operator: "don't forget to update the docs after a step is done" |
-| 2026-05-30 | Marked tooling-debt item #3 (dated OpenAI model pricing) RESOLVED. All three tooling-debt items closed; suggested sequencing collapsed by removing #1 (Tooling debt). New sequence: (1) live TG re-smoke, (2) coaching test, (3) OpenRouter+Run 9, (4) divorce scenario, (5) Stage 2a, (6) Clankmates. | Operator provided current OpenAI pricing; audit revealed 41.6× overall overestimate from date-suffix lookup miss. |
-| 2026-05-30 | Added `SMOKE_RUNBOOK.md` at project root — step-by-step Pi smoke procedure mapping every Phase 18+19 change to a verification step. Surfaced two not-blocking gaps: reconciler not wired in production `main.py`, endgame markers don't fire in production. Both tracked as remaining items under `Live Telegram re-smoke` Backlog section. | Operator: "Live Telegram re-smoke on Pi — verify deployment readiness" |
-| 2026-05-31 | Live TG re-smoke **PAUSED mid-§3** after operator-side verifications + bot startup confirmed. Documented: bot-to-bot Telegram impossibility (faction-traffic source needed for §3.1–§3.9), service.sh broken via `incus exec` (tmux pattern is the working invocation), 2 real fixes shipped (toolkit max_completion_tokens, test fake signature drift), 2 smoke setup edits pending revert/commit decision, 3 tooling-debt items surfaced. Resume steps documented in the "Live Telegram re-smoke — PAUSED" section. | Operator: "can we document this (in the next steps?) and pause? I need a break" |
-| 2026-05-31 | Live TG re-smoke **CLOSED for coaching scope** (reframed). Telegram is the operator coaching surface; production game traffic comes via Clankmates or equivalent, not Telegram. Unverified extraction/debounce/reconciler/round-flow items moved to new sequencing item #2 "Layer 3 integration tests for Phase 18 paths". Sequencing re-numbered: (1) commit 2 real fixes from smoke, (2) Layer 3 Phase 18 tests, (3) coaching test loop on Pi, (4) OpenRouter+Run 9, (5) divorce scenario, (6) Stage 2a, (7) Clankmates. PAUSED section replaced with compact CLOSED summary. SMOKE_RUNBOOK reframed as coaching/review smoke and shrunk to ~155 lines. | Operator: "oh you know what, this is not how the game will work; we were looking into clankmates exactly for this reason. I assume we tested the coaching part which is the one that meant to stay on tg, and we'll be testing the actual game environment in a different step. we should still test message parsing and extraction somehow." |
-| 2026-05-31 | Added `ASSESSMENT.md` at project root — conceptual framework for what "negotiating well" means (calculation-vs-negotiation tension), ten dimensions of skill, four scoring lenses with formulas (BATNA-relative ✓, Pareto efficiency NOT YET, skill-premium NOT YET, process signatures partial), scenario design properties, three workstream blocks A/B/C. Tagged every section heading + sequencing item in this file with `[A]`/`[B]`/`[C]`/`[X]`. Added pointer in PROJECT.md Success Criteria and DEVPLAN.md cold-start gotchas. | Operator: "let's document this as rationale and potential avenues for exploration - different scores for how well they negotiate, and we should integrate this all into a game setup and analysis/assessment part of work... not sure where best to put this... these are separate but interlocking blocks of work - agent memory and processing arch piece, prompt tuning piece, game creation and scoring piece" |
-| 2026-05-31 | Module boundary audit (code_search subagent) → two new `[A]` cleanup items added: §1.7 orchestration (public `advance_to_round`, extract `OrchestrationOptions` for self-play-only attributes, resolve `StubAnalyst` registry leak, log instead of swallow in `_reconcile_state`); §1.8 LLM adapter + config dedup (per-call attribution/purpose kwargs to kill `_TaggedLLMClient`, factor reconciler wiring, deduplicate 4-copy provider-config dict). Fixed numbering collision: prior `## 1.5` OpenRouter renamed to `## 1.6`. Audit finding: code is structurally healthy at import level (one dormant registry leak aside), but accumulated friction at orchestration-attribute level + LLM-call-attribution level + duplicated-config-dict level during Phase 18-19 tuning push. Normal post-tuning refactoring debt; not blocking. | Operator: "can we consider the broader code structure? we have our main modules, but over phase 18-19 we built a bunch of stuff and made changes here and there, and I want to understand if our changes are confusing the boundaries between the modules and adding a bunch of ad-hoc stuff... or did we manage to keep it compartmentalized?" |
-| 2026-05-31 | Added §1.9 `[A]` Pipeline / Flow split — separate the per-agent capability surface (`Pipeline`: extract → reconcile → analyze → generate → adversarial → review → send) from the scheduling strategy (`Flow`: when to call which Pipeline method). Two concrete Flows currently exist but entangled: production `EventDrivenFlow` lives inside `Orchestrator`; self-play `RoundSteppedFlow` lives in `GameEnvironment` and pokes private orchestrator attributes. Splitting enables adding a third Flow (Clankmates polling, customer service, contract negotiation, batch summary) without further hand-rolled drivers. Depends on §1.7; should land before §5 Clankmates work. Practical realization of DEVPLAN's "Level 3: Domain-Agnostic Orchestrator" without going as far as state-machine YAML. | Operator: "plz discuss how real vs self games are set up — it sounds like there is a different sequence of calls — can we isolate this for potentially adapting to yet another sequence for a different application?" |
-| 2026-05-31 | Loop-readiness classification added (🔨 PURE BUILD / 🔀 MIX / 👁 SUPERVISED). Full table at top of file. Pure-build items batched into DEVPLAN Phases 20-24: Phase 20 Layer 3 tests → Phase 21 cleanup (§1.7+§1.8) → Phase 22 Pipeline/Flow split → Phase 23 scoring expansion (Pareto efficiency + 4 deterministic process signatures from ASSESSMENT §3.2+§3.4) → Phase 24 small builds + Level 1 modularization (toolkit tests + --batna-fractions + --force-batna-fraction + --game-mode + examples→JSON + schema-derived entities). All five phases are autonomous-loop-ready; no operator judgment needed mid-loop. MIX and SUPERVISED items wait for operator-driven sessions. | Operator: "I'll run loops myself. let's consider what other pending work can be queued up next as build. please go over open items in next steps; start with tech debt and classify as pure build/mix/supervised. I'd like to take care of the pure build ones... don't want to include things that touch experiments, anywhere a human call might be needed." |
-| 2026-05-31 | Added "Reference Docs to Keep in Sync" section to both `CLAUDE.md` and `CODEX.md` (worker adapters for the two LLM backends). Lists every non-governance reference doc with its update trigger. Established the rule: every Build phase's step list includes an explicit "doc update" step before phase-review. Added that step to Phases 20-24 in DEVPLAN. Phase 20 step count grew 5 → 6 (steps_remaining frontmatter bumped); other phases each grew by 1 step (per-phase totals: 21=10, 22=9, 23=6, 24=8). CLI_REFERENCE.md is the most-touched doc (Phase 24 adds 3 flags); ASSESSMENT.md is touched in 4 of 5 phases. | Operator: "now please consider the new docs that we have outside of the governance framework... I assume cli_reference would be affected by these changes? anything else? we should include an explicit step to update this doc whenever cli gets touched (and others if necessary?)" |
+| 2026-05-30 | Section #1 (Google API) collapsed; canonical content moved to `TUNING.md`. | Operator: "prefer next steps file to shrink as we progress" |
+| 2026-05-30 | Shipped `complete_with_retry` in `toolkit.llm_client`; wired through CostAccountant + ToolkitLLMAdapter. | Operator: "no reason to postpone" |
+| 2026-05-30 | Re-sequenced toward cleanup before exploration. | Operator: "tooling debt, live TG resmoke, coaching test on pi, then the rest" |
+| 2026-05-30 | Added §8 (Reverse scenario builder) and §9 (Voice/style templates). | Operator: "we should have a scenario builder that runs the analyzer in reverse... also tune voice from templates" |
+| 2026-05-30 | Marked tooling-debt items (LoggingLLMClient SCORE/RECON, scenario compiler BATNA hardcode, dated OpenAI pricing) RESOLVED. | Operator: "don't forget to update the docs after a step is done" |
+| 2026-05-30 | Added `SMOKE_RUNBOOK.md` at project root. | Operator: "Live Telegram re-smoke on Pi — verify deployment readiness" |
+| 2026-05-31 | Live TG re-smoke **CLOSED for coaching scope** (reframed). Telegram is the operator coaching surface; production game traffic comes via Clankmates or equivalent. | Operator: "this is not how the game will work; we were looking into clankmates exactly for this reason" |
+| 2026-05-31 | Added `ASSESSMENT.md` at project root — conceptual framework. Tagged every section heading + sequencing item with `[A]`/`[B]`/`[C]`/`[X]`. | Operator: "let's document this as rationale and potential avenues for exploration" |
+| 2026-05-31 | Module boundary audit → §1.7 / §1.8 / §1.9 added. | Operator: "can we consider the broader code structure?" |
+| 2026-05-31 | Loop-readiness classification (🔨 / 🔀 / 👁). Pure-build items batched into Phases 20–24. | Operator: "I'll run loops myself... pure build/mix/supervised" |
+| 2026-05-31 | Added "Reference Docs to Keep in Sync" to CLAUDE.md + CODEX.md. Per-phase doc-update steps in DEVPLAN. | Operator: "we should include an explicit step to update this doc whenever cli gets touched" |
+| 2026-06-01 | **Big cleanup pass.** All Phases 20–24 items collapsed to a single "Closed since 2026-05-30" table at top. Removed §1.5 / §1.7 / §1.8 / §1.9 detail sections (done; details in DEVLOG_archive Phase 20–22 entries). Removed Backlog → Tooling debt RESOLVED items and Open BATNA follow-ups (all done in Phase 24). Removed Live TG re-smoke CLOSED detail block (audit lives in DEVLOG_archive). Promoted `service.sh` rewrite + structured per-event logging from CLOSED tooling-debt narrative into a fresh "Outstanding tooling debt (🔨 PURE BUILD; not in any phase yet)" subsection so they're not lost. Carry-forward list trimmed to actually-still-open items. File shrunk 770 → ~470 lines. | Operator: "please review the closed items and clean up NEXT_STEPS with the items we just completed" |
+| 2026-06-01 | `tools/service.sh` rewrite around tmux **queued as Phase 25 in `DEVPLAN.md`** (7 steps; auto-loop-ready). Outstanding tooling debt subsection trimmed accordingly; pure-build extensions table updated (per-event logging is now the only candidate alongside §1.6 / §3 / §3.3); classification row for service.sh now points at Phase 25. | Operator: "please write up the service.sh rewrite into devplan as next phase" |
