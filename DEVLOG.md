@@ -363,3 +363,9 @@ Outcome: Updated the service lifecycle docs now that `tools/service.sh` is tmux-
 Contract changes: CLI/operator docs now define `tools/service.sh` as the canonical lifecycle interface over the underlying tmux window.
 
 Tests: `.venv/bin/python -m pytest tests/test_service_sh.py` — 1 passed.
+
+### Phase 25 review
+
+Mode: Review
+Date: 2026-06-01
+Outcome: Phase review passed. Reviewed `tools/service.sh` (tmux-backed lifecycle), `tests/test_service_sh.py` (shell smoke test), and all four updated docs (CLI_REFERENCE.md, SMOKE_RUNBOOK.md, diplomat-testing-doc.md, DEVPLAN gotcha). No must-fix or should-fix items found. All 331 tests pass. State advanced to close.
