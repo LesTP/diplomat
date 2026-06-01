@@ -134,7 +134,7 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 
 | Layer | Status |
 |-------|--------|
-| Unit and regression tests | Complete — 337 tests across the regression suite |
+| Unit and regression tests | Complete — 340 tests across the regression suite |
 | Pipeline integration | Complete — 23 fake-backed Orchestrator integration tests (Phase 18 path coverage added Phase 20) |
 | Transcript replay | Complete — 2 transcript fixtures, 5 replay tests |
 | Prompt regression | Complete — 6 starter scenarios (4 extraction free, 2 generation require live LLM) |

@@ -406,24 +406,6 @@ Contract changes: None.
 
 Tests: 337 passed.
 
-## 2026-06-01 — Phase 26 close
-
-Action: CLOSE
-Mode: Build
-Outcome: Phase 26 governance cleanup complete. 337 tests passing.
-
-Summary of what was built: structured per-event logging is now the diagnostic surface for startup, Telegram inbound/outbound/tagging, event routing, extraction scheduling/completion/skips, round boundaries, response triggers, response pipeline stages, and completion/failure. Logging is stream-based so `tools/service.sh` continues to capture it through `tee`; `logging.level` / `logging.format` are in both pipeline configs, and `DIPLOMAT_LOG_LEVEL` overrides the configured level for temporary diagnostics.
-
-Docs updated during the phase: `CLI_REFERENCE.md`, `ARCH_orchestrator.md`, `ARCH_transport.md`, `ARCH_extraction.md`, `ARCH_reconciliation.md`, `SMOKE_RUNBOOK.md`, and `diplomat-testing-doc.md`. Close cleanup reduced Phase 26 to a DEVPLAN history summary, marked the audit gate, updated `ARCHITECTURE.md` test count to 337, and closed `DECISIONS.md` D-30.
-
-DEVLOG learning review: No new gotchas promoted. The prescriptive operator rule is already documented through the smoke runbook and testing guide: diagnose Telegram routing/tagging from structured log records before adding ad-hoc instrumentation.
-
-Contract changes: Operator-facing logging config/env surface is now part of the runtime contract: `logging.level`, `logging.format`, and `DIPLOMAT_LOG_LEVEL`. Stable event strings are documented in module ARCH files and smoke docs.
-
-Tests: `.venv/bin/python -m pytest` — 337 passed.
-
-DEVLOG archival: Archived Phase 25 entries to `DEVLOG_archive.md`; Phase 26 remains in `DEVLOG.md` for immediate audit.
-
 ## 2026-06-01 — Phase 27 plan
 
 Action: PLAN
@@ -504,3 +486,21 @@ Outcome: No must-fix or should-fix items found.
 - `tools/backfill_scoring_metrics.py`: clean CLI reusing `_pareto_efficiency_metrics()` directly.
 - 340 tests passing (≥ 337 criterion met). Pre-existing `test_pipeline_flow.py` transient ordering issue not introduced by Phase 27.
 Contract changes: None.
+
+## 2026-06-01 — Phase 27 close
+
+Action: CLOSE
+Mode: Build
+Outcome: Phase 27 governance cleanup complete. 340 tests passing.
+
+Summary of what was built: `_pareto_efficiency_metrics()` in `tests/self_play/game_environment.py` now returns six BATNA-normalized companion fields alongside the existing Pareto efficiency fields — `sum_batnas`, `faction_deltas`, `delta_above_batna_sum`, `min_faction_delta`, `surplus_distribution_stdev`, and `negotiated_surplus_share`. These flow into `GameEnvironment.score_game()` output automatically. `tests/self_play/analysis.py` renders them in a new `NO-DEAL-AWARE SCORING` subsection. `tools/backfill_scoring_metrics.py` recomputes all Phase 27 fields for historical runs given a results JSON and matching scenario_analysis JSON. Four focused unit tests cover the at-BATNA, below-BATNA, zero-denominator, and render cases.
+
+Docs updated: `ASSESSMENT.md` §3.2 (baseline-normalized surplus formula + field reference), `diplomat-testing-doc.md` Layer 4 (new self-play result JSON fields), `TUNING_LOG.md` Run 9 entry (retro-scores table for all four Run 9 variants + Run 8 backfill). `ARCHITECTURE.md` test count updated to 340. DEVPLAN Phase 27 reduced to history summary.
+
+DEVLOG learning review: No new gotchas. The backfill pattern (reuse `_pareto_efficiency_metrics()` directly without an LLM, parse results JSON, optionally write back) is clean and follows the same approach as `tools/backfill_pareto.py` — already an established pattern in this project.
+
+Contract changes: Self-play `scores` payloads now include the six Phase 27 fields when scenario analysis is available. These are documented in `diplomat-testing-doc.md` Layer 4. No changes to scorer prompt semantics, provider routing, or runtime agent behavior.
+
+Tests: `.venv/bin/python -m pytest` — 340 passed.
+
+DEVLOG archival: Archived Phase 26 entries to `DEVLOG_archive.md`; Phase 27 entries remain in `DEVLOG.md` for immediate audit.

@@ -218,7 +218,7 @@ Rationale: The Phase 19 smoke exposed a routing/tagging failure that required te
 Revisit if: The runtime moves to a structured log collector that requires JSON output or a non-stream handler.
 
 D-31: Phase 27 stays metric-only in Build regime
-Date: 2026-06-01 | Status: Accepted
+Date: 2026-06-01 | Status: Closed
 Priority: Important
 Decision: Phase 27 will add baseline-normalized no-deal-aware scoring metrics, report rendering, a historical backfill tool, and documentation updates without changing scorer prompts, agent behavior, provider routing, or partial-consensus deal detection.
 Rationale: Run 9 showed the current `pareto_efficiency` metric ranks no-deal outcomes by BATNA height rather than negotiated improvement. Companion fields can correct post-game interpretation while preserving the existing all-faction convergence scorer and keeping partial-consensus scoring as a separate Phase 28 candidate.

@@ -1,8 +1,8 @@
 ---
 phase: 27
-blocked: false
+blocked: true
 state: close
-steps_remaining: 1
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -53,9 +53,9 @@ steps_remaining: 1
 
 ## Current Status
 
-- **Phase** — Phase 27 ready for review (no-deal-aware scoring metrics). Build checklist complete; STOP_BEFORE_REVIEW gate should stop before formal review.
-- **Focus** — Baseline-normalized scoring fields now compare no-deal cases against the BATNA floor, with report rendering, backfill tooling, and docs in place.
-- **Blocked/Broken** — Not blocked. Awaiting review action.
+- **Phase** — Phase 27 complete — no-deal-aware scoring metrics. Awaiting human audit (`close` command) before Phase 28.
+- **Focus** — Baseline-normalized scoring fields (`negotiated_surplus_share`, `faction_deltas`, `delta_above_batna_sum`, `min_faction_delta`, `surplus_distribution_stdev`) in self-play scoring + report; backfill tool for historical runs; docs updated. 340 tests passing.
+- **Blocked/Broken** — Blocked on human audit gate.
 
 <!-- Phase ordering convention:
        - Open / queued phases first, in forward execution order (next-to-do first).
@@ -65,50 +65,11 @@ steps_remaining: 1
      This puts the active work at the top and the "recent past" right under it,
      with deep history at the bottom. -->
 
-## Phase 27: No-deal-aware scoring metrics
-
-**Scope.** Run 9 (2026-06-01) exposed that `pareto_efficiency` conflates
-negotiation skill with BATNA height when no deal is reached. Run 8 baseline
-(0.537) and Run 9 symmetric (0.593) had identical no-deal outcomes — every
-faction at BATNA — but the metric ranks them as if 0.593 were better. The fix
-is to add baseline-normalized scoring fields that read 0.0 at the no-deal
-floor and 1.0 at the Pareto optimum, plus complementary fields that surface
-the distribution of captured surplus. Pure build, no LLM cost, ~5 steps.
-
-**Decision rule for close.** Phase complete when:
-- New fields present in self-play result JSON for any newly run game
-- Backfill tool can recompute fields for historical runs (Run 7 / Run 8 / Run 9)
-- Backfill recorded for Run 7, Run 8, Run 9 in TUNING_LOG.md
-- ASSESSMENT.md and diplomat-testing-doc.md reflect the new metrics
-- Full test suite passes (≥ 337)
-
-**Out of scope (Phase 28 candidate, do NOT pull in here):** Partial-consensus
-scorer mode (relax `score_game()`'s "all factions converge" rule so 2-of-3
-agreement registers as a partial deal). Requires modifying the scorer LLM
-prompt + adding subset-matching logic + a `defected_factions` field. Keep
-this phase metric-only.
-
-### Step 27.1: Design + scope confirmation
-
-- [x] Read `tests/self_play/game_environment.py` `_pareto_efficiency_metrics()` and confirm it is the insertion point for the new fields. Read `tests/self_play/analysis.py` `analyze_results()` and confirm where the new fields should be rendered. Confirm `tests/test_self_play.py` is the test home. Document in DEVLOG (this step is analysis-only; no code change; no test run required).
-
-### Step 27.2: Add baseline-normalized scoring fields
-
-- [x] Extend `_pareto_efficiency_metrics()` in `tests/self_play/game_environment.py` to also compute and return: `sum_batnas` (sum of per-faction BATNAs from `scenario_analysis['batna']`), `faction_deltas` (`{faction: points - batna}` dict), `delta_above_batna_sum` (sum of deltas), `min_faction_delta` (worst-off faction's delta — negative flags below-BATNA agreement), `surplus_distribution_stdev` (population stdev of deltas), and `negotiated_surplus_share` (`delta_above_batna_sum / (max_pareto_sum - sum_batnas)`, returning `0.0` when the denominator is `<= 0` to handle scenarios with no available cooperative surplus). Add focused tests in `tests/test_self_play.py` covering: at-BATNA case returns `0.0`; at-Pareto case returns `1.0`; below-BATNA case returns negative; zero-denominator edge case returns `0.0` without raising. Run `.venv/bin/python -m pytest tests/test_self_play.py` and confirm pass.
-
-### Step 27.3: Render new fields in the analysis report
-
-- [x] Update `analyze_results()` in `tests/self_play/analysis.py` to print the new fields in the existing scoring section (or a new "NO-DEAL-AWARE SCORING" subsection if cleaner). Include `negotiated_surplus_share`, `delta_above_batna_sum`, `min_faction_delta`, `surplus_distribution_stdev`, and per-faction `faction_deltas`. Add a render test (similar to existing report tests) using a synthetic scenario_analysis + score_data fixture. Run `.venv/bin/python -m pytest tests/test_self_play.py` and confirm pass.
-
-### Step 27.4: Backfill tool for historical runs
-
-- [x] Add `tools/backfill_scoring_metrics.py` that takes `--results <run.json>` + `--analysis <scenario_analysis.json>` and `--write-back` flag. Reuses `_pareto_efficiency_metrics()` (extracted to a leaf-importable helper if the current module depends on toolkit and can't be imported standalone — same approach as `tools/backfill_pareto.py`). Prints all new fields. With `--write-back`, patches them into `results.scores`. Run the tool against `tests/self_play/results/run9_symmetric_live.json` + `tests/self_play/scenarios/water_rights_symmetric_050/scenario_analysis.json` and against `run9_alpha_squeezed_live.json` + matching analysis and `run9_beta_squeezed_live.json` + matching analysis. Capture the printed output for the doc-update step. Run 7 and Run 8 lack embedded `scenario_analysis` and use scoring tables from `tests/self_play/scenarios/water_rights_compiled/` (Run 8) or no compiled analysis (Run 7); record the Run 8 backfill, skip Run 7 (mismatched scenario).
-
-### Step 27.5: Doc updates + Run 9 retro-scores
-
-- [x] Update `ASSESSMENT.md` §3.2 (Pareto efficiency section) to note the new baseline-normalized companion fields and reference `tests/self_play/game_environment.py` `_pareto_efficiency_metrics()` for the formulas. Update `diplomat-testing-doc.md` Layer 4 / post-game report section to list the new self-play result JSON fields. Update `TUNING_LOG.md` Run 9 entry (Phase 8 section) to add a "Retro-scored with Phase 27 metrics (YYYY-MM-DD)" subsection containing a table of all four Run 9 variants + Run 8 backfill showing the new `negotiated_surplus_share` and `min_faction_delta` values alongside the existing `pareto_efficiency`. No source-code changes in this step. Confirm `.venv/bin/python -m pytest` returns >= 337 passing.
-
 <!-- history -->
+
+## Phase 27: No-deal-aware scoring metrics — Complete
+
+Closed 2026-06-01. Added baseline-normalized scoring fields to `_pareto_efficiency_metrics()` (`negotiated_surplus_share`, `faction_deltas`, `delta_above_batna_sum`, `min_faction_delta`, `surplus_distribution_stdev`), NO-DEAL-AWARE SCORING report section, `tools/backfill_scoring_metrics.py` CLI, and docs (`ASSESSMENT.md`, `diplomat-testing-doc.md`, `TUNING_LOG.md`). 340 tests passing. See `DEVLOG.md` "Phase 27 close" section.
 
 ## Phase 26: Structured per-event logging — Complete
 

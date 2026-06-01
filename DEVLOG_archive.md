@@ -2231,3 +2231,23 @@ Step 25.6: Updated `CLI_REFERENCE.md`, `SMOKE_RUNBOOK.md`, `diplomat-testing-doc
 Review: No must-fix or should-fix items found. Reviewed `tools/service.sh`, `tests/test_service_sh.py`, and the updated lifecycle docs. All 331 tests passed.
 
 Close: Reduced Phase 25 to a DEVPLAN history summary, marked the audit gate before Phase 26, updated `ARCHITECTURE.md` test count to 331, and closed `DECISIONS.md` D-29. No new gotchas promoted; the relevant operational rule was already captured in the Cold Start Summary. Contract change: operator-facing service lifecycle moved from PID/nohup-backed to tmux-backed and is documented in `CLI_REFERENCE.md`.
+
+<!-- Archived 2026-06-01 — Phase 26 structured per-event logging -->
+
+## 2026-06-01 — Phase 26 close
+
+Action: CLOSE
+Mode: Build
+Outcome: Phase 26 governance cleanup complete. 337 tests passing.
+
+Summary of what was built: structured per-event logging is now the diagnostic surface for startup, Telegram inbound/outbound/tagging, event routing, extraction scheduling/completion/skips, round boundaries, response triggers, response pipeline stages, and completion/failure. Logging is stream-based so `tools/service.sh` continues to capture it through `tee`; `logging.level` / `logging.format` are in both pipeline configs, and `DIPLOMAT_LOG_LEVEL` overrides the configured level for temporary diagnostics.
+
+Docs updated during the phase: `CLI_REFERENCE.md`, `ARCH_orchestrator.md`, `ARCH_transport.md`, `ARCH_extraction.md`, `ARCH_reconciliation.md`, `SMOKE_RUNBOOK.md`, and `diplomat-testing-doc.md`. Close cleanup reduced Phase 26 to a DEVPLAN history summary, marked the audit gate, updated `ARCHITECTURE.md` test count to 337, and closed `DECISIONS.md` D-30.
+
+DEVLOG learning review: No new gotchas promoted. The prescriptive operator rule is already documented through the smoke runbook and testing guide: diagnose Telegram routing/tagging from structured log records before adding ad-hoc instrumentation.
+
+Contract changes: Operator-facing logging config/env surface is now part of the runtime contract: `logging.level`, `logging.format`, and `DIPLOMAT_LOG_LEVEL`. Stable event strings are documented in module ARCH files and smoke docs.
+
+Tests: `.venv/bin/python -m pytest` — 337 passed.
+
+DEVLOG archival: Archived Phase 25 entries to `DEVLOG_archive.md`; Phase 26 remains in `DEVLOG.md` for immediate audit.
