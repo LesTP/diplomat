@@ -451,3 +451,13 @@ Contract changes: Operator-facing config/env surface now includes `logging.level
 Notes: `config/pipeline_smoke.yaml` had pre-existing CRLF-only dirty state; the commit stages only the semantic logging block for that file and leaves unrelated line-ending churn uncommitted.
 
 Tests: `.venv/bin/python -m pytest tests/test_main.py` — 5 passed. YAML validation confirmed both pipeline configs contain the logging block and parse successfully.
+
+### Step 26.6: Logging tests and default test noise suppression
+
+Mode: Build
+Outcome: Added focused logging assertions for the flow and Layer 3 paths. `tests/test_flows.py` now asserts faction traffic emits `event.routed` and `extraction.scheduled`. `tests/integration/test_phase18_paths.py` now asserts a real fixture event leaves `event.routed`, `extraction.scheduled`, and `extraction.complete` records in `caplog`, which gives future smoke debugging a tested log surface. Added root `tests/conftest.py` to keep `diplomat.*` loggers at WARNING with no handlers by default, while allowing logging tests to opt into INFO via `caplog`.
+Contract changes: None. Test infrastructure now controls default `diplomat.*` logging noise.
+
+Notes: Existing transport log tests from 26.3 already cover `event.sent`, `event.received`, and `event.tagged`; this step adds the flow/integration assertions required by the phase checklist.
+
+Tests: `.venv/bin/python -m pytest tests/test_flows.py tests/test_transport.py tests/integration/test_phase18_paths.py` — 42 passed.

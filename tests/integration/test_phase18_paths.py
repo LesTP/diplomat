@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
+import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -226,6 +227,29 @@ async def test_burst_extraction_no_drops(phase18_pipeline: Phase18PipelineHarnes
     ]
     assert [row["trigger_type"] for row in changes] == ["message"] * 5
     assert len(changes) == 5
+
+
+async def test_event_flow_is_visible_in_logs(
+    phase18_pipeline: Phase18PipelineHarness,
+    caplog,
+):
+    event = make_event(
+        "France promises England support in Belgium.",
+        sender_faction="france",
+    )
+
+    with caplog.at_level(logging.INFO, logger="diplomat"):
+        await phase18_pipeline.transport.inject(event)
+        await wait_for_state_change_count(phase18_pipeline, 1)
+
+    assert "event.routed event_id=" in caplog.text
+    assert (
+        "route=faction_extraction sender_faction=france channel=public"
+        in caplog.text
+    )
+    assert "extraction.scheduled event_id=" in caplog.text
+    assert "sender_faction=france debounce_seconds=0.010" in caplog.text
+    assert "extraction.complete trigger_type=message trigger_ref=" in caplog.text
 
 
 async def test_reconciler_dedup(phase18_pipeline: Phase18PipelineHarness):

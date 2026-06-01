@@ -147,6 +147,30 @@ async def test_event_driven_flow_extracts_each_game_event_after_debounce():
 
 
 @pytest.mark.asyncio
+async def test_event_driven_flow_logs_faction_route(caplog):
+    pipeline = FakePipeline()
+    flow = EventDrivenFlow(
+        pipeline=pipeline,
+        transport=FakeTransport(),
+        message_debounce_seconds=0,
+    )
+
+    with caplog.at_level(logging.INFO, logger="diplomat.flows.event_driven"):
+        await flow.process_event(_event("France offers Belgium."))
+        for task in list(flow._extraction_tasks):
+            await task
+
+    assert (
+        "event.routed event_id=event-1 route=faction_extraction "
+        "sender_faction=france channel=public"
+    ) in caplog.text
+    assert (
+        "extraction.scheduled event_id=event-1 sender_faction=france"
+        in caplog.text
+    )
+
+
+@pytest.mark.asyncio
 async def test_event_driven_flow_runs_round_boundary_before_response_trigger():
     pipeline = FakePipeline()
     flow = EventDrivenFlow(
