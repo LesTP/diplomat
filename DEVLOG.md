@@ -387,3 +387,15 @@ Contract changes: No runtime module contracts changed. The operator-facing servi
 Tests: `.venv/bin/python -m pytest tests/test_service_sh.py` — 1 passed. `.venv/bin/python -m pytest` — 331 passed.
 
 DEVLOG archival: Skipped — file is 371 lines before this entry, under the ~500-line rotation threshold.
+
+## 2026-06-01 — Phase 26 plan
+
+Action: PLAN
+Mode: Build
+Outcome: Activated Phase 26 as the current Build phase. The existing structured per-event logging plan remains the executable checklist: scope/design, startup logging config, transport instrumentation, pipeline/flow/orchestrator instrumentation, config/env wiring, logging tests, and named doc updates.
+
+Scope decision: logging should be diagnostic-first and operator-visible through the existing service log path. Runtime code should use module loggers, fixed event-type strings, stdout/stderr stream handling captured by `tools/service.sh`, default INFO verbosity, and `DIPLOMAT_LOG_LEVEL` for temporary DEBUG escalation without config edits.
+
+Contract changes: None yet. The phase is expected to add operator-facing logging configuration and documented log event names, but no module API changes are planned.
+
+Tests: Not run; planning-only action.

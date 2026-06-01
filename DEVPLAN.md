@@ -1,8 +1,8 @@
 ---
-phase: 25
-blocked: true
-state: close
-steps_remaining: 0
+phase: 26
+blocked: false
+state: execute
+steps_remaining: 7
 ---
 
 # Diplomat — Development Plan
@@ -53,9 +53,9 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 25 complete; blocked for human audit before Phase 26.
-- **Focus** — Phase 26 queued next: structured per-event logging so future smokes don't need ad-hoc `print` instrumentation.
-- **Blocked/Broken** — Audit gate after Phase 25 close. Phase 26 is planned but not active until the gate is cleared.
+- **Phase** — Phase 26 active.
+- **Focus** — Structured per-event logging so future smokes don't need ad-hoc `print` instrumentation.
+- **Blocked/Broken** — None.
 
 <!-- Phase ordering convention:
        - Open / queued phases first, in forward execution order (next-to-do first).

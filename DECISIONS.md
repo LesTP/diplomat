@@ -209,3 +209,10 @@ Priority: Important
 Decision: Phase 25 will rewrite `tools/service.sh` around the working tmux window pattern. The default supervising session is `bot`, overridable with `BOT_TMUX_SESSION`; commands skip `sudo -u claude` when already running as `claude`; missing sessions fail with a clear create-session command instead of auto-creating.
 Rationale: The 2026-05-31 smoke showed `nohup` children die when started through `incus exec` because the transient cgroup is torn down. A tmux pane in the long-lived `bot` session survived the same launch path, and making that pattern the canonical service interface keeps Pi operations to one wrapped command while preserving a test override.
 Revisit if: The deployment host moves away from the long-lived tmux supervision model or the operator standardizes on systemd outside `incus exec`.
+
+D-30: Phase 26 adds structured per-event logging in Build regime
+Date: 2026-06-01 | Status: Accepted
+Priority: Important
+Decision: Phase 26 will add structured, grep-able logging across startup, Telegram transport, event-driven flow, pipeline routing, extraction, round boundaries, and response completion. Logs will stream to stdout/stderr through the normal service `tee` path, default to INFO, and support `DIPLOMAT_LOG_LEVEL` override plus config-level defaults.
+Rationale: The Phase 19 smoke exposed a routing/tagging failure that required temporary `print` instrumentation to diagnose. Making per-event logging part of the runtime contract gives future smokes an auditable diagnostic surface without ad-hoc code changes or duplicate log-file writers.
+Revisit if: The runtime moves to a structured log collector that requires JSON output or a non-stream handler.
