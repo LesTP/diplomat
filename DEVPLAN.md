@@ -2,7 +2,7 @@
 phase: 26
 blocked: false
 state: execute
-steps_remaining: 7
+steps_remaining: 6
 ---
 
 # Diplomat — Development Plan
@@ -73,7 +73,7 @@ Prerequisite: None code-wise. Independent of Phase 25 (could be done before, aft
 
 Steps:
 - [x] **26.1** Scope + design. Read current logging usage (probably just bare `print` in `main.py` for the startup banner; check whether `logging` is imported anywhere). Decide: (a) logger namespace — `diplomat.transport.telegram`, `diplomat.pipeline`, `diplomat.orchestrator`, `diplomat.extraction`, `diplomat.reconciliation`, etc. via `logging.getLogger(__name__)`; (b) output destination — stream to stdout/stderr only, let `tools/service.sh` `tee` capture to file (avoids double-write since service.sh already manages the log file); (c) log format — `%(asctime)s %(levelname)s %(name)s %(message)s` or similar; (d) configurable log level — `logging.level` in `pipeline.yaml` (default `INFO`) plus `DIPLOMAT_LOG_LEVEL` env-var override; (e) event-type taxonomy — fixed prefix strings so logs are grep-able (`event.received`, `event.routed`, `extraction.start`, `extraction.complete`, `extraction.skip`, `round.boundary`, `pipeline.trigger`, `pipeline.complete`, etc.).
-- [ ] **26.2** Add logging configuration in `src/main.py` (or a new `src/logging_config.py` if cleaner). Configure the `diplomat.*` namespace with a stream handler at the configured level. Replace the existing `print(f"DIPLOMAT ONLINE ...")` startup banner with `logger.info(...)`. Test the same line appears in the log via the new path.
+- [x] **26.2** Add logging configuration in `src/main.py` (or a new `src/logging_config.py` if cleaner). Configure the `diplomat.*` namespace with a stream handler at the configured level. Replace the existing `print(f"DIPLOMAT ONLINE ...")` startup banner with `logger.info(...)`. Test the same line appears in the log via the new path.
 - [ ] **26.3** Instrument the transport (`src/modules/transport/__init__.py`). Add log lines for: (a) every inbound update — chat_id, channel mapping result, raw text preview (first ~60 chars), sender_id; (b) sender → faction tagging result (the failure mode that needed `print` instrumentation during the smoke — this is the primary motivation); (c) operator-vs-faction classification path taken; (d) every outbound message sent — channel, recipient, length.
 - [ ] **26.4** Instrument the pipeline + orchestrator (`src/pipeline.py`, `src/flows/event_driven.py`, `src/orchestrator.py`). Add log lines for: (a) `event.routed` — incoming event → operator path vs faction-extraction path vs system path; (b) `extraction.scheduled` / `extraction.complete` / `extraction.skip` — debounce decisions, fake-vs-real LLM, patch summary on complete; (c) `round.boundary` — signal detected (regex match details), round counter transition, reconciler/analyst dispatch; (d) `pipeline.trigger` — direct-address detected OR `/preview` command OR auto-trigger; (e) `pipeline.complete` — success/failure of GEN → ADV → REVIEW → SEND chain with timing.
 - [ ] **26.5** Add `logging.level` (and optional `logging.format`) to `pipeline.yaml`. Wire through `Orchestrator` construction. Document the `DIPLOMAT_LOG_LEVEL` env-var override (operator can flip to DEBUG without editing config). Add the same to `pipeline_smoke.yaml`.

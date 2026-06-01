@@ -411,3 +411,13 @@ Design decisions for implementation: use module-local loggers with stable `diplo
 Notes: Transport instrumentation should prioritize Telegram sender/faction/operator classification because that was the Phase 19 smoke failure mode. Flow/pipeline instrumentation should make event routing, extraction task scheduling, round-boundary handling, and response pipeline completion visible without adding a second log-file writer.
 
 Tests: Not run; scope/design-only step. Validation was source inspection plus `grep -RIn "import logging\\|logging\\.\\|print(" src tests config`.
+
+### Step 26.2: Logging configuration and startup banner
+
+Mode: Build
+Outcome: Added `src/logging_config.py` with `configure_logging(config_path)` and `get_logger(name)`. `main.run()` now configures the `diplomat` logger before building toolkit adapters or the orchestrator. `EventDrivenFlow._print_online_banner()` now emits `startup.online DIPLOMAT ONLINE ...` through `diplomat.flows.event_driven` instead of `print()`.
+Contract changes: New operator-facing logging configuration path exists internally: `logging.level` and `logging.format` are read when present, and `DIPLOMAT_LOG_LEVEL` overrides the level. The config files and docs are intentionally left for 26.5/26.7.
+
+Notes: The logger uses a single stream handler on the `diplomat` namespace, with default format `%(asctime)s %(levelname)s %(name)s %(message)s`, so `tools/service.sh` continues to capture output via `tee` without a second file writer.
+
+Tests: `.venv/bin/python -m pytest tests/test_main.py tests/test_flows.py` — 13 passed.

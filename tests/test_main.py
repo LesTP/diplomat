@@ -8,11 +8,32 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import logging
 import pytest
 import yaml
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def test_configure_logging_uses_config_level_and_env_override(tmp_path, monkeypatch):
+    from logging_config import configure_logging
+
+    config_path = tmp_path / "pipeline.yaml"
+    config_path.write_text(
+        yaml.safe_dump({"logging": {"level": "WARNING"}}),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("DIPLOMAT_LOG_LEVEL", "DEBUG")
+
+    configure_logging(config_path)
+
+    logger = logging.getLogger("diplomat")
+    assert logger.level == logging.DEBUG
+    assert any(
+        getattr(handler, "_diplomat_handler", False)
+        for handler in logger.handlers
+    )
 
 
 class FakeOrchestrator:

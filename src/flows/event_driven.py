@@ -10,10 +10,12 @@ from typing import Any
 from modules.transport import Transport
 from modules.types import InboundEvent
 from pipeline import Pipeline
+from logging_config import get_logger
 
 
 RoundDetector = Callable[[InboundEvent], bool]
 AddressDetector = Callable[[InboundEvent], bool]
+logger = get_logger(__name__)
 
 
 class EventDrivenFlow:
@@ -137,11 +139,11 @@ class EventDrivenFlow:
         session_budget = float(
             orchestrator.cost_config.get("session_budget_usd", 0.0)
         )
-        print(
-            "DIPLOMAT ONLINE - "
-            f"Round {orchestrator.current_round} - "
-            f"{orchestrator.faction_id}"
-            f" - session budget ${session_budget:.2f}"
+        logger.info(
+            "startup.online DIPLOMAT ONLINE - Round %s - %s - session budget $%.2f",
+            orchestrator.current_round,
+            orchestrator.faction_id,
+            session_budget,
         )
 
 

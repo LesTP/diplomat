@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
@@ -223,6 +224,34 @@ async def test_event_driven_flow_start_reads_transport_and_shutdown_closes():
 
     assert [event.content for _event_id, event in pipeline.events] == ["one", "two"]
     assert transport.closed is True
+
+
+def test_event_driven_flow_logs_online_banner(caplog):
+    parent_logger = logging.getLogger("diplomat")
+    old_handlers = list(parent_logger.handlers)
+    old_propagate = parent_logger.propagate
+    parent_logger.handlers = []
+    parent_logger.propagate = True
+    pipeline = SimpleNamespace(
+        orchestrator=SimpleNamespace(
+            cost_config={"session_budget_usd": 10.0},
+            current_round=3,
+            faction_id="england",
+        )
+    )
+    flow = EventDrivenFlow(pipeline=pipeline, transport=FakeTransport())
+
+    try:
+        with caplog.at_level(logging.INFO, logger="diplomat.flows.event_driven"):
+            flow._print_online_banner()
+    finally:
+        parent_logger.handlers = old_handlers
+        parent_logger.propagate = old_propagate
+
+    assert (
+        "startup.online DIPLOMAT ONLINE - Round 3 - england - session budget $10.00"
+        in caplog.text
+    )
 
 
 @pytest.mark.asyncio

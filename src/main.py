@@ -10,6 +10,7 @@ from typing import Any
 from dotenv import load_dotenv
 
 from adapters import DiplomatCostGate, ToolkitLLMAdapter
+from logging_config import configure_logging
 from orchestrator import OrchestrationOptions, Orchestrator, PipelineConfigError
 
 
@@ -20,6 +21,7 @@ def main() -> None:
 
 
 async def run(config_path: str) -> None:
+    configure_logging(config_path)
     llm_module = _load_toolkit_module("llm_client")
     cost_gate = _build_cost_gate(config_path)
     # Route all LLM calls through the cost accountant for spend tracking.
