@@ -72,28 +72,13 @@ start() {
 }
 
 stop() {
-    if ! is_running; then
+    if ! is_tmux_running; then
         echo "Diplomat is not running"
-        rm -f "$PID_FILE"
         return 0
     fi
 
-    local pid
-    pid=$(cat "$PID_FILE")
-    kill "$pid" 2>/dev/null
-    # Wait up to 5 seconds for graceful shutdown
-    for _ in 1 2 3 4 5; do
-        if ! kill -0 "$pid" 2>/dev/null; then
-            break
-        fi
-        sleep 1
-    done
-    # Force kill if still alive
-    if kill -0 "$pid" 2>/dev/null; then
-        kill -9 "$pid" 2>/dev/null
-    fi
-    rm -f "$PID_FILE"
-    echo "Diplomat stopped (was PID $pid)"
+    tmux_as_service_user kill-window -t "$TMUX_SESSION:$TMUX_WINDOW" 2>/dev/null || true
+    echo "Diplomat stopped (tmux window $TMUX_SESSION:$TMUX_WINDOW)"
 }
 
 status() {

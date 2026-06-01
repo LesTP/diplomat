@@ -331,3 +331,11 @@ Contract changes: `tools/service.sh start` no longer writes `.diplomat.pid`; tmu
 Notes: Normalized `tools/service.sh` to LF because the pre-existing CRLF-only dirty state produced mixed endings after the patch and failed shell parsing. `stop()` and `status()` still use the old PID path and are intentionally left for 25.3/25.4.
 
 Tests: `bash -n tools/service.sh`; `BOT_TMUX_SESSION=__diplomat_missing_test bash tools/service.sh start` exits 1 with the expected missing-session message.
+
+### Step 25.3: Rewrite service stop
+
+Mode: Build
+Outcome: Replaced the PID-backed `stop()` path with tmux window cleanup. `stop()` now checks for the configured `diplomat` tmux window, kills `"$BOT_TMUX_SESSION":diplomat` when present, and exits successfully with "Diplomat is not running" when the window is absent.
+Contract changes: `tools/service.sh stop` no longer reads, kills, or cleans up `.diplomat.pid`.
+
+Tests: `bash -n tools/service.sh`; temporary tmux session smoke (`__diplomat_stop_test`) verified `stop` kills only the `diplomat` window and is idempotent on a second call.
