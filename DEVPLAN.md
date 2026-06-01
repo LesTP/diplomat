@@ -1,8 +1,8 @@
 ---
 phase: 25
 blocked: false
-state: execute
-steps_remaining: 2
+state: review
+steps_remaining: 1
 ---
 
 # Diplomat — Development Plan
@@ -30,7 +30,7 @@ steps_remaining: 2
 - **Gotchas** —
   - `toolkit` lives at `../toolkit` and must be installed editable per host (`<venv>/bin/python3 -m pip install -e ../toolkit`). Not declared in `pyproject.toml` (would be a misleading install contract — can't resolve from PyPI). Module-level tests use dependency-injected fakes; integration paths must exercise real `toolkit` imports.
   - Toolkit Phase 19 surface must import on the Pi: `from toolkit.llm_client import complete_with_retry` and `from toolkit.cost_accountant import normalize_model_name`. If ImportError, reinstall editable. See `SMOKE_RUNBOOK.md` §1.
-  - **Pi deployment mechanism:** `incus exec claude-code -- sudo -u claude tmux new-window -t bot -n diplomat ...` (adds a window to the long-lived `bot` tmux session that already supervises codexbot). `tools/service.sh start` does NOT work via `incus exec` — the transient cgroup scope is torn down and kills the process even with `nohup`+`setsid`+`</dev/null`. See `CLI_REFERENCE.md` `tools/service.sh` section and `diplomat-testing-doc.md` §5b.
+  - **Pi deployment mechanism:** `incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh start` is the canonical bot start command. `tools/service.sh` uses a `diplomat` window in the long-lived `bot` tmux session under the hood; override the session with `BOT_TMUX_SESSION` for tests or parallel deployments. See `CLI_REFERENCE.md` and `diplomat-testing-doc.md` §5b.
   - Bot vs. user account: must be resolved with game moderator before deployment. Implement `TelethonUserTransport` only if bot-to-bot is blocked.
   - Round structure (signal vs. time-based): confirm with moderator before deploying; set in `pipeline.yaml`.
   - **Telegram bot-to-bot platform limitation:** Telegram does NOT deliver bot-sent messages to other bots in groups, regardless of privacy mode. Non-operator faction-traffic in any Telegram-side test requires either a 2nd human Telegram account on another device, or a temporary de-op cycle (remove operator's user ID from `DIPLOMAT_OPERATOR_USER_IDS`).
@@ -77,7 +77,7 @@ Steps:
 - [x] **25.3** Rewrite `stop()`. Use `sudo -u claude tmux kill-window -t "$SESSION":diplomat 2>/dev/null || true`. Idempotent — if the window doesn't exist, exit 0 with "Diplomat is not running" message. Remove legacy `.diplomat.pid` cleanup.
 - [x] **25.4** Rewrite `status()` and `restart()`. `status` queries `sudo -u claude tmux list-windows -t "$SESSION" -F '#{window_name}'` and greps for `diplomat`; prints "Diplomat is running (tmux window $SESSION:diplomat)" or "Diplomat is not running". `restart` stays as `stop + start` (compositional). `logs()` is unchanged (continues to `tail -n N "$LOG_FILE"`).
 - [x] **25.5** Add a basic shell-driven smoke test in `tests/test_service_sh.py`. Skips if `tmux` is not on PATH. Uses `BOT_TMUX_SESSION=_test_diplomat_session` (not `bot`, to avoid colliding with the operator's real session) and creates the session in setup. Subprocess-drives `service.sh start`, polls `status` until running, calls `stop`, verifies `status` reports not-running. Tears down the temp session in cleanup.
-- [ ] **25.6** Doc update: `CLI_REFERENCE.md` `tools/service.sh` section (remove the broken-via-incus-exec warning; promote the "Working pattern" examples to the canonical interface; keep the env-var table and add `BOT_TMUX_SESSION` row); `SMOKE_RUNBOOK.md` §2 (replace the raw `incus exec ... tmux new-window` block with `incus exec claude-code -- bash tools/service.sh start`); `diplomat-testing-doc.md` §5b "Running the bot on the Pi (current container)" subsection (drop the `tools/service.sh start (nohup)` row from the "what doesn't work" table since it now works; promote service.sh back to the canonical lifecycle command); `DEVPLAN.md` Cold Start gotcha "Pi deployment mechanism" (rewrite to reflect `service.sh` now works; tmux is the underlying mechanism but `service.sh` is the operator-facing tool).
+- [x] **25.6** Doc update: `CLI_REFERENCE.md` `tools/service.sh` section (remove the broken-via-incus-exec warning; promote the "Working pattern" examples to the canonical interface; keep the env-var table and add `BOT_TMUX_SESSION` row); `SMOKE_RUNBOOK.md` §2 (replace the raw `incus exec ... tmux new-window` block with `incus exec claude-code -- bash tools/service.sh start`); `diplomat-testing-doc.md` §5b "Running the bot on the Pi (current container)" subsection (drop the `tools/service.sh start (nohup)` row from the "what doesn't work" table since it now works; promote service.sh back to the canonical lifecycle command); `DEVPLAN.md` Cold Start gotcha "Pi deployment mechanism" (rewrite to reflect `service.sh` now works; tmux is the underlying mechanism but `service.sh` is the operator-facing tool).
 
 Phase review and close are state-machine actions, not executable checklist items. Definition of done: `tools/service.sh start` works both from inside a long-lived shell AND from `incus exec claude-code -- bash tools/service.sh start`; `status`, `stop`, `restart`, `logs` all work; service.sh smoke test passes (or skips cleanly if tmux unavailable); the four named docs updated; the smoke runbook can demonstrate a single-command bot start.
 

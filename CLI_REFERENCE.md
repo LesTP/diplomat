@@ -61,53 +61,46 @@ Lifecycle (when not using `tools/service.sh`) managed by `config/diplomat.servic
 on the Pi (systemd). See `diplomat-testing-doc.md` §5b for two-channel Telegram
 setup walkthrough.
 
-### `tools/service.sh` — bot lifecycle manager (⚠️ broken via `incus exec`)
+### `tools/service.sh` — bot lifecycle manager
 
-**Status:** Does not work when invoked via `incus exec claude-code -- bash tools/service.sh start`. `incus exec` creates a transient cgroup scope; when the immediate command (bash) exits, the scope is torn down and **all processes in it are killed** regardless of `nohup`, `setsid`, or `< /dev/null`. The PID is written but the process is dead within ~1 sec; log file 0 bytes. Verified 2026-05-31 during Phase 19 live smoke. Tracked for rewrite around `tmux new-window`. Until then, use the tmux pattern below.
-
-**Working pattern (canonical until service.sh is rewritten):**
+**Status:** Canonical Pi lifecycle wrapper. The script uses a `diplomat`
+window inside the long-lived tmux session `bot` by default, so it survives
+`incus exec` cgroup teardown. Override the session with `BOT_TMUX_SESSION`
+for tests or parallel deployments.
 
 ```bash
-# Start: add a window to the long-lived `bot` tmux session that already
-# supervises codexbot and the claude telegram plugin. tmux server runs as
-# user `claude`, hence `sudo -u claude`.
-incus exec claude-code -- sudo -u claude tmux new-window -t bot -n diplomat \
-  "cd /home/claude/workspace/diplomat && \
-   PYTHONPATH=src DIPLOMAT_PIPELINE_CONFIG=config/pipeline_smoke.yaml \
-   .venv/bin/python -u src/main.py 2>&1 | tee -a logs/diplomat.log"
-
-# Status: list windows in the bot session; look for `diplomat`
-incus exec claude-code -- sudo -u claude tmux list-windows -t bot
-
-# Live log tail (separate terminal)
-incus exec claude-code -- bash -c "tail -f /home/claude/workspace/diplomat/logs/diplomat.log"
-
-# Stop: killing the tmux window terminates the supervisor bash + python child
-incus exec claude-code -- sudo -u claude tmux kill-window -t bot:diplomat
-
-# Restart: kill-window + start again
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh start
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh status
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh logs 50
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh stop
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh restart
 ```
 
-**With non-default config:** change `DIPLOMAT_PIPELINE_CONFIG=config/pipeline.yaml` in the start command. Requires `ANTHROPIC_API_KEY` for the production config.
-
-**Original (broken) interface kept for reference:**
+Inside the container/project checkout, the same commands are:
 
 ```bash
-# DO NOT USE via incus exec — process dies on exec teardown.
-# Only works if you're already inside a long-lived shell in the container.
-bash tools/service.sh start              # background, default config
-bash tools/service.sh status             # show PID + running state
+bash tools/service.sh start              # tmux window, default smoke config
+bash tools/service.sh status             # tmux window running state
 bash tools/service.sh logs [N]           # tail N lines (default 50)
-bash tools/service.sh stop               # SIGTERM → 5s wait → SIGKILL
+bash tools/service.sh stop               # kill tmux window
 bash tools/service.sh restart            # stop + start
 ```
 
 | Env var | Default | Notes |
 |---|---|---|
 | `DIPLOMAT_PIPELINE_CONFIG` | `config/pipeline_smoke.yaml` | Override to use production config or any other |
+| `BOT_TMUX_SESSION` | `bot` | tmux session that supervises the `diplomat` window |
 
-See `SMOKE_RUNBOOK.md` §2 and `diplomat-testing-doc.md` §5b for the working
-tmux invocation in operational context.
+The tmux session must already exist. If it is missing, create it with
+`sudo -u claude tmux new-session -d -s bot`. The underlying tmux command runs
+as user `claude` unless the script is already running as that user.
+
+**With non-default config:** set
+`DIPLOMAT_PIPELINE_CONFIG=config/pipeline.yaml` before `start`. Production
+config requires `ANTHROPIC_API_KEY`.
+
+See `SMOKE_RUNBOOK.md` §2 and `diplomat-testing-doc.md` §5b for the Pi
+operational context.
 
 ---
 

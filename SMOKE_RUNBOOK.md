@@ -56,30 +56,24 @@ install is correct. Otherwise `incus exec claude-code -- bash -c "cd
 
 ## 2. Start the bot
 
-Production lifecycle on the Pi runs inside the long-lived `bot` tmux
-session (the same one supervising codexbot). `tools/service.sh` is
-broken via `incus exec` due to cgroup-scope teardown — see
-`CLI_REFERENCE.md` for the gory details.
+Production lifecycle on the Pi uses `tools/service.sh`, which starts the bot
+inside the long-lived `bot` tmux session (the same one supervising codexbot).
+The script is safe to call through `incus exec`.
 
 ```bash
-# Start as window `diplomat` in the bot session, as user claude
-incus exec claude-code -- sudo -u claude tmux new-window -t bot -n diplomat \
-  "cd /home/claude/workspace/diplomat && \
-   PYTHONPATH=src DIPLOMAT_PIPELINE_CONFIG=config/pipeline_smoke.yaml \
-   .venv/bin/python -u src/main.py 2>&1 | tee -a logs/diplomat.log"
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh start
 
 # Verify
-incus exec claude-code -- sudo -u claude tmux list-windows -t bot
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh status
 incus exec claude-code -- bash -c "tail -10 /home/claude/workspace/diplomat/logs/diplomat.log"
-incus exec claude-code -- bash -c "ps -ef | grep 'src/main.py' | grep -v grep"
 ```
 
 Expect: `diplomat` window in list, `DIPLOMAT ONLINE - Round 1 - england
-- session budget $2.00` in log, live python process.
+- session budget $2.00` in log.
 
 Production config (Anthropic + adversarial enabled): swap
-`pipeline_smoke.yaml` → `pipeline.yaml` in the start command. Cost
-~$0.05–0.15/round vs ~$0.005–0.01.
+`DIPLOMAT_PIPELINE_CONFIG=config/pipeline.yaml` into the start environment.
+Cost ~$0.05–0.15/round vs ~$0.005–0.01.
 
 ---
 

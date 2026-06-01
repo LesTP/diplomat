@@ -1030,37 +1030,32 @@ Routing verification:
 
 ### Running the bot on the Pi (current container)
 
-The Pi mounts the P: network share into an **incus container `claude-code`** at `/home/claude/workspace/`. The diplomat venv lives at `/home/claude/workspace/diplomat/.venv` (inside the container). Long-lived processes in this container (codexbot, claude telegram plugin) all run inside a **tmux session `bot`** owned by user `claude`, started May 3 by `/tmp/claude-bot-loop.sh`. tmux is the supervisor; service units and `nohup`-via-`incus exec` do not work here.
+The Pi mounts the P: network share into an **incus container `claude-code`** at `/home/claude/workspace/`. The diplomat venv lives at `/home/claude/workspace/diplomat/.venv` (inside the container). Long-lived processes in this container (codexbot, claude telegram plugin) all run inside a **tmux session `bot`** owned by user `claude`, started May 3 by `/tmp/claude-bot-loop.sh`. `tools/service.sh` is the canonical lifecycle wrapper; internally it creates/kills the `diplomat` tmux window so it survives `incus exec` teardown.
 
 **Canonical start command:**
 
 ```bash
-incus exec claude-code -- sudo -u claude tmux new-window -t bot -n diplomat \
-  "cd /home/claude/workspace/diplomat && \
-   PYTHONPATH=src DIPLOMAT_PIPELINE_CONFIG=config/pipeline_smoke.yaml \
-   .venv/bin/python -u src/main.py 2>&1 | tee -a logs/diplomat.log"
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh start
 ```
 
-Swap `pipeline_smoke.yaml` → `pipeline.yaml` for the production config (requires `ANTHROPIC_API_KEY`).
+Set `DIPLOMAT_PIPELINE_CONFIG=config/pipeline.yaml` for the production config (requires `ANTHROPIC_API_KEY`).
 
 **Status / logs / stop:**
 
 ```bash
-# Status: window list inside the bot session
-incus exec claude-code -- sudo -u claude tmux list-windows -t bot
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh status
 
 # Live log tail (separate terminal)
-incus exec claude-code -- bash -c "tail -f /home/claude/workspace/diplomat/logs/diplomat.log"
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh logs 100
 
-# Stop: kill the tmux window — supervisor bash + python child both die
-incus exec claude-code -- sudo -u claude tmux kill-window -t bot:diplomat
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh stop
+incus exec claude-code -- bash /home/claude/workspace/diplomat/tools/service.sh restart
 ```
 
 **What doesn't work in this container:**
 
 | Approach | Why it fails |
 |---|---|
-| `incus exec ... bash tools/service.sh start` (nohup) | `incus exec` creates a transient cgroup scope; when the immediate command exits, the scope is torn down and all processes in it die — `nohup` + `setsid` + `</dev/null` do not survive it. Verified 2026-05-31. |
 | `systemctl enable diplomat.service` | The container has no usable systemd-as-PID-1 (unprivileged or systemd-less). `config/diplomat.service` is kept for hosts where it would work but does not install here. |
 | `incus exec ... -- tmux ...` without `sudo -u claude` | tmux server runs as user `claude`; `incus exec` defaults to root and cannot reach claude's socket. `sudo -u claude` drops to the right user. |
 

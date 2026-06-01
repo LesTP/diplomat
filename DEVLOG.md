@@ -355,3 +355,11 @@ Outcome: Added `tests/test_service_sh.py`, a shell-driven pytest smoke test for 
 Contract changes: None; this step verifies the lifecycle contract added in 25.2-25.4.
 
 Tests: `.venv/bin/python -m pytest tests/test_service_sh.py` — 1 passed.
+
+### Step 25.6: Service lifecycle docs
+
+Mode: Build
+Outcome: Updated the service lifecycle docs now that `tools/service.sh` is tmux-backed. `CLI_REFERENCE.md` makes the script the canonical Pi interface again and documents `BOT_TMUX_SESSION`; `SMOKE_RUNBOOK.md` §2 uses `service.sh start/status/logs`; `diplomat-testing-doc.md` §5b promotes service.sh commands and removes the obsolete broken-nohup row; DEVPLAN's Pi deployment gotcha now points at `service.sh start`.
+Contract changes: CLI/operator docs now define `tools/service.sh` as the canonical lifecycle interface over the underlying tmux window.
+
+Tests: `.venv/bin/python -m pytest tests/test_service_sh.py` — 1 passed.
