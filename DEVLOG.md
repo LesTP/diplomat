@@ -454,3 +454,13 @@ Contract changes: Self-play `scores` payloads now include the new baseline-norma
 Notes: Added focused tests for at-BATNA, at-Pareto, below-BATNA, and zero-surplus-denominator cases. Population standard deviation is computed over faction deltas.
 
 Tests: `.venv/bin/python -m pytest tests/test_self_play.py` — 42 passed.
+
+### Step 27.3: Render new fields in the analysis report
+
+Mode: Build
+Outcome: Added a `NO-DEAL-AWARE SCORING` section to `tests/self_play/analysis.py` report output. The section renders `pareto_efficiency`, `negotiated_surplus_share`, `delta_above_batna_sum`, `min_faction_delta`, `surplus_distribution_stdev`, and sorted per-faction `faction_deltas`.
+Contract changes: Self-play analysis reports now expose the baseline-normalized scoring fields when `results["scores"]` is present.
+
+Notes: Added a capsys render test using the existing synthetic process-signature fixture so the section is covered without live LLM calls.
+
+Tests: `.venv/bin/python -m pytest tests/test_self_play.py` — 43 passed.

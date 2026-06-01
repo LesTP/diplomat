@@ -158,6 +158,37 @@ def analyze_results(
                 truncated = truncated.replace("\n", " ")
                 print(f"    [{faction_id}] {truncated}")
 
+    # No-deal-aware scoring.
+    scores = results.get("scores", {})
+    if scores:
+        print(f"\n{'-'*60}")
+        print("  NO-DEAL-AWARE SCORING")
+        print(f"{'-'*60}")
+        print(f"    pareto_efficiency: {float(scores.get('pareto_efficiency', 0.0)):.3f}")
+        print(
+            "    negotiated_surplus_share: "
+            f"{float(scores.get('negotiated_surplus_share', 0.0)):.3f}"
+        )
+        print(
+            "    delta_above_batna_sum: "
+            f"{float(scores.get('delta_above_batna_sum', 0.0)):.3f}"
+        )
+        print(
+            "    min_faction_delta: "
+            f"{float(scores.get('min_faction_delta', 0.0)):.3f}"
+        )
+        print(
+            "    surplus_distribution_stdev: "
+            f"{float(scores.get('surplus_distribution_stdev', 0.0)):.3f}"
+        )
+        faction_deltas = scores.get("faction_deltas", {})
+        if faction_deltas:
+            print("    faction_deltas:")
+            for faction_id, delta in sorted(faction_deltas.items()):
+                print(f"      {faction_id}: {float(delta):+.3f}")
+        else:
+            print("    faction_deltas: n/a")
+
     # Process signatures.
     signatures = results.get("process_signatures") or compute_process_signatures(results)
     print(f"\n{'-'*60}")

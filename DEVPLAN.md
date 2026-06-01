@@ -2,7 +2,7 @@
 phase: 27
 blocked: false
 state: execute
-steps_remaining: 5
+steps_remaining: 4
 ---
 
 # Diplomat — Development Plan
@@ -98,7 +98,7 @@ this phase metric-only.
 
 ### Step 27.3: Render new fields in the analysis report
 
-- [ ] Update `analyze_results()` in `tests/self_play/analysis.py` to print the new fields in the existing scoring section (or a new "NO-DEAL-AWARE SCORING" subsection if cleaner). Include `negotiated_surplus_share`, `delta_above_batna_sum`, `min_faction_delta`, `surplus_distribution_stdev`, and per-faction `faction_deltas`. Add a render test (similar to existing report tests) using a synthetic scenario_analysis + score_data fixture. Run `.venv/bin/python -m pytest tests/test_self_play.py` and confirm pass.
+- [x] Update `analyze_results()` in `tests/self_play/analysis.py` to print the new fields in the existing scoring section (or a new "NO-DEAL-AWARE SCORING" subsection if cleaner). Include `negotiated_surplus_share`, `delta_above_batna_sum`, `min_faction_delta`, `surplus_distribution_stdev`, and per-faction `faction_deltas`. Add a render test (similar to existing report tests) using a synthetic scenario_analysis + score_data fixture. Run `.venv/bin/python -m pytest tests/test_self_play.py` and confirm pass.
 
 ### Step 27.4: Backfill tool for historical runs
 

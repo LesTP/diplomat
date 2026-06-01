@@ -474,6 +474,32 @@ class TestAnalysis:
         assert "alpha" in captured.out.lower()
         assert "beta" in captured.out.lower()
 
+    def test_analyze_results_renders_no_deal_aware_scoring(self, capsys) -> None:
+        from tests.self_play.analysis import analyze_results
+
+        results = _process_signature_results()
+        results["scores"].update(
+            {
+                "pareto_efficiency": 0.500,
+                "negotiated_surplus_share": 0.000,
+                "delta_above_batna_sum": 4.000,
+                "min_faction_delta": 0.000,
+                "surplus_distribution_stdev": 2.000,
+                "faction_deltas": {"alpha": 0.0, "beta": 4.0},
+            }
+        )
+
+        analyze_results(results)
+
+        captured = capsys.readouterr()
+        assert "NO-DEAL-AWARE SCORING" in captured.out
+        assert "negotiated_surplus_share: 0.000" in captured.out
+        assert "delta_above_batna_sum: 4.000" in captured.out
+        assert "min_faction_delta: 0.000" in captured.out
+        assert "surplus_distribution_stdev: 2.000" in captured.out
+        assert "alpha: +0.000" in captured.out
+        assert "beta: +4.000" in captured.out
+
 
 # ── Pareto efficiency scoring ───────────────────────────────────────
 
