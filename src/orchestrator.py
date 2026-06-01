@@ -15,6 +15,7 @@ from typing import Any
 
 import yaml
 
+from logging_config import get_logger
 from modules.coaching import CoachingEvent, Command
 from modules.context_assembler import CoachingEntry
 from modules.generation import GenerationResult
@@ -61,6 +62,7 @@ REQUIRED_MODULES = frozenset(
         "review_gate",
     }
 )
+logger = get_logger(__name__)
 
 
 class PipelineConfigError(ValueError):
@@ -247,19 +249,44 @@ class _OrchestratorCore:
         self, content: str, trigger_type: str, trigger_ref: str
     ) -> None:
         if not await self._budget_available(f"extraction:{trigger_type}"):
+            logger.info(
+                "extraction.skip trigger_type=%s trigger_ref=%s reason=budget",
+                trigger_type,
+                trigger_ref,
+            )
             return
+        logger.info(
+            "extraction.start trigger_type=%s trigger_ref=%s content_length=%s",
+            trigger_type,
+            trigger_ref,
+            len(content),
+        )
         current_state = await self.state_manager.get_full_state()
         result = await self.extractor.extract(content, current_state, trigger_type)
         if not getattr(result, "success", False):
-            print(
-                f"Extraction failed ({trigger_type}): {getattr(result, 'error', 'no patch')}"
+            logger.warning(
+                "extraction.skip trigger_type=%s trigger_ref=%s reason=failed error=%s",
+                trigger_type,
+                trigger_ref,
+                getattr(result, "error", "no patch"),
             )
             return
         if result.patch is None:
+            logger.info(
+                "extraction.skip trigger_type=%s trigger_ref=%s reason=no_patch",
+                trigger_type,
+                trigger_ref,
+            )
             return
         await self.state_manager.apply_patch(
             result.patch,
             PatchSource(trigger_type=trigger_type, trigger_ref=trigger_ref),
+        )
+        logger.info(
+            "extraction.complete trigger_type=%s trigger_ref=%s patch=%s",
+            trigger_type,
+            trigger_ref,
+            _patch_summary(result.patch),
         )
 
     async def _store_coaching(self, event: CoachingEvent) -> str:
@@ -293,6 +320,7 @@ class _OrchestratorCore:
             await self._send_operator(reply)
 
     async def _command_preview(self, _command: Command) -> str | None:
+        logger.info("pipeline.trigger trigger=preview_command")
         await self.run_response_pipeline()
         return None
 
@@ -394,24 +422,44 @@ class _OrchestratorCore:
         return False
 
     async def handle_round_boundary(self) -> None:
+        previous_round = self.current_round
+        logger.info("round.boundary round=%s stage=start", previous_round)
         state = await self.state_manager.get_full_state()
         recent_events = await self._recent_events()
 
         # Post-round state reconciliation: dedup, fulfillment, inconsistencies.
+        logger.info(
+            "round.boundary round=%s stage=reconciliation events=%s",
+            previous_round,
+            len(recent_events),
+        )
         await self._reconcile_state(state, recent_events)
 
         # Re-read state after reconciliation for analyst input.
         state = await self.state_manager.get_full_state()
 
         if not await self._budget_available("analyst:primary"):
+            logger.info(
+                "round.boundary round=%s stage=analyst_skip reason=primary_budget",
+                previous_round,
+            )
             return
         if not await self._budget_available("analyst:secondary"):
+            logger.info(
+                "round.boundary round=%s stage=analyst_skip reason=secondary_budget",
+                previous_round,
+            )
             return
+        logger.info("round.boundary round=%s stage=analyst_start", previous_round)
         primary_result, secondary_result = await asyncio.gather(
             self.primary_analyst.analyze(state, recent_events=recent_events),
             self.secondary_analyst.analyze(state, recent_events=recent_events),
         )
         if not getattr(primary_result, "success", False):
+            logger.warning(
+                "round.boundary round=%s stage=analyst_failed provider=primary",
+                previous_round,
+            )
             await self._send_operator("Primary analyst failed; round analysis skipped.")
             return
 
@@ -419,6 +467,10 @@ class _OrchestratorCore:
         if getattr(secondary_result, "success", False):
             divergences = list(self.divergence(primary_result, secondary_result))
         else:
+            logger.warning(
+                "round.boundary round=%s stage=analyst_failed provider=secondary",
+                previous_round,
+            )
             await self._send_operator(
                 "Secondary analyst failed; proceeding with primary analysis only."
             )
@@ -427,10 +479,23 @@ class _OrchestratorCore:
         self.current_round += 1
         await self._set_game_state("round_number", str(self.current_round))
         self._reset_round_budget()
+        logger.info(
+            "round.boundary round=%s stage=complete next_round=%s divergences=%s",
+            previous_round,
+            self.current_round,
+            len(divergences),
+        )
 
     async def run_response_pipeline(
         self, trigger_event: InboundEvent | None = None
     ) -> bool:
+        trigger = "direct_address" if trigger_event is not None else "manual"
+        logger.info(
+            "pipeline.trigger trigger=%s round=%s sender_faction=%s",
+            trigger,
+            self.current_round,
+            getattr(trigger_event, "sender_faction", None),
+        )
         persona_prompt = await self.persona.get_base_prompt()
         round_context = await self.persona.build_round_context(
             self.current_round,
@@ -449,23 +514,44 @@ class _OrchestratorCore:
         )
 
         if not await self._budget_available("generation"):
+            logger.info(
+                "pipeline.complete trigger=%s success=False reason=budget_generation",
+                trigger,
+            )
             return False
         draft = await self.generator.generate(context)
         if not draft.success:
             await asyncio.sleep(0)
             if not await self._budget_available("generation:retry"):
+                logger.info(
+                    "pipeline.complete trigger=%s success=False reason=budget_generation_retry",
+                    trigger,
+                )
                 return False
             draft = await self.generator.generate(context)
         if not draft.success:
+            logger.warning(
+                "pipeline.complete trigger=%s success=False reason=generation_failed error=%s",
+                trigger,
+                draft.error,
+            )
             await self._send_operator(f"Generation failed: {draft.error}")
             return False
 
         adversarial_result = None
         if self.feature_flags["adversarial"]["enabled"]:
             if not await self._budget_available("adversarial"):
+                logger.info(
+                    "pipeline.complete trigger=%s success=False reason=budget_adversarial",
+                    trigger,
+                )
                 return False
             adversarial_result = await self.adversarial.read(draft.response_text or "")
             if not getattr(adversarial_result, "success", False):
+                logger.warning(
+                    "pipeline.stage trigger=%s stage=adversarial success=False",
+                    trigger,
+                )
                 await self._send_operator("Adversarial read failed; continuing.")
         await self._store_adversarial_read(adversarial_result)
 
@@ -475,10 +561,18 @@ class _OrchestratorCore:
             self.current_round,
         )
         if getattr(decision, "action", None) == "blocked":
+            logger.info(
+                "pipeline.complete trigger=%s success=False reason=review_blocked",
+                trigger,
+            )
             await self._send_operator("Draft blocked.")
             return False
         final_text = getattr(decision, "final_text", None)
         if not isinstance(final_text, str) or not final_text.strip():
+            logger.info(
+                "pipeline.complete trigger=%s success=False reason=review_empty",
+                trigger,
+            )
             await self._send_operator("Review gate returned no sendable text.")
             return False
 
@@ -487,9 +581,18 @@ class _OrchestratorCore:
             try:
                 await self.transport.send(message)
                 await self._mark_coaching_consumed()
+                logger.info(
+                    "pipeline.complete trigger=%s success=True final_length=%s",
+                    trigger,
+                    len(final_text.strip()),
+                )
                 return True
             except Exception:
                 if attempt == 2:
+                    logger.warning(
+                        "pipeline.complete trigger=%s success=False reason=transport_failed",
+                        trigger,
+                    )
                     await self._send_operator("Transport send failed after 3 attempts.")
                     return False
                 await asyncio.sleep(0)
@@ -1097,6 +1200,19 @@ async def _maybe_await(value: Any) -> Any:
     if isawaitable(value):
         return await value
     return value
+
+
+def _patch_summary(patch: Any) -> str:
+    data = getattr(patch, "data", None)
+    if not isinstance(data, dict):
+        return "unknown"
+    parts = []
+    for key, value in sorted(data.items()):
+        if isinstance(value, list):
+            parts.append(f"{key}:{len(value)}")
+        else:
+            parts.append(f"{key}:1")
+    return ",".join(parts) if parts else "empty"
 
 
 def Orchestrator(*args: Any, **kwargs: Any) -> EventDrivenFlow:

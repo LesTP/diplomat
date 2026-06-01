@@ -4,7 +4,11 @@ from inspect import isawaitable
 from types import SimpleNamespace
 from typing import Any
 
+from logging_config import get_logger
 from modules.types import InboundEvent
+
+
+logger = get_logger(__name__)
 
 
 class Pipeline:
@@ -20,15 +24,29 @@ class Pipeline:
         await self.orchestrator.shutdown()
 
     async def store_event(self, event: InboundEvent) -> str:
-        return await self.orchestrator.event_store.append(
+        event_id = await self.orchestrator.event_store.append(
             event,
             self.orchestrator.current_round,
         )
+        logger.debug(
+            "event.stored event_id=%s round=%s sender_faction=%s channel=%s",
+            event_id,
+            self.orchestrator.current_round,
+            event.sender_faction,
+            event.channel,
+        )
+        return event_id
 
     async def extract_from(
         self, event: InboundEvent, event_id: str | None = None
     ) -> str:
         stored_event_id = event_id or await self.store_event(event)
+        logger.debug(
+            "extraction.delegated event_id=%s sender_faction=%s channel=%s",
+            stored_event_id,
+            event.sender_faction,
+            event.channel,
+        )
         await self.orchestrator._apply_extraction(
             event.content,
             "message",

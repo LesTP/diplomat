@@ -96,14 +96,41 @@ class EventDrivenFlow:
     async def process_event(self, event: InboundEvent) -> str:
         event_id = await self.pipeline.store_event(event)
         if event.sender_faction == "operator":
+            logger.info(
+                "event.routed event_id=%s route=operator channel=%s",
+                event_id,
+                event.channel,
+            )
             await self.pipeline.dispatch_operator(event.content, event_id)
             return event_id
 
         self._enqueue_message_extraction(event, event_id)
-        if await self._check_round_boundary(event):
+        route = (
+            "system"
+            if event.sender_faction == "system"
+            else "faction_extraction"
+        )
+        logger.info(
+            "event.routed event_id=%s route=%s sender_faction=%s channel=%s",
+            event_id,
+            route,
+            event.sender_faction,
+            event.channel,
+        )
+        if await self._check_round_boundary(event, event_id):
             return event_id
         if self.address_detector(event):
-            await self.pipeline.run_response(trigger_event=event)
+            logger.info(
+                "pipeline.trigger event_id=%s trigger=direct_address sender_faction=%s",
+                event_id,
+                event.sender_faction,
+            )
+            result = await self.pipeline.run_response(trigger_event=event)
+            logger.info(
+                "pipeline.complete event_id=%s success=%s trigger=direct_address",
+                event_id,
+                result,
+            )
         return event_id
 
     def _enqueue_message_extraction(
@@ -112,6 +139,12 @@ class EventDrivenFlow:
         task = asyncio.create_task(self._debounced_message_extraction(event, event_id))
         self._extraction_tasks.add(task)
         task.add_done_callback(self._extraction_tasks.discard)
+        logger.info(
+            "extraction.scheduled event_id=%s sender_faction=%s debounce_seconds=%.3f",
+            event_id,
+            event.sender_faction,
+            self.message_debounce_seconds,
+        )
 
     async def _debounced_message_extraction(
         self, event: InboundEvent, event_id: str
@@ -119,9 +152,14 @@ class EventDrivenFlow:
         await asyncio.sleep(self.message_debounce_seconds)
         await self.pipeline.extract_from(event, event_id=event_id)
 
-    async def _check_round_boundary(self, event: InboundEvent) -> bool:
+    async def _check_round_boundary(self, event: InboundEvent, event_id: str) -> bool:
         if not self.round_detector(event):
             return False
+        logger.info(
+            "round.boundary event_id=%s detector=signal pattern=%s",
+            event_id,
+            getattr(self.round_detector, "pattern", "unknown"),
+        )
         await self.pipeline.reconcile_and_analyze()
         return True
 
@@ -149,7 +187,11 @@ class EventDrivenFlow:
 
 def signal_round_detector(pattern: str) -> RoundDetector:
     compiled = re.compile(pattern)
-    return lambda event: bool(compiled.search(event.content))
+    def detect(event: InboundEvent) -> bool:
+        return bool(compiled.search(event.content))
+
+    setattr(detect, "pattern", pattern)
+    return detect
 
 
 def faction_address_detector(faction_id: str) -> AddressDetector:

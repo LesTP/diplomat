@@ -431,3 +431,13 @@ Contract changes: None. Transport APIs and normalized event shapes are unchanged
 Notes: The classification log directly exposes the Phase 19 smoke failure mode where Telegram sender IDs mapped unexpectedly and messages appeared as operator traffic.
 
 Tests: `.venv/bin/python -m pytest tests/test_transport.py` — 26 passed.
+
+### Step 26.4: Pipeline, flow, and orchestrator instrumentation
+
+Mode: Build
+Outcome: Added structured records across `diplomat.pipeline`, `diplomat.flows.event_driven`, and `diplomat.orchestrator`. Event-driven flow now logs `event.routed` for operator, faction-extraction, and system paths, `extraction.scheduled` for per-event debounce tasks, `round.boundary` when the signal detector fires, and direct-address `pipeline.trigger` / `pipeline.complete`. The orchestrator core now logs `extraction.start`, `extraction.skip`, `extraction.complete` with patch summaries, round-boundary reconciliation/analyst stages, preview-command triggers, and response pipeline success/failure reasons through generation, adversarial, review, and send stages. `Pipeline` emits DEBUG-level delegation/storage records.
+Contract changes: None. Public Pipeline, Flow, and Orchestrator APIs are unchanged.
+
+Notes: `signal_round_detector()` now attaches the configured regex pattern to the detector callable so `round.boundary` logs can include the pattern without changing the Flow contract.
+
+Tests: `.venv/bin/python -m pytest tests/test_pipeline.py tests/test_flows.py tests/test_orchestrator.py` — 67 passed. Additional focused rerun after the system-route label change: `.venv/bin/python -m pytest tests/test_flows.py` — 8 passed.
