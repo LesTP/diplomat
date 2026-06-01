@@ -64,7 +64,7 @@ fi
 count_unchecked() {
   local phase_pattern="## Phase ${phase}"
   # Extract from phase header to next h2 (or end of file), count unchecked
-  sed -n "/^${phase_pattern}/,/^## /p" "$DEVPLAN" | grep -c '^- \[ \]' 2>/dev/null || echo "0"
+  sed -n "/^${phase_pattern}/,/^## /p" "$DEVPLAN" | grep -c '^- \[ \]' 2>/dev/null || true
 }
 
 # --- Handle execute with no remaining steps → transition to review ---

@@ -258,3 +258,11 @@ Outcome: All 5 diplomat docs from step 24.7 updated.
 - `ARCH_reconciliation.md`: new "Schema-driven entity types (Phase 24.6)" subsection in the Solution section explaining the reconciler and self-play `analysis.py` now derive entity keys from `state_patch.json`.
 
 Done out-of-loop because the worker had already EXIT-2'd Phase 24 once on a project-boundary issue (24.1); operator finished off the remaining doc obligations in a single sweep rather than re-dispatching for one step. Phase 24 is now fully checked off (24.1-24.7) and the loop can transition to REVIEW on the next dispatch.
+
+## 2026-06-01 - Phase 24 execute verification + state_machine.sh bugfix
+
+Action: EXECUTE (worker iteration)
+Mode: Build
+Outcome: Phase 24 definition of done verified. 330 tests passing.
+
+Bug fixed: `tools/state_machine.sh` `count_unchecked()` used `|| echo "0"` as a fallback, but `grep -c` already prints "0" to stdout before exiting 1 on no matches — producing "0\n0" which failed `[: integer expression expected` on every comparison, preventing the automatic execute→review state transition. Fixed to `|| true` so grep's "0" output is the sole return value. DEVPLAN state manually advanced to `review` with steps_remaining cleared.
