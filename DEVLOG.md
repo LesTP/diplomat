@@ -311,3 +311,13 @@ Mode: Build
 Outcome: Activated Phase 25 as the current Build phase and converted the `tools/service.sh` tmux rewrite into six executable steps: scope/design confirmation, `start()` rewrite, `stop()` rewrite, `status()`/`restart()` rewrite, shell-driven service smoke test, and named doc updates.
 
 Scope decision: `tools/service.sh` will use tmux as the source of truth, with default session `bot`, `BOT_TMUX_SESSION` override for tests/parallel deployments, user-aware sudo behavior, and an explicit missing-session error rather than auto-creating a session. Review and close remain state-machine actions, not executable checklist steps.
+
+### Step 25.1: Service tmux scope analysis
+
+Mode: Build
+Outcome: Confirmed the existing `tools/service.sh` still uses `.diplomat.pid` plus `nohup`, while the operational docs identify the surviving Pi launch pattern as a tmux window in the long-lived `bot` session. Settled the replacement design for the remaining implementation steps.
+Contract changes: None.
+
+Design decisions for implementation: `BOT_TMUX_SESSION` overrides the default `bot` session, tmux commands run through `sudo -u claude` unless the current user is already `claude`, and a missing tmux session fails with `session '<name>' not found; create with: sudo -u claude tmux new-session -d -s <name>` rather than auto-creating.
+
+Tests: Not run; analysis-only step.
