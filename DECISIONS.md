@@ -204,7 +204,7 @@ Rationale: These items are already scoped, testable, and do not require live pro
 Revisit if: Any step requires expanding runtime contracts outside the named CLI/self-play/extraction/reconciliation surfaces.
 
 D-29: Phase 25 makes tmux the service supervisor
-Date: 2026-06-01 | Status: Accepted
+Date: 2026-06-01 | Status: Closed
 Priority: Important
 Decision: Phase 25 will rewrite `tools/service.sh` around the working tmux window pattern. The default supervising session is `bot`, overridable with `BOT_TMUX_SESSION`; commands skip `sudo -u claude` when already running as `claude`; missing sessions fail with a clear create-session command instead of auto-creating.
 Rationale: The 2026-05-31 smoke showed `nohup` children die when started through `incus exec` because the transient cgroup is torn down. A tmux pane in the long-lived `bot` session survived the same launch path, and making that pattern the canonical service interface keeps Pi operations to one wrapped command while preserving a test override.

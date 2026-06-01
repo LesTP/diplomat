@@ -369,3 +369,21 @@ Tests: `.venv/bin/python -m pytest tests/test_service_sh.py` — 1 passed.
 Mode: Review
 Date: 2026-06-01
 Outcome: Phase review passed. Reviewed `tools/service.sh` (tmux-backed lifecycle), `tests/test_service_sh.py` (shell smoke test), and all four updated docs (CLI_REFERENCE.md, SMOKE_RUNBOOK.md, diplomat-testing-doc.md, DEVPLAN gotcha). No must-fix or should-fix items found. All 331 tests pass. State advanced to close.
+
+## 2026-06-01 — Phase 25 close
+
+Action: CLOSE
+Mode: Build
+Outcome: Phase 25 governance cleanup complete. 331 tests passing.
+
+Summary of what was built: `tools/service.sh` now uses tmux as the service supervisor instead of `.diplomat.pid` + `nohup`. `start` launches a foreground `src/main.py` process in a `diplomat` tmux window and tees output to `logs/diplomat.log`; `stop`, `status`, and `restart` are tmux-backed and idempotent where appropriate. The default supervising session is `bot`, with `BOT_TMUX_SESSION` for tests and parallel deployments, and missing sessions fail with a clear create-session command.
+
+Docs updated during the phase: `CLI_REFERENCE.md`, `SMOKE_RUNBOOK.md`, `diplomat-testing-doc.md`, and the DEVPLAN Pi deployment gotcha now make `tools/service.sh start` the canonical Pi lifecycle command. Close cleanup reduced Phase 25 to a DEVPLAN history summary, marked the audit gate before Phase 26, updated `ARCHITECTURE.md` test count to 331, and closed `DECISIONS.md` D-29.
+
+DEVLOG learning review: No new gotchas promoted. The useful operational rule was already captured in the Cold Start Summary: use `service.sh` as the operator-facing interface; tmux is the underlying survival mechanism.
+
+Contract changes: No runtime module contracts changed. The operator-facing service lifecycle contract changed from PID/nohup-backed to tmux-backed and is documented in `CLI_REFERENCE.md`.
+
+Tests: `.venv/bin/python -m pytest tests/test_service_sh.py` — 1 passed. `.venv/bin/python -m pytest` — 331 passed.
+
+DEVLOG archival: Skipped — file is 371 lines before this entry, under the ~500-line rotation threshold.
