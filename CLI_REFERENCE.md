@@ -144,7 +144,9 @@ python -m tests.self_play.run_simulation \
 | `--scenario` | — | Path to scenario `.md` for LLM compilation into per-faction personas |
 | `--scenario-title` | `"a multi-party negotiation"` | Title injected into persona headers |
 | `--analysis-json` | — | Skip live compilation; load pre-existing `scenario_analysis.json`. Requires `--scenario` for the seed message. Preserves hand-tuned BATNAs across runs. |
-| `--batna-fraction` | `0.50` | Target BATNA as fraction of each faction's max possible score during compilation. See `TUNING.md` §1 BATNA tuning. Ignored with `--analysis-json` (analysis is already final). |
+| `--batna-fraction` | `0.50` | Target BATNA as fraction of each faction's max possible score during compilation. Scalar fallback when `--batna-fractions` is not supplied. See `TUNING.md` §1 BATNA tuning. Ignored with `--analysis-json` (analysis is already final). |
+| `--batna-fractions` | — | JSON map `{faction_id: fraction}` for **asymmetric** BATNAs (one faction under pressure, another comfortable). Overrides `--batna-fraction` only for listed factions; unlisted use the scalar fallback. Example: `'{"alpha":0.65,"beta":0.35,"gamma":0.50}'`. Same parsing pattern as `--per-faction-providers`. Ignored with `--analysis-json`. |
+| `--game-mode` | — | Runtime override for the compiled scenario's `game_mode` classification. Choices: `cooperative` / `competitive` / `mixed`. Applies a temporary persona overlay without touching `scenario_analysis.json` — lets you re-run the same scenario in a different posture without recompiling. |
 | `--per-faction-providers` | — | JSON map `{faction:{provider,model}}` — overrides only the Generator slot per faction. Other modules stay on shared primary/secondary. |
 | `--dry-run` | `false` | Zero-cost path: `DryRunLLMClient` returns canned responses. Use before any live multi-provider run. See `RUN_PROTOCOL.md`. |
 
@@ -236,6 +238,17 @@ python -m tools.scenario_compiler \
 python -m tools.scenario_compiler \
     --scenario tests/self_play/scenarios/water_rights.md \
     --batna-fraction 0.65
+
+# Asymmetric BATNAs: alpha squeezed, beta comfortable
+python -m tools.scenario_compiler \
+    --scenario tests/self_play/scenarios/water_rights.md \
+    --batna-fractions '{"alpha":0.65,"beta":0.35,"gamma":0.50}'
+
+# Force-clamp LLM-produced BATNAs to the target fractions (no narrative drift)
+python -m tools.scenario_compiler \
+    --scenario tests/self_play/scenarios/water_rights.md \
+    --batna-fraction 0.55 \
+    --force-batna-fraction
 ```
 
 | Flag | Default | Notes |
@@ -244,7 +257,9 @@ python -m tools.scenario_compiler \
 | `--faction` | (all) | Generate persona for one faction only |
 | `--output-dir` | (scenario dir) | Where to write `scenario_analysis.json` and persona `.txt` files |
 | `--title` | `"a multi-party negotiation"` | Persona header title |
-| `--batna-fraction` | `0.50` | Target BATNA as fraction of each faction's max possible score. Same flag as on `run_simulation.py`. See `TUNING.md` §1 BATNA tuning for full semantics (higher = more pressure to find Pareto deals; lower = easier to settle for any deal). |
+| `--batna-fraction` | `0.50` | Target BATNA as fraction of each faction's max possible score. Scalar fallback when `--batna-fractions` is not supplied. Same flag as on `run_simulation.py`. See `TUNING.md` §1 BATNA tuning for full semantics (higher = more pressure to find Pareto deals; lower = easier to settle for any deal). |
+| `--batna-fractions` | — | JSON map `{faction_id: fraction}` for **asymmetric** BATNAs. Overrides `--batna-fraction` only for listed factions; unlisted use the scalar fallback. Example: `'{"alpha":0.65,"beta":0.35}'`. |
+| `--force-batna-fraction` | `false` | After LLM analysis, **overwrite** each faction's BATNA with `target_fraction × max_possible_score`. Uses `--batna-fractions` per-faction targets when supplied; otherwise uses `--batna-fraction`. Default off, preserving narrative BATNAs. Use when narrative-explicit BATNAs would dilute the target pressure. |
 
 After compilation, prints any per-faction BATNA pressure warnings from
 `validate_batna_pressure()`. Warnings only — never blocks compilation.

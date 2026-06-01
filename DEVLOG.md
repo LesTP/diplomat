@@ -245,3 +245,16 @@ Outcome: Reconciliation now derives tracked entity type names from `config/schem
 Contract changes: `StateReconciler` accepts an optional `state_patch_schema_path`; reconciliation and self-play analysis now treat state patch root properties as the source of truth for report/prompt entity lists.
 
 Tests: `python3 -m pytest tests/test_reconciliation.py tests/test_self_play.py` — 47 passed. `python3 -m pytest` — 330 passed.
+
+## 2026-05-31 - Step 24.7 doc update (operator-direct)
+
+Action: EXECUTE (out-of-loop)
+Mode: Build
+Outcome: All 5 diplomat docs from step 24.7 updated.
+- `CLI_REFERENCE.md`: added rows for `--batna-fractions`, `--force-batna-fraction`, `--game-mode` in both the `run_simulation` and `scenario_compiler` flag tables; updated `--batna-fraction` description to note scalar-fallback role; added a four-example block to `scenario_compiler` showing the new flags in use.
+- `TUNING.md` §1: added new subsections "Asymmetric BATNAs (`--batna-fractions`)", "Force-clamp narrative BATNAs (`--force-batna-fraction`)", "Game-mode runtime override (`--game-mode`)"; extended the Workflows list with two new entries pointing into the new subsections.
+- `diplomat-testing-doc.md` §4 Layer 2: callout under the section heading noting the extraction examples now live at `config/examples/extraction_examples.json`.
+- `ARCH_extraction.md`: new paragraph in the OpenAIStructuredExtractor implementation note covering `examples_path`, the default config location, and the `paths.examples.extraction` pipeline.yaml key.
+- `ARCH_reconciliation.md`: new "Schema-driven entity types (Phase 24.6)" subsection in the Solution section explaining the reconciler and self-play `analysis.py` now derive entity keys from `state_patch.json`.
+
+Done out-of-loop because the worker had already EXIT-2'd Phase 24 once on a project-boundary issue (24.1); operator finished off the remaining doc obligations in a single sweep rather than re-dispatching for one step. Phase 24 is now fully checked off (24.1-24.7) and the loop can transition to REVIEW on the next dispatch.

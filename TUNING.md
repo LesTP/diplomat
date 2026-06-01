@@ -50,7 +50,36 @@ Available on both `tools.scenario_compiler` and `tests.self_play.run_simulation`
 - **Own scenarios, want defaults:** just run with `--scenario <path>`
 - **Own scenarios, want specific pressure:** add `--batna-fraction 0.65` (or whatever)
 - **External scenario with explicit BATNAs in the narrative:** prompt instructs the LLM to honor those; `--batna-fraction` becomes a soft target the LLM weighs against narrative
-- **Hand-tuned reproducible runs:** compile once, edit `scenario_analysis.json`, then `--analysis-json` to replay (skips compile entirely; `--batna-fraction` is ignored on this path)
+- **Asymmetric pressure (one faction squeezed, others comfortable):** use `--batna-fractions '{"alpha":0.65,"beta":0.35,"gamma":0.50}'` — see next section
+- **Narrative BATNAs drifting away from your target pressure:** add `--force-batna-fraction` — see next section
+- **Hand-tuned reproducible runs:** compile once, edit `scenario_analysis.json`, then `--analysis-json` to replay (skips compile entirely; `--batna-fraction` / `--batna-fractions` / `--force-batna-fraction` are ignored on this path)
+
+### Asymmetric BATNAs (`--batna-fractions`)
+
+Available on both `tools.scenario_compiler` and `tests.self_play.run_simulation`. JSON map `{faction_id: fraction}`. Overrides `--batna-fraction` only for listed factions; unlisted factions use the scalar fallback. Same parsing pattern as `--per-faction-providers`.
+
+Use when the scenario should put one faction under structural pressure while others are comfortable — e.g. testing whether a high-BATNA agent extracts concessions from a low-BATNA one, or whether the squeezed faction holds out for a Pareto move instead of capitulating.
+
+```
+--batna-fractions '{"alpha":0.65,"beta":0.35,"gamma":0.50}'
+```
+
+`validate_batna_pressure()` validates per-faction targets when asymmetric. Combine with `--batna-fraction` for the fallback default if you only want to override a subset.
+
+### Force-clamp narrative BATNAs (`--force-batna-fraction`)
+
+`tools.scenario_compiler` flag. After the LLM produces the analysis JSON, post-process each faction's BATNA to `target_fraction × max_possible_score`. Uses `--batna-fractions` per-faction targets if supplied; otherwise the scalar `--batna-fraction`. **Default off** — narrative-explicit BATNAs are preserved by default.
+
+Use when:
+- The narrative includes explicit BATNA hints that pull the LLM away from your target pressure
+- You want reproducible BATNA values regardless of LLM run-to-run drift
+- You're testing "what changes if I raise alpha's BATNA from X to Y" — easier with force-clamp than with prompt nudging
+
+Avoid when the narrative-specific BATNAs are *the experiment* (e.g. a scenario explicitly about asymmetric outside options that the LLM should reason about).
+
+### Game-mode runtime override (`--game-mode`)
+
+`tests.self_play.run_simulation` flag. Choices: `cooperative` / `competitive` / `mixed`. Applies a temporary persona overlay for the run without touching the compiled `scenario_analysis.json`. Use to A/B the same compiled scenario in different postures without recompiling.
 
 ### Google (Gemini) defaults for tuning and multi-provider runs
 

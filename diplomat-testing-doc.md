@@ -343,6 +343,8 @@ The following test patterns are already covered. Listed here for reference — n
 
 Prompt regression tests verify that specific inputs produce outputs with required properties. They call real APIs via the adapter layer. Run before any prompt change goes live.
 
+> **Extraction few-shot examples** live in `config/examples/extraction_examples.json` (as of Phase 24.5 — previously a Python constant `_EXTRACTION_EXAMPLES` in `src/modules/extraction/__init__.py`). Tuning the example set is a config-only change. Path is configurable via `pipeline.yaml` `paths.examples.extraction`.
+
 ### 4.1 Scenario Format
 
 Each scenario is a JSON file:

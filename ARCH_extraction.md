@@ -28,6 +28,8 @@ class ExtractionResult:
 
 **OpenAIStructuredExtractor** (primary) — calls `toolkit/llm_client.complete()` with `ModelTier.COMMODITY`. System prompt from `config/prompts/state_updater.txt`. The state_patch.json schema is included in the prompt for structured output enforcement. The module parses the LLM response as JSON and validates it against the schema before returning.
 
+Few-shot examples are loaded from a JSON file at construction (default path: `config/examples/extraction_examples.json`; override via `pipeline.yaml` `paths.examples.extraction` or by passing `examples_path` directly). Examples used to be a Python constant `_EXTRACTION_EXAMPLES` — they were moved out to config in Phase 24.5 so prompt-tuning the example set is a config-only change (no code edit, no redeploy of compiled modules).
+
 Trigger type handling:
 - `'message'`: input is raw game messages, treated as observed facts
 - `'intel_correction'`: input is prefixed with `[OPERATOR INTEL]`, treated as high-confidence override

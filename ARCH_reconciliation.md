@@ -34,6 +34,10 @@ per-message extractions have completed. It takes the full picture — all
 tracked promises/coalitions/inconsistencies plus the round's transcript —
 and produces a reconciled state patch.
 
+### Schema-driven entity types (Phase 24.6)
+
+The reconciler's "what entity types exist" knowledge is **derived from `config/schemas/state_patch.json` at construction time**, not hardcoded. The same applies to the self-play `analysis.py` reporting tool (`state_patch_entity_types(schema_path)`). Adding a new entity type to the schema (e.g. a `threats` table) makes it visible to both modules without code changes. The prior version hardcoded `["promises", "coalitions", "inconsistencies"]` in multiple places — removed in Phase 24.6 as part of Level 1 modularization toward domain portability.
+
 ### What It Does
 
 1. **Merge duplicates:** Identify promises with the same from_faction,
