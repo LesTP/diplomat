@@ -213,3 +213,11 @@ Outcome: Added `--batna-fractions` JSON parsing for `tools.scenario_compiler` an
 Contract changes: CLI surface gains `--batna-fractions`; `analyze_scenario()` and `validate_batna_pressure()` now accept optional per-faction BATNA target maps.
 
 Tests: `python3 -m pytest tests/test_scenario_compiler.py tests/test_self_play.py` — 66 passed. `python3 -m pytest` — 321 passed.
+
+### Step 24.3: Force BATNA fraction clamp
+
+Mode: Build
+Outcome: Added `--force-batna-fraction` to `tools.scenario_compiler`. When set, compiled analysis is post-processed before save/persona generation so every faction BATNA is overwritten to `target_fraction * max_possible_score`, using `--batna-fractions` asymmetric targets when present and the scalar fallback otherwise. Default behavior remains unchanged and preserves narrative-explicit BATNAs.
+Contract changes: CLI surface gains `--force-batna-fraction`; `force_batna_targets()` is available as a deterministic helper for compiler tests and future tooling.
+
+Tests: `python3 -m pytest tests/test_scenario_compiler.py` — 32 passed. `python3 -m pytest tests/integration/test_pipeline_flow.py tests/test_scenario_compiler.py` — 38 passed after investigating a transient async integration failure. `python3 -m pytest` — 324 passed.

@@ -8,6 +8,7 @@ from tools.scenario_compiler import (
     DEFAULT_BATNA_FRACTION,
     SCENARIO_ANALYSIS_SCHEMA,
     build_compiler_system_prompt,
+    force_batna_targets,
     generate_persona,
     max_possible_score,
     parse_batna_fractions_json,
@@ -221,6 +222,35 @@ class TestValidateBatnaPressure:
     def test_default_fraction_matches_module_constant(self) -> None:
         # Smoke check that the validator and CLI default agree
         assert 0.0 < DEFAULT_BATNA_FRACTION < 1.0
+
+
+class TestForceBatnaTargets:
+    def test_sets_batnas_to_scalar_fraction_of_max(self) -> None:
+        updated = force_batna_targets(_SAMPLE_ANALYSIS, target_fraction=0.50)
+        assert updated["batna"] == {"alpha": 9, "beta": 10, "gamma": 10}
+        assert _SAMPLE_ANALYSIS["batna"] == {"alpha": 6, "beta": 6, "gamma": 6}
+
+    def test_per_faction_targets_override_scalar(self) -> None:
+        updated = force_batna_targets(
+            _SAMPLE_ANALYSIS,
+            target_fraction=0.30,
+            target_fractions={"alpha": 0.60, "beta": 0.40},
+        )
+        assert updated["batna"] == {"alpha": 11, "beta": 8, "gamma": 6}
+
+    def test_forced_batnas_clear_validation(self) -> None:
+        updated = force_batna_targets(
+            _SAMPLE_ANALYSIS,
+            target_fraction=0.30,
+            target_fractions={"alpha": 0.60},
+        )
+        warnings = validate_batna_pressure(
+            updated,
+            target_fraction=0.30,
+            target_fractions={"alpha": 0.60},
+            tolerance=0.0,
+        )
+        assert warnings == []
 
 
 class TestParseBatnaFractionsJson:

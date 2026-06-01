@@ -23,6 +23,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 import sys
 from pathlib import Path
@@ -400,6 +401,33 @@ def validate_batna_pressure(
     return warnings
 
 
+def force_batna_targets(
+    analysis: dict[str, Any],
+    target_fraction: float = DEFAULT_BATNA_FRACTION,
+    target_fractions: dict[str, float] | None = None,
+) -> dict[str, Any]:
+    """Return analysis with BATNAs set to requested fraction targets.
+
+    This deliberately overrides narrative-explicit BATNAs after LLM analysis.
+    Use only when the operator wants calibrated pressure over fidelity to the
+    scenario text's outside-option description.
+    """
+    _validate_batna_fraction(target_fraction, label="target_fraction")
+    target_fractions = target_fractions or {}
+    for faction_id, fraction in target_fractions.items():
+        _validate_batna_fraction(fraction, label=f"target_fractions[{faction_id}]")
+
+    updated = copy.deepcopy(analysis)
+    updated.setdefault("batna", {})
+    for faction_id in updated.get("factions", []):
+        max_score = max_possible_score(updated, faction_id)
+        if max_score == 0:
+            continue
+        faction_target = target_fractions.get(faction_id, target_fraction)
+        updated["batna"][faction_id] = int(round(max_score * faction_target))
+    return updated
+
+
 def generate_persona(
     faction_id: str,
     analysis: dict[str, Any],
@@ -542,6 +570,16 @@ def _parse_args() -> argparse.Namespace:
             'the scalar fallback. Example: \'{"alpha":0.65,"beta":0.35}\''
         ),
     )
+    parser.add_argument(
+        "--force-batna-fraction",
+        action="store_true",
+        help=(
+            "After LLM analysis, overwrite each faction's BATNA with "
+            "target_fraction * max_possible_score. Uses --batna-fractions "
+            "per-faction targets when supplied; otherwise uses "
+            "--batna-fraction. Default off, preserving narrative BATNAs."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -596,6 +634,14 @@ async def _run(args: argparse.Namespace) -> None:
         batna_fraction=args.batna_fraction,
         batna_fractions=batna_fractions,
     )
+
+    if args.force_batna_fraction:
+        analysis = force_batna_targets(
+            analysis,
+            target_fraction=args.batna_fraction,
+            target_fractions=batna_fractions,
+        )
+        print("  Forced BATNAs to requested fraction targets")
 
     analysis_path = save_analysis(analysis, output_dir)
     print(f"Analysis saved: {analysis_path}")
