@@ -266,3 +266,18 @@ Mode: Build
 Outcome: Phase 24 definition of done verified. 330 tests passing.
 
 Bug fixed: `tools/state_machine.sh` `count_unchecked()` used `|| echo "0"` as a fallback, but `grep -c` already prints "0" to stdout before exiting 1 on no matches — producing "0\n0" which failed `[: integer expression expected` on every comparison, preventing the automatic execute→review state transition. Fixed to `|| true` so grep's "0" output is the sole return value. DEVPLAN state manually advanced to `review` with steps_remaining cleared.
+
+## 2026-06-01 - Phase 24 review
+
+Action: REVIEW
+Mode: Build
+Outcome: Phase 24 code review passed — no must-fix or should-fix items. 330 tests passing.
+
+Review findings:
+- 24.2/24.3: `--batna-fractions` + `--force-batna-fraction` in scenario_compiler.py. Validation delegated to `_validate_batna_fraction` consistently. `force_batna_targets` uses `copy.deepcopy` — no mutation. Correct.
+- 24.4: `--game-mode` validates against `_GAME_MODE_CHOICES` before applying; uses deepcopy. Correct.
+- 24.5: `load_examples()` validates array + per-item types. `_EXTRACTION_EXAMPLES` constant fully removed from Python; 5 examples load cleanly from JSON. Config path wired in both `pipeline.yaml` and `pipeline_smoke.yaml`. Correct.
+- 24.6: `state_patch_entity_types()` function reads schema keys dynamically. Both `LLMReconciler.__init__` and `analysis.py` `score_game()` call it — no hardcoded `["promises", "coalitions", "inconsistencies"]` list remains in either module. Residual hardcoded strings in `state_manager` and `extraction` examples are domain-specific (not the prompt-builder path targeted by 24.6). Correct.
+- CRLF artifacts: several files show line-ending-only diffs vs working tree (persona, service.sh, pipeline_smoke.yaml, self-play results). Not code changes; NTFS drive artifact. No action needed.
+
+State advanced to `close`.
