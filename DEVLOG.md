@@ -493,3 +493,14 @@ Contract changes: Documentation now treats `negotiated_surplus_share`, `faction_
 Notes: Closed the TUNING_LOG open item for no-deal `pareto_efficiency` being confounded with BATNA height. Partial-consensus scoring remains open and out of Phase 27 scope.
 
 Tests: `.venv/bin/python -m pytest` — 340 passed.
+
+### Phase 27 Review
+
+Mode: Review
+Outcome: No must-fix or should-fix items found.
+- `_pareto_efficiency_metrics()`: correct BATNA-normalized logic, zero-denominator guard, negative delta propagation. Return type `dict[str, Any]` appropriate.
+- `analyze_results()`: new NO-DEAL-AWARE SCORING section renders all 6 fields; missing `faction_deltas` handled gracefully.
+- 4 new focused tests (at-BATNA, below-BATNA, zero-denominator, render) pass cleanly.
+- `tools/backfill_scoring_metrics.py`: clean CLI reusing `_pareto_efficiency_metrics()` directly.
+- 340 tests passing (≥ 337 criterion met). Pre-existing `test_pipeline_flow.py` transient ordering issue not introduced by Phase 27.
+Contract changes: None.
