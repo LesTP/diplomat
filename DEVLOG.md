@@ -281,3 +281,25 @@ Review findings:
 - CRLF artifacts: several files show line-ending-only diffs vs working tree (persona, service.sh, pipeline_smoke.yaml, self-play results). Not code changes; NTFS drive artifact. No action needed.
 
 State advanced to `close`.
+
+## 2026-06-01 — Phase 24 close
+
+Action: CLOSE
+Mode: Build
+Outcome: Phase 24 governance cleanup complete. 330 tests passing.
+
+Summary of what was built:
+- **24.2/24.3**: Asymmetric per-faction BATNA pressure via `--batna-fractions` JSON map; `--force-batna-fraction` post-clamp override. Both flags wired into `scenario_compiler.py` and `run_simulation.py`.
+- **24.4**: `--game-mode` runtime override for self-play runs; `_apply_game_mode_override()` validates against the canonical game-mode list and deep-copies the analysis dict.
+- **24.5**: `_EXTRACTION_EXAMPLES` extracted from Python to `config/examples/extraction_examples.json`. `load_examples()` validates input types. Path configurable via `pipeline.yaml` `paths.examples.extraction`.
+- **24.6**: `state_patch_entity_types()` reads entity keys from `state_patch.json` schema. Both `LLMReconciler` and `analysis.py` use it — no hardcoded entity type list remains in prompt-builder paths.
+- **24.7**: Doc updates: `CLI_REFERENCE.md`, `TUNING.md`, `diplomat-testing-doc.md`, `ARCH_extraction.md`, `ARCH_reconciliation.md`.
+- **Infra**: Fixed `state_machine.sh` `count_unchecked()` double-echo bug (`grep -c` + `|| echo "0"` → `|| true`).
+
+Gotchas review: No new prescriptive one-liners to add. The state_machine.sh bugfix is self-contained and documented in the commit message. The CRLF artifact behavior on NTFS is already in Cold Start Summary.
+
+Contract changes: None. Phase 24 made no cross-module API changes. `state_patch_entity_types()` is a new public function exported from `reconciliation/__init__.py` — it's a helper, not a contract.
+
+Governance: DEVPLAN Phase 24 section reduced to one-line summary; Current Status updated to reflect close + audit gate. ARCHITECTURE.md testing status updated (316 → 330). DECISIONS.md D-28 closed.
+
+DEVLOG archival: Skipped — file is 283 lines, under 500 threshold.

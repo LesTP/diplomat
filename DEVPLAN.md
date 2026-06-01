@@ -1,8 +1,8 @@
 ---
 phase: 24
-blocked: false
+blocked: true
 state: close
-steps_remaining: 1
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -53,9 +53,9 @@ steps_remaining: 1
 
 ## Current Status
 
-- **Phase** — Phase 24 (Build) active. Phase 23 closed 2026-05-31.
-- **Focus** — Small builds + Level 1 modularization: toolkit OpenAI dispatch tests, asymmetric BATNA flags, game-mode override, extraction examples to JSON, entity types from schema.
-- **Blocked/Broken** — None known; Phase 24 is pure code/test/doc work, no live API required.
+- **Phase** — Phase 24 (Build) closed 2026-06-01. Awaiting human audit before Phase 25.
+- **Focus** — Next phase TBD. See `NEXT_STEPS.md` for forward backlog.
+- **Blocked/Broken** — Blocked pending human audit of Phase 24.
 
 ## Phase 21: Module boundary cleanup — Complete
 
@@ -73,24 +73,9 @@ Closed 2026-05-31. Added `tests/integration/test_phase18_paths.py` (6 tests, 290
 
 Closed 2026-05-31. Added `pareto_efficiency` field to `GameEnvironment.score_game()` and `compute_process_signatures()` to `tests/self_play/analysis.py`. Four deterministic process signatures (broken-promise rate, coalition stability, time-to-deal, opening gap). 316 tests passing. See `DEVLOG.md` "Phase 23 close" section.
 
-## Phase 24: Small builds + Level 1 modularization (Build)
+## Phase 24: Small builds + Level 1 modularization — Complete
 
-Regime: Build. Cluster of small standalone improvements that each take 30 min – 2 hr. Pure code, no judgment calls, no live API.
-
-Prerequisite: None.
-
-Steps:
-- [x] **24.1** Add toolkit unit tests for `OpenAIProvider.call` model-prefix dispatch. Two parametrized tests in `toolkit/tests/llm_client/test_core.py::TestOpenAIProviderTokenParam`: (a) reasoning models (`gpt-5*`, `o1*`, `o3*`, `o4*`) get `max_completion_tokens`; (b) legacy models (`gpt-4*`, `gpt-3.5*`) keep `max_tokens`. 10 test cases total, all passing. Closes the TODO from commit `5763897`. **Completed directly by operator** (toolkit-touching step; outside diplomat worker's permitted tree).
-- [x] **24.2** Add per-faction asymmetric `--batna-fractions` JSON flag to `tools/scenario_compiler.py` and `tests/self_play/run_simulation.py`. Same parsing pattern as `--per-faction-providers` (JSON map: `{"alpha":0.65,"beta":0.35,"gamma":0.50}`). Falls back to `--batna-fraction` scalar if not provided. Update `validate_batna_pressure()` to validate per-faction targets if asymmetric. 321 tests passing.
-- [x] **24.3** Add `--force-batna-fraction` post-clamp option to scenario compiler. After LLM produces the analysis JSON, post-process each faction's BATNA to clamp to `target × max_possible_score`. Default off (preserve current behavior); when set, narrative-explicit BATNAs are overridden. 324 tests passing.
-- [x] **24.4** Add `--game-mode` runtime override flag to `tests/self_play/run_simulation.py`. Allows operator to override the compiler's `game_mode` classification (cooperative/competitive/mixed) at run time without regenerating personas. Persona text gets the override applied as a runtime layer. 326 tests passing.
-- [x] **24.5** Level 1 modularization, part 1: extract `_EXTRACTION_EXAMPLES` constant from `src/modules/extraction/__init__.py` into `config/examples/extraction_examples.json`. Update `OpenAIStructuredExtractor` to load from JSON at construction time, with path configurable via `pipeline.yaml` `paths.examples.extraction`. Default path: `config/examples/extraction_examples.json`. Add the path to `pipeline.yaml` and `pipeline_smoke.yaml`. Update existing tests. 328 tests passing.
-- [x] **24.6** Level 1 modularization, part 2: derive entity-type references in reconciliation prompt and analysis tool iteration from `state_patch.json` schema keys instead of hardcoded strings. Both modules currently hardcode "promises", "coalitions", "inconsistencies" — replace with `list(schema['properties'].keys())` or equivalent. Test that adding a new entity type to the schema is visible to both modules without code changes. 330 tests passing.
-- [x] **24.7** Doc update (diplomat docs only). Updated 5 docs: `CLI_REFERENCE.md` (added `--batna-fractions`, `--force-batna-fraction`, `--game-mode` rows + example block; updated `--batna-fraction` rows to note `--batna-fractions` interaction); `TUNING.md` §1 (new "Asymmetric BATNAs", "Force-clamp narrative BATNAs", "Game-mode runtime override" subsections; updated Workflows list); `diplomat-testing-doc.md` §4 Layer 2 (extraction examples location callout); `ARCH_extraction.md` (paragraph on examples loaded from `config/examples/extraction_examples.json` + `paths.examples.extraction`); `ARCH_reconciliation.md` ("Schema-driven entity types (Phase 24.6)" subsection). Toolkit-side docs were already done alongside step 24.1. **Completed directly by operator** after 24.6 landed.
-
-Phase review and close are controller-managed actions, not executable checklist steps. Definition of done: 290+ tests passing; `--batna-fractions` + `--force-batna-fraction` + `--game-mode` all visible in `CLI_REFERENCE.md`; `_EXTRACTION_EXAMPLES` no longer in Python; entity types derived from schema in 2 places; named docs updated.
-
-Expected outcome: tooling debt cluster closed; modularization Level 1 done (Level 2 + Level 3 deferred until a concrete second-domain use case forces them).
+Closed 2026-06-01. Asymmetric BATNA flags (`--batna-fractions`, `--force-batna-fraction`), game-mode runtime override (`--game-mode`), extraction examples moved to `config/examples/extraction_examples.json`, entity types derived from `state_patch.json` schema in reconciler and self-play analysis. 330 tests passing. See `DEVLOG.md` "Phase 24 close" section.
 
 ## Phase 19: Execute, ad-hoc — Complete
 

@@ -197,7 +197,7 @@ Rationale: The scoring lenses are meant to improve assessment quality before fur
 Revisit if: A later tuning phase explicitly uses these metrics as feedback signals for prompt or strategy changes.
 
 D-28: Phase 24 closes small tooling debt in Build regime
-Date: 2026-05-31 | Status: Accepted
+Date: 2026-05-31 | Status: Closed
 Priority: Important
 Decision: Phase 24 will execute a fixed Build checklist of small standalone improvements: toolkit OpenAI dispatch tests, asymmetric BATNA CLI support, force-clamped BATNAs, game-mode runtime override, extraction examples moved to config JSON, and schema-derived entity type references. Review and close remain state-machine actions, not executable checklist items.
 Rationale: These items are already scoped, testable, and do not require live provider calls or product judgment. Keeping them in one Build phase closes known tooling and Level 1 modularization debt while preserving the autonomous loop's review gate.
