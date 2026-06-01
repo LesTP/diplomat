@@ -303,3 +303,11 @@ Contract changes: None. Phase 24 made no cross-module API changes. `state_patch_
 Governance: DEVPLAN Phase 24 section reduced to one-line summary; Current Status updated to reflect close + audit gate. ARCHITECTURE.md testing status updated (316 → 330). DECISIONS.md D-28 closed.
 
 DEVLOG archival: Skipped — file is 283 lines, under 500 threshold.
+
+## 2026-06-01 — Phase 25 plan
+
+Action: PLAN
+Mode: Build
+Outcome: Activated Phase 25 as the current Build phase and converted the `tools/service.sh` tmux rewrite into six executable steps: scope/design confirmation, `start()` rewrite, `stop()` rewrite, `status()`/`restart()` rewrite, shell-driven service smoke test, and named doc updates.
+
+Scope decision: `tools/service.sh` will use tmux as the source of truth, with default session `bot`, `BOT_TMUX_SESSION` override for tests/parallel deployments, user-aware sudo behavior, and an explicit missing-session error rather than auto-creating a session. Review and close remain state-machine actions, not executable checklist steps.
