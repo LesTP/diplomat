@@ -57,6 +57,13 @@ steps_remaining: 0
 - **Focus** — Phase 25 + Phase 26 queued back-to-back to close the post-smoke tooling-debt cluster: Phase 25 = `tools/service.sh` tmux rewrite (broken-via-incus-exec fix); Phase 26 = structured per-event logging (so future smokes don't need ad-hoc `print` instrumentation). Phase 26 is independent of Phase 25 and could be done in either order. See Phase 25 + Phase 26 sections below.
 - **Blocked/Broken** — Blocked pending human audit of Phase 24. When clearing the gate, bump frontmatter `phase: 25` and set `state: plan` to dispatch Phase 25. After Phase 25 closes, repeat with `phase: 26`.
 
+<!-- Phase ordering convention:
+       - Open / queued phases first, in forward execution order (next-to-do first).
+       - Closed phases below, reverse-chronological (most recently closed first).
+       - For phases closed on the same day, sort by phase number descending.
+     This puts the active work at the top and the "recent past" right under it,
+     with deep history at the bottom. -->
+
 ## Phase 25: `tools/service.sh` tmux rewrite (Build)
 
 Regime: Build. Closes the outstanding tooling debt surfaced during the 2026-05-31 Telegram smoke. The current `tools/service.sh` is broken when invoked via `incus exec claude-code -- bash tools/service.sh start` — the nohup'd child dies because `incus exec` creates a transient cgroup scope that gets torn down when the immediate command exits. The smoke's workaround was a raw `incus exec -- sudo -u claude tmux new-window -t bot -n diplomat ...` invocation. This phase makes `service.sh` use the working tmux pattern internally so the operator-facing interface (`start`/`stop`/`status`/`logs`/`restart`) works again as a single wrapped command.
@@ -92,25 +99,25 @@ Steps:
 
 Expected outcome: the next time the bot is smoked or debugged, the log file is the diagnostic surface. Faction-tagging anomalies (like the Phase 19 smoke's "every message tagged operator" case) are obvious from the log without code instrumentation. This is also a small step toward Block A's "tech debt to watch" entry in `ASSESSMENT.md` — "per-event structured logging" gets to close.
 
-## Phase 21: Module boundary cleanup — Complete
+## Phase 24: Small builds + Level 1 modularization — Complete
 
-Closed 2026-05-31. `OrchestrationOptions` dataclass; public `advance_to_round(n)`; deleted `_TaggedLLMClient`; `attribution`/`purpose` kwargs threaded through adapter stack; `build_reconciler` + `subsystem_llm_config` factories; `StubAnalyst` out of production registry; reconciler exceptions logged. 296 tests passing. See `DEVLOG_archive.md` "Phase 21 close" section.
-
-## Phase 22: Pipeline / Flow split — Complete
-
-Closed 2026-05-31. Added `Pipeline`, `EventDrivenFlow`, and `RoundSteppedFlow`; converted `Orchestrator` to a compatibility factory returning `EventDrivenFlow(Pipeline(core))`; made `GameEnvironment` a thin `RoundSteppedFlow` wrapper; documented `ARCH_flow.md`. 308 tests passing. See `DEVLOG.md` "Phase 22 close" section.
-
-## Phase 20: Layer 3 integration tests for Phase 18 paths — Complete
-
-Closed 2026-05-31. Added `tests/integration/test_phase18_paths.py` (6 tests, 290 total): burst extraction no-drops, reconciler dedup/fulfillment/inconsistency/missed-proposal. Deterministic fake LLM. `ASSESSMENT.md` Block A reconciliation path coverage → closed debt. `diplomat-testing-doc.md` Layer 3 counts updated. See `DEVLOG_archive.md` "Phase 20 close" section.
+Closed 2026-06-01. Asymmetric BATNA flags (`--batna-fractions`, `--force-batna-fraction`), game-mode runtime override (`--game-mode`), extraction examples moved to `config/examples/extraction_examples.json`, entity types derived from `state_patch.json` schema in reconciler and self-play analysis. 330 tests passing. See `DEVLOG.md` "Phase 24 close" section.
 
 ## Phase 23: Scoring expansion — Pareto efficiency + process signatures — Complete
 
 Closed 2026-05-31. Added `pareto_efficiency` field to `GameEnvironment.score_game()` and `compute_process_signatures()` to `tests/self_play/analysis.py`. Four deterministic process signatures (broken-promise rate, coalition stability, time-to-deal, opening gap). 316 tests passing. See `DEVLOG.md` "Phase 23 close" section.
 
-## Phase 24: Small builds + Level 1 modularization — Complete
+## Phase 22: Pipeline / Flow split — Complete
 
-Closed 2026-06-01. Asymmetric BATNA flags (`--batna-fractions`, `--force-batna-fraction`), game-mode runtime override (`--game-mode`), extraction examples moved to `config/examples/extraction_examples.json`, entity types derived from `state_patch.json` schema in reconciler and self-play analysis. 330 tests passing. See `DEVLOG.md` "Phase 24 close" section.
+Closed 2026-05-31. Added `Pipeline`, `EventDrivenFlow`, and `RoundSteppedFlow`; converted `Orchestrator` to a compatibility factory returning `EventDrivenFlow(Pipeline(core))`; made `GameEnvironment` a thin `RoundSteppedFlow` wrapper; documented `ARCH_flow.md`. 308 tests passing. See `DEVLOG.md` "Phase 22 close" section.
+
+## Phase 21: Module boundary cleanup — Complete
+
+Closed 2026-05-31. `OrchestrationOptions` dataclass; public `advance_to_round(n)`; deleted `_TaggedLLMClient`; `attribution`/`purpose` kwargs threaded through adapter stack; `build_reconciler` + `subsystem_llm_config` factories; `StubAnalyst` out of production registry; reconciler exceptions logged. 296 tests passing. See `DEVLOG_archive.md` "Phase 21 close" section.
+
+## Phase 20: Layer 3 integration tests for Phase 18 paths — Complete
+
+Closed 2026-05-31. Added `tests/integration/test_phase18_paths.py` (6 tests, 290 total): burst extraction no-drops, reconciler dedup/fulfillment/inconsistency/missed-proposal. Deterministic fake LLM. `ASSESSMENT.md` Block A reconciliation path coverage → closed debt. `diplomat-testing-doc.md` Layer 3 counts updated. See `DEVLOG_archive.md` "Phase 20 close" section.
 
 ## Phase 19: Execute, ad-hoc — Complete
 
