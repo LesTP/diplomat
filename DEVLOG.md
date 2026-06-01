@@ -483,3 +483,13 @@ Captured backfill values for Step 27.5 docs:
 Notes: The commands were run without `--write-back` so historical result JSON files were not modified in this step. Run 7 was skipped because it lacks a matching compiled scenario analysis, per the phase checklist. The Run 9 beta-squeezed historical scorer output exceeds the enumerated Pareto sum for its matching analysis, so both legacy `pareto_efficiency` and normalized surplus share are above 1.0; Step 27.5 should report the computed value rather than clamp it.
 
 Tests: `.venv/bin/python tools/backfill_scoring_metrics.py ...` — completed for Run 9 symmetric, Run 9 alpha squeezed, Run 9 beta squeezed, and Run 8 compiled backfill.
+
+### Step 27.5: Doc updates + Run 9 retro-scores
+
+Mode: Build
+Outcome: Updated `ASSESSMENT.md` §3.2 with the baseline-normalized surplus formula and companion scoring fields, updated `diplomat-testing-doc.md` Layer 4 with the new self-play JSON/report fields, and added a `Retro-scored with Phase 27 metrics (2026-06-01)` subsection to the Run 9 entry in `TUNING_LOG.md`.
+Contract changes: Documentation now treats `negotiated_surplus_share`, `faction_deltas`, `delta_above_batna_sum`, `min_faction_delta`, `surplus_distribution_stdev`, and `sum_batnas` as part of scenario-backed self-play scoring output.
+
+Notes: Closed the TUNING_LOG open item for no-deal `pareto_efficiency` being confounded with BATNA height. Partial-consensus scoring remains open and out of Phase 27 scope.
+
+Tests: `.venv/bin/python -m pytest` — 340 passed.

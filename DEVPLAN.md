@@ -1,8 +1,8 @@
 ---
 phase: 27
 blocked: false
-state: execute
-steps_remaining: 3
+state: review
+steps_remaining: 2
 ---
 
 # Diplomat — Development Plan
@@ -53,9 +53,9 @@ steps_remaining: 3
 
 ## Current Status
 
-- **Phase** — Phase 27 executing (no-deal-aware scoring metrics). Pre-planned by operator 2026-06-01 from Run 9 post-mortem findings (`TUNING_LOG.md`); PLAN confirmed Build scope with a five-step checklist.
-- **Focus** — Add baseline-normalized scoring fields to `score_game()` output so no-deal cases can be compared meaningfully across runs. Code-only, no LLM spend.
-- **Blocked/Broken** — Not blocked. Worker is executing the 5-step checklist below.
+- **Phase** — Phase 27 ready for review (no-deal-aware scoring metrics). Build checklist complete; STOP_BEFORE_REVIEW gate should stop before formal review.
+- **Focus** — Baseline-normalized scoring fields now compare no-deal cases against the BATNA floor, with report rendering, backfill tooling, and docs in place.
+- **Blocked/Broken** — Not blocked. Awaiting review action.
 
 <!-- Phase ordering convention:
        - Open / queued phases first, in forward execution order (next-to-do first).
@@ -106,7 +106,7 @@ this phase metric-only.
 
 ### Step 27.5: Doc updates + Run 9 retro-scores
 
-- [ ] Update `ASSESSMENT.md` §3.2 (Pareto efficiency section) to note the new baseline-normalized companion fields and reference `tests/self_play/game_environment.py` `_pareto_efficiency_metrics()` for the formulas. Update `diplomat-testing-doc.md` Layer 4 / post-game report section to list the new self-play result JSON fields. Update `TUNING_LOG.md` Run 9 entry (Phase 8 section) to add a "Retro-scored with Phase 27 metrics (YYYY-MM-DD)" subsection containing a table of all four Run 9 variants + Run 8 backfill showing the new `negotiated_surplus_share` and `min_faction_delta` values alongside the existing `pareto_efficiency`. No source-code changes in this step. Confirm `.venv/bin/python -m pytest` returns >= 337 passing.
+- [x] Update `ASSESSMENT.md` §3.2 (Pareto efficiency section) to note the new baseline-normalized companion fields and reference `tests/self_play/game_environment.py` `_pareto_efficiency_metrics()` for the formulas. Update `diplomat-testing-doc.md` Layer 4 / post-game report section to list the new self-play result JSON fields. Update `TUNING_LOG.md` Run 9 entry (Phase 8 section) to add a "Retro-scored with Phase 27 metrics (YYYY-MM-DD)" subsection containing a table of all four Run 9 variants + Run 8 backfill showing the new `negotiated_surplus_share` and `min_faction_delta` values alongside the existing `pareto_efficiency`. No source-code changes in this step. Confirm `.venv/bin/python -m pytest` returns >= 337 passing.
 
 <!-- history -->
 

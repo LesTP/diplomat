@@ -1208,8 +1208,12 @@ The analysis report includes deterministic process signatures:
 `broken_promise_rate`, `coalition_stability`, `time_to_deal`, and
 per-faction `opening_gap` when scenario scoring tables are present.
 Scenario-backed simulation JSON also includes `pareto_efficiency`,
-`achieved_score_sum`, `max_pareto_sum`, `process_signatures`, and
-`scenario_analysis`.
+`achieved_score_sum`, `max_pareto_sum`, `sum_batnas`, `faction_deltas`,
+`delta_above_batna_sum`, `min_faction_delta`,
+`surplus_distribution_stdev`, `negotiated_surplus_share`,
+`process_signatures`, and `scenario_analysis`. The analysis report
+prints the baseline-normalized scoring fields in a `NO-DEAL-AWARE
+SCORING` section when `results["scores"]` is present.
 
 ### 6.3 Scenario Compiler
 

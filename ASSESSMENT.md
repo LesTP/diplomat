@@ -89,25 +89,36 @@ score_normalized = (score_achieved - BATNA) / (max_possible - BATNA)
 - Limitation: doesn't distinguish "barely beat BATNA" from "found the
   optimum." Two agents both above BATNA both "win."
 
-### 3.2 Pareto efficiency (implemented)
+### 3.2 Pareto efficiency + no-deal-aware surplus share (implemented)
 
 ```
 pareto_efficiency = sum(achieved_scores) / max_pareto_sum
+negotiated_surplus_share =
+  sum(score_achieved - BATNA) / (max_pareto_sum - sum(BATNAs))
 ```
 
 where `max_pareto_sum` is the highest aggregate score over all deals
 that beat every faction's BATNA.
 
-- Range: `[0, 1.0]`. 1.0 = group found the joint optimum.
+- Range: `pareto_efficiency` is usually `[0, 1.0]`; scorer/table
+  mismatches can exceed 1.0 and should be investigated rather than
+  silently clamped. `negotiated_surplus_share` reads `0.0` at the
+  no-deal/BATNA floor and `1.0` at the deterministic Pareto optimum.
 - Captures: "Did the group leave value on the table?"
 - Status: ✓ Implemented in
   `tests/self_play/game_environment.py:548` and
   `tests/self_play/game_environment.py:684`. The scorer output now
   includes `achieved_score_sum`, `max_pareto_sum`, and
-  `pareto_efficiency`.
+  `pareto_efficiency`, plus baseline-normalized companion fields:
+  `sum_batnas`, `faction_deltas`, `delta_above_batna_sum`,
+  `min_faction_delta`, `surplus_distribution_stdev`, and
+  `negotiated_surplus_share`.
 - Why diagnostic: directly measures the negotiation skill we care
   about most — surfacing existing-but-hidden joint value through
   communication.
+- Why the companion fields matter: no-deal outcomes can have different
+  `pareto_efficiency` values solely because BATNAs differ. The
+  normalized surplus fields make those cases comparable across runs.
 
 ### 3.3 vs Naive Baseline (NOT YET implemented)
 
