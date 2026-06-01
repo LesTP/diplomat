@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 from toolkit.structured_llm import structured_call
@@ -102,9 +103,28 @@ RECONCILIATION_SCHEMA: dict[str, Any] = {
     },
 }
 
-RECONCILIATION_PROMPT = """\
+DEFAULT_STATE_PATCH_SCHEMA_PATH = "config/schemas/state_patch.json"
+
+
+def state_patch_entity_types(
+    schema_path: str | Path = DEFAULT_STATE_PATCH_SCHEMA_PATH,
+) -> list[str]:
+    """Return state patch root entity keys in schema order."""
+    schema = json.loads(Path(schema_path).read_text(encoding="utf-8"))
+    properties = schema.get("properties", {})
+    if not isinstance(properties, dict):
+        raise ValueError("State patch schema properties must be an object")
+    return list(properties.keys())
+
+
+def build_reconciliation_prompt(entity_types: list[str]) -> str:
+    entity_list = ", ".join(entity_types)
+    return RECONCILIATION_PROMPT_TEMPLATE.format(entity_types=entity_list)
+
+
+RECONCILIATION_PROMPT_TEMPLATE = """\
 You are a negotiation state reconciler. Given the current tracked state
-(promises, coalitions, inconsistencies) and the round's transcript, perform
+({entity_types}) and the round's transcript, perform
 a cleanup pass.
 
 Tasks:
@@ -150,11 +170,14 @@ class StateReconciler:
         llm_config: dict[str, Any],
         tier: str = "commodity",
         attribution: str | None = None,
+        state_patch_schema_path: str | Path = DEFAULT_STATE_PATCH_SCHEMA_PATH,
     ) -> None:
         self.llm_client = llm_client
         self.llm_config = llm_config
         self.tier = tier
         self.attribution = attribution
+        self.entity_types = state_patch_entity_types(state_patch_schema_path)
+        self.system_prompt = build_reconciliation_prompt(self.entity_types)
 
     async def reconcile(
         self,
@@ -173,24 +196,27 @@ class StateReconciler:
         transcript_text = "\n".join(transcript_lines)
 
         # Build user prompt with full context
-        user_prompt = "\n\n".join([
-            f"Round: {round_number}",
-            "Current tracked promises:",
-            json.dumps(current_state.get("promises", []), indent=2, sort_keys=True),
-            "Current tracked coalitions:",
-            json.dumps(current_state.get("coalitions", []), indent=2, sort_keys=True),
-            "Current tracked inconsistencies:",
-            json.dumps(current_state.get("inconsistencies", []), indent=2, sort_keys=True),
-            "This round's transcript:",
-            transcript_text,
-        ])
+        prompt_parts = [f"Round: {round_number}"]
+        for entity_type in self.entity_types:
+            prompt_parts.extend(
+                [
+                    f"Current tracked {entity_type}:",
+                    json.dumps(
+                        current_state.get(entity_type, []),
+                        indent=2,
+                        sort_keys=True,
+                    ),
+                ]
+            )
+        prompt_parts.extend(["This round's transcript:", transcript_text])
+        user_prompt = "\n\n".join(prompt_parts)
 
         result = await structured_call(
             self.llm_client,
             self.llm_config,
             self.tier,
             schema=RECONCILIATION_SCHEMA,
-            system_prompt=RECONCILIATION_PROMPT,
+            system_prompt=self.system_prompt,
             user_prompt=user_prompt,
             max_retries=1,
             attribution=self.attribution,
@@ -250,6 +276,8 @@ def build_reconciler(
 __all__ = [
     "ReconciliationResult",
     "StateReconciler",
+    "build_reconciliation_prompt",
+    "state_patch_entity_types",
     "subsystem_llm_config",
     "build_reconciler",
 ]

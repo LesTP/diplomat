@@ -2,7 +2,7 @@
 phase: 24
 blocked: false
 state: execute
-steps_remaining: 1
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -85,7 +85,7 @@ Steps:
 - [x] **24.3** Add `--force-batna-fraction` post-clamp option to scenario compiler. After LLM produces the analysis JSON, post-process each faction's BATNA to clamp to `target × max_possible_score`. Default off (preserve current behavior); when set, narrative-explicit BATNAs are overridden. 324 tests passing.
 - [x] **24.4** Add `--game-mode` runtime override flag to `tests/self_play/run_simulation.py`. Allows operator to override the compiler's `game_mode` classification (cooperative/competitive/mixed) at run time without regenerating personas. Persona text gets the override applied as a runtime layer. 326 tests passing.
 - [x] **24.5** Level 1 modularization, part 1: extract `_EXTRACTION_EXAMPLES` constant from `src/modules/extraction/__init__.py` into `config/examples/extraction_examples.json`. Update `OpenAIStructuredExtractor` to load from JSON at construction time, with path configurable via `pipeline.yaml` `paths.examples.extraction`. Default path: `config/examples/extraction_examples.json`. Add the path to `pipeline.yaml` and `pipeline_smoke.yaml`. Update existing tests. 328 tests passing.
-- [ ] **24.6** Level 1 modularization, part 2: derive entity-type references in reconciliation prompt and analysis tool iteration from `state_patch.json` schema keys instead of hardcoded strings. Both modules currently hardcode "promises", "coalitions", "inconsistencies" — replace with `list(schema['properties'].keys())` or equivalent. Test that adding a new entity type to the schema is visible to both modules without code changes.
+- [x] **24.6** Level 1 modularization, part 2: derive entity-type references in reconciliation prompt and analysis tool iteration from `state_patch.json` schema keys instead of hardcoded strings. Both modules currently hardcode "promises", "coalitions", "inconsistencies" — replace with `list(schema['properties'].keys())` or equivalent. Test that adding a new entity type to the schema is visible to both modules without code changes. 330 tests passing.
 - [ ] **24.7** Doc update (diplomat docs only): **`CLI_REFERENCE.md`** (three new flags — `--batna-fractions`, `--force-batna-fraction`, `--game-mode` — with examples and defaults; one updated section for `--batna-fraction` to note interaction with the new asymmetric flag); `TUNING.md` §1 BATNA section (asymmetric fractions + force-clamp semantics + when to use each); `diplomat-testing-doc.md` (Layer 2: extraction examples location moved to `config/examples/extraction_examples.json`); `ARCH_extraction.md` (examples now loaded from config path); `ARCH_reconciliation.md` (entity types now derived from schema). The toolkit-side doc update (`toolkit/API.md` + `toolkit/ARCH_llm_client.md` for `OpenAIProvider.call` parameter dispatch) was completed directly by operator alongside step 24.1 — do NOT attempt to modify toolkit.
 
 Phase review and close are controller-managed actions, not executable checklist steps. Definition of done: 290+ tests passing; `--batna-fractions` + `--force-batna-fraction` + `--game-mode` all visible in `CLI_REFERENCE.md`; `_EXTRACTION_EXAMPLES` no longer in Python; entity types derived from schema in 2 places; named docs updated.

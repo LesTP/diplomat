@@ -21,6 +21,18 @@ _DEAL_MARKERS = (
     "final agreement",
     "binding agreement",
 )
+DEFAULT_STATE_PATCH_SCHEMA_PATH = Path("config/schemas/state_patch.json")
+
+
+def state_patch_entity_types(
+    schema_path: str | Path = DEFAULT_STATE_PATCH_SCHEMA_PATH,
+) -> list[str]:
+    """Return state patch root entity keys in schema order."""
+    schema = json.loads(Path(schema_path).read_text(encoding="utf-8"))
+    properties = schema.get("properties", {})
+    if not isinstance(properties, dict):
+        raise ValueError("State patch schema properties must be an object")
+    return list(properties.keys())
 
 
 def compute_process_signatures(results: dict[str, Any]) -> dict[str, Any]:
@@ -65,12 +77,16 @@ def compute_process_signatures(results: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def analyze_results(results: dict) -> None:
+def analyze_results(
+    results: dict,
+    state_patch_schema_path: str | Path = DEFAULT_STATE_PATCH_SCHEMA_PATH,
+) -> None:
     """Print a formatted analysis report from simulation results."""
     rounds = results.get("rounds_completed", 0)
     transcript = results.get("transcript", [])
     agents = results.get("agents", {})
     round_responses = results.get("round_responses", {})
+    entity_types = state_patch_entity_types(state_patch_schema_path)
 
     print(f"\n{'='*60}")
     print("  SELF-PLAY ANALYSIS REPORT")
@@ -87,18 +103,16 @@ def analyze_results(results: dict) -> None:
     print(f"{'-'*60}")
 
     for faction_id, data in agents.items():
-        promises = data.get("promises", [])
-        coalitions = data.get("coalitions", [])
-        inconsistencies = data.get("inconsistencies", [])
         intelligence = data.get("intelligence", [])
 
         print(f"\n  [{faction_id.upper()}]")
-        print(f"    Promises tracked:       {len(promises)}")
-        print(f"    Coalitions detected:    {len(coalitions)}")
-        print(f"    Inconsistencies found:  {len(inconsistencies)}")
+        for entity_type in entity_types:
+            label = entity_type.replace("_", " ").title()
+            print(f"    {label} tracked:       {len(data.get(entity_type, []))}")
         print(f"    Intelligence reports:   {len(intelligence)}")
         print(f"    Final round number:     {data.get('round', '?')}")
 
+        promises = data.get("promises", [])
         if promises:
             print("    Promise details:")
             for p in promises:
@@ -108,6 +122,7 @@ def analyze_results(results: dict) -> None:
                 desc = p.get("description", "")[:80]
                 print(f"      {from_f} -> {to_f}: {status} - {desc}")
 
+        coalitions = data.get("coalitions", [])
         if coalitions:
             print("    Coalition details:")
             for c in coalitions:

@@ -17,6 +17,7 @@ import yaml
 from tests.helpers.factories import FakeCostAccountant, FakeLLMClient, make_event
 from tests.helpers.test_transport import TestTransport
 from tests.self_play.game_environment import GameEnvironment
+from tests.self_play.analysis import analyze_results
 from tests.self_play.run_simulation import _apply_game_mode_override
 from tests.self_play.scenario import ROUND_UPDATES, SEED_MESSAGE
 
@@ -154,6 +155,41 @@ class TestGameModeOverride:
         analysis = {"game_mode": "mixed", "factions": ["alpha"]}
 
         assert _apply_game_mode_override(analysis, None) is analysis
+
+
+def test_analysis_report_uses_entity_types_from_schema(tmp_path, capsys) -> None:
+    schema_path = tmp_path / "state_patch.json"
+    schema_path.write_text(
+        json.dumps(
+            {
+                "type": "object",
+                "properties": {
+                    "promises": {"type": "array"},
+                    "treaties": {"type": "array"},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    results = {
+        "rounds_completed": 1,
+        "transcript": [],
+        "agents": {
+            "alpha": {
+                "promises": [],
+                "treaties": [{"treaty_id": "t1"}],
+                "intelligence": [],
+                "round": 1,
+            }
+        },
+        "round_responses": {},
+    }
+
+    analyze_results(results, state_patch_schema_path=schema_path)
+
+    captured = capsys.readouterr()
+    assert "Promises tracked:       0" in captured.out
+    assert "Treaties tracked:       1" in captured.out
 
 
 # ── Config generation ────────────────────────────────────────────────

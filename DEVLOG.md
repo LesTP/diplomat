@@ -237,3 +237,11 @@ Outcome: Moved the extraction few-shot examples out of Python into `config/examp
 Contract changes: Extraction examples are now config data; `OpenAIStructuredExtractor` accepts an `examples_path` constructor argument, and pipeline config supports `paths.examples.extraction`.
 
 Tests: `python3 -m pytest tests/test_extraction.py tests/test_orchestrator.py tests/integration/test_pipeline_flow.py` — 80 passed. `python3 -m pytest` — 328 passed.
+
+### Step 24.6: Schema-derived entity type references
+
+Mode: Build
+Outcome: Reconciliation now derives tracked entity type names from `config/schemas/state_patch.json` and uses that list in both the system prompt and user prompt context. The self-play analysis report also derives its per-agent entity count rows from the same schema shape. Tests add a synthetic `treaties` schema key and verify it appears in both reconciliation prompts and analysis output without code changes.
+Contract changes: `StateReconciler` accepts an optional `state_patch_schema_path`; reconciliation and self-play analysis now treat state patch root properties as the source of truth for report/prompt entity lists.
+
+Tests: `python3 -m pytest tests/test_reconciliation.py tests/test_self_play.py` — 47 passed. `python3 -m pytest` — 330 passed.

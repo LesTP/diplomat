@@ -7,7 +7,11 @@ import json
 
 import pytest
 
-from modules.reconciliation import ReconciliationResult, StateReconciler
+from modules.reconciliation import (
+    ReconciliationResult,
+    StateReconciler,
+    state_patch_entity_types,
+)
 
 
 class FakeLLMClient:
@@ -130,6 +134,48 @@ class TestStateReconciler:
         # Check that the transcript was formatted in the prompt
         user_prompt = client.calls[0]["messages"][1]["content"]
         assert "[alpha] I commit to releasing 15M gallons." in user_prompt
+
+    @pytest.mark.asyncio
+    async def test_reconcile_uses_entity_types_from_schema(self, tmp_path) -> None:
+        schema_path = tmp_path / "state_patch.json"
+        schema_path.write_text(
+            json.dumps(
+                {
+                    "type": "object",
+                    "properties": {
+                        "promises": {"type": "array"},
+                        "treaties": {"type": "array"},
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        response = json.dumps({
+            "merged_promises": [],
+            "status_updates": [],
+            "new_inconsistencies": [],
+            "missed_proposals": [],
+            "merge_log": [],
+        })
+        client = FakeLLMClient(response)
+        reconciler = StateReconciler(
+            client,
+            {},
+            tier="commodity",
+            state_patch_schema_path=schema_path,
+        )
+
+        await reconciler.reconcile(
+            current_state={"promises": [], "treaties": [{"treaty_id": "t1"}]},
+            recent_events=[],
+            round_number=1,
+        )
+
+        assert state_patch_entity_types(schema_path) == ["promises", "treaties"]
+        system_prompt = client.calls[0]["messages"][0]["content"]
+        user_prompt = client.calls[0]["messages"][1]["content"]
+        assert "(promises, treaties)" in system_prompt
+        assert "Current tracked treaties:" in user_prompt
 
     @pytest.mark.asyncio
     async def test_reconcile_failure_returns_error(self) -> None:
