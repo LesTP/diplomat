@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import copy
 import json
 import os
 import sys
@@ -35,6 +36,9 @@ _project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_project_root / "src"))
 
 from tests.self_play.game_environment import GameEnvironment
+
+
+_GAME_MODE_CHOICES = ("cooperative", "competitive", "mixed")
 
 
 def _parse_args() -> argparse.Namespace:
@@ -129,7 +133,33 @@ def _parse_args() -> argparse.Namespace:
             'Example: \'{"alpha":0.65,"beta":0.35,"gamma":0.50}\''
         ),
     )
+    parser.add_argument(
+        "--game-mode",
+        choices=_GAME_MODE_CHOICES,
+        default=None,
+        help=(
+            "Runtime override for compiled scenario game_mode. Applies to "
+            "temporary personas generated for this run without changing the "
+            "source scenario_analysis.json."
+        ),
+    )
     return parser.parse_args()
+
+
+def _apply_game_mode_override(
+    analysis: dict[str, Any],
+    game_mode: str | None,
+) -> dict[str, Any]:
+    """Return scenario analysis with an optional runtime game_mode override."""
+    if game_mode is None:
+        return analysis
+    if game_mode not in _GAME_MODE_CHOICES:
+        raise ValueError(
+            f"game_mode must be one of {', '.join(_GAME_MODE_CHOICES)}; got {game_mode}"
+        )
+    updated = copy.deepcopy(analysis)
+    updated["game_mode"] = game_mode
+    return updated
 
 
 def _build_llm_client(cost_accountant=None):
@@ -212,6 +242,7 @@ async def _compile_scenario(
     scenario_title: str,
     batna_fraction: float | None = None,
     batna_fractions: dict[str, float] | None = None,
+    game_mode_override: str | None = None,
 ) -> dict[str, Path]:
     """Compile a scenario file into per-faction persona files via LLM."""
     from tools.scenario_compiler import (
@@ -254,6 +285,9 @@ async def _compile_scenario(
         batna_fraction=effective_fraction,
         batna_fractions=batna_fractions,
     )
+    analysis = _apply_game_mode_override(analysis, game_mode_override)
+    if game_mode_override:
+        print(f"  Game mode override: {game_mode_override}")
 
     # Save analysis for inspection
     personas_dir = tmp_dir / "personas"
@@ -298,6 +332,7 @@ def _load_precompiled_analysis(
     faction_ids: list[str],
     tmp_dir: Path,
     scenario_title: str,
+    game_mode_override: str | None = None,
 ) -> tuple[dict[str, Path], dict[str, Any]]:
     """Load a pre-compiled scenario_analysis.json and regenerate personas from it.
 
@@ -312,9 +347,12 @@ def _load_precompiled_analysis(
         sys.exit(1)
 
     analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
+    analysis = _apply_game_mode_override(analysis, game_mode_override)
     available_factions = analysis["factions"]
     print(f"Loaded pre-compiled analysis from {analysis_path.name}")
     print(f"  Factions in analysis: {', '.join(available_factions)}")
+    if game_mode_override:
+        print(f"  Game mode override: {game_mode_override}")
     print(f"  BATNAs: {analysis['batna']}")
 
     # Auto-use the factions from the analysis if caller didn't override.
@@ -420,7 +458,11 @@ async def _run(args: argparse.Namespace) -> None:
                 )
                 sys.exit(1)
             personas, scenario_analysis = _load_precompiled_analysis(
-                args.analysis_json, faction_ids, tmp_dir, args.scenario_title
+                args.analysis_json,
+                faction_ids,
+                tmp_dir,
+                args.scenario_title,
+                game_mode_override=args.game_mode,
             )
             seed_message = Path(args.scenario).read_text(encoding="utf-8")
             round_updates = {
@@ -434,6 +476,7 @@ async def _run(args: argparse.Namespace) -> None:
                 args.scenario, faction_ids, tmp_dir, llm_client, args.scenario_title,
                 batna_fraction=args.batna_fraction,
                 batna_fractions=batna_fractions,
+                game_mode_override=args.game_mode,
             )
             # Use the scenario text as the seed message.
             seed_message = Path(args.scenario).read_text(encoding="utf-8")

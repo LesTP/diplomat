@@ -17,6 +17,7 @@ import yaml
 from tests.helpers.factories import FakeCostAccountant, FakeLLMClient, make_event
 from tests.helpers.test_transport import TestTransport
 from tests.self_play.game_environment import GameEnvironment
+from tests.self_play.run_simulation import _apply_game_mode_override
 from tests.self_play.scenario import ROUND_UPDATES, SEED_MESSAGE
 
 
@@ -138,6 +139,21 @@ def _process_signature_results() -> dict:
         },
         "scenario_analysis": _pareto_scenario(),
     }
+
+
+class TestGameModeOverride:
+    def test_applies_runtime_game_mode_without_mutating_source(self) -> None:
+        analysis = {"game_mode": "cooperative", "factions": ["alpha"]}
+
+        updated = _apply_game_mode_override(analysis, "competitive")
+
+        assert updated["game_mode"] == "competitive"
+        assert analysis["game_mode"] == "cooperative"
+
+    def test_none_keeps_original_analysis_object(self) -> None:
+        analysis = {"game_mode": "mixed", "factions": ["alpha"]}
+
+        assert _apply_game_mode_override(analysis, None) is analysis
 
 
 # ── Config generation ────────────────────────────────────────────────

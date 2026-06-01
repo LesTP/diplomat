@@ -221,3 +221,11 @@ Outcome: Added `--force-batna-fraction` to `tools.scenario_compiler`. When set, 
 Contract changes: CLI surface gains `--force-batna-fraction`; `force_batna_targets()` is available as a deterministic helper for compiler tests and future tooling.
 
 Tests: `python3 -m pytest tests/test_scenario_compiler.py` — 32 passed. `python3 -m pytest tests/integration/test_pipeline_flow.py tests/test_scenario_compiler.py` — 38 passed after investigating a transient async integration failure. `python3 -m pytest` — 324 passed.
+
+### Step 24.4: Runtime game-mode override
+
+Mode: Build
+Outcome: Added `--game-mode {cooperative,competitive,mixed}` to `tests.self_play.run_simulation`. Scenario-backed runs now apply the override to a copied analysis object before temporary persona generation, so source `scenario_analysis.json` remains unchanged while the run-time persona text receives the selected game-mode layer.
+Contract changes: Self-play runner CLI gains `--game-mode`; scenario-backed result JSON reflects the runtime override in its copied `scenario_analysis`.
+
+Tests: `python3 -m pytest tests/test_self_play.py` — 39 passed. `python3 -m pytest` — 326 passed.
