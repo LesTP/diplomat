@@ -216,3 +216,10 @@ Priority: Important
 Decision: Phase 26 will add structured, grep-able logging across startup, Telegram transport, event-driven flow, pipeline routing, extraction, round boundaries, and response completion. Logs will stream to stdout/stderr through the normal service `tee` path, default to INFO, and support `DIPLOMAT_LOG_LEVEL` override plus config-level defaults.
 Rationale: The Phase 19 smoke exposed a routing/tagging failure that required temporary `print` instrumentation to diagnose. Making per-event logging part of the runtime contract gives future smokes an auditable diagnostic surface without ad-hoc code changes or duplicate log-file writers.
 Revisit if: The runtime moves to a structured log collector that requires JSON output or a non-stream handler.
+
+D-31: Phase 27 stays metric-only in Build regime
+Date: 2026-06-01 | Status: Accepted
+Priority: Important
+Decision: Phase 27 will add baseline-normalized no-deal-aware scoring metrics, report rendering, a historical backfill tool, and documentation updates without changing scorer prompts, agent behavior, provider routing, or partial-consensus deal detection.
+Rationale: Run 9 showed the current `pareto_efficiency` metric ranks no-deal outcomes by BATNA height rather than negotiated improvement. Companion fields can correct post-game interpretation while preserving the existing all-faction convergence scorer and keeping partial-consensus scoring as a separate Phase 28 candidate.
+Revisit if: Later tuning work needs the normalized surplus metrics to influence prompts or runtime negotiation strategy rather than remain diagnostic outputs.

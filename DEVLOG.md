@@ -423,3 +423,14 @@ Contract changes: Operator-facing logging config/env surface is now part of the 
 Tests: `.venv/bin/python -m pytest` — 337 passed.
 
 DEVLOG archival: Archived Phase 25 entries to `DEVLOG_archive.md`; Phase 26 remains in `DEVLOG.md` for immediate audit.
+
+## 2026-06-01 — Phase 27 plan
+
+Action: PLAN
+Mode: Build
+Outcome: Confirmed Phase 27 as a metric-only Build phase. The existing five-step checklist is the execution plan: insertion-point analysis, baseline-normalized metric implementation, report rendering, historical backfill tooling, and doc/retro-score updates.
+Contract changes: None yet. The planned result will extend self-play scoring output and reporting fields without changing scorer prompt semantics, provider routing, or agent behavior.
+
+Notes: Partial-consensus scoring remains explicitly out of scope for Phase 27 and should stay a separate Phase 28 candidate.
+
+Tests: Not run; planning-only action.
