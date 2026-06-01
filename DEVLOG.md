@@ -8,7 +8,7 @@
      module entries to DEVLOG_archive.md during phase completion cleanup.
      Add a boundary marker: <!-- Entries above archived from Module N, YYYY-MM-DD -->
 
-<!-- Entries above archived from Phase 21, 2026-05-31 -->
+<!-- Entries above archived from Phase 25, 2026-06-01 -->
 
 ### Phase 22 plan — 2026-05-31
 
@@ -304,90 +304,6 @@ Governance: DEVPLAN Phase 24 section reduced to one-line summary; Current Status
 
 DEVLOG archival: Skipped — file is 283 lines, under 500 threshold.
 
-## 2026-06-01 — Phase 25 plan
-
-Action: PLAN
-Mode: Build
-Outcome: Activated Phase 25 as the current Build phase and converted the `tools/service.sh` tmux rewrite into six executable steps: scope/design confirmation, `start()` rewrite, `stop()` rewrite, `status()`/`restart()` rewrite, shell-driven service smoke test, and named doc updates.
-
-Scope decision: `tools/service.sh` will use tmux as the source of truth, with default session `bot`, `BOT_TMUX_SESSION` override for tests/parallel deployments, user-aware sudo behavior, and an explicit missing-session error rather than auto-creating a session. Review and close remain state-machine actions, not executable checklist steps.
-
-### Step 25.1: Service tmux scope analysis
-
-Mode: Build
-Outcome: Confirmed the existing `tools/service.sh` still uses `.diplomat.pid` plus `nohup`, while the operational docs identify the surviving Pi launch pattern as a tmux window in the long-lived `bot` session. Settled the replacement design for the remaining implementation steps.
-Contract changes: None.
-
-Design decisions for implementation: `BOT_TMUX_SESSION` overrides the default `bot` session, tmux commands run through `sudo -u claude` unless the current user is already `claude`, and a missing tmux session fails with `session '<name>' not found; create with: sudo -u claude tmux new-session -d -s <name>` rather than auto-creating.
-
-Tests: Not run; analysis-only step.
-
-### Step 25.2: Rewrite service start
-
-Mode: Build
-Outcome: Replaced the `start()` path in `tools/service.sh` with tmux-window launch. The script now defines `BOT_TMUX_SESSION`/`TMUX_WINDOW`, checks that the configured tmux session exists, skips `sudo -u claude` when already running as user `claude`, starts `.venv/bin/python -u src/main.py` in a foreground tmux pane, pipes output through `tee -a logs/diplomat.log`, and removes the legacy PID file after launch.
-Contract changes: `tools/service.sh start` no longer writes `.diplomat.pid`; tmux is now the start-path source of truth.
-
-Notes: Normalized `tools/service.sh` to LF because the pre-existing CRLF-only dirty state produced mixed endings after the patch and failed shell parsing. `stop()` and `status()` still use the old PID path and are intentionally left for 25.3/25.4.
-
-Tests: `bash -n tools/service.sh`; `BOT_TMUX_SESSION=__diplomat_missing_test bash tools/service.sh start` exits 1 with the expected missing-session message.
-
-### Step 25.3: Rewrite service stop
-
-Mode: Build
-Outcome: Replaced the PID-backed `stop()` path with tmux window cleanup. `stop()` now checks for the configured `diplomat` tmux window, kills `"$BOT_TMUX_SESSION":diplomat` when present, and exits successfully with "Diplomat is not running" when the window is absent.
-Contract changes: `tools/service.sh stop` no longer reads, kills, or cleans up `.diplomat.pid`.
-
-Tests: `bash -n tools/service.sh`; temporary tmux session smoke (`__diplomat_stop_test`) verified `stop` kills only the `diplomat` window and is idempotent on a second call.
-
-### Step 25.4: Rewrite service status and restart
-
-Mode: Build
-Outcome: Replaced the remaining PID-backed `status()` path with tmux window detection and removed the obsolete PID helper/variable. `status` now reports `Diplomat is running (tmux window <session>:diplomat)` when the configured window exists and `Diplomat is not running` otherwise. `restart` remains the existing compositional `stop; start` case, now using tmux-backed subcommands.
-Contract changes: `tools/service.sh status` no longer reads or removes `.diplomat.pid`; the lifecycle surface is now tmux-backed for `start`, `stop`, `status`, and `restart`.
-
-Tests: `bash -n tools/service.sh`; temporary tmux session smoke (`__diplomat_status_test`) verified not-running and running status outputs. Confirmed `restart)` remains `stop; start`.
-
-### Step 25.5: Service shell smoke test
-
-Mode: Build
-Outcome: Added `tests/test_service_sh.py`, a shell-driven pytest smoke test for `tools/service.sh`. The test skips when `tmux` is unavailable, creates a temporary tmux session named `_test_diplomat_session`, copies the service script into a temporary project skeleton with a fake `.venv/bin/python`, drives `start`, polls `status` until the `diplomat` window is running, calls `stop`, verifies not-running status, and tears down the tmux session.
-Contract changes: None; this step verifies the lifecycle contract added in 25.2-25.4.
-
-Tests: `.venv/bin/python -m pytest tests/test_service_sh.py` — 1 passed.
-
-### Step 25.6: Service lifecycle docs
-
-Mode: Build
-Outcome: Updated the service lifecycle docs now that `tools/service.sh` is tmux-backed. `CLI_REFERENCE.md` makes the script the canonical Pi interface again and documents `BOT_TMUX_SESSION`; `SMOKE_RUNBOOK.md` §2 uses `service.sh start/status/logs`; `diplomat-testing-doc.md` §5b promotes service.sh commands and removes the obsolete broken-nohup row; DEVPLAN's Pi deployment gotcha now points at `service.sh start`.
-Contract changes: CLI/operator docs now define `tools/service.sh` as the canonical lifecycle interface over the underlying tmux window.
-
-Tests: `.venv/bin/python -m pytest tests/test_service_sh.py` — 1 passed.
-
-### Phase 25 review
-
-Mode: Review
-Date: 2026-06-01
-Outcome: Phase review passed. Reviewed `tools/service.sh` (tmux-backed lifecycle), `tests/test_service_sh.py` (shell smoke test), and all four updated docs (CLI_REFERENCE.md, SMOKE_RUNBOOK.md, diplomat-testing-doc.md, DEVPLAN gotcha). No must-fix or should-fix items found. All 331 tests pass. State advanced to close.
-
-## 2026-06-01 — Phase 25 close
-
-Action: CLOSE
-Mode: Build
-Outcome: Phase 25 governance cleanup complete. 331 tests passing.
-
-Summary of what was built: `tools/service.sh` now uses tmux as the service supervisor instead of `.diplomat.pid` + `nohup`. `start` launches a foreground `src/main.py` process in a `diplomat` tmux window and tees output to `logs/diplomat.log`; `stop`, `status`, and `restart` are tmux-backed and idempotent where appropriate. The default supervising session is `bot`, with `BOT_TMUX_SESSION` for tests and parallel deployments, and missing sessions fail with a clear create-session command.
-
-Docs updated during the phase: `CLI_REFERENCE.md`, `SMOKE_RUNBOOK.md`, `diplomat-testing-doc.md`, and the DEVPLAN Pi deployment gotcha now make `tools/service.sh start` the canonical Pi lifecycle command. Close cleanup reduced Phase 25 to a DEVPLAN history summary, marked the audit gate before Phase 26, updated `ARCHITECTURE.md` test count to 331, and closed `DECISIONS.md` D-29.
-
-DEVLOG learning review: No new gotchas promoted. The useful operational rule was already captured in the Cold Start Summary: use `service.sh` as the operator-facing interface; tmux is the underlying survival mechanism.
-
-Contract changes: No runtime module contracts changed. The operator-facing service lifecycle contract changed from PID/nohup-backed to tmux-backed and is documented in `CLI_REFERENCE.md`.
-
-Tests: `.venv/bin/python -m pytest tests/test_service_sh.py` — 1 passed. `.venv/bin/python -m pytest` — 331 passed.
-
-DEVLOG archival: Skipped — file is 371 lines before this entry, under the ~500-line rotation threshold.
-
 ## 2026-06-01 — Phase 26 plan
 
 Action: PLAN
@@ -489,3 +405,21 @@ Outcome: No must-fix or should-fix items found. All Phase 26 definition-of-done 
 Contract changes: None.
 
 Tests: 337 passed.
+
+## 2026-06-01 — Phase 26 close
+
+Action: CLOSE
+Mode: Build
+Outcome: Phase 26 governance cleanup complete. 337 tests passing.
+
+Summary of what was built: structured per-event logging is now the diagnostic surface for startup, Telegram inbound/outbound/tagging, event routing, extraction scheduling/completion/skips, round boundaries, response triggers, response pipeline stages, and completion/failure. Logging is stream-based so `tools/service.sh` continues to capture it through `tee`; `logging.level` / `logging.format` are in both pipeline configs, and `DIPLOMAT_LOG_LEVEL` overrides the configured level for temporary diagnostics.
+
+Docs updated during the phase: `CLI_REFERENCE.md`, `ARCH_orchestrator.md`, `ARCH_transport.md`, `ARCH_extraction.md`, `ARCH_reconciliation.md`, `SMOKE_RUNBOOK.md`, and `diplomat-testing-doc.md`. Close cleanup reduced Phase 26 to a DEVPLAN history summary, marked the audit gate, updated `ARCHITECTURE.md` test count to 337, and closed `DECISIONS.md` D-30.
+
+DEVLOG learning review: No new gotchas promoted. The prescriptive operator rule is already documented through the smoke runbook and testing guide: diagnose Telegram routing/tagging from structured log records before adding ad-hoc instrumentation.
+
+Contract changes: Operator-facing logging config/env surface is now part of the runtime contract: `logging.level`, `logging.format`, and `DIPLOMAT_LOG_LEVEL`. Stable event strings are documented in module ARCH files and smoke docs.
+
+Tests: `.venv/bin/python -m pytest` — 337 passed.
+
+DEVLOG archival: Archived Phase 25 entries to `DEVLOG_archive.md`; Phase 26 remains in `DEVLOG.md` for immediate audit.

@@ -1,8 +1,8 @@
 ---
 phase: 26
-blocked: false
+blocked: true
 state: close
-steps_remaining: 1
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -53,9 +53,9 @@ steps_remaining: 1
 
 ## Current Status
 
-- **Phase** — Phase 26 active.
-- **Focus** — Structured per-event logging so future smokes don't need ad-hoc `print` instrumentation.
-- **Blocked/Broken** — None.
+- **Phase** — Phase 26 complete; audit gate before the next phase.
+- **Focus** — Structured per-event logging is implemented and documented.
+- **Blocked/Broken** — Blocked for human audit; `/close` to plan the next phase.
 
 <!-- Phase ordering convention:
        - Open / queued phases first, in forward execution order (next-to-do first).
@@ -65,29 +65,15 @@ steps_remaining: 1
      This puts the active work at the top and the "recent past" right under it,
      with deep history at the bottom. -->
 
-## Phase 26: Structured per-event logging (Build)
-
-Regime: Build. Closes the second outstanding tooling debt from the Phase 19 smoke. The bot's log file currently contains only the startup banner (`DIPLOMAT ONLINE ...`) — no per-event records. When diagnosing the smoke's "messages reaching the bot but not getting tagged correctly" issue, the only path forward was a temporary `print` statement added to `_event_from_update` (later reverted). This phase adds structured logging across the orchestrator + transport so the bot log is rich enough to diagnose future issues without ad-hoc instrumentation.
-
-Prerequisite: None code-wise. Independent of Phase 25 (could be done before, after, or in parallel — both close the same smoke-surfaced tooling-debt category but touch disjoint code paths).
-
-Steps:
-- [x] **26.1** Scope + design. Read current logging usage (probably just bare `print` in `main.py` for the startup banner; check whether `logging` is imported anywhere). Decide: (a) logger namespace — `diplomat.transport.telegram`, `diplomat.pipeline`, `diplomat.orchestrator`, `diplomat.extraction`, `diplomat.reconciliation`, etc. via `logging.getLogger(__name__)`; (b) output destination — stream to stdout/stderr only, let `tools/service.sh` `tee` capture to file (avoids double-write since service.sh already manages the log file); (c) log format — `%(asctime)s %(levelname)s %(name)s %(message)s` or similar; (d) configurable log level — `logging.level` in `pipeline.yaml` (default `INFO`) plus `DIPLOMAT_LOG_LEVEL` env-var override; (e) event-type taxonomy — fixed prefix strings so logs are grep-able (`event.received`, `event.routed`, `extraction.start`, `extraction.complete`, `extraction.skip`, `round.boundary`, `pipeline.trigger`, `pipeline.complete`, etc.).
-- [x] **26.2** Add logging configuration in `src/main.py` (or a new `src/logging_config.py` if cleaner). Configure the `diplomat.*` namespace with a stream handler at the configured level. Replace the existing `print(f"DIPLOMAT ONLINE ...")` startup banner with `logger.info(...)`. Test the same line appears in the log via the new path.
-- [x] **26.3** Instrument the transport (`src/modules/transport/__init__.py`). Add log lines for: (a) every inbound update — chat_id, channel mapping result, raw text preview (first ~60 chars), sender_id; (b) sender → faction tagging result (the failure mode that needed `print` instrumentation during the smoke — this is the primary motivation); (c) operator-vs-faction classification path taken; (d) every outbound message sent — channel, recipient, length.
-- [x] **26.4** Instrument the pipeline + orchestrator (`src/pipeline.py`, `src/flows/event_driven.py`, `src/orchestrator.py`). Add log lines for: (a) `event.routed` — incoming event → operator path vs faction-extraction path vs system path; (b) `extraction.scheduled` / `extraction.complete` / `extraction.skip` — debounce decisions, fake-vs-real LLM, patch summary on complete; (c) `round.boundary` — signal detected (regex match details), round counter transition, reconciler/analyst dispatch; (d) `pipeline.trigger` — direct-address detected OR `/preview` command OR auto-trigger; (e) `pipeline.complete` — success/failure of GEN → ADV → REVIEW → SEND chain with timing.
-- [x] **26.5** Add `logging.level` (and optional `logging.format`) to `pipeline.yaml`. Wire through `Orchestrator` construction. Document the `DIPLOMAT_LOG_LEVEL` env-var override (operator can flip to DEBUG without editing config). Add the same to `pipeline_smoke.yaml`.
-- [x] **26.6** Tests. (a) Unit: assert specific log records emitted for specific events using pytest's `caplog` fixture (e.g. "a faction-tagged inbound event produces an `event.routed` INFO record with sender_faction in the message"). (b) Integration: extend one Layer 3 test (`tests/integration/test_phase18_paths.py` or similar) to assert that the captured log records describe the expected event flow — this is the long-term smoke benefit, reading state from logs structurally. (c) Suppress log noise in other tests: configure `pyproject.toml` `[tool.pytest.ini_options]` or a `tests/conftest.py` fixture to filter `diplomat.*` loggers down to WARNING for non-logging tests.
-- [x] **26.7** Doc update. `ARCH_orchestrator.md`, `ARCH_transport.md`, `ARCH_extraction.md`, `ARCH_reconciliation.md`: each gets a "Logging" paragraph documenting the logger name and the event-type strings emitted. `SMOKE_RUNBOOK.md` §3: add a "Verify logs look reasonable" step pointing at `incus exec ... -- tail logs/diplomat.log` and listing the event-type strings to look for. `diplomat-testing-doc.md`: brief mention of where to find/configure logging + the `DIPLOMAT_LOG_LEVEL` override.
-- [x] **26.8** Phase review + commit + close. Definition of done: 330+ tests passing (existing 330 + new logging tests); bot log contains structured per-event records during normal operation (verifiable with `incus exec ... cat logs/diplomat.log`); `DIPLOMAT_LOG_LEVEL=DEBUG` produces noticeably more output than INFO; the four ARCH docs + SMOKE_RUNBOOK + diplomat-testing-doc updated; the next smoke can diagnose routing/tagging issues from logs alone (no ad-hoc `print` needed).
-
-Expected outcome: the next time the bot is smoked or debugged, the log file is the diagnostic surface. Faction-tagging anomalies (like the Phase 19 smoke's "every message tagged operator" case) are obvious from the log without code instrumentation. This is also a small step toward Block A's "tech debt to watch" entry in `ASSESSMENT.md` — "per-event structured logging" gets to close.
-
 <!-- history -->
+
+## Phase 26: Structured per-event logging — Complete
+
+Closed 2026-06-01. Added stream-based `diplomat.*` logging config, `DIPLOMAT_LOG_LEVEL`, Telegram inbound/outbound/tagging records, flow/pipeline/orchestrator event lifecycle records, caplog unit + integration coverage, and logging docs. 337 tests passing. See `DEVLOG.md` "Phase 26 close" section.
 
 ## Phase 25: `tools/service.sh` tmux rewrite — Complete
 
-Closed 2026-06-01. Rewrote `tools/service.sh` to supervise the bot in a `diplomat` tmux window inside the long-lived `bot` session, with `BOT_TMUX_SESSION` override, tmux-backed `start`/`stop`/`status`/`restart`, and a shell smoke test. 331 tests passing. See `DEVLOG.md` "Phase 25 close" section.
+Closed 2026-06-01. Rewrote `tools/service.sh` to supervise the bot in a `diplomat` tmux window inside the long-lived `bot` session, with `BOT_TMUX_SESSION` override, tmux-backed `start`/`stop`/`status`/`restart`, and a shell smoke test. 331 tests passing. See `DEVLOG_archive.md` "Archived 2026-06-01 — Phase 25 service tmux rewrite" section.
 
 ## Phase 24: Small builds + Level 1 modularization — Complete
 

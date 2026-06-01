@@ -2207,3 +2207,27 @@ Outcome: Code review — no must-fix or should-fix items. 296 tests pass. All Do
 ### Phase 21 close — 2026-05-31
 
 Phase: Build. 9 steps. Cleaned module boundaries across Orchestrator, self-play harness, and LLM adapter. 296 tests passing. Docs updated. No new gotchas.
+
+## Archived 2026-06-01 — Phase 25 service tmux rewrite
+
+Action: PLAN / EXECUTE / REVIEW / CLOSE
+Mode: Build
+Outcome: Rewrote `tools/service.sh` around tmux supervision and closed Phase 25 with 331 tests passing.
+
+Plan: Activated Phase 25 as a six-step Build phase for the `tools/service.sh` tmux rewrite: scope/design confirmation, `start()` rewrite, `stop()` rewrite, `status()`/`restart()` rewrite, shell-driven service smoke test, and named doc updates. The design made tmux the source of truth with default session `bot`, `BOT_TMUX_SESSION` override for tests/parallel deployments, user-aware sudo behavior, and an explicit missing-session error instead of auto-creating a session.
+
+Step 25.1: Confirmed the existing script still used `.diplomat.pid` plus `nohup`, while Pi operations had already proven the durable launch path was a tmux window in the long-lived `bot` session. No tests; analysis-only.
+
+Step 25.2: Replaced `start()` with tmux-window launch. The script checks the configured session, skips `sudo -u claude` when already running as `claude`, starts `.venv/bin/python -u src/main.py` in a foreground pane, pipes output through `tee -a logs/diplomat.log`, and removes the legacy PID file after launch. Tests: `bash -n tools/service.sh`; missing-session start exits 1 with the expected message.
+
+Step 25.3: Replaced PID-backed `stop()` with tmux window cleanup. `stop()` kills `"$BOT_TMUX_SESSION":diplomat` when present and exits successfully when absent. Tests: `bash -n tools/service.sh`; temporary tmux session smoke verified window kill and idempotent second stop.
+
+Step 25.4: Replaced PID-backed `status()` with tmux window detection and left `restart` as `stop; start` over the new primitives. Tests: `bash -n tools/service.sh`; temporary tmux session smoke verified not-running and running statuses.
+
+Step 25.5: Added `tests/test_service_sh.py`, a shell-driven pytest smoke test that creates a temporary tmux session and fake project skeleton, drives `start`, polls `status`, calls `stop`, and verifies the not-running state. Tests: `.venv/bin/python -m pytest tests/test_service_sh.py` — 1 passed.
+
+Step 25.6: Updated `CLI_REFERENCE.md`, `SMOKE_RUNBOOK.md`, `diplomat-testing-doc.md`, and the DEVPLAN Pi deployment gotcha so `tools/service.sh start/status/stop/restart` is the canonical operator interface and `BOT_TMUX_SESSION` is documented.
+
+Review: No must-fix or should-fix items found. Reviewed `tools/service.sh`, `tests/test_service_sh.py`, and the updated lifecycle docs. All 331 tests passed.
+
+Close: Reduced Phase 25 to a DEVPLAN history summary, marked the audit gate before Phase 26, updated `ARCHITECTURE.md` test count to 331, and closed `DECISIONS.md` D-29. No new gotchas promoted; the relevant operational rule was already captured in the Cold Start Summary. Contract change: operator-facing service lifecycle moved from PID/nohup-backed to tmux-backed and is documented in `CLI_REFERENCE.md`.
