@@ -39,6 +39,7 @@ The modular architecture in the main spec was partly designed with testability i
 | Fake LLM clients | `tests/test_*.py` (inline), `tests/helpers/factories.py`, `tests/integration/test_phase18_paths.py` | Per-module and integration fakes for dependency injection |
 | Prompt regression runner | `tests/prompt_regression/runner.py` | Scenario loader, structural checks, LLM-as-judge checks, CLI |
 | Prompt regression scenarios | `tests/prompt_regression/scenarios/` | 4 extraction scenarios + 2 generation scenarios |
+| Structured logging config | `config/pipeline.yaml`, `config/pipeline_smoke.yaml`, `src/logging_config.py` | `logging.level` / `logging.format`, with `DIPLOMAT_LOG_LEVEL` override |
 
 ---
 
@@ -294,6 +295,20 @@ paths:
     intelligence: config/schemas/intelligence.json
     adversarial: config/schemas/adversarial.json
 ```
+
+### 2.6 Structured Logging in Tests
+
+Production logging is configured by `src/logging_config.py` from
+`logging.level` and `logging.format` in the active pipeline config. Operators
+can temporarily override the level with `DIPLOMAT_LOG_LEVEL=DEBUG` without
+editing config.
+
+Tests keep `diplomat.*` loggers quiet by default via `tests/conftest.py`.
+Logging-specific tests opt into INFO with `caplog`, including unit coverage
+for `event.routed` / `extraction.scheduled` and Layer 3 coverage in
+`tests/integration/test_phase18_paths.py` that asserts `event.routed`,
+`extraction.scheduled`, and `extraction.complete` are visible from a real
+pipeline fixture event.
 
 **Note:** For free integration tests (Layer 3), pass `StubAnalyst` and a fake LLM client via `module_overrides` to avoid real API calls. The YAML config above is the starting point — tests override specific modules at fixture level.
 

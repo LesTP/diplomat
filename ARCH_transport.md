@@ -75,6 +75,16 @@ JSON objects use the shared `InboundEvent` field names.
 - Polling offset (for Telegram, persisted via toolkit/telegram_client.next_update_offset)
 - Connection state (in-memory, re-established on restart)
 
+## Logging
+
+`TelegramBotTransport` logs through `diplomat.modules.transport`. Stable event
+strings are `event.received` (chat ID, mapped channel, sender ID, text
+preview), `event.tagged` (sender faction plus classification path such as
+`operator_user_id`, `faction_map`, `private_chat_default`, or
+`public_unmapped`), and `event.sent` (channel, recipient, chat ID, content
+length). These records are the primary diagnostic surface for Telegram
+sender/faction tagging issues.
+
 ## Usage Example
 
 ```python

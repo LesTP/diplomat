@@ -83,6 +83,19 @@ Items that need non-operator faction traffic have been **removed** from
 this runbook and reassigned. See the "Removed (out of Telegram scope)"
 block below.
 
+Before sending commands, verify structured logs are present:
+
+```bash
+incus exec claude-code -- bash -c "tail -80 /home/claude/workspace/diplomat/logs/diplomat.log"
+```
+
+Look for `startup.online` after launch. During `/preview` and any injected
+game-traffic test, expect records such as `event.received`, `event.tagged`,
+`event.routed`, `extraction.scheduled`, `extraction.start`,
+`extraction.complete`, `pipeline.trigger`, `pipeline.complete`, and
+`event.sent`. If more detail is needed, restart with
+`DIPLOMAT_LOG_LEVEL=DEBUG`.
+
 - [ ] **`/status`** — round number + budget remaining
 - [ ] **`/state`** — structured state output (promises, coalitions, inconsistencies)
 - [ ] **`/commands`** — full command list

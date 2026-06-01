@@ -461,3 +461,13 @@ Contract changes: None. Test infrastructure now controls default `diplomat.*` lo
 Notes: Existing transport log tests from 26.3 already cover `event.sent`, `event.received`, and `event.tagged`; this step adds the flow/integration assertions required by the phase checklist.
 
 Tests: `.venv/bin/python -m pytest tests/test_flows.py tests/test_transport.py tests/integration/test_phase18_paths.py` — 42 passed.
+
+### Step 26.7: Logging docs
+
+Mode: Build
+Outcome: Updated `ARCH_orchestrator.md`, `ARCH_transport.md`, `ARCH_extraction.md`, and `ARCH_reconciliation.md` with logging sections that name logger namespaces and stable event strings. Updated `SMOKE_RUNBOOK.md` §3 with a structured-log verification command and event strings to look for in `logs/diplomat.log`. Updated `diplomat-testing-doc.md` to document logging config, `DIPLOMAT_LOG_LEVEL`, default test log suppression, and the new Layer 3 log assertions.
+Contract changes: Documentation now defines the operator-facing logging configuration and expected diagnostic event names.
+
+Notes: `ARCH_reconciliation.md` documents current round-boundary reconciliation dispatch logs and explicitly calls out that lower-level `reconciliation.*` records are a possible later cleanup, since this phase logs reconciliation through `round.boundary` stages.
+
+Tests: Not run; documentation-only step.

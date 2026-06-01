@@ -49,6 +49,15 @@ Debounce: configured via `pipeline.yaml` `debounce_seconds`. The Orchestrator ba
 - ExtractionResult with StatePatch — consumed by State Manager via apply_patch()
 - On failure: ExtractionResult with success=False, patch=None, error description
 
+## Logging
+
+Extraction lifecycle records are emitted by the orchestrator wrapper through
+`diplomat.orchestrator`, because that layer knows the event ID, budget result,
+and applied patch source. Stable event strings are `extraction.scheduled`
+(per-event debounce task in `EventDrivenFlow`), `extraction.start`,
+`extraction.complete` (with compact entity-count patch summary), and
+`extraction.skip` (budget, failed result, or no patch).
+
 ## State
 None. Each extract() call is independent.
 

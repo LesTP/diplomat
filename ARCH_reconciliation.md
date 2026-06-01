@@ -77,6 +77,16 @@ Dual analyst calls
 Round increment
 ```
 
+### Logging
+
+Reconciliation dispatch is logged by `diplomat.orchestrator` as part of the
+`round.boundary` lifecycle. Stable records include
+`round.boundary stage=reconciliation` before the reconciler call and
+`round.boundary stage=complete` after analyst storage and round increment.
+Reconciliation failures and state-application failures are still surfaced on
+the operator/debug path and should be promoted into `reconciliation.*` records
+in a later cleanup if they need machine-readable assertions.
+
 ### Interface
 
 ```python

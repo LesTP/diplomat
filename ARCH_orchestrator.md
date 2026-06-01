@@ -79,3 +79,17 @@ await orch.shutdown() # graceful cleanup
 
 Production usage is unchanged. For self-play, prefer the `Pipeline` +
 `RoundSteppedFlow` interface (see `ARCH_flow.md`).
+
+## Logging
+
+Runtime logging uses the `diplomat.orchestrator`,
+`diplomat.flows.event_driven`, and `diplomat.pipeline` logger names. The
+production entrypoint configures the shared `diplomat` namespace from
+`logging.level` / `logging.format` in pipeline config, with
+`DIPLOMAT_LOG_LEVEL` as a temporary env override.
+
+Stable event strings emitted from the orchestration path include
+`startup.online`, `event.routed`, `event.stored` (DEBUG),
+`extraction.delegated` (DEBUG), `extraction.scheduled`, `extraction.start`,
+`extraction.complete`, `extraction.skip`, `round.boundary`,
+`pipeline.trigger`, `pipeline.stage`, and `pipeline.complete`.
