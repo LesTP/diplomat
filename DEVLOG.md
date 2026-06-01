@@ -481,3 +481,11 @@ Contract changes: None beyond the logging config/env and documented event-name s
 Notes: Live bot-log verification (`incus exec ... cat logs/diplomat.log`) remains a smoke/deployment activity, not something this local test run can perform.
 
 Tests: `.venv/bin/python -m pytest` — 337 passed.
+
+### Phase Review 26: Structured per-event logging
+
+Mode: Review
+Outcome: No must-fix or should-fix items found. All Phase 26 definition-of-done criteria met: 337 tests pass (≥ 330), structured logging implemented across transport and flow layers, `DIPLOMAT_LOG_LEVEL` env override and yaml config wired, caplog unit + integration tests added, all four ARCH docs and SMOKE_RUNBOOK and diplomat-testing-doc updated. State advanced to close.
+Contract changes: None.
+
+Tests: 337 passed.
