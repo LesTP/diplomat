@@ -8,6 +8,7 @@ from modules.extraction import (
     ExtractionResult,
     OpenAIStructuredExtractor,
     RuleBasedExtractor,
+    load_examples,
     load_prompt,
     load_schema,
     parse_json_object,
@@ -55,6 +56,14 @@ def test_configured_state_updater_prompt_loads_json_only_guidance():
 
     assert "Return ONLY valid JSON" in prompt
     assert "return {}" in prompt
+
+
+def test_configured_extraction_examples_load_from_json():
+    examples = load_examples("config/examples/extraction_examples.json")
+
+    assert len(examples) == 5
+    assert examples[0].input.startswith("Beta commits")
+    assert "promises" in examples[0].output
 
 
 def test_parse_json_object_returns_decoded_object():
@@ -268,6 +277,38 @@ async def test_openai_structured_extractor_uses_prompt_context_and_commodity_tie
     assert '"promises": []' in user_prompt
     assert "Treat this as an observed game message." in user_prompt
     assert "England promises France" in user_prompt
+
+
+@pytest.mark.asyncio
+async def test_openai_structured_extractor_uses_configured_examples_path(tmp_path):
+    prompt_path = tmp_path / "state_updater.txt"
+    prompt_path.write_text("Extract JSON.", encoding="utf-8")
+    examples_path = tmp_path / "examples.json"
+    examples_path.write_text(
+        json.dumps(
+            [
+                {
+                    "input": "Custom example input.",
+                    "output": {"promises": []},
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    client = FakeLLMClient("{}")
+    extractor = OpenAIStructuredExtractor(
+        llm_client=client,
+        llm_config={},
+        schema_path=SCHEMA_PATH,
+        prompt_path=prompt_path,
+        examples_path=examples_path,
+        tier="COMMODITY",
+    )
+
+    await extractor.extract("No commitments.", current_state={}, trigger_type="message")
+
+    system_prompt = client.calls[0]["messages"][0]["content"]
+    assert "Custom example input." in system_prompt
 
 
 @pytest.mark.asyncio

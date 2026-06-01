@@ -285,6 +285,7 @@ def _copy_project_config(tmp_path: Path) -> Path:
         "config/prompts/analyst.txt",
         "config/prompts/generation.txt",
         "config/prompts/adversarial.txt",
+        "config/examples/extraction_examples.json",
         "config/schemas/state_patch.json",
         "config/schemas/intelligence.json",
         "config/schemas/adversarial.json",

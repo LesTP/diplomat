@@ -85,6 +85,8 @@ feature_flags:
 paths:
   coaching_routes: config/coaching_routes.yaml
   faction_prompt: config/faction_prompt.txt
+  examples:
+    extraction: config/examples/extraction_examples.json
   prompts:
     state_updater: config/prompts/state_updater.txt
     analyst: config/prompts/analyst.txt

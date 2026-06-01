@@ -26,37 +26,6 @@ class ExtractionResult:
 
 
 # ---------------------------------------------------------------------------
-# Few-shot examples for extraction
-# ---------------------------------------------------------------------------
-
-_EXTRACTION_EXAMPLES = [
-    Example(
-        input='Beta commits to supporting Alpha\'s claim on the eastern zone in exchange for trade rights.',
-        output={"promises": [{"promise_id": "beta-alpha-eastern-support", "from_faction": "beta", "to_faction": "alpha", "content": "support Alpha's claim on eastern zone in exchange for trade rights", "status": "pending"}]},
-    ),
-    Example(
-        input="Alpha and Gamma have agreed to coordinate their defense.",
-        output={"coalitions": [{"coalition_id": "alpha-gamma-defense", "faction_a": "alpha", "faction_b": "gamma", "strength": 0.6, "basis": "agreed to coordinate defense"}]},
-    ),
-    Example(
-        input="Alpha has delivered the 15 million gallons promised to Beta last round.",
-        output={"promises": [{"promise_id": "alpha-beta-water-delivery", "from_faction": "alpha", "to_faction": "beta", "content": "deliver 15 million gallons", "status": "kept", "resolution": "delivered as promised"}]},
-    ),
-    Example(
-        input="Despite promising neutrality, Gamma has signed an exclusive deal with Beta.",
-        output={
-            "promises": [{"promise_id": "gamma-neutrality", "from_faction": "gamma", "to_faction": "alpha", "content": "remain neutral", "status": "broken", "resolution": "signed exclusive deal with Beta"}],
-            "inconsistencies": [{"inconsistency_id": "gamma-neutrality-broken", "faction_id": "gamma", "description": "promised neutrality but signed exclusive deal with Beta", "leverage_value": 0.8}],
-        },
-    ),
-    Example(
-        input="Round 2 begins. Weather is clear.",
-        output={},
-    ),
-]
-
-
-# ---------------------------------------------------------------------------
 # Rule-based extractor (free, no LLM)
 # ---------------------------------------------------------------------------
 
@@ -156,12 +125,14 @@ class OpenAIStructuredExtractor:
         llm_config: Any,
         schema_path: str | Path,
         prompt_path: str | Path,
+        examples_path: str | Path = "config/examples/extraction_examples.json",
         tier: Any | None = None,
     ) -> None:
         self.llm_client = llm_client
         self.llm_config = llm_config
         self.schema = load_schema(schema_path)
         self.system_prompt = load_prompt(prompt_path)
+        self.examples = load_examples(examples_path)
         self.tier = tier if tier is not None else _commodity_tier()
 
     async def extract(
@@ -176,7 +147,7 @@ class OpenAIStructuredExtractor:
             schema=self.schema,
             system_prompt=self.system_prompt,
             user_prompt=user_prompt,
-            examples=_EXTRACTION_EXAMPLES,
+            examples=self.examples,
             max_retries=1,
             purpose="extraction",
         )
@@ -218,6 +189,25 @@ def load_schema(schema_path: str | Path) -> dict[str, Any]:
     return _tk_load_schema(schema_path)
 
 
+def load_examples(examples_path: str | Path) -> list[Example]:
+    data = json.loads(Path(examples_path).read_text(encoding="utf-8"))
+    if not isinstance(data, list):
+        raise ValueError("Extraction examples file must contain a JSON array")
+
+    examples: list[Example] = []
+    for index, item in enumerate(data):
+        if not isinstance(item, dict):
+            raise ValueError(f"Extraction example {index} must be an object")
+        input_text = item.get("input")
+        output = item.get("output")
+        if not isinstance(input_text, str) or not isinstance(output, dict):
+            raise ValueError(
+                f"Extraction example {index} requires string input and object output"
+            )
+        examples.append(Example(input=input_text, output=output))
+    return examples
+
+
 def parse_json_object(response_text: str) -> dict[str, Any]:
     return _tk_parse_json(response_text)
 
@@ -241,6 +231,7 @@ __all__ = [
     "ExtractionResult",
     "OpenAIStructuredExtractor",
     "RuleBasedExtractor",
+    "load_examples",
     "load_prompt",
     "load_schema",
     "parse_json_object",

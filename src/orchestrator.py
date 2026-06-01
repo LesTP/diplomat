@@ -75,6 +75,7 @@ class PipelinePaths:
     analyst_prompt: Path
     generation_prompt: Path
     adversarial_prompt: Path
+    extraction_examples: Path
     state_patch_schema: Path
     intelligence_schema: Path
     adversarial_schema: Path
@@ -836,6 +837,7 @@ class _OrchestratorCore:
     def _build_paths(self, paths: dict[str, Any]) -> PipelinePaths:
         prompts = paths["prompts"]
         schemas = paths["schemas"]
+        examples = paths.get("examples") if isinstance(paths.get("examples"), dict) else {}
         return PipelinePaths(
             coaching_routes=self._path(paths["coaching_routes"]),
             faction_prompt=self._path(paths["faction_prompt"]),
@@ -843,6 +845,9 @@ class _OrchestratorCore:
             analyst_prompt=self._path(prompts["analyst"]),
             generation_prompt=self._path(prompts["generation"]),
             adversarial_prompt=self._path(prompts["adversarial"]),
+            extraction_examples=self._path(
+                examples.get("extraction", "config/examples/extraction_examples.json")
+            ),
             state_patch_schema=self._path(schemas["state_patch"]),
             intelligence_schema=self._path(schemas["intelligence"]),
             adversarial_schema=self._path(schemas["adversarial"]),
@@ -870,6 +875,7 @@ class _OrchestratorCore:
             paths.state_patch_schema,
             paths.intelligence_schema,
             paths.adversarial_schema,
+            paths.extraction_examples,
         ):
             if not path.is_file():
                 raise PipelineConfigError(f"Missing required config file: {path}")
@@ -956,6 +962,7 @@ class _OrchestratorCore:
                 self.llm_configs[provider_id],
                 self.paths.state_patch_schema,
                 self.paths.state_updater_prompt,
+                self.paths.extraction_examples,
             )
         if name == "coaching_parser":
             return cls(self.paths.coaching_routes)

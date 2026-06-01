@@ -229,3 +229,11 @@ Outcome: Added `--game-mode {cooperative,competitive,mixed}` to `tests.self_play
 Contract changes: Self-play runner CLI gains `--game-mode`; scenario-backed result JSON reflects the runtime override in its copied `scenario_analysis`.
 
 Tests: `python3 -m pytest tests/test_self_play.py` — 39 passed. `python3 -m pytest` — 326 passed.
+
+### Step 24.5: Extraction examples JSON
+
+Mode: Build
+Outcome: Moved the extraction few-shot examples out of Python into `config/examples/extraction_examples.json`. `OpenAIStructuredExtractor` now loads examples from JSON at construction time, and `Orchestrator` resolves `paths.examples.extraction` with a default of `config/examples/extraction_examples.json`. Added the explicit path to `pipeline.yaml` and `pipeline_smoke.yaml`.
+Contract changes: Extraction examples are now config data; `OpenAIStructuredExtractor` accepts an `examples_path` constructor argument, and pipeline config supports `paths.examples.extraction`.
+
+Tests: `python3 -m pytest tests/test_extraction.py tests/test_orchestrator.py tests/integration/test_pipeline_flow.py` — 80 passed. `python3 -m pytest` — 328 passed.
