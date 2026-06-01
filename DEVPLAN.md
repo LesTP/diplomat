@@ -2,7 +2,7 @@
 phase: 27
 blocked: false
 state: execute
-steps_remaining: 7
+steps_remaining: 6
 ---
 
 # Diplomat — Development Plan
@@ -90,7 +90,7 @@ this phase metric-only.
 
 ### Step 27.1: Design + scope confirmation
 
-- [ ] Read `tests/self_play/game_environment.py` `_pareto_efficiency_metrics()` and confirm it is the insertion point for the new fields. Read `tests/self_play/analysis.py` `analyze_results()` and confirm where the new fields should be rendered. Confirm `tests/test_self_play.py` is the test home. Document in DEVLOG (this step is analysis-only; no code change; no test run required).
+- [x] Read `tests/self_play/game_environment.py` `_pareto_efficiency_metrics()` and confirm it is the insertion point for the new fields. Read `tests/self_play/analysis.py` `analyze_results()` and confirm where the new fields should be rendered. Confirm `tests/test_self_play.py` is the test home. Document in DEVLOG (this step is analysis-only; no code change; no test run required).
 
 ### Step 27.2: Add baseline-normalized scoring fields
 

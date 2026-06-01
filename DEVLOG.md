@@ -434,3 +434,13 @@ Contract changes: None yet. The planned result will extend self-play scoring out
 Notes: Partial-consensus scoring remains explicitly out of scope for Phase 27 and should stay a separate Phase 28 candidate.
 
 Tests: Not run; planning-only action.
+
+### Step 27.1: Design + scope confirmation
+
+Mode: Build
+Outcome: Confirmed the insertion and test points for Phase 27 no-deal-aware metrics. `_pareto_efficiency_metrics()` in `tests/self_play/game_environment.py` is the correct calculation point because `GameEnvironment.score_game()` already merges its returned fields into the `scores` payload. `tests/self_play/analysis.py` currently renders process signatures but no explicit score block, so Step 27.3 should add a score/no-deal-aware section near the existing post-game diagnostics. `tests/test_self_play.py` is the right test home: it already contains focused `_pareto_efficiency_metrics()` tests and the `analyze_results()` render test pattern.
+Contract changes: None.
+
+Notes: Step 27.2 can extend the existing helper in place; no scorer prompt or partial-consensus behavior needs to change.
+
+Tests: Not run; analysis-only step per checklist.
