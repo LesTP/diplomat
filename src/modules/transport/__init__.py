@@ -9,10 +9,12 @@ from inspect import isawaitable
 from typing import AsyncIterator, Protocol, runtime_checkable
 
 from modules.types import InboundEvent
+from logging_config import get_logger
 
 
 VALID_CHANNELS = frozenset({"public", "private", "coaching"})
 ChatId = str | int
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True)
@@ -148,6 +150,13 @@ class TelegramBotTransport:
             try:
                 await self._sleep(self._random_between(*self._jitter_seconds))
                 await self._client.send_message(chat_id, message.content)
+                logger.info(
+                    "event.sent channel=%s recipient=%s chat_id=%s length=%s",
+                    message.channel,
+                    message.recipient,
+                    chat_id,
+                    len(message.content),
+                )
                 return
             except Exception as exc:
                 last_error = exc
@@ -223,9 +232,34 @@ class TelegramBotTransport:
             "from_user_id",
             default=None,
         )
-        sender_faction = self._sender_for(channel, chat_key, user_id)
+        sender_faction, classification = self._sender_resolution(
+            channel, chat_key, user_id
+        )
 
         try:
+            content = _required_update_str(
+                update, "content", "text", "message_text", "message"
+            )
+            telegram_msg_id = _optional_update_int(
+                update,
+                "telegram_msg_id",
+                "message_id",
+                "id",
+            )
+            logger.info(
+                "event.received chat_id=%s channel=%s sender_id=%s text_preview=%r",
+                chat_key,
+                channel,
+                user_id,
+                _preview(content),
+            )
+            logger.info(
+                "event.tagged chat_id=%s sender_id=%s sender_faction=%s classification=%s",
+                chat_key,
+                user_id,
+                sender_faction,
+                classification,
+            )
             return normalize_inbound_event(
                 timestamp=_telegram_timestamp(
                     _get_value(update, "timestamp", "date", default=None),
@@ -233,13 +267,8 @@ class TelegramBotTransport:
                 ),
                 sender_faction=sender_faction,
                 channel=channel,
-                content=_required_update_str(update, "content", "text", "message_text", "message"),
-                telegram_msg_id=_optional_update_int(
-                    update,
-                    "telegram_msg_id",
-                    "message_id",
-                    "id",
-                ),
+                content=content,
+                telegram_msg_id=telegram_msg_id,
             )
         except ValueError as exc:
             raise TransportError(f"Telegram update is invalid: {exc}") from exc
@@ -259,17 +288,25 @@ class TelegramBotTransport:
         chat_key: str,
         user_id: object,
     ) -> str:
+        return self._sender_resolution(channel, chat_key, user_id)[0]
+
+    def _sender_resolution(
+        self,
+        channel: str,
+        chat_key: str,
+        user_id: object,
+    ) -> tuple[str, str]:
         if user_id is not None:
             user_key = str(user_id)
             if user_key in self._operator_user_ids:
-                return "operator"
+                return "operator", "operator_user_id"
             if user_key in self._faction_map:
-                return self._faction_map[user_key]
+                return self._faction_map[user_key], "faction_map"
         if channel == "coaching":
-            return "operator"
+            return "operator", "coaching_channel_default"
         if channel == "private":
-            return self._private_factions_by_chat[chat_key]
-        return "system"
+            return self._private_factions_by_chat[chat_key], "private_chat_default"
+        return "system", "public_unmapped"
 
 
 def validate_channel(channel: str) -> None:
@@ -349,6 +386,13 @@ def _chat_key(chat_id: object) -> str:
     if chat_id is None:
         raise TransportError("Telegram update is missing chat_id")
     return str(chat_id)
+
+
+def _preview(content: str, limit: int = 60) -> str:
+    normalized = " ".join(content.split())
+    if len(normalized) <= limit:
+        return normalized
+    return normalized[: limit - 3] + "..."
 
 
 def _get_value(update: object, *keys: str, default: object = ...):

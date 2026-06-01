@@ -421,3 +421,13 @@ Contract changes: New operator-facing logging configuration path exists internal
 Notes: The logger uses a single stream handler on the `diplomat` namespace, with default format `%(asctime)s %(levelname)s %(name)s %(message)s`, so `tools/service.sh` continues to capture output via `tee` without a second file writer.
 
 Tests: `.venv/bin/python -m pytest tests/test_main.py tests/test_flows.py` — 13 passed.
+
+### Step 26.3: Telegram transport instrumentation
+
+Mode: Build
+Outcome: Instrumented `TelegramBotTransport` with `event.sent`, `event.received`, and `event.tagged` records through `diplomat.modules.transport`. Successful outbound sends now log channel, recipient, chat ID, and content length. Valid inbound updates now log chat ID, mapped channel, sender ID, a normalized 60-character text preview, sender faction, and the classification path (`operator_user_id`, `faction_map`, `coaching_channel_default`, `private_chat_default`, or `public_unmapped`).
+Contract changes: None. Transport APIs and normalized event shapes are unchanged.
+
+Notes: The classification log directly exposes the Phase 19 smoke failure mode where Telegram sender IDs mapped unexpectedly and messages appeared as operator traffic.
+
+Tests: `.venv/bin/python -m pytest tests/test_transport.py` — 26 passed.

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
 import json
@@ -305,6 +306,26 @@ async def test_telegram_transport_send_routes_public_private_and_coaching_messag
 
 
 @pytest.mark.asyncio
+async def test_telegram_transport_logs_successful_outbound_send(caplog):
+    client = _FakeTelegramClient()
+    transport = _telegram_transport(client)
+    parent_logger = _prepare_diplomat_caplog()
+
+    try:
+        with caplog.at_level(logging.INFO, logger="diplomat.modules.transport"):
+            await transport.send(
+                OutboundMessage(content="Public offer", channel="public")
+            )
+    finally:
+        _restore_diplomat_logger(parent_logger)
+
+    assert (
+        "event.sent channel=public recipient=None chat_id=public-chat length=12"
+        in caplog.text
+    )
+
+
+@pytest.mark.asyncio
 async def test_telegram_transport_retries_failed_sends():
     client = _FakeTelegramClient(failures_before_success=2)
     sleeps: list[float] = []
@@ -466,6 +487,34 @@ async def test_telegram_transport_listen_normalizes_public_private_and_coaching_
 
 
 @pytest.mark.asyncio
+async def test_telegram_transport_logs_inbound_tagging_path(caplog):
+    client = _FakeTelegramClient(
+        updates=[
+            {
+                "chat_id": "public-chat",
+                "user_id": "100",
+                "text": "Public press with enough text to verify the preview path",
+            }
+        ]
+    )
+    transport = _telegram_transport(client)
+    parent_logger = _prepare_diplomat_caplog()
+
+    try:
+        with caplog.at_level(logging.INFO, logger="diplomat.modules.transport"):
+            events = [event async for event in transport.listen()]
+    finally:
+        _restore_diplomat_logger(parent_logger)
+
+    assert events[0].sender_faction == "england"
+    assert "event.received chat_id=public-chat channel=public sender_id=100" in caplog.text
+    assert (
+        "event.tagged chat_id=public-chat sender_id=100 "
+        "sender_faction=england classification=faction_map"
+    ) in caplog.text
+
+
+@pytest.mark.asyncio
 async def test_telegram_transport_listen_reads_message_text_updates():
     client = _FakeTelegramClient(
         updates=[
@@ -594,3 +643,18 @@ async def test_telegram_transport_listen_skips_invalid_updates():
         ]
     )
     assert [event async for event in _telegram_transport(malformed).listen()] == []
+
+
+def _prepare_diplomat_caplog():
+    logger = logging.getLogger("diplomat")
+    state = (logger.handlers[:], logger.propagate)
+    logger.handlers = []
+    logger.propagate = True
+    return state
+
+
+def _restore_diplomat_logger(state) -> None:
+    handlers, propagate = state
+    logger = logging.getLogger("diplomat")
+    logger.handlers = handlers
+    logger.propagate = propagate
