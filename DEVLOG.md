@@ -347,3 +347,11 @@ Outcome: Replaced the remaining PID-backed `status()` path with tmux window dete
 Contract changes: `tools/service.sh status` no longer reads or removes `.diplomat.pid`; the lifecycle surface is now tmux-backed for `start`, `stop`, `status`, and `restart`.
 
 Tests: `bash -n tools/service.sh`; temporary tmux session smoke (`__diplomat_status_test`) verified not-running and running status outputs. Confirmed `restart)` remains `stop; start`.
+
+### Step 25.5: Service shell smoke test
+
+Mode: Build
+Outcome: Added `tests/test_service_sh.py`, a shell-driven pytest smoke test for `tools/service.sh`. The test skips when `tmux` is unavailable, creates a temporary tmux session named `_test_diplomat_session`, copies the service script into a temporary project skeleton with a fake `.venv/bin/python`, drives `start`, polls `status` until the `diplomat` window is running, calls `stop`, verifies not-running status, and tears down the tmux session.
+Contract changes: None; this step verifies the lifecycle contract added in 25.2-25.4.
+
+Tests: `.venv/bin/python -m pytest tests/test_service_sh.py` — 1 passed.

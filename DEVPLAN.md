@@ -2,7 +2,7 @@
 phase: 25
 blocked: false
 state: execute
-steps_remaining: 3
+steps_remaining: 2
 ---
 
 # Diplomat — Development Plan
@@ -76,7 +76,7 @@ Steps:
 - [x] **25.2** Rewrite `start()`. Replace `nohup "$VENV_PYTHON" -u src/main.py >> "$LOG_FILE" 2>&1 < /dev/null &` with the tmux invocation per 25.1. Preserve the `DIPLOMAT_PIPELINE_CONFIG` env var passthrough. Remove the legacy `.diplomat.pid` write (tmux is now the source of truth). Add the "session missing" guard.
 - [x] **25.3** Rewrite `stop()`. Use `sudo -u claude tmux kill-window -t "$SESSION":diplomat 2>/dev/null || true`. Idempotent — if the window doesn't exist, exit 0 with "Diplomat is not running" message. Remove legacy `.diplomat.pid` cleanup.
 - [x] **25.4** Rewrite `status()` and `restart()`. `status` queries `sudo -u claude tmux list-windows -t "$SESSION" -F '#{window_name}'` and greps for `diplomat`; prints "Diplomat is running (tmux window $SESSION:diplomat)" or "Diplomat is not running". `restart` stays as `stop + start` (compositional). `logs()` is unchanged (continues to `tail -n N "$LOG_FILE"`).
-- [ ] **25.5** Add a basic shell-driven smoke test in `tests/test_service_sh.py`. Skips if `tmux` is not on PATH. Uses `BOT_TMUX_SESSION=_test_diplomat_session` (not `bot`, to avoid colliding with the operator's real session) and creates the session in setup. Subprocess-drives `service.sh start`, polls `status` until running, calls `stop`, verifies `status` reports not-running. Tears down the temp session in cleanup.
+- [x] **25.5** Add a basic shell-driven smoke test in `tests/test_service_sh.py`. Skips if `tmux` is not on PATH. Uses `BOT_TMUX_SESSION=_test_diplomat_session` (not `bot`, to avoid colliding with the operator's real session) and creates the session in setup. Subprocess-drives `service.sh start`, polls `status` until running, calls `stop`, verifies `status` reports not-running. Tears down the temp session in cleanup.
 - [ ] **25.6** Doc update: `CLI_REFERENCE.md` `tools/service.sh` section (remove the broken-via-incus-exec warning; promote the "Working pattern" examples to the canonical interface; keep the env-var table and add `BOT_TMUX_SESSION` row); `SMOKE_RUNBOOK.md` §2 (replace the raw `incus exec ... tmux new-window` block with `incus exec claude-code -- bash tools/service.sh start`); `diplomat-testing-doc.md` §5b "Running the bot on the Pi (current container)" subsection (drop the `tools/service.sh start (nohup)` row from the "what doesn't work" table since it now works; promote service.sh back to the canonical lifecycle command); `DEVPLAN.md` Cold Start gotcha "Pi deployment mechanism" (rewrite to reflect `service.sh` now works; tmux is the underlying mechanism but `service.sh` is the operator-facing tool).
 
 Phase review and close are state-machine actions, not executable checklist items. Definition of done: `tools/service.sh start` works both from inside a long-lived shell AND from `incus exec claude-code -- bash tools/service.sh start`; `status`, `stop`, `restart`, `logs` all work; service.sh smoke test passes (or skips cleanly if tmux unavailable); the four named docs updated; the smoke runbook can demonstrate a single-command bot start.
