@@ -59,8 +59,9 @@ steps_remaining: 0
 
 <!-- Phase ordering convention:
        - Open / queued phases first, in forward execution order (next-to-do first).
-       - Closed phases below, reverse-chronological (most recently closed first).
-       - For phases closed on the same day, sort by phase number descending.
+       - Then a `<!-- history -->` marker separates open from closed.
+       - Below the marker: closed phases in reverse-chronological order
+         (most recently closed first; same-day closes sorted by phase number descending).
      This puts the active work at the top and the "recent past" right under it,
      with deep history at the bottom. -->
 
@@ -98,6 +99,8 @@ Steps:
 - **26.8** Phase review + commit + close. Definition of done: 330+ tests passing (existing 330 + new logging tests); bot log contains structured per-event records during normal operation (verifiable with `incus exec ... cat logs/diplomat.log`); `DIPLOMAT_LOG_LEVEL=DEBUG` produces noticeably more output than INFO; the four ARCH docs + SMOKE_RUNBOOK + diplomat-testing-doc updated; the next smoke can diagnose routing/tagging issues from logs alone (no ad-hoc `print` needed).
 
 Expected outcome: the next time the bot is smoked or debugged, the log file is the diagnostic surface. Faction-tagging anomalies (like the Phase 19 smoke's "every message tagged operator" case) are obvious from the log without code instrumentation. This is also a small step toward Block A's "tech debt to watch" entry in `ASSESSMENT.md` — "per-event structured logging" gets to close.
+
+<!-- history -->
 
 ## Phase 24: Small builds + Level 1 modularization — Complete
 
