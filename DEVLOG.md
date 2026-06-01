@@ -339,3 +339,11 @@ Outcome: Replaced the PID-backed `stop()` path with tmux window cleanup. `stop()
 Contract changes: `tools/service.sh stop` no longer reads, kills, or cleans up `.diplomat.pid`.
 
 Tests: `bash -n tools/service.sh`; temporary tmux session smoke (`__diplomat_stop_test`) verified `stop` kills only the `diplomat` window and is idempotent on a second call.
+
+### Step 25.4: Rewrite service status and restart
+
+Mode: Build
+Outcome: Replaced the remaining PID-backed `status()` path with tmux window detection and removed the obsolete PID helper/variable. `status` now reports `Diplomat is running (tmux window <session>:diplomat)` when the configured window exists and `Diplomat is not running` otherwise. `restart` remains the existing compositional `stop; start` case, now using tmux-backed subcommands.
+Contract changes: `tools/service.sh status` no longer reads or removes `.diplomat.pid`; the lifecycle surface is now tmux-backed for `start`, `stop`, `status`, and `restart`.
+
+Tests: `bash -n tools/service.sh`; temporary tmux session smoke (`__diplomat_status_test`) verified not-running and running status outputs. Confirmed `restart)` remains `stop; start`.

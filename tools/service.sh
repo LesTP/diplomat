@@ -23,7 +23,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 PIPELINE_CONFIG="${DIPLOMAT_PIPELINE_CONFIG:-config/pipeline_smoke.yaml}"
-PID_FILE="$PROJECT_DIR/.diplomat.pid"
 LOG_FILE="$PROJECT_DIR/logs/diplomat.log"
 VENV_PYTHON="$PROJECT_DIR/.venv/bin/python"
 TMUX_SESSION="${BOT_TMUX_SESSION:-bot}"
@@ -66,7 +65,6 @@ start() {
         "$PROJECT_DIR" "$PIPELINE_CONFIG" "$VENV_PYTHON" "$LOG_FILE"
 
     tmux_as_service_user new-window -t "$TMUX_SESSION" -n "$TMUX_WINDOW" "$command"
-    rm -f "$PID_FILE"
     echo "Diplomat started (tmux window $TMUX_SESSION:$TMUX_WINDOW, config=$PIPELINE_CONFIG)"
     echo "Log: $LOG_FILE"
 }
@@ -82,11 +80,10 @@ stop() {
 }
 
 status() {
-    if is_running; then
-        echo "Diplomat is running (PID $(cat "$PID_FILE"))"
+    if is_tmux_running; then
+        echo "Diplomat is running (tmux window $TMUX_SESSION:$TMUX_WINDOW)"
     else
         echo "Diplomat is not running"
-        rm -f "$PID_FILE"
     fi
 }
 
@@ -97,10 +94,6 @@ logs() {
     else
         echo "No log file at $LOG_FILE"
     fi
-}
-
-is_running() {
-    [[ -f "$PID_FILE" ]] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null
 }
 
 case "${1:-}" in
