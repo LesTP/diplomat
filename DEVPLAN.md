@@ -2,7 +2,7 @@
 phase: 25
 blocked: false
 state: execute
-steps_remaining: 6
+steps_remaining: 5
 ---
 
 # Diplomat — Development Plan
@@ -73,7 +73,7 @@ Prerequisite: None code-wise. The working pattern is already documented in `CLI_
 
 Steps:
 - [x] **25.1** Scope analysis. Read current `tools/service.sh`. Confirm the replacement design: `start()` invokes `sudo -u claude tmux new-window -t <session> -n diplomat <cmd>` with the python command running foreground in the pane and `tee -a logs/diplomat.log` for output; `stop()` invokes `sudo -u claude tmux kill-window -t <session>:diplomat`; `status()` queries `sudo -u claude tmux list-windows -t <session>`. Decide and document: (a) the supervising tmux session name — default `bot` (matches the existing long-lived session that already supervises codexbot), overridable via `BOT_TMUX_SESSION` env var for tests and parallel deployments; (b) auto-detect whether already running as user `claude` (skip `sudo -u claude` if so); (c) handling for missing tmux session — fail with a clear "session `bot` not found; create with: `sudo -u claude tmux new-session -d -s bot`" message rather than silently auto-creating (auto-create would mask configuration errors).
-- [ ] **25.2** Rewrite `start()`. Replace `nohup "$VENV_PYTHON" -u src/main.py >> "$LOG_FILE" 2>&1 < /dev/null &` with the tmux invocation per 25.1. Preserve the `DIPLOMAT_PIPELINE_CONFIG` env var passthrough. Remove the legacy `.diplomat.pid` write (tmux is now the source of truth). Add the "session missing" guard.
+- [x] **25.2** Rewrite `start()`. Replace `nohup "$VENV_PYTHON" -u src/main.py >> "$LOG_FILE" 2>&1 < /dev/null &` with the tmux invocation per 25.1. Preserve the `DIPLOMAT_PIPELINE_CONFIG` env var passthrough. Remove the legacy `.diplomat.pid` write (tmux is now the source of truth). Add the "session missing" guard.
 - [ ] **25.3** Rewrite `stop()`. Use `sudo -u claude tmux kill-window -t "$SESSION":diplomat 2>/dev/null || true`. Idempotent — if the window doesn't exist, exit 0 with "Diplomat is not running" message. Remove legacy `.diplomat.pid` cleanup.
 - [ ] **25.4** Rewrite `status()` and `restart()`. `status` queries `sudo -u claude tmux list-windows -t "$SESSION" -F '#{window_name}'` and greps for `diplomat`; prints "Diplomat is running (tmux window $SESSION:diplomat)" or "Diplomat is not running". `restart` stays as `stop + start` (compositional). `logs()` is unchanged (continues to `tail -n N "$LOG_FILE"`).
 - [ ] **25.5** Add a basic shell-driven smoke test in `tests/test_service_sh.py`. Skips if `tmux` is not on PATH. Uses `BOT_TMUX_SESSION=_test_diplomat_session` (not `bot`, to avoid colliding with the operator's real session) and creates the session in setup. Subprocess-drives `service.sh start`, polls `status` until running, calls `stop`, verifies `status` reports not-running. Tears down the temp session in cleanup.

@@ -10,6 +10,7 @@
 #
 # Configuration:
 #   DIPLOMAT_PIPELINE_CONFIG  env var or default config/pipeline_smoke.yaml
+#   BOT_TMUX_SESSION          tmux session name, default bot
 #
 # When run inside an Incus container (e.g., via `incus exec`), paths
 # resolve relative to the project directory. When run from the host,
@@ -25,21 +26,48 @@ PIPELINE_CONFIG="${DIPLOMAT_PIPELINE_CONFIG:-config/pipeline_smoke.yaml}"
 PID_FILE="$PROJECT_DIR/.diplomat.pid"
 LOG_FILE="$PROJECT_DIR/logs/diplomat.log"
 VENV_PYTHON="$PROJECT_DIR/.venv/bin/python"
+TMUX_SESSION="${BOT_TMUX_SESSION:-bot}"
+TMUX_WINDOW="diplomat"
+
+tmux_as_service_user() {
+    if [[ "$(id -un)" == "claude" ]]; then
+        tmux "$@"
+    else
+        sudo -u claude tmux "$@"
+    fi
+}
+
+require_tmux_session() {
+    if tmux_as_service_user has-session -t "$TMUX_SESSION" 2>/dev/null; then
+        return 0
+    fi
+
+    echo "tmux session '$TMUX_SESSION' not found; create with: sudo -u claude tmux new-session -d -s $TMUX_SESSION" >&2
+    return 1
+}
+
+is_tmux_running() {
+    tmux_as_service_user list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null \
+        | grep -Fxq "$TMUX_WINDOW"
+}
 
 start() {
-    if is_running; then
-        echo "Diplomat is already running (PID $(cat "$PID_FILE"))"
+    require_tmux_session
+
+    if is_tmux_running; then
+        echo "Diplomat is already running (tmux window $TMUX_SESSION:$TMUX_WINDOW)"
         return 0
     fi
 
     mkdir -p "$PROJECT_DIR/logs"
 
-    cd "$PROJECT_DIR"
-    PYTHONPATH=src DIPLOMAT_PIPELINE_CONFIG="$PIPELINE_CONFIG" \
-        nohup "$VENV_PYTHON" src/main.py >> "$LOG_FILE" 2>&1 &
-    local pid=$!
-    echo "$pid" > "$PID_FILE"
-    echo "Diplomat started (PID $pid, config=$PIPELINE_CONFIG)"
+    local command
+    printf -v command 'cd %q && PYTHONPATH=src DIPLOMAT_PIPELINE_CONFIG=%q %q -u src/main.py 2>&1 | tee -a %q' \
+        "$PROJECT_DIR" "$PIPELINE_CONFIG" "$VENV_PYTHON" "$LOG_FILE"
+
+    tmux_as_service_user new-window -t "$TMUX_SESSION" -n "$TMUX_WINDOW" "$command"
+    rm -f "$PID_FILE"
+    echo "Diplomat started (tmux window $TMUX_SESSION:$TMUX_WINDOW, config=$PIPELINE_CONFIG)"
     echo "Log: $LOG_FILE"
 }
 

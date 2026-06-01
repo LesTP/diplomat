@@ -321,3 +321,13 @@ Contract changes: None.
 Design decisions for implementation: `BOT_TMUX_SESSION` overrides the default `bot` session, tmux commands run through `sudo -u claude` unless the current user is already `claude`, and a missing tmux session fails with `session '<name>' not found; create with: sudo -u claude tmux new-session -d -s <name>` rather than auto-creating.
 
 Tests: Not run; analysis-only step.
+
+### Step 25.2: Rewrite service start
+
+Mode: Build
+Outcome: Replaced the `start()` path in `tools/service.sh` with tmux-window launch. The script now defines `BOT_TMUX_SESSION`/`TMUX_WINDOW`, checks that the configured tmux session exists, skips `sudo -u claude` when already running as user `claude`, starts `.venv/bin/python -u src/main.py` in a foreground tmux pane, pipes output through `tee -a logs/diplomat.log`, and removes the legacy PID file after launch.
+Contract changes: `tools/service.sh start` no longer writes `.diplomat.pid`; tmux is now the start-path source of truth.
+
+Notes: Normalized `tools/service.sh` to LF because the pre-existing CRLF-only dirty state produced mixed endings after the patch and failed shell parsing. `stop()` and `status()` still use the old PID path and are intentionally left for 25.3/25.4.
+
+Tests: `bash -n tools/service.sh`; `BOT_TMUX_SESSION=__diplomat_missing_test bash tools/service.sh start` exits 1 with the expected missing-session message.
