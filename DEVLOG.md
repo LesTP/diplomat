@@ -399,3 +399,15 @@ Scope decision: logging should be diagnostic-first and operator-visible through 
 Contract changes: None yet. The phase is expected to add operator-facing logging configuration and documented log event names, but no module API changes are planned.
 
 Tests: Not run; planning-only action.
+
+### Step 26.1: Structured logging scope and design
+
+Mode: Build
+Outcome: Confirmed there is no existing `logging` usage under `src`; production diagnostics currently rely on `print()` in `EventDrivenFlow` and legacy `_OrchestratorCore` paths, including the startup banner, extraction failure notices, and reconciliation messages.
+Contract changes: None.
+
+Design decisions for implementation: use module-local loggers with stable `diplomat.*` names derived from `__name__`, configure stream output only so `tools/service.sh` continues to own log file capture via `tee`, default to format `%(asctime)s %(levelname)s %(name)s %(message)s`, read `logging.level` / optional `logging.format` from pipeline config with `DIPLOMAT_LOG_LEVEL` overriding the level, and emit fixed event names for grep-able diagnosis: `startup.online`, `event.received`, `event.routed`, `event.sent`, `extraction.scheduled`, `extraction.start`, `extraction.complete`, `extraction.skip`, `round.boundary`, `pipeline.trigger`, `pipeline.complete`, and `reconciliation.*`.
+
+Notes: Transport instrumentation should prioritize Telegram sender/faction/operator classification because that was the Phase 19 smoke failure mode. Flow/pipeline instrumentation should make event routing, extraction task scheduling, round-boundary handling, and response pipeline completion visible without adding a second log-file writer.
+
+Tests: Not run; scope/design-only step. Validation was source inspection plus `grep -RIn "import logging\\|logging\\.\\|print(" src tests config`.
