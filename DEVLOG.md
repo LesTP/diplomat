@@ -441,3 +441,13 @@ Contract changes: None. Public Pipeline, Flow, and Orchestrator APIs are unchang
 Notes: `signal_round_detector()` now attaches the configured regex pattern to the detector callable so `round.boundary` logs can include the pattern without changing the Flow contract.
 
 Tests: `.venv/bin/python -m pytest tests/test_pipeline.py tests/test_flows.py tests/test_orchestrator.py` — 67 passed. Additional focused rerun after the system-route label change: `.venv/bin/python -m pytest tests/test_flows.py` — 8 passed.
+
+### Step 26.5: Logging config and env override
+
+Mode: Build
+Outcome: Added `logging.level: INFO` and the standard log format to both `config/pipeline.yaml` and `config/pipeline_smoke.yaml`. The existing `configure_logging(config_path)` path now reads those values at startup, while `DIPLOMAT_LOG_LEVEL` overrides the configured level for temporary DEBUG/diagnostic runs. `CLI_REFERENCE.md` documents the new env var for direct `src/main.py` invocation and `tools/service.sh`.
+Contract changes: Operator-facing config/env surface now includes `logging.level`, `logging.format`, and `DIPLOMAT_LOG_LEVEL`.
+
+Notes: `config/pipeline_smoke.yaml` had pre-existing CRLF-only dirty state; the commit stages only the semantic logging block for that file and leaves unrelated line-ending churn uncommitted.
+
+Tests: `.venv/bin/python -m pytest tests/test_main.py` — 5 passed. YAML validation confirmed both pipeline configs contain the logging block and parse successfully.

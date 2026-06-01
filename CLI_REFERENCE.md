@@ -48,6 +48,7 @@ No CLI flags. Configuration via environment variables (read from `.env` or shell
 | Env var | Required? | Purpose |
 |---|---|---|
 | `DIPLOMAT_PIPELINE_CONFIG` | optional | Path to `pipeline.yaml`; defaults to `config/pipeline.yaml` |
+| `DIPLOMAT_LOG_LEVEL` | optional | Override `logging.level` from pipeline config (for example `DEBUG` during a smoke) |
 | `TELEGRAM_BOT_TOKEN` | yes (live) | Telegram bot token from @BotFather |
 | `DIPLOMAT_PUBLIC_CHANNEL_ID` | yes (live) | Public game channel numeric ID |
 | `DIPLOMAT_COACHING_CHANNEL_ID` | yes (live) | Operator coaching chat numeric ID |
@@ -89,6 +90,7 @@ bash tools/service.sh restart            # stop + start
 | Env var | Default | Notes |
 |---|---|---|
 | `DIPLOMAT_PIPELINE_CONFIG` | `config/pipeline_smoke.yaml` | Override to use production config or any other |
+| `DIPLOMAT_LOG_LEVEL` | config `logging.level` | Temporary log-level override; use `DEBUG` for high-verbosity diagnostics |
 | `BOT_TMUX_SESSION` | `bot` | tmux session that supervises the `diplomat` window |
 
 The tmux session must already exist. If it is missing, create it with

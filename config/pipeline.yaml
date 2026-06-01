@@ -68,6 +68,11 @@ modules:
 cost:
   per_round_budget_usd: 1.00
   session_budget_usd: 10.00
+
+logging:
+  level: INFO
+  format: "%(asctime)s %(levelname)s %(name)s %(message)s"
+
 round_detection:
   mode: signal
   pattern: "^ROUND\\s+(?P<round>\\d+)"
