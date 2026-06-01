@@ -444,3 +444,13 @@ Contract changes: None.
 Notes: Step 27.2 can extend the existing helper in place; no scorer prompt or partial-consensus behavior needs to change.
 
 Tests: Not run; analysis-only step per checklist.
+
+### Step 27.2: Add baseline-normalized scoring fields
+
+Mode: Build
+Outcome: Extended `_pareto_efficiency_metrics()` with BATNA-normalized companion fields while preserving the existing `achieved_score_sum`, `max_pareto_sum`, and `pareto_efficiency` outputs. New fields are `sum_batnas`, `faction_deltas`, `delta_above_batna_sum`, `min_faction_delta`, `surplus_distribution_stdev`, and `negotiated_surplus_share`.
+Contract changes: Self-play `scores` payloads now include the new baseline-normalized scoring fields when scenario analysis is available.
+
+Notes: Added focused tests for at-BATNA, at-Pareto, below-BATNA, and zero-surplus-denominator cases. Population standard deviation is computed over faction deltas.
+
+Tests: `.venv/bin/python -m pytest tests/test_self_play.py` — 42 passed.

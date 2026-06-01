@@ -496,6 +496,7 @@ class TestParetoEfficiency:
         assert metrics["max_pareto_sum"] == 20
         assert metrics["achieved_score_sum"] == 20
         assert metrics["pareto_efficiency"] == 1.0
+        assert metrics["negotiated_surplus_share"] == 1.0
 
     def test_batna_sum_returns_batna_to_pareto_ratio(self) -> None:
         from tests.self_play.game_environment import _pareto_efficiency_metrics
@@ -513,6 +514,12 @@ class TestParetoEfficiency:
 
         assert metrics["achieved_score_sum"] == 10
         assert metrics["pareto_efficiency"] == pytest.approx(0.5)
+        assert metrics["sum_batnas"] == 10
+        assert metrics["faction_deltas"] == {"alpha": 0.0, "beta": 0.0}
+        assert metrics["delta_above_batna_sum"] == 0.0
+        assert metrics["min_faction_delta"] == 0.0
+        assert metrics["surplus_distribution_stdev"] == 0.0
+        assert metrics["negotiated_surplus_share"] == 0.0
 
     def test_no_deal_case_uses_returned_batna_scores(self) -> None:
         from tests.self_play.game_environment import _pareto_efficiency_metrics
@@ -529,6 +536,48 @@ class TestParetoEfficiency:
         )
 
         assert metrics["pareto_efficiency"] == pytest.approx(0.5)
+        assert metrics["negotiated_surplus_share"] == 0.0
+
+    def test_below_batna_case_returns_negative_surplus_share(self) -> None:
+        from tests.self_play.game_environment import _pareto_efficiency_metrics
+
+        metrics = _pareto_efficiency_metrics(
+            _pareto_scenario(),
+            {
+                "deal_reached": True,
+                "faction_scores": {
+                    "alpha": {"points": 3, "batna": 4},
+                    "beta": {"points": 6, "batna": 6},
+                },
+            },
+        )
+
+        assert metrics["faction_deltas"] == {"alpha": -1.0, "beta": 0.0}
+        assert metrics["delta_above_batna_sum"] == -1.0
+        assert metrics["min_faction_delta"] == -1.0
+        assert metrics["surplus_distribution_stdev"] == pytest.approx(0.5)
+        assert metrics["negotiated_surplus_share"] == pytest.approx(-0.1)
+
+    def test_zero_surplus_denominator_returns_zero_share(self) -> None:
+        from tests.self_play.game_environment import _pareto_efficiency_metrics
+
+        scenario = _pareto_scenario()
+        scenario["batna"] = {"alpha": 10, "beta": 10}
+
+        metrics = _pareto_efficiency_metrics(
+            scenario,
+            {
+                "deal_reached": True,
+                "faction_scores": {
+                    "alpha": {"points": 10, "batna": 10},
+                    "beta": {"points": 10, "batna": 10},
+                },
+            },
+        )
+
+        assert metrics["max_pareto_sum"] == 20
+        assert metrics["sum_batnas"] == 20
+        assert metrics["negotiated_surplus_share"] == 0.0
 
     @pytest.mark.asyncio
     async def test_score_game_outputs_numeric_pareto_efficiency(

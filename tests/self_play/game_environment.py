@@ -684,8 +684,8 @@ async def _safe_query(
 def _pareto_efficiency_metrics(
     scenario_analysis: dict[str, Any],
     score_data: dict[str, Any],
-) -> dict[str, float]:
-    """Calculate aggregate Pareto efficiency for a scored game result."""
+) -> dict[str, Any]:
+    """Calculate aggregate Pareto and BATNA-normalized metrics."""
     from tests.self_play.verify_scenario_optimum import (
         enumerate_deals,
         find_pareto_frontier,
@@ -697,13 +697,44 @@ def _pareto_efficiency_metrics(
 
     faction_scores = score_data.get("faction_scores", {})
     achieved_sum = 0.0
+    sum_batnas = 0.0
+    faction_deltas: dict[str, float] = {}
     for faction in scenario_analysis.get("factions", faction_scores.keys()):
         faction_data = faction_scores.get(faction, {})
-        achieved_sum += float(faction_data.get("points", 0.0))
+        points = float(faction_data.get("points", 0.0))
+        batna = float(scenario_analysis.get("batna", {}).get(faction, 0.0))
+        achieved_sum += points
+        sum_batnas += batna
+        faction_deltas[faction] = points - batna
 
     efficiency = achieved_sum / max_pareto_sum if max_pareto_sum > 0 else 0.0
+    deltas = list(faction_deltas.values())
+    delta_above_batna_sum = sum(deltas)
+    min_faction_delta = min(deltas, default=0.0)
+    mean_delta = delta_above_batna_sum / len(deltas) if deltas else 0.0
+    surplus_distribution_stdev = (
+        (
+            sum((delta - mean_delta) ** 2 for delta in deltas)
+            / len(deltas)
+        )
+        ** 0.5
+        if deltas
+        else 0.0
+    )
+    surplus_denominator = max_pareto_sum - sum_batnas
+    negotiated_surplus_share = (
+        delta_above_batna_sum / surplus_denominator
+        if surplus_denominator > 0
+        else 0.0
+    )
     return {
         "achieved_score_sum": achieved_sum,
         "max_pareto_sum": max_pareto_sum,
         "pareto_efficiency": efficiency,
+        "sum_batnas": sum_batnas,
+        "faction_deltas": faction_deltas,
+        "delta_above_batna_sum": delta_above_batna_sum,
+        "min_faction_delta": min_faction_delta,
+        "surplus_distribution_stdev": surplus_distribution_stdev,
+        "negotiated_surplus_share": negotiated_surplus_share,
     }

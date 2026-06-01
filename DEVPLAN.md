@@ -2,7 +2,7 @@
 phase: 27
 blocked: false
 state: execute
-steps_remaining: 6
+steps_remaining: 5
 ---
 
 # Diplomat — Development Plan
@@ -94,7 +94,7 @@ this phase metric-only.
 
 ### Step 27.2: Add baseline-normalized scoring fields
 
-- [ ] Extend `_pareto_efficiency_metrics()` in `tests/self_play/game_environment.py` to also compute and return: `sum_batnas` (sum of per-faction BATNAs from `scenario_analysis['batna']`), `faction_deltas` (`{faction: points - batna}` dict), `delta_above_batna_sum` (sum of deltas), `min_faction_delta` (worst-off faction's delta — negative flags below-BATNA agreement), `surplus_distribution_stdev` (population stdev of deltas), and `negotiated_surplus_share` (`delta_above_batna_sum / (max_pareto_sum - sum_batnas)`, returning `0.0` when the denominator is `<= 0` to handle scenarios with no available cooperative surplus). Add focused tests in `tests/test_self_play.py` covering: at-BATNA case returns `0.0`; at-Pareto case returns `1.0`; below-BATNA case returns negative; zero-denominator edge case returns `0.0` without raising. Run `.venv/bin/python -m pytest tests/test_self_play.py` and confirm pass.
+- [x] Extend `_pareto_efficiency_metrics()` in `tests/self_play/game_environment.py` to also compute and return: `sum_batnas` (sum of per-faction BATNAs from `scenario_analysis['batna']`), `faction_deltas` (`{faction: points - batna}` dict), `delta_above_batna_sum` (sum of deltas), `min_faction_delta` (worst-off faction's delta — negative flags below-BATNA agreement), `surplus_distribution_stdev` (population stdev of deltas), and `negotiated_surplus_share` (`delta_above_batna_sum / (max_pareto_sum - sum_batnas)`, returning `0.0` when the denominator is `<= 0` to handle scenarios with no available cooperative surplus). Add focused tests in `tests/test_self_play.py` covering: at-BATNA case returns `0.0`; at-Pareto case returns `1.0`; below-BATNA case returns negative; zero-denominator edge case returns `0.0` without raising. Run `.venv/bin/python -m pytest tests/test_self_play.py` and confirm pass.
 
 ### Step 27.3: Render new fields in the analysis report
 
