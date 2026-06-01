@@ -193,3 +193,15 @@ Mode: Build
 Outcome: Activated Phase 24 as the current Build phase and converted its small-build scope into seven state-machine executable steps: toolkit OpenAI dispatch tests, asymmetric BATNA flags, force-clamped BATNAs, runtime game-mode override, extraction examples JSON config, schema-derived entity types, and named doc updates.
 
 Scope decision: Phase 24 is pure code/test/doc work with no live API requirement. Review and close remain controller-managed actions rather than checklist steps.
+
+## 2026-05-31 - Step 24.1 + toolkit portion of 24.7 (operator-direct)
+
+Action: EXECUTE (out-of-loop)
+Mode: Build
+Outcome: Iter 62 correctly escalated EXIT 2 on step 24.1 because the step targets `toolkit/tests/llm_client/` which is outside the diplomat worker's permitted project tree (WORKER_SPEC §8). Operator completed step 24.1 directly: added `TestOpenAIProviderTokenParam` to `toolkit/tests/llm_client/test_core.py` with two parametrized tests covering (a) reasoning models (`gpt-5*`, `o1*`, `o3*`, `o4*`) → `max_completion_tokens` and (b) legacy models (`gpt-4*`, `gpt-3.5*`) → `max_tokens`. 10 test cases pass. Toolkit suite total: 55 passed in `tests/llm_client/test_core.py` (was 45).
+
+Also completed the toolkit-side portion of step 24.7 in the same pass: added "Token-parameter dispatch (OpenAIProvider)" subsection to `toolkit/ARCH_llm_client.md` and a short note in `toolkit/API.md`. Diplomat-side docs (CLI_REFERENCE, TUNING, diplomat-testing-doc, ARCH_extraction, ARCH_reconciliation) remain for the worker as part of step 24.7.
+
+DEVPLAN edits: step 24.1 marked `[x]` with a "Completed directly by operator" note; step 24.7 trimmed to diplomat docs only with explicit "do NOT attempt to modify toolkit" guard. The loop can now run steps 24.2–24.6 then 24.7 (diplomat docs only) → REVIEW → CLOSE without hitting the project-tree boundary again.
+
+Audit of remaining queue (Phase 24 was the only active phase): no other steps in 24.2–24.7 touch `../toolkit`. Phase 25+ not yet planned.
