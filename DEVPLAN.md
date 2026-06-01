@@ -2,7 +2,7 @@
 phase: 27
 blocked: false
 state: execute
-steps_remaining: 4
+steps_remaining: 3
 ---
 
 # Diplomat — Development Plan
@@ -102,7 +102,7 @@ this phase metric-only.
 
 ### Step 27.4: Backfill tool for historical runs
 
-- [ ] Add `tools/backfill_scoring_metrics.py` that takes `--results <run.json>` + `--analysis <scenario_analysis.json>` and `--write-back` flag. Reuses `_pareto_efficiency_metrics()` (extracted to a leaf-importable helper if the current module depends on toolkit and can't be imported standalone — same approach as `tools/backfill_pareto.py`). Prints all new fields. With `--write-back`, patches them into `results.scores`. Run the tool against `tests/self_play/results/run9_symmetric_live.json` + `tests/self_play/scenarios/water_rights_symmetric_050/scenario_analysis.json` and against `run9_alpha_squeezed_live.json` + matching analysis and `run9_beta_squeezed_live.json` + matching analysis. Capture the printed output for the doc-update step. Run 7 and Run 8 lack embedded `scenario_analysis` and use scoring tables from `tests/self_play/scenarios/water_rights_compiled/` (Run 8) or no compiled analysis (Run 7); record the Run 8 backfill, skip Run 7 (mismatched scenario).
+- [x] Add `tools/backfill_scoring_metrics.py` that takes `--results <run.json>` + `--analysis <scenario_analysis.json>` and `--write-back` flag. Reuses `_pareto_efficiency_metrics()` (extracted to a leaf-importable helper if the current module depends on toolkit and can't be imported standalone — same approach as `tools/backfill_pareto.py`). Prints all new fields. With `--write-back`, patches them into `results.scores`. Run the tool against `tests/self_play/results/run9_symmetric_live.json` + `tests/self_play/scenarios/water_rights_symmetric_050/scenario_analysis.json` and against `run9_alpha_squeezed_live.json` + matching analysis and `run9_beta_squeezed_live.json` + matching analysis. Capture the printed output for the doc-update step. Run 7 and Run 8 lack embedded `scenario_analysis` and use scoring tables from `tests/self_play/scenarios/water_rights_compiled/` (Run 8) or no compiled analysis (Run 7); record the Run 8 backfill, skip Run 7 (mismatched scenario).
 
 ### Step 27.5: Doc updates + Run 9 retro-scores
 

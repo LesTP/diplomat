@@ -464,3 +464,22 @@ Contract changes: Self-play analysis reports now expose the baseline-normalized 
 Notes: Added a capsys render test using the existing synthetic process-signature fixture so the section is covered without live LLM calls.
 
 Tests: `.venv/bin/python -m pytest tests/test_self_play.py` — 43 passed.
+
+### Step 27.4: Backfill tool for historical runs
+
+Mode: Build
+Outcome: Added `tools/backfill_scoring_metrics.py`, a CLI that reads `--results` and matching `--analysis`, computes Phase 27 metrics through the shared `_pareto_efficiency_metrics()` helper, prints all fields, and supports `--write-back` to patch `results.scores`.
+Contract changes: New CLI utility for historical self-play scoring backfills.
+
+Captured backfill values for Step 27.5 docs:
+
+| Run | pareto_efficiency | negotiated_surplus_share | min_faction_delta |
+|---|---:|---:|---:|
+| Run 9 symmetric live | 0.593 | 0.000 | 0.000 |
+| Run 9 alpha squeezed live | 0.630 | 0.000 | 0.000 |
+| Run 9 beta squeezed live | 1.019 | 1.053 | 3.000 |
+| Run 8 water rights 3-provider v3 | 0.537 | 0.000 | 0.000 |
+
+Notes: The commands were run without `--write-back` so historical result JSON files were not modified in this step. Run 7 was skipped because it lacks a matching compiled scenario analysis, per the phase checklist. The Run 9 beta-squeezed historical scorer output exceeds the enumerated Pareto sum for its matching analysis, so both legacy `pareto_efficiency` and normalized surplus share are above 1.0; Step 27.5 should report the computed value rather than clamp it.
+
+Tests: `.venv/bin/python tools/backfill_scoring_metrics.py ...` — completed for Run 9 symmetric, Run 9 alpha squeezed, Run 9 beta squeezed, and Run 8 compiled backfill.
