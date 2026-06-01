@@ -82,7 +82,7 @@ Audit trail; details in `DEVLOG.md` / `DEVLOG_archive.md` under the correspondin
 | Provider-native structured output (`response_format: json_schema`) | 🔀 | Toolkit plumbing build; model selection supervised |
 | TelegramReviewGate as production default in `pipeline.yaml` | 👁 | Judgment call |
 | Rewrite `tools/service.sh` around `tmux new-window` | 🔨 | **Phase 25 queued** (`DEVPLAN.md`) |
-| Structured per-event logging in orchestrator + transport | 🔨 | Outstanding tooling debt — not in any phase yet |
+| Structured per-event logging in orchestrator + transport | 🔨 | **Phase 26 queued** (`DEVPLAN.md`) |
 
 ### Suggested Sequencing (operator-driven)
 
@@ -105,7 +105,6 @@ If you want to keep the loop fed rather than pivot to operator-driven work, thre
 | §1.6 OpenRouter | Add OpenRouter as a provider in `toolkit/llm_client/providers.py` + factory branch + tests | Run 9 itself; writing TUNING notes about its behavior |
 | §3 Stage 2a | Add `RoundSteppedFlow` configuration for 2-pass rounds (open + react) + `MultiPassMode` plumbing; round-events injection between passes | Stage 2b convergence detection; judging quality of multi-pass transcripts |
 | ASSESSMENT §3.3 vs-Naive baseline (equal-split) | Implement equal-split baseline scorer (universal definition) + add to scoring output alongside Pareto efficiency | Choosing whether equal-split is "the" baseline vs Nash bargaining vs BATNA-clearing |
-| Structured per-event logging | Add log lines in orchestrator + transport (inbound chat→channel, sender→faction, extraction success/skip, round-boundary trigger, response-pipeline trigger). Sibling of Phase 25 service.sh work; could be Phase 26. | None — pure build |
 
 ---
 
@@ -517,7 +516,7 @@ a real self-play scenario, not just deterministic fixtures.
 ### Outstanding tooling debt (🔨 PURE BUILD)
 
 - [x] ~~**Rewrite `tools/service.sh` around `tmux new-window -t bot`**~~ — **Queued as Phase 25 in `DEVPLAN.md`.** Closes the broken-via-incus-exec issue. 7 steps; auto-loop-ready.
-- [ ] **Add structured per-event logging** to orchestrator + transport so future smokes don't need ad-hoc `print` instrumentation. Log: inbound chat_id → channel mapping, sender_id → faction tagging, extraction success/skip, round-boundary trigger, response-pipeline trigger. Could be Phase 26 if you want one more autonomous-loop pass.
+- [x] ~~**Add structured per-event logging** to orchestrator + transport~~ — **Queued as Phase 26 in `DEVPLAN.md`.** Replaces the ad-hoc `print` instrumentation needed during the Phase 19 smoke. 8 steps; auto-loop-ready. Independent of Phase 25.
 
 ### Telegram-platform finding (worth knowing)
 
@@ -580,3 +579,4 @@ Tracked here for visibility; canonical sources remain authoritative.
 | 2026-05-31 | Added "Reference Docs to Keep in Sync" to CLAUDE.md + CODEX.md. Per-phase doc-update steps in DEVPLAN. | Operator: "we should include an explicit step to update this doc whenever cli gets touched" |
 | 2026-06-01 | **Big cleanup pass.** All Phases 20–24 items collapsed to a single "Closed since 2026-05-30" table at top. Removed §1.5 / §1.7 / §1.8 / §1.9 detail sections (done; details in DEVLOG_archive Phase 20–22 entries). Removed Backlog → Tooling debt RESOLVED items and Open BATNA follow-ups (all done in Phase 24). Removed Live TG re-smoke CLOSED detail block (audit lives in DEVLOG_archive). Promoted `service.sh` rewrite + structured per-event logging from CLOSED tooling-debt narrative into a fresh "Outstanding tooling debt (🔨 PURE BUILD; not in any phase yet)" subsection so they're not lost. Carry-forward list trimmed to actually-still-open items. File shrunk 770 → ~470 lines. | Operator: "please review the closed items and clean up NEXT_STEPS with the items we just completed" |
 | 2026-06-01 | `tools/service.sh` rewrite around tmux **queued as Phase 25 in `DEVPLAN.md`** (7 steps; auto-loop-ready). Outstanding tooling debt subsection trimmed accordingly; pure-build extensions table updated (per-event logging is now the only candidate alongside §1.6 / §3 / §3.3); classification row for service.sh now points at Phase 25. | Operator: "please write up the service.sh rewrite into devplan as next phase" |
+| 2026-06-01 | Structured per-event logging **queued as Phase 26 in `DEVPLAN.md`** (8 steps; auto-loop-ready; independent of Phase 25). Classification row updated to point at Phase 26. Outstanding tooling debt subsection now shows both items closed-out into phases. Pure-build extensions table dropped the per-event-logging row (no longer a candidate — it's queued). | Operator: "can you line up Structured per-event logging in orchestrator + transport as the following phase into devplan as well?" |
