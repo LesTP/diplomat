@@ -105,3 +105,53 @@ result = parser.parse("/edit: Soften the tone in the second paragraph")
 result = parser.parse("Be careful with Delta, their coach seems aggressive")
 # → CoachingEvent(coaching_type='FREE', content='Be careful...', route='coaching_queue')
 ```
+
+## Philosophy & Operational Notes
+
+> Originally diplomat-system-spec.md §7. Migrated here 2026-06-02 when the spec was retired.
+
+### Philosophy
+
+Coaching is an **intervention, not a feed.** Frequent low-signal coaching
+creates noise in the Context Assembler's input and makes agent behavior
+erratic. The goal is sparse, high-signal input that steers without replacing
+the agent's judgment.
+
+The agent executes negotiation, promise tracking, and faction heuristics.
+Coaching addresses what only the operator can see: the behavior of human
+coaches behind opposing agents, judgment calls outside the faction prompt's
+scope, and systematic biases in the configured heuristics.
+
+Coaching should **decrease over the game** as the faction prompt improves
+from review gate feedback. Heavy coaching in final rounds indicates a prompt
+that needs updating, not a coaching cadence that needs increasing.
+
+### Cadence
+
+Typical round:
+- *Pre-round:* one `PRIORITY`, one `CONSTRAINT` if a trap is visible
+- *Mid-round:* zero to one targeted correction
+- *Pre-response:* approve, edit, or block via the review gate
+
+More than two or three inputs per round signals that either the faction
+prompt needs tightening or the operator is playing the game rather than
+coaching an agent.
+
+### Review Gate Edit Log → Prompt Refinement
+
+Every review gate decision is written to `review_gate_edits`. At each round
+boundary, `/edits` returns this log. Recurring edit patterns — consistently
+softening tone, consistently removing a specific type of commitment —
+should be written into `config/faction_prompt.txt` directly. The coaching
+note correcting for a recurring pattern should eventually become unnecessary.
+
+**Target state:** by mid-game, the review gate is mostly approving without edit.
+
+### What Coaching Does NOT Affect
+
+- Messages already posted (the event log is append-only — there is no recall)
+- Analyst outputs already written for the current round (regenerate only on the next round boundary)
+- INTEL corrections do **not** backfill past intelligence records — they update state forward from the point of correction, and the next Analyst run will reflect them
+
+This forward-only behavior is intentional: it keeps the audit trail clean
+and prevents the operator from rewriting history mid-game.

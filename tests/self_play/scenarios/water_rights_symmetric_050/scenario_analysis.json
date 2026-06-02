@@ -1,0 +1,107 @@
+{
+  "batna": {
+    "alpha": 11,
+    "beta": 10,
+    "gamma": 11
+  },
+  "deception_tactics": {
+    "alpha": "Overstate interest in water_release_volume (claim to prefer Low volume strongly) to later concede it for better payment terms.",
+    "beta": "Overstate interest in payment_structure (claim to prefer Heavy-Downstream payment) to trade for higher water release volume.",
+    "gamma": "Overstate interest in payment_structure (claim to prefer Token payment) to gain concessions on long-term infrastructure funding."
+  },
+  "factions": [
+    "alpha",
+    "beta",
+    "gamma"
+  ],
+  "game_mode": "mixed",
+  "issues": [
+    {
+      "description": "Monthly water release volume from Alpha's dam during the agreement period.",
+      "name": "water_release_volume",
+      "outcomes": [
+        "High (20M gallons/month)",
+        "Medium (15M gallons/month)",
+        "Low (10M gallons/month)"
+      ]
+    },
+    {
+      "description": "Compensation scheme for Alpha's lost hydro and fishing revenues.",
+      "name": "payment_structure",
+      "outcomes": [
+        "Heavy-Downstream",
+        "Shared",
+        "Token"
+      ]
+    },
+    {
+      "description": "Long-term infrastructure investment and funding during the agreement.",
+      "name": "long_term_infrastructure",
+      "outcomes": [
+        "Joint-Funded Desalination",
+        "Gamma-Funded Pipeline",
+        "Deferred"
+      ]
+    }
+  ],
+  "logrolling": [
+    "Alpha concedes on water_release_volume by agreeing to Medium or High release in exchange for Heavy-Downstream payment structure from Gamma and Beta.",
+    "Beta accepts Shared or Heavy-Downstream payment to secure High water_release_volume necessary for irrigation.",
+    "Gamma agrees to Heavy-Downstream payment and High water_release_volume in exchange for Alpha and Beta supporting Joint-Funded Desalination infrastructure.",
+    "Alpha supports Joint-Funded Desalination to reduce long-term pressure on water releases, conceding infrastructure preferences to Gamma.",
+    "Beta concedes infrastructure issue (prefers Joint-Funded but willing to accept Deferred) in exchange for better water volume and token or shared payment."
+  ],
+  "scoring": {
+    "alpha": {
+      "long_term_infrastructure": {
+        "Deferred": 1,
+        "Gamma-Funded Pipeline": 2,
+        "Joint-Funded Desalination": 3
+      },
+      "payment_structure": {
+        "Heavy-Downstream": 10,
+        "Shared": 7,
+        "Token": 2
+      },
+      "water_release_volume": {
+        "High (20M gallons/month)": 3,
+        "Low (10M gallons/month)": 9,
+        "Medium (15M gallons/month)": 6
+      }
+    },
+    "beta": {
+      "long_term_infrastructure": {
+        "Deferred": 1,
+        "Gamma-Funded Pipeline": 2,
+        "Joint-Funded Desalination": 4
+      },
+      "payment_structure": {
+        "Heavy-Downstream": 4,
+        "Shared": 3,
+        "Token": 7
+      },
+      "water_release_volume": {
+        "High (20M gallons/month)": 10,
+        "Low (10M gallons/month)": 1,
+        "Medium (15M gallons/month)": 6
+      }
+    },
+    "gamma": {
+      "long_term_infrastructure": {
+        "Deferred": 1,
+        "Gamma-Funded Pipeline": 7,
+        "Joint-Funded Desalination": 10
+      },
+      "payment_structure": {
+        "Heavy-Downstream": 3,
+        "Shared": 4,
+        "Token": 5
+      },
+      "water_release_volume": {
+        "High (20M gallons/month)": 7,
+        "Low (10M gallons/month)": 1,
+        "Medium (15M gallons/month)": 5
+      }
+    }
+  }
+}

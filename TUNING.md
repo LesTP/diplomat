@@ -8,7 +8,15 @@ Living document for deployment configuration, provider assignments, prompt desig
 
 Configuration file: `config/pipeline.yaml` (production) or `config/pipeline_smoke.yaml` (testing). Per-faction Generator overrides for self-play via `--per-faction-providers` CLI flag on `run_simulation.py`.
 
-### Current Assignment
+> **Two distinct contexts.** The tables in this section split into:
+> - **Production deployment** — what we'd run in the actual game once we deploy. Uses quality-tier models (gpt-5.5, claude-sonnet-4-6). Set in `config/pipeline.yaml`. Cost is significant (~$1-2 per generated response in a heavy round) but unit-volume is low (one real game).
+> - **Self-play actuals (Runs 1–10)** — what we've actually been running for tuning experiments. Uses commodity-tier models (gpt-4.1-mini, claude-haiku-4-5, gemini-2.5-flash-lite). Set in `tests/self_play/run_simulation.py` defaults + `--per-faction-providers` overrides. Cost is small (~$0.20-1.00 per 4-round game) so we can iterate cheaply.
+>
+> The production tables describe an *aspirational* configuration that has never been live-tested in a real game. The self-play table records what the actual experiments used. They diverge intentionally — self-play optimizes for cost-per-experiment; production optimizes for quality-per-game.
+>
+> When a self-play finding implicates a specific model (e.g. Run 10's "OpenAI gpt-4.1-mini R3→R4 defection" — see `TUNING_LOG.md` Phase 9), it does **not** automatically propagate to the production target unless we have evidence the higher-tier model has the same behavior. Cross-tier consistency tests are an open item.
+
+### Current Assignment (production target — `config/pipeline.yaml`)
 
 | Module | Provider | Tier | Model | Rationale |
 |---|---|---|---|---|
@@ -17,6 +25,40 @@ Configuration file: `config/pipeline.yaml` (production) or `config/pipeline_smok
 | **Secondary Analyst** | secondary (Anthropic) | quality | claude-sonnet-4-6 | Different provider for divergence value |
 | **Adversarial** | secondary (Anthropic) | quality | claude-sonnet-4-6 | Different provider from generator to catch blind spots |
 | **Extractor** | — | — | RuleBasedExtractor | Regex-based, no LLM cost. Switch to OpenAIStructuredExtractor for better quality |
+
+### Self-play actuals (Runs 8–10)
+
+| Module | Provider / Model | Notes |
+|---|---|---|
+| **Generator** | OpenAI `gpt-4.1-mini` (Runs 1-9 default) | Run 8 used per-faction routing (alpha=OpenAI, beta=Anthropic claude-haiku-4-5, gamma=Google gemini-2.5-flash). Run 10 B' showed Anthropic on beta unlocks the Pareto deal that all-OpenAI Run 9 α-squeezed missed — see Run 10 entry in `TUNING_LOG.md`. |
+| **Primary Analyst** | OpenAI `gpt-4.1-mini` | Shared with other modules; per-faction routing only affects Generator. |
+| **Secondary Analyst** | Same as primary on commodity runs | Divergence pair not exercised for cost reasons on most self-play. |
+| **Adversarial** | OpenAI `gpt-4.1-mini` | Same constraint. |
+| **Extractor** | OpenAI `gpt-4.1-mini` (`OpenAIStructuredExtractor`) | RuleBasedExtractor was used Run 1; LLM-based since Run 2. |
+| **Reconciler** | OpenAI `gpt-4.1-mini` (`build_reconciler` factory) | Phase 18+. Fires at every round boundary before analysts. |
+| **Scorer** | OpenAI `gpt-4.1-mini` (`structured_call`) | Computes `agreed_outcomes` + per-faction scores at game end. |
+
+### Run 10 finding — provider consistency on commodity tier
+
+Run 10 B' (2026-06-01) confirmed that OpenAI gpt-4.1-mini has a reproducible
+R3→R4 defection pattern on multi-round Water Rights games — a faction that
+textually commits to a contingent at R3 will propose something different at
+R4 even when the contingency is met. Two-of-two instances (Run 9 α-squeezed
+beta, Run 10 C' gamma). Anthropic claude-haiku-4-5 (Run 10 B' beta) honored
+the same R3 contingent verbatim at R4 and the deal closed.
+
+**Practical implication for self-play tuning:** for consistency-critical
+seats (the faction most likely to make convergence-critical contingent
+commitments — typically the bottleneck-holder), prefer Anthropic
+claude-haiku-4-5 over OpenAI gpt-4.1-mini until cross-scenario data says
+otherwise. See NEXT_STEPS §1.7 / §1.8 for the open follow-up experiments
+(all-Anthropic baseline + cross-scenario defection test).
+
+**Practical implication for production target:** unknown. We have no data on
+whether gpt-5.5 exhibits the same defection pattern as gpt-4.1-mini. The
+production target table above keeps OpenAI in the Generator seat — flipping
+that to Anthropic should wait for cross-tier evidence rather than be done
+preemptively on the basis of a commodity-tier finding.
 
 ### Recommended Assignment (game deployment)
 

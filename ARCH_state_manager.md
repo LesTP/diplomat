@@ -106,6 +106,127 @@ Owns the following tables in the shared SQLite database:
 
 Schema validation uses `config/schemas/state_patch.json` loaded at startup.
 
+### Schema (SQL DDL)
+
+> Originally diplomat-system-spec.md §9. Migrated here 2026-06-02 when the spec was retired. The JSON-schema view of patch validation lives at `config/schemas/state_patch.json`; this section captures the SQLite tables that back the state manager.
+
+```sql
+CREATE TABLE faction_state (
+    faction_id              TEXT PRIMARY KEY,
+    display_name            TEXT NOT NULL,
+    stated_goals            TEXT,
+    revealed_preferences    TEXT,
+    credibility_score       REAL DEFAULT 1.0,
+    behavioral_notes        TEXT,
+    language_patterns       TEXT,
+    last_updated            TEXT
+);
+
+CREATE TABLE promises (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    round_made      INTEGER NOT NULL,
+    from_faction    TEXT NOT NULL,
+    to_faction      TEXT NOT NULL,
+    content         TEXT NOT NULL,
+    status          TEXT DEFAULT 'pending',
+    round_resolved  INTEGER,
+    notes           TEXT
+);
+
+CREATE TABLE coalitions (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    faction_a       TEXT NOT NULL,
+    faction_b       TEXT NOT NULL,
+    strength        REAL DEFAULT 0.5,
+    confidence      REAL DEFAULT 0.5,
+    basis           TEXT,
+    last_updated    TEXT,
+    UNIQUE(faction_a, faction_b)
+);
+
+CREATE TABLE inconsistencies (
+    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+    round_number            INTEGER NOT NULL,
+    faction                 TEXT NOT NULL,
+    description             TEXT NOT NULL,
+    previous_statement      TEXT,
+    contradicting_action    TEXT,
+    leverage_value          TEXT,
+    spent                   INTEGER DEFAULT 0
+);
+
+CREATE TABLE state_change_log (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp       TEXT NOT NULL,
+    round_number    INTEGER NOT NULL,
+    trigger_type    TEXT NOT NULL,
+    trigger_ref     TEXT,
+    table_affected  TEXT NOT NULL,
+    change_summary  TEXT NOT NULL
+);
+
+-- Written by Orchestrator via State Manager (not by analyst directly)
+CREATE TABLE intelligence (
+    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+    round_number            INTEGER NOT NULL UNIQUE,
+    timestamp               TEXT NOT NULL,
+    primary_output          TEXT,
+    secondary_output        TEXT,
+    divergence_flags        TEXT,
+    threat_model            TEXT,
+    leverage_inventory      TEXT,
+    behavioral_anomalies    TEXT,
+    blind_spot_flags        TEXT,
+    recommended_priorities  TEXT,
+    spend_schedule          TEXT
+);
+
+CREATE TABLE adversarial_reads (
+    id                      INTEGER PRIMARY KEY AUTOINCREMENT,
+    round_number            INTEGER NOT NULL,
+    timestamp               TEXT NOT NULL,
+    draft_response          TEXT NOT NULL,
+    analysis                TEXT,
+    posted                  INTEGER DEFAULT 0,
+    posted_text             TEXT
+);
+
+CREATE TABLE coaching (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp       TEXT NOT NULL,
+    coaching_type   TEXT NOT NULL,
+    content         TEXT NOT NULL,
+    route           TEXT NOT NULL,
+    consumed        INTEGER DEFAULT 0,
+    consumed_at     TEXT,
+    round_number    INTEGER
+);
+
+CREATE TABLE review_gate_edits (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    round_number    INTEGER NOT NULL,
+    timestamp       TEXT NOT NULL,
+    adversarial_read_id INTEGER,
+    original_draft  TEXT NOT NULL,
+    edited_text     TEXT,
+    action          TEXT NOT NULL,
+    edit_notes      TEXT
+);
+
+CREATE TABLE game_state (
+    key     TEXT PRIMARY KEY,
+    value   TEXT
+);
+
+INSERT INTO game_state VALUES ('current_round', '1');
+INSERT INTO game_state VALUES ('total_rounds', 'unknown');
+INSERT INTO game_state VALUES ('game_status', 'waiting');
+```
+
+WAL mode is enabled on first connection (see `src/modules/state_manager/sqlite.py`).
+
+The `messages` table is owned by Event Store, not State Manager — see ARCH_event_store.md.
+
 ## Usage Example
 
 ```python

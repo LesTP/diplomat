@@ -49,7 +49,6 @@ Do NOT load these unconditionally. Read only when the action requires them:
 
 - `DECISIONS.md` — read during Phase Review to verify no contract drift since prior decisions; otherwise on demand
 - `DEVLOG.md` / `DEVLOG_archive.md` — read during Phase Complete (DEVLOG learning review per GOVERNANCE.md)
-- `diplomat-system-spec.md` — detailed system specification; reference for schema details, prompt templates, deployment config
 
 **DEVLOG.md convention:** Append new entries at the bottom (newest last).
 During phase close, archive the previous phase's entries to `DEVLOG_archive.md`.

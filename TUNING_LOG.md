@@ -10,264 +10,23 @@ conducted via multi-agent self-play simulations.
 
 ---
 
-## Phase 1: Infrastructure (Run 1-2)
-
-### Run 1 — Territory Dispute, RuleBasedExtractor
-**Config:** 3 factions (Alpha/Beta/Gamma), 4 rounds, `gpt-4.1-mini`, `RuleBasedExtractor`, `AutoApproveReviewGate`
-
-**Result:** 102 LLM calls, ~$0.09. Personas held (Alpha cautious, Beta aggressive, Gamma adaptive). But **zero promises, zero coalitions detected** — the regex-based extractor missed all natural negotiation language like "I propose a 60-40 split."
-
-**Learning:** Rule-based extraction is too narrow for real diplomatic language. Regex patterns like `X promises Y` don't match how agents actually talk ("I propose," "I demand," "we will ally").
-
-**Action:** Switched to `OpenAIStructuredExtractor` (LLM-based extraction).
-
-### Run 2 — Territory Dispute, LLM Extraction
-**Config:** Same as Run 1 but with `OpenAIStructuredExtractor`.
-
-**Result:** Still **zero promises detected**. Investigation revealed a **debounce bug**: the Orchestrator's cancel-and-replace extraction strategy (`_debounce_task`) meant each new message cancelled the previous message's extraction. In a burst of 3 faction messages + `[ROUND END]`, only `[ROUND END]` was ever extracted.
-
-**Learning:** The debounce was designed to prevent re-extracting the same message under Telegram burst conditions, but it silently dropped different messages arriving in quick succession. This is a fundamental pipeline bug, not a prompt issue.
-
-**Action:** Rewrote Orchestrator debounce from single `_debounce_task` (cancel-and-replace) to `_extraction_tasks: set[asyncio.Task]` (per-event, no cancellation between different messages).
-
----
-
-## Phase 2: Extraction Quality (Run 3)
-
-### Run 3 — Territory Dispute, Fixed Debounce
-**Config:** LLM extraction + fixed debounce. Both LLM providers set to OpenAI (Anthropic key unavailable).
-
-**Result:** 124 LLM calls, ~$0.53. **Extraction now working:**
-
-| Agent | Promises | Coalitions |
-|-------|----------|------------|
-| Alpha | 4 | 4 |
-| Beta | 2 | 2 |
-| Gamma | 1 | 2 |
-
-But 3 extraction calls failed schema validation: LLM returned `coalition` (singular) instead of `coalitions`, `updated_at` (invented field), `credibility_score: null` (should be number or omitted).
-
-**Learning:** The extraction prompt was too narrative ("conform exactly to the schema"). The LLM needs explicit field allowlists and examples to avoid inventing keys.
-
-**Action:**
-1. Rewrote extraction prompt with explicit field allowlists per object type
-2. Added 3 few-shot examples (promise, coalition, empty case)
-3. Added retry-on-validation-failure to the extractor
-4. Built `toolkit.structured_llm.structured_call()` — reusable function packaging prompt assembly + schema injection + examples + validate + retry
-5. Rewired all 4 LLM modules (extraction, analyst, adversarial, generation) to use `structured_call`
-
----
-
-## Run 4 — Water Rights — COMPLETE
-
-**Status:** COMPLETE
-
-**Rationale:**
-Run 3 fixed extraction (LLM-based + debounce repair) so agents finally produced
-trackable promises. But analyzing Run 3 output revealed three persistent quality
-issues: agents spoke in vague diplomatic abstractions and never referenced
-tracked promises or intelligence; analyst intelligence reports were empty in
-early rounds because they only saw structured state tables (which were empty
-before extraction caught up); and personas described personalities rather than
-strategies, so agents defaulted to cooperative behavior. This run tests whether
-targeted prompt rewrites plus an asymmetric scenario produce richer, more
-strategically coherent negotiation.
-
-**Hypothesis:**
-Concrete prompt instructions ("reference specific assessments", "hold other
-factions accountable", "cite numbers") + asymmetric scenario structure (dam vs.
-farms vs. city, each with distinct leverage) will produce:
-- More concrete proposals with specific terms (dollar amounts, gallon figures).
-- Cross-faction promise tracking (factions citing each other's commitments).
-- Convergence toward a substantive deal by Round 4.
-
-**What we're tweaking:**
-
-| Element | Change | Type |
-|---------|--------|------|
-| `generation.txt` | Rewrote from 4 lines of generic guidance to 28 lines of specific instructions ("reference intelligence", "hold accountable", "cite specifics", "adapt to round pressure") | prompt |
-| `state_updater.txt` | Added promise state tracking (pending/kept/broken/void), dedup rules, inconsistency-detection guidance | prompt |
-| `LLMAnalyst.analyze()` | New `recent_events` parameter; orchestrator passes last 30 events alongside structured state | infra |
-| `analyst.txt` | Updated to reference both transcript and state, note contradictions | prompt |
-| Scenario | New Water Rights scenario: upstream dam / midstream farms / downstream city, each with distinct asymmetric positions | scenario |
-
-**Config:** 3 factions, 4 rounds, `gpt-4.1-mini`, OpenAIStructuredExtractor, AutoApproveReviewGate.
-
-**Cost:** ~$0.55
-
-**Observations:**
-- Dramatically richer negotiation. **21 promises tracked** (vs 7 in Run 3).
-- Concrete proposals with specific dollar amounts ($2M, $500K/month) and gallon figures (15M/month).
-- All three factions converged on a substantive agreement framework by Round 4.
-- Promise cross-reference showed real tracking: `Beta→Alpha` tracked by 3 agents independently; `Gamma→Alpha` tracked 5x by Alpha alone (Gamma kept reiterating).
-- Manual persona scores:
-
-| Faction | Persona Adherence | Leverage Use | Concreteness | Adaptability |
-|---------|-------------------|--------------|--------------|--------------|
-| Alpha (dam) | 8/10 | 7/10 | 6/10 | 5/10 |
-| Beta (farms) | 9/10 | 8/10 | 9/10 | 6/10 |
-| Gamma (city) | 8/10 | 6/10 | 8/10 | 4/10 |
-
-- **Remaining issues:** 5 duplicate promises for the same Gamma $2M commitment (different IDs each time); all promises still "pending" (no state transitions to "kept"); intelligence still thin in Round 1; zero inconsistencies detected despite Beta shifting from 20M to 15M gallons.
-
-**Learning:**
-- Concrete prompt guidance produces concrete behavior. The hypothesis held.
-- **BUT** personas described personalities ("measured and firm," "direct and urgent"), not executable strategies. The LLM defaulted to cooperative behavior because nothing in its training reward incentivized deception or hardball.
-- "Properly instructed" means: (1) quantified objectives — point tables beat personality adjectives; (2) named tactics — "Pretend Environment is critical, then concede it" beats "be strategic"; (3) conditional escalation rules — "if rejected twice, threaten to walk" beats "be willing to play hardball"; (4) explicit BATNA — "No-deal = 6 points, reject under 10" gives a walkaway threshold.
-- Reconciliation gap is real: dedup and state transitions need a dedicated post-round LLM pass; better extraction prompts alone won't fix it.
-
-**Decisions taken:**
-- Run 5 redesigns personas with point tables, BATNAs, named deception tactics (tests the "properly instructed" hypothesis directly).
-- Future: build a reconciliation module for dedup + state transitions (eventually shipped in Phase 18, will run live in Run 7).
-
-**Open items closed by this run** (pointer-only):
-- Vague-language / no-promise-reference problem from Run 3 (resolved by rewritten generation prompt).
-- Empty early-round intelligence (resolved by analyst-transcript feed).
-- Real-money negotiation extraction (resolved; 21 promises vs Run 3's 7).
-
-**Open items raised by this run:**
-- Personality-style personas don't produce strategic behavior — need executable strategies (point tables, BATNAs, named tactics). Becomes the central hypothesis of Run 5.
-- Reconciliation gap (dedup, fulfillment, inconsistencies) is real and prompt-only fixes won't address it.
-- Round-1 analyst intelligence still thin even with the transcript fix.
-
----
-
-## Run 5 — Trade Summit (Dirty Bargaining) — COMPLETE
-
-**Status:** COMPLETE
-
-**Rationale:**
-Run 4 showed that concrete prompts produce concrete behavior, but personas
-described personalities rather than strategies — agents defaulted to cooperative
-when explicit competitive instructions were absent. The "properly instructed"
-hypothesis claims that quantified objectives + named tactics + BATNA +
-conditional rules will unlock genuinely strategic (including deceptive)
-behavior. This run tests that claim directly.
-
-**Hypothesis:**
-Asymmetric private valuations + explicit deception instructions per faction will
-produce:
-- Visible deception tactics — agents overstating low-priority issues to gain
-  leverage on their true priority.
-- Position shifts between early and late rounds (the "deception-then-reveal" arc).
-- Closer-to-equilibrium outcomes; sometimes failed deals are the correct outcome.
-
-A useful control: at least one faction kept relatively honest, so we can
-distinguish instructed deception from model-default behavior.
-
-**What we're tweaking:**
-
-| Element | Change | Type |
-|---------|--------|------|
-| Persona files (Alpha, Beta, Gamma) | Each now contains: private scoring table (1-10 pts per issue per outcome), explicit BATNA value, named deception tactic ("Pretend Environmental Rules are critical"), conditional escalation rules, "don't accept the first reasonable framework" | persona |
-| Scenario | New: Trade Summit — 3 issues (Tariffs, Labor, Environment) × 3 outcomes (Strict/Moderate/Relaxed); each faction has asymmetric private valuations | scenario |
-
-Everything else (model, infra, prompts) held constant from Run 4.
-
-**Config:** 3 factions, 4 rounds, `gpt-4.1-mini`, AutoApproveReviewGate.
-
-**Cost:** ~$0.55
-
-**Observations:**
-- **Dramatically more strategic behavior.**
-- *Alpha's bluff worked:* Claimed Strict Environmental was critical R1–R3, then "conceded" to Moderate in R4 — exactly the planned deception tactic. Would score 14/18 points on final proposal.
-- *Beta's progressive concession:* Demanded Relaxed Tariffs aggressively in R1, shifted to accepting Moderate/Strict by R4 to secure Strict Labor — textbook deception-then-reveal.
-- *Gamma stayed most honest:* True priority (Strict Environment) stated openly throughout; offered to trade Labor for Environment. This is the control point.
-- Position evolution showed real negotiation dynamics:
-
-| Round | Alpha (true: Tariffs) | Beta (true: Labor) | Gamma (true: Environment) |
-|-------|----------------------|--------------------|---------------------------|
-| R1 | Strict/Mod/Strict | Relaxed/Strict/? | ?/Strict/Strict |
-| R4 | Strict/Strict/Mod | Strict/Strict/? | Mod/Strict/Strict |
-
-- Near-agreement but Tariff–Environment deadlock between Alpha and Gamma.
-
-**Learning:**
-- Hypothesis confirmed: point tables + named tactics + BATNA produce genuinely strategic, including deceptive, behavior.
-- LLMs *can* deceive when instructed to — the failure mode in earlier runs was instruction, not capability.
-- Honest agent (Gamma) as control: confirms the deception is instruction-driven, not model-default.
-- Real negotiation dynamics emerged: position shifts followed the planned tactics, not random drift.
-
-**Decisions taken:**
-- Productionize this pattern: build a scenario compiler that auto-generates scored personas from narrative descriptions (became Run 6).
-- Add post-game scoring to determine whether agents actually maximize their private payoffs (built for Run 7).
-
-**Open items closed by this run** (pointer-only):
-- "Properly instructed" hypothesis from Run 4 (now confirmed: point tables + named tactics + BATNA unlock genuinely strategic / deceptive behavior).
-- LLM capability question (LLMs *can* deceive when explicitly instructed — failure modes in earlier runs were instruction, not capability).
-
-**Open items raised by this run:**
-- Hand-authoring per-faction scored personas for every new scenario is tedious. Motivates the scenario compiler in Run 6.
-- Post-game scoring is needed to determine if agents actually maximized their payoffs (built between Run 5 and Run 7).
-
----
-
-## Run 6 — Three-Party Coalition (Auto-Compiled) — COMPLETE
-
-**Status:** COMPLETE
-
-**Rationale:**
-Run 5 proved the "properly instructed" persona pattern (point tables + BATNA +
-named tactics) produces strategic behavior, but hand-authoring those personas
-for every new scenario is tedious. To iterate quickly across many scenarios we
-need to *generate* the personas from a short narrative description rather than
-hand-write them each time.
-
-Run 6 tests two related questions in one shot:
-1. Can a single LLM call read a narrative scenario description and produce a
-   Run-5-quality scored persona file (point tables, BATNAs, deception tactics,
-   game-mode classification)?
-2. Does the existing extraction pipeline correctly track promise activity in a
-   coalition-style scenario — more abstract, proposal-heavy negotiation than
-   the Trade Summit's tight issue×outcome grid?
-
-This is more an infrastructure-validation run than a behavioral experiment.
-
-**Hypothesis:**
-- The scenario compiler can produce playable personas. Concrete evidence: agents
-  successfully recognize and use coalition dynamics (blocking power, value-of-
-  coalition reasoning), meaning the auto-generated point tables and game-mode
-  instructions are coherent.
-- Existing extraction prompt handles coalition negotiation. Concrete evidence:
-  tracked-promise count comparable to Runs 4-5 (~7-21).
-
-**What we're tweaking:**
-
-| Element | Change | Type |
-|---------|--------|------|
-| `src/tools/scenario_compiler.py` | NEW tool. Reads a narrative scenario description, makes one `structured_call` (~$0.01) to extract factions / issues / outcomes / per-faction point tables / BATNAs / deception tactics / game-mode (cooperative/competitive/mixed), then fills a template to produce ready-to-use persona files. | infra (new tool) |
-| Scenario | NEW: Three-Party Coalition (classic Susskind exercise — v(AB)=118, v(AC)=84, v(BC)=50, v(ABC)=121) | scenario |
-| Personas | **Auto-generated by the compiler** from the narrative scenario, not hand-written. This is the experimental variable. | persona (autogen) |
-
-Everything else (extraction prompt, generation prompt, analyst, model, infra) held constant from Run 5.
-
-**Config:** 3 factions, 4 rounds, `gpt-4.1-mini`, AutoApproveReviewGate. Post-game scoring not yet enabled (built between Run 6 and Run 7).
-
-**Cost:** ~$0.60 (compiler call ~$0.01, game ~$0.59)
-
-**Observations:**
-- *Compiler validation — PASSED.* Auto-generated personas produced coherent strategic behavior. Agents correctly identified coalition dynamics: C used blocking power (made AC counter-proposals to compete with AB proposals B was pushing). A pivoted to the grand coalition (ABC) in R4. These are recognizable, scenario-appropriate moves.
-- *Extraction — FAILED.* Only **1 promise tracked** across the entire game, despite ~12 concrete proposals in the transcript ("I propose we split 70/14", "let's do AB at 60-58", etc.).
-- Diagnosis: the extraction prompt required "clear commitments" (binding I-will-X statements). Coalition negotiation is mostly *proposals* and *counter-offers*, which the extractor didn't classify as promises.
-
-**Learning:**
-- Scenario compiler works. We can now iterate on scenarios without hand-authoring personas. A real productivity unlock for the experimentation phase.
-- The "promise" concept needs to be broader for coalition-style scenarios — any concrete proposal with specific terms should be trackable, not just I-commit-to-X language.
-- Different scenario types stress different parts of the pipeline. The Trade Summit's tight issue×outcome structure produced clean extraction; coalition's free-form value-allocation language broke it.
-
-**Decisions taken:**
-- Broaden extraction prompt: treat concrete proposals with specific terms as trackable promises (applied via prompt update; will be re-validated in Run 7).
-- Add post-game scoring so coalition outcomes can be evaluated against per-faction scoring tables (built between Run 6 and Run 7; first live test in Run 7).
-- Add explicit game-mode behavioral instructions per scenario (cooperative / competitive / mixed) — injected by the scenario compiler so different scenarios get different conduct guidance (built between Run 6 and Run 7).
-
-**Open items closed by this run** (pointer-only):
-- Scenario compiler validity (untested → confirmed; auto-generated personas produced coherent coalition behavior).
-- Removed the need for hand-authored scored personas going forward.
-
-**Open items raised by this run:**
-- Extraction's "promise = binding commitment" definition is too narrow for coalition-style negotiation, which is mostly proposal-language. Becomes the prompt-broadening change applied before Run 7.
-- No post-game scoring yet → no objective "did anyone win?" measurement. Built between Run 6 and Run 7.
-- No game-mode behavioral guidance → cooperative scenarios and competitive ones share identical agent conduct. Built between Run 6 and Run 7.
+## Archived: Runs 1-6 (infrastructure + extraction quality + scenario compiler)
+
+The first arc of the project — Runs 1 through 6 — has been moved to
+`TUNING_LOG_archive.md` (Archived 2026-06-02). Headline outcomes:
+
+| Run | Scenario | Headline |
+|---|---|---|
+| 1 | Territory (regex extractor) | Zero promises tracked → switched to LLM extraction |
+| 2 | Territory (LLM extractor) | Zero promises tracked → debounce bug found and fixed |
+| 3 | Territory (fixed debounce) | Extraction works; schema-validation errors → built `structured_call` |
+| 4 | Water Rights (hand-tuned) | 21 promises tracked; richer behavior. Personality-style personas insufficient. |
+| 5 | Trade Summit (dirty bargaining) | Point tables + named tactics + BATNA produce deception-then-reveal arc |
+| 6 | Three-Party Coalition (auto-compiled) | Scenario compiler works; extraction prompt too narrow for coalition language |
+
+Architectural decisions and infrastructure built across these runs are
+summarized below in "Summary of All Changes" and live canonically in
+`ASSESSMENT.md` (workstream blocks) and the per-module `ARCH_*.md` docs.
 
 ---
 
@@ -891,7 +650,76 @@ more direct.
   "who blocks convergence?" and "who is most likely to defect from contingent
   commitments?"
 - *"Scoring rule strictness" (recurring across Run 7 + Run 8)* — Promoted from
-  long-term carry-forward to next-phase candidate (Experiment F).
+  long-term carry-forward to next-phase candidate (Experiment F). Reconsidered
+  2026-06-01: operator pushed back that partial-consensus scoring conflates
+  outcome (binary on deal/no-deal) with diagnostic. Replanned as a `near_miss`
+  diagnostic flag (read-only on score), not a scoring change. Item open as a
+  small `analysis.py` build, not a phase.
+
+---
+
+## Phase 9: Commitment-Following Hypothesis (Run 10) — COMPLETE
+
+### Run 10 — Asymmetric BATNA refinements (B' + C') — COMPLETE
+
+**Status:** COMPLETE 2026-06-01. Two variants run sequentially. Total spend
+~$0.85. **B' reached the Pareto deal; C' did not.** B' result is the cleanest
+provider-effect signal we've produced — same BATNAs as Run 9 alpha-squeezed
+(alpha=15, beta=8, gamma=11), only beta's Generator changed from OpenAI
+gpt-4.1-mini to Anthropic claude-haiku-4-5, and the deal closed. C' (dual
+squeeze, all OpenAI) reproduced Run 9 alpha-squeezed's R3→R4 defection pattern,
+this time with gamma (not beta) as the defector.
+
+**Observations:**
+
+| Variant | pareto_eff | negotiated_surplus_share | Deal? | alpha Δ | beta Δ | gamma Δ |
+|---|---:|---:|---:|---:|---:|---:|
+| Run 9 α-squeezed (all OpenAI) | 0.630 | 0.000 | No | 0 | 0 | 0 |
+| **Run 10 B'** (Anthropic on beta only) | **1.019** | **1.050** | **YES** | 0 | **+10** | **+11** |
+| Run 9 β-squeezed (all OpenAI) | 1.019 | 1.053 | YES | +6 | +3 | +11 |
+| **Run 10 C'** (dual squeeze, all OpenAI) | 0.704 | 0.000 | No | 0 | 0 | 0 |
+
+**B' transcript trace — beta-on-Anthropic honored her R3 contingent at R4.**
+- *Beta R3:* "**I propose: High water release volume (20M gallons/month), Heavy-Downstream payment structure ($2M/year from Gamma, $500K/year from Beta to Alpha), and Joint-Funded Desalination infrastructure.** ... **My proposal: High water release volume, Heavy-Downstream payment structure, Joint-Funded Desalination infrastructure.**"
+- *Beta R4:* "**My final proposal: High water release volume (20M gallons/month), Heavy-Downstream payment structure, Joint-Funded Desalination infrastructure.**" Verbatim repeat. Followed through.
+- Beta got Δ=+10 (vs Run 9 β-squeezed's Δ=+3 for beta). With BATNA at 8, the same agreed deal scored beta higher above BATNA.
+
+**C' transcript trace — gamma-on-OpenAI defected at R4.**
+- *Gamma R3:* "Heavy-Downstream, as Alpha and Beta agree, ensuring full compensation for Alpha" — committed to Heavy-Downstream.
+- *Gamma R4:* "Shared payment, where Gamma pays $1M/year, Beta pays $500K/year, and Alpha absorbs some losses" — switched to Shared.
+- Alpha + Beta both ended on Heavy-Downstream + JFD in R4 (water vol diverged Medium vs High), but Gamma's R4 Shared defection broke the consensus.
+- Same R3→R4 defection pattern as Run 9 alpha-squeezed (beta there, gamma here). Different faction, same provider, same behavior.
+
+**Learning:**
+
+1. *Provider consistency dominates BATNA pressure in this scenario.* B' kept the alpha-squeezed BATNAs (relieved beta to 8) and just rerouted beta's Generator to Anthropic — the same configuration that produced no-deal in Run 9 now produces the Pareto-optimal deal. The variable that changed everything was provider, not pressure.
+
+2. *OpenAI gpt-4.1-mini has a reproducible R3→R4 defection pattern on this scenario.* Two independent instances (Run 9 α-squeezed beta, Run 10 C' gamma) — same model, different factions, identical failure mode: textually commit in R3 to a position the other two factions are converging on, then propose a different (and personally preferred) position in R4. The Phase 26 logging surface would help instrument this further, but for now the transcript pattern is consistent.
+
+3. *Dual squeeze does NOT compensate for provider inconsistency.* C' raised BATNAs higher than any prior variant on both alpha and beta (alpha=14, beta=13 — both well above baseline 11/10) and still got a no-deal because gamma defected. More BATNA pressure didn't make the OpenAI agents more consistent across rounds — if anything it shrunk the acceptable deal space (3/27 BATNA-clearing deals vs 5/27 alpha-squeezed and 9/27 symmetric) without changing the failure mode.
+
+4. *The Run 9 beta-squeezed result has a cleaner reinterpretation now.* Beta-squeezed worked not because asymmetric BATNA "unlocked" the deal but because beta-on-OpenAI was *forced* by BATNA=15 to be consistent — defecting at R4 to BATNA would have been a real loss. Anthropic beta in B' didn't need that forcing; she was consistent by default. **Both runs reached the same deal; the mechanism was different.**
+
+5. *Surplus distribution: gamma keeps winning.* B' deltas [0, +10, +11] sum to 21 (compare Run 9 β-squeezed's 20). Gamma took 52% of the captured surplus in B' (vs 55% in β-squeezed). Across both deal-reaching runs, the un-pressured faction with the moderate BATNA (gamma in both cases) captured the lion's share — possibly because gamma's neutral position on the bottleneck issue (Payment) gave gamma credible "I'll go either way" leverage. Worth a focused analysis if we revisit scenario design.
+
+6. *Alpha got nothing above BATNA in B'.* Alpha got exactly her BATNA of 15 (deal scored alpha=15). In Run 9 β-squeezed alpha got +6 above BATNA (deal scored alpha=15 vs BATNA 9). Same deal, different BATNAs. Confirms that asymmetric BATNAs reshape the surplus distribution even when the underlying deal is identical.
+
+**Decisions taken:**
+
+- *Promote provider-consistency hypothesis to a working finding.* For OpenAI gpt-4.1-mini on this scenario family, R3→R4 defection is the dominant deal-breaking mechanism. Any future Run that mixes providers should treat consistency-friendly providers (Anthropic so far; Google untested in this scope) as candidates for high-commitment seats (the faction most likely to make convergence-critical contingents).
+- *Open a follow-up: rotate Anthropic across all three seats to confirm the effect is provider-default, not faction-specific.* "Three single-provider Anthropic runs on the same three Run 9 BATNA variants" would tell us whether Anthropic Beta is a special case or whether Anthropic is just better at multi-round consistency across the board. Estimated ~$1.20.
+- *Don't pursue partial-consensus scoring (Experiment F from Run 9 post-mortem).* The operator pushed back 2026-06-01 that "if there's no agreement, it doesn't matter if we missed it by an inch or by a mile." Confirmed by Run 10: C' would have shown alpha+beta partial consensus on payment+infra (water diverged) — but the operationally meaningful outcome is still no-deal. Replanned as a `near_miss` diagnostic flag for `analysis.py`, not a scoring change.
+- *Defer dual-squeeze direction.* C' showed dual squeeze doesn't help when the consistency problem dominates. Don't invest more in that direction until provider consistency is independently characterized.
+
+**Open items closed by this run:**
+- *"Per-faction commitment-following cost asymmetry"* (Run 9 post-mortem) — Reframed. The dominant variable is provider, not BATNA height. Closed as "BATNA-based commitment enforcement" hypothesis; reopened as "provider-based commitment-following" question.
+- *"Was beta's R3→R4 defection in Run 9 OpenAI-specific?"* (Run 9 Open Items) — Confirmed: yes. Two independent instances (Run 9 α-squeezed beta, Run 10 C' gamma) both on OpenAI gpt-4.1-mini both defected at R4. Anthropic beta in B' did not.
+
+**Open items raised by this run:**
+- [ ] **Reproducibility of OpenAI gpt-4.1-mini's R3→R4 defection.** Two-of-two on Water Rights so far. Worth checking whether the defection happens on Three-Party Coalition or Trade Summit scenarios too, OR whether it's Water-Rights-specific (e.g. the payment-structure issue has a specific framing that triggers it).
+- [ ] **Three-faction Anthropic baseline.** Run all three Run 9 BATNA variants with all-Anthropic generators. Tells us whether Anthropic reaches Pareto deals across the BATNA spectrum or only when the structure already favors it. ~$3-4.
+- [ ] **Surplus distribution unfairness for the squeezed faction.** Beta got +10 in B' but only +3 in Run 9 β-squeezed despite the same deal — because her own BATNA was higher in β-squeezed. The agent that gets squeezed pays an opportunity cost: the deal that emerges gives them less *above* their BATNA. This may be a feature (we forced them to take a deal at all) but worth noting for scenario design — squeeze on faction X reshapes the surplus *toward* X-via-the-deal but *away* from X-via-the-floor.
+- [ ] **Gamma's lion's share is structural.** Gamma extracted 52-55% of surplus in both Pareto-reaching runs. The un-pressured neutral-on-bottleneck faction takes most. Implications for scenario design: if you want a faction to "win", route them toward a neutral position on the bottleneck issue.
 
 ---
 
@@ -932,9 +760,9 @@ more direct.
 | 7 | Coalition (endgame, scored) | a=4, b=3, c=2 | 0 | ~$1-2 | **Endgame works:** B explicitly concedes majority-share in R4 (FINAL ROUND); reconciliation merges duplicate promises; no deal because A+B align but C dissents (game-theoretically reasonable for coalition exclusion). Four self-play infra bugs surfaced and fixed; dry-run capability added. |
 | 8 | Water Rights (3-provider) | a=8, b=15, c=5 | 0 | ~$1 | **Provider differentiation visible qualitatively** but raw scores deadlock at BATNA. Volume and Infrastructure converge cleanly; Payment deadlocks (Alpha=Heavy-Downstream vs Beta+Gamma=Token). Pareto-optimal Shared compromise existed but no agent proposed it. Two silent-failure infra bugs surfaced and fixed (`.env` not loaded; toolkit `parse_json_response` didn't strip Markdown fences from Anthropic/Google JSON). New CLI flags: `--per-faction-providers`, `--analysis-json`, `--expect-providers`. New verifier: `verify_scenario_optimum.py`. Retro-pareto (2026-06-01): **efficiency = 0.537** (29/54). |
 | 9 | Water Rights (3 asymmetric BATNA variants) | sym=29 / α-sq=22 / β-sq=13 | 0 | ~$1.20 | **Complete 2026-06-01.** Single-provider gpt-4.1-mini. β-squeezed variant **reached Pareto deal**: alpha=15 (+6), beta=18 (+3), gamma=22 (+11), pareto_efficiency=1.02. Symmetric (0.593) and α-squeezed (0.630) reproduced no-deal deadlock. Asymmetric pressure on the deadlock-holder unlocks the optimum; on the wrong faction it entrenches them. `time_to_deal=4` registered for first time. |
-| 10 | TBD | TBD | TBD | TBD | Likely either: rotated-provider Water Rights (original Run 9 scope, carried forward), OR a combined-pressure scenario (BATNA + round-cost decay) per NEXT_STEPS §2. Choice depends on Run 9 decision rule. |
+| 10 | Water Rights (B' Anthropic-on-beta + C' dual-squeeze) | B'=39 / C'=24 | 0 | ~$0.85 | **Complete 2026-06-01.** B' (alpha-squeezed BATNAs, beta on Anthropic claude-haiku-4-5, alpha+gamma OpenAI gpt-4.1-mini): **reached Pareto deal** alpha=15 (+0), beta=18 (+10), gamma=22 (+11), `negotiated_surplus_share=1.050`. Same configuration that produced no-deal in Run 9 α-squeezed (all OpenAI). Confirms OpenAI gpt-4.1-mini R3→R4 defection is provider-specific. C' (alpha+beta dual-squeeze, all OpenAI): no-deal — gamma defected from R3 Heavy-Downstream commitment to R4 Shared (same defection pattern as Run 9 α-squeezed beta, different faction, same model). |
 
-**Total spend across completed runs (1-9): ~$6-7**
+**Total spend across completed runs (1-10): ~$7-8**
 **Pre-flight already incurred: $0 (dry-runs free, OpenAI probe ~$0.001)**
 
 ---
@@ -973,19 +801,21 @@ more direct.
 
 ### Open Items
 
-**Still open (post Run 9):**
-- [ ] **Provider rotation control (original Run 9 scope, now Run 10 candidate).** Run 8's "Alpha won by tiebreak with highest BATNA" cannot be untangled from "OpenAI plays hardball best" without rotating provider→faction. Run 9 used single-provider deliberately to isolate the BATNA variable; provider rotation is a separate experiment.
-- [x] **No-deal `pareto_efficiency` confounded with BATNA height.** Closed by Phase 27: `score_game()` now emits `negotiated_surplus_share`, `delta_above_batna_sum`, `min_faction_delta`, and companion BATNA-normalized fields. Run 8 / Run 9 no-deal backfills all read `negotiated_surplus_share=0.000`.
-- [ ] **Partial-consensus scoring (recurring across Run 7 / Run 8 / Run 9).** Strict "all factions converge" rule hides 2-of-3 agreement. Run 9 alpha-squeezed transcript close-read showed alpha+gamma textually converged on `Medium + Heavy-Downstream + JFD` (would have given alpha=19, gamma=18, beta=14 — all above BATNA) but beta defected at R4 and scorer recorded no-deal. Phase 27 candidate.
-- [ ] **Commitment-following cost asymmetry.** Run 9 post-mortem reclassified asymmetric BATNA as primarily a commitment-following enforcement mechanism: beta-squeezed beta couldn't defect cheaply; alpha-squeezed beta could and did. Pre-game tooling should consider both "who blocks convergence?" and "who is most likely to defect from contingent commitments?" Experiment B' (alpha-squeezed with beta on Anthropic) and Experiment C' (alpha+beta dual-squeeze) tests this directly. Run 10 / 11 candidates.
-- [ ] **Persona payment rigidity.** Recurring across Run 7 and Run 8. Agents anchor on their priority's extreme outcome and refuse to propose the Pareto-optimal compromise. Future tuning: nudge personas toward proposing the secondary outcome on their priority issue when deadlocked beyond round 2.
+**Still open (post Run 10):**
+- [x] **Provider rotation control (original Run 9 scope).** Partially addressed by Run 10 B': switching beta to Anthropic on alpha-squeezed BATNAs unlocked the Pareto deal. Full rotation control (all-Anthropic baseline across all 3 BATNA variants) still pending — ~$3-4 spend.
+- [x] **No-deal `pareto_efficiency` confounded with BATNA height.** Closed by Phase 27: `score_game()` now emits `negotiated_surplus_share`, `delta_above_batna_sum`, `min_faction_delta`, and companion BATNA-normalized fields. Run 8 / Run 9 / Run 10 no-deal backfills all read `negotiated_surplus_share=0.000`.
+- [x] **Partial-consensus scoring (recurring across Run 7 / Run 8 / Run 9).** Replaced by `near_miss` diagnostic flag concept after operator pushback 2026-06-01: "if there's no agreement, it doesn't matter if we missed it by an inch or by a mile." Won't be a scoring change; small `analysis.py` diagnostic instead. Not Phase 28.
+- [x] **Commitment-following cost asymmetry.** Reclassified by Run 10. The dominant variable is provider, not BATNA height. OpenAI gpt-4.1-mini's R3→R4 defection observed in two separate runs (Run 9 α-squeezed beta, Run 10 C' gamma). Anthropic beta in Run 10 B' did not defect.
+- [ ] **OpenAI gpt-4.1-mini R3→R4 defection — scope.** Confirmed on Water Rights (twice). Unknown on Three-Party Coalition / Trade Summit. Either characterize cross-scenario, or accept "consistency-critical seats should not be OpenAI gpt-4.1-mini" as a tuning rule and move on.
+- [ ] **All-Anthropic baseline across BATNA variants.** Three runs (~$3-4): does Anthropic reach Pareto across symmetric / alpha-squeezed / beta-squeezed, or only when the configuration already favors it? Tells us whether Run 10 B' generalizes.
+- [ ] **Persona payment rigidity.** Recurring across Run 7 and Run 8. Worth A/B test on the "don't accept the first reasonable framework" persona rule. Run 9 post-mortem suggested this rule isn't binding under squeeze; A/B would confirm.
+- [ ] **Surplus-distribution asymmetry favoring the un-squeezed neutral faction.** Across all three Pareto-reaching runs (Run 9 β-squeezed, Run 10 B'), gamma extracted 52-55% of negotiated surplus. The faction with moderate BATNA + neutral position on the bottleneck wins biggest. Worth understanding for scenario design.
 - [ ] **Google free-tier rate limiting.** Gemini 2.5-flash hit 429 on Run 8 R4. Either add retry-with-backoff to toolkit's `llm_client`, or switch to a paid Gemini tier for serious runs.
-- [ ] **Scoring rule strictness (recurring across Run 7 and Run 8).** Strict "all factions converge on compatible terms" misclassifies partial-consensus outcomes as no-deal. Consider a partial-deal scoring mode.
-- [ ] **Compiler BATNA anchor.** `tools/scenario_compiler.py` system prompt hardcodes BATNA range. Add a `--batna-fraction` override or relax the range guidance.
-- [ ] Reconciliation: fulfillment detection (`pending → kept`). Still untested in practice because Run 7 AND Run 8 reached no agreement, so no promises got fulfilled. Needs a scenario where at least one promise visibly resolves mid-game.
-- [ ] Reconciliation: status transitions to `broken`. Same as above — needs a scenario where a faction makes a commitment in early rounds and then visibly contradicts it.
-- [ ] Reconciliation: inconsistency flagging. Run 7 and Run 8 contained position shifts but the reconciler did not flag them as contradictions (read them as legitimate negotiation moves).
-- [ ] Reconciliation: missed-proposals path. Implicit zero in Run 7 and Run 8 because extraction caught everything.
+- [ ] **Compiler BATNA anchor.** `tools/scenario_compiler.py` system prompt hardcodes BATNA range. Add a `--batna-fraction` override or relax the range guidance. (Partially closed by Phase 24 which added `--batna-fraction` / `--force-batna-fraction` flags; this item is the underlying prompt guidance.)
+- [ ] Reconciliation: fulfillment detection (`pending → kept`). Still untested in practice. Run 10 B' Pareto deal might have produced fulfillments — needs targeted inspection.
+- [ ] Reconciliation: status transitions to `broken`. Run 9 α-squeezed and Run 10 C' both had clean defections (beta R3→R4 and gamma R3→R4 respectively). Reconciler likely did not flag these as broken. Worth a focused look at those run logs.
+- [ ] Reconciliation: inconsistency flagging. Same as above.
+- [ ] Reconciliation: missed-proposals path. Implicit zero across Run 7-10.
 
 **New items raised by Run 8:**
 - [ ] **Provider × position confound.** Alpha won by tiebreak with the highest BATNA. Can't tell if that's "OpenAI plays hardball best" or "alpha had the most leverage to play hardball." Run 9 (rotation) is the test.

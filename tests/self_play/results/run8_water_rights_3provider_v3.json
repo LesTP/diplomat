@@ -2399,7 +2399,20 @@
         "points": 10
       }
     },
-    "reasoning": "The final proposals from Alpha and Beta do not converge on compatible payment_structure terms. Alpha insists on Heavy-Downstream payment, while Beta insists on Token payment. Both agree on High water release volume and Joint-Funded Desalination infrastructure, but the disagreement on payment_structure means there is no unanimous agreement on all issues. Since all issues must be explicitly compatible for a deal, no deal was reached. Therefore, each faction receives their BATNA scores."
+    "reasoning": "The final proposals from Alpha and Beta do not converge on compatible payment_structure terms. Alpha insists on Heavy-Downstream payment, while Beta insists on Token payment. Both agree on High water release volume and Joint-Funded Desalination infrastructure, but the disagreement on payment_structure means there is no unanimous agreement on all issues. Since all issues must be explicitly compatible for a deal, no deal was reached. Therefore, each faction receives their BATNA scores.",
+    "achieved_score_sum": 29.0,
+    "max_pareto_sum": 54.0,
+    "pareto_efficiency": 0.5370370370370371,
+    "sum_batnas": 29.0,
+    "faction_deltas": {
+      "alpha": 0.0,
+      "beta": 0.0,
+      "gamma": 0.0
+    },
+    "delta_above_batna_sum": 0.0,
+    "min_faction_delta": 0.0,
+    "surplus_distribution_stdev": 0.0,
+    "negotiated_surplus_share": 0.0
   },
   "transcript": [
     {
