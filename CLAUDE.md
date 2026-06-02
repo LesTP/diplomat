@@ -116,6 +116,7 @@ high-level orientation.
 - **Edit tool requires fresh reads:** Before editing any file (especially DEVPLAN.md), read it immediately before the edit — not at the start of the iteration.
 - **No subagent spawning for simple tasks:** Do NOT spawn Agent(Explore) subagents for simple file discovery — use `bash find` or `bash ls` instead.
 - **Never self-judge budget.** Do NOT decide "STEP_BUDGET of N is exhausted (used M actions)" based on your own count. Call `state_machine.sh` after every completed action and do exactly what it returns. The script decrements deterministically and decides EXIT/EXECUTE/REVIEW — your arithmetic may be off (iter 54 lost 2 actions to a wrong `5 - 3 = exhausted`). See `WORKER_SPEC.md` §3 "Loop discipline."
+- **Non-interactive shell only.** No interactive editors, pagers, or git prompts. `git add -p`, `git commit` without `-m`, `git rebase -i`, and any `$EDITOR`-opening command will hang the loop (iter 80 lost ~35 min this way). See `WORKER_SPEC.md` §3 "Shell command discipline (non-interactive only)" for the full list and the recommended alternatives.
 
 ## Claude-Specific Runner Info
 **Runner:** `run-iteration.sh` — runs `claude -p` per iteration, logs to `logs/loop/`.

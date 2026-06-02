@@ -138,6 +138,11 @@ When updating a doc, **read it fresh first** (it may have changed since the last
   installed. Before using `rg`, check availability with `command -v rg`. If it
   is absent, use portable fallbacks instead: `find` for file discovery,
   `grep -RIn` for text search, and `sed -n` for bounded file reads.
+- **Non-interactive shell only.** No interactive editors, pagers, or git
+  prompts. `git add -p`, `git commit` without `-m`, `git rebase -i`, and any
+  `$EDITOR`-opening command will hang the loop (iter 80 lost ~35 min this way).
+  See `WORKER_SPEC.md` §3 "Shell command discipline (non-interactive only)"
+  for the full list and recommended alternatives.
 
 ## Action Instructions
 
