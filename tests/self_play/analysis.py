@@ -22,6 +22,7 @@ _DEAL_MARKERS = (
     "binding agreement",
 )
 DEFAULT_STATE_PATCH_SCHEMA_PATH = Path("config/schemas/state_patch.json")
+_CONTINGENCY_MARKERS = ("contingent on", "conditional on", "if ")
 
 
 def state_patch_entity_types(
@@ -74,6 +75,76 @@ def compute_process_signatures(results: dict[str, Any]) -> dict[str, Any]:
         "coalition_stability": survived / formed if formed else 0.0,
         "time_to_deal": _time_to_deal(results),
         "opening_gap": _opening_gap(results),
+    }
+
+
+def compute_near_miss(results: dict[str, Any]) -> dict[str, Any]:
+    """Detect near-miss convergence patterns from self-play results."""
+    scenario_analysis = results.get("scenario_analysis")
+    if not isinstance(scenario_analysis, dict):
+        return {
+            "near_miss": None,
+            "converging_factions": [],
+            "dissenting_faction": None,
+            "defection_event_log": [],
+        }
+
+    issues = _scenario_issues(scenario_analysis)
+    if not issues:
+        return {
+            "near_miss": False,
+            "converging_factions": [],
+            "dissenting_faction": None,
+            "defection_event_log": [],
+        }
+
+    factions = _scenario_factions(scenario_analysis, results.get("agents", {}))
+    round_responses = results.get("round_responses", {})
+    final_round_key = _latest_round_key(round_responses, results.get("rounds_completed"))
+    if final_round_key is None:
+        return {
+            "near_miss": False,
+            "converging_factions": [],
+            "dissenting_faction": None,
+            "defection_event_log": [],
+        }
+
+    final_positions: dict[str, dict[str, str | None]] = {}
+    for faction_id in factions:
+        final_positions[faction_id] = _extract_positions_for_round(
+            scenario_analysis,
+            _round_response_text(round_responses, final_round_key, faction_id),
+        )
+
+    signatures: dict[tuple[str | None, ...], list[str]] = {}
+    for faction_id in factions:
+        signature = tuple(final_positions[faction_id].get(issue["name"]) for issue in issues)
+        signatures.setdefault(signature, []).append(faction_id)
+
+    near_miss = False
+    converging_factions: list[str] = []
+    dissenting_faction: str | None = None
+    for grouped_factions in signatures.values():
+        if len(grouped_factions) == len(factions) - 1 and len(factions) >= 3:
+            near_miss = True
+            converging_factions = grouped_factions
+            dissenting_faction = next(
+                (faction for faction in factions if faction not in grouped_factions),
+                None,
+            )
+            break
+
+    defection_event_log = _build_defection_event_log(
+        scenario_analysis,
+        round_responses,
+        factions,
+    )
+
+    return {
+        "near_miss": near_miss,
+        "converging_factions": converging_factions,
+        "dissenting_faction": dissenting_faction,
+        "defection_event_log": defection_event_log,
     }
 
 
@@ -189,6 +260,39 @@ def analyze_results(
         else:
             print("    faction_deltas: n/a")
 
+    near_miss_data = compute_near_miss(results)
+    if near_miss_data.get("near_miss") is not None:
+        print(f"\n{'-'*60}")
+        print("  NEAR-MISS DIAGNOSTIC")
+        print(f"{'-'*60}")
+        print(f"    near_miss: {near_miss_data['near_miss']}")
+        converging_factions = near_miss_data.get("converging_factions", [])
+        if converging_factions:
+            print(
+                "    converging_factions: "
+                + ", ".join(str(faction) for faction in converging_factions)
+            )
+        else:
+            print("    converging_factions: n/a")
+        dissenting_faction = near_miss_data.get("dissenting_faction")
+        print(
+            "    dissenting_faction: "
+            f"{dissenting_faction if dissenting_faction is not None else 'n/a'}"
+        )
+        defection_event_log = near_miss_data.get("defection_event_log", [])
+        if defection_event_log:
+            print("    defection_event_log:")
+            for entry in defection_event_log:
+                print(
+                    "      "
+                    f"R{entry['round_from']}->{entry['round_to']} "
+                    f"[{entry['faction']}] {entry['issue']}: "
+                    f"{entry['from_position']} -> {entry['to_position']} "
+                    f"contingent={entry['was_contingent']}"
+                )
+        else:
+            print("    defection_event_log: n/a")
+
     # Process signatures.
     signatures = results.get("process_signatures") or compute_process_signatures(results)
     print(f"\n{'-'*60}")
@@ -256,6 +360,134 @@ def main() -> None:
 
     results = json.loads(path.read_text(encoding="utf-8"))
     analyze_results(results)
+
+
+def _scenario_issues(scenario_analysis: dict[str, Any]) -> list[dict[str, Any]]:
+    issues = scenario_analysis.get("issues", [])
+    if not isinstance(issues, list):
+        return []
+    return [issue for issue in issues if isinstance(issue, dict) and issue.get("name")]
+
+
+def _scenario_factions(
+    scenario_analysis: dict[str, Any],
+    agents: dict[str, Any],
+) -> list[str]:
+    factions = scenario_analysis.get("factions", [])
+    if isinstance(factions, list) and factions:
+        return [str(faction) for faction in factions if str(faction).strip()]
+    return [str(faction) for faction in agents.keys()]
+
+
+def _latest_round_key(
+    round_responses: dict[str, Any],
+    rounds_completed: Any,
+) -> str | None:
+    if not isinstance(round_responses, dict) or not round_responses:
+        return None
+    if rounds_completed is not None:
+        candidate = str(rounds_completed)
+        if candidate in round_responses:
+            return candidate
+
+    numeric_rounds = []
+    for key in round_responses.keys():
+        try:
+            numeric_rounds.append((int(str(key)), str(key)))
+        except (TypeError, ValueError):
+            continue
+    if not numeric_rounds:
+        return next(iter(round_responses.keys()))
+    return max(numeric_rounds, key=lambda item: item[0])[1]
+
+
+def _round_response_text(
+    round_responses: dict[str, Any],
+    round_key: str,
+    faction_id: str,
+) -> str:
+    responses = round_responses.get(round_key)
+    if not isinstance(responses, dict):
+        responses = round_responses.get(str(round_key), {})
+    if not isinstance(responses, dict):
+        return ""
+    response = responses.get(faction_id, "")
+    return response if isinstance(response, str) else str(response)
+
+
+def _extract_positions_for_round(
+    scenario_analysis: dict[str, Any],
+    response_text: str,
+) -> dict[str, str | None]:
+    positions: dict[str, str | None] = {}
+    lowered = response_text.lower()
+    for issue in _scenario_issues(scenario_analysis):
+        issue_name = str(issue["name"])
+        position = None
+        for outcome in issue.get("outcomes", []):
+            outcome_text = str(outcome)
+            if outcome_text.lower() in lowered:
+                position = outcome_text
+                break
+        positions[issue_name] = position
+    return positions
+
+
+def _build_defection_event_log(
+    scenario_analysis: dict[str, Any],
+    round_responses: dict[str, Any],
+    factions: list[str],
+) -> list[dict[str, Any]]:
+    issue_names = [str(issue["name"]) for issue in _scenario_issues(scenario_analysis)]
+    numeric_rounds = sorted(
+        {
+            int(str(key))
+            for key in round_responses.keys()
+            if str(key).isdigit()
+        }
+    )
+    if len(numeric_rounds) < 2:
+        return []
+
+    log: list[dict[str, Any]] = []
+    for previous_round, current_round in zip(numeric_rounds, numeric_rounds[1:]):
+        previous_key = str(previous_round)
+        current_key = str(current_round)
+        for faction_id in factions:
+            previous_positions = _extract_positions_for_round(
+                scenario_analysis,
+                _round_response_text(round_responses, previous_key, faction_id),
+            )
+            current_positions = _extract_positions_for_round(
+                scenario_analysis,
+                _round_response_text(round_responses, current_key, faction_id),
+            )
+            previous_text = _round_response_text(round_responses, previous_key, faction_id)
+            was_contingent = _is_contingent(previous_text)
+
+            for issue_name in issue_names:
+                previous_position = previous_positions.get(issue_name)
+                current_position = current_positions.get(issue_name)
+                if previous_position == current_position:
+                    continue
+                log.append(
+                    {
+                        "round_from": previous_round,
+                        "round_to": current_round,
+                        "faction": faction_id,
+                        "issue": issue_name,
+                        "from_position": previous_position,
+                        "to_position": current_position,
+                        "was_contingent": was_contingent,
+                    }
+                )
+
+    return log
+
+
+def _is_contingent(response_text: str) -> bool:
+    lowered = response_text.lower()
+    return any(marker in lowered for marker in _CONTINGENCY_MARKERS)
 
 
 def _unique_records(records: Any, id_key: str) -> list[dict[str, Any]]:

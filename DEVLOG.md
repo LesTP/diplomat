@@ -473,6 +473,17 @@ Outcome: Added `tests/test_coached_game.py`, a focused dry-run wiring test for t
 
 Tests: `.venv/bin/python -m pytest tests/test_coached_game.py tests/test_self_play.py` — 44 passed.
 
+## 2026-06-02 — Phase 28 Step 28.4
+
+Mode: Build
+Outcome: Added `compute_near_miss(results)` to `tests/self_play/analysis.py` and rendered a new `NEAR-MISS DIAGNOSTIC` block in `analyze_results()`. The helper extracts final-round issue positions by substring-matching scenario outcomes against each faction's round-4 response, classifies the 2-vs-1 convergence pattern, and builds an issue-level defection log across adjacent rounds with a simple contingency heuristic.
+
+Implementation notes:
+- If `scenario_analysis` is absent, the diagnostic returns `near_miss=None` and the report skips the section silently.
+- The diagnostic is shaped to support the forthcoming fixture-backed tests for the synthetic near-miss case and the historical Run 9/10 JSONs.
+
+Tests: `.venv/bin/python -m pytest tests/test_self_play.py` — 43 passed.
+
 ### Step 27.2: Add baseline-normalized scoring fields
 
 Mode: Build

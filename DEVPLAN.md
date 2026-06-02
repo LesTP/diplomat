@@ -147,7 +147,7 @@ from the diagnostic.
 
 ### Step 28.4: Near-miss + defection detector in analysis.py
 
-- [ ] Add `compute_near_miss(results)` to `tests/self_play/analysis.py`
+- [x] Add `compute_near_miss(results)` to `tests/self_play/analysis.py`
       returning `{near_miss, converging_factions, dissenting_faction,
       defection_event_log}`. Hand-extract per-faction R4 positions by
       substring-matching outcome strings from
