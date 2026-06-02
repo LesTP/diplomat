@@ -1,7 +1,7 @@
 ---
-phase: 27
-blocked: true
-state: close
+phase: 28
+blocked: false
+state: execute
 steps_remaining: 0
 ---
 
@@ -53,9 +53,9 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 27 complete — no-deal-aware scoring metrics. Awaiting human audit (`close` command) before Phase 28.
-- **Focus** — Baseline-normalized scoring fields (`negotiated_surplus_share`, `faction_deltas`, `delta_above_batna_sum`, `min_faction_delta`, `surplus_distribution_stdev`) in self-play scoring + report; backfill tool for historical runs; docs updated. 340 tests passing.
-- **Blocked/Broken** — Blocked on human audit gate.
+- **Phase** — Phase 28 queued (coached self-play harness + near-miss diagnostic). Pre-planned by operator 2026-06-02 from NEXT_STEPS Tier 1 items §4 (Coaching test loop on Pi) and §1.9 (Near-miss diagnostic).
+- **Focus** — Two independent Tier-1 builds bundled: (a) `tests/self_play/coached_game.py` swapping one faction's Pipeline transport+review_gate to TelegramReviewGate so the operator can coach a self-play game live via Telegram; (b) `near_miss` + `defection_event_log` fields in `tests/self_play/analysis.py` for diagnosing "almost reached a deal" outcomes. Pure build; no LLM cost.
+- **Blocked/Broken** — Not blocked. Worker will run PLAN to confirm scope/design, then EXECUTE the 6-step checklist below.
 
 <!-- Phase ordering convention:
        - Open / queued phases first, in forward execution order (next-to-do first).
@@ -64,6 +64,131 @@ steps_remaining: 0
          (most recently closed first; same-day closes sorted by phase number descending).
      This puts the active work at the top and the "recent past" right under it,
      with deep history at the bottom. -->
+
+## Phase 28: Coached self-play harness + Near-miss diagnostic
+
+**Scope.** Two independent builds, bundled because both are Tier 1 (per
+`NEXT_STEPS.md` workstream tiering), both pure code/test work, and together
+they enable the next set of operator-driven activities: the Pi-side coaching
+smoke (NEXT_STEPS §4) needs the harness; future Run 11+ analysis benefits
+from the diagnostic.
+
+- **Coached self-play harness** (`[X]` cross-cutting). Builds
+  `tests/self_play/coached_game.py` taking `--coach-faction <name>`. The
+  named faction's Pipeline gets a `TelegramReviewGate` pointed at the
+  operator's coaching chat; the other factions stay on
+  `AutoApproveReviewGate`. Phase 22's Pipeline/Flow split makes this
+  additive — no Orchestrator / Pipeline / Flow API changes.
+- **Near-miss + defection diagnostic** (`[A]` agent architecture / analysis).
+  Adds `near_miss: bool`, `converging_factions: list[str]`,
+  `dissenting_faction: str | None`, and `defection_event_log: list[dict]`
+  to `analyze_results()` in `tests/self_play/analysis.py`. Read-only on
+  the score (Phase 27's `negotiated_surplus_share` correctly registers
+  0.000 for any no-deal outcome; this diagnostic answers *why* without
+  inflating the score).
+
+**Decision rule for close.** Phase complete when:
+- `tests/self_play/coached_game.py` exists and a dry-run test verifies the
+  per-faction transport/review-gate routing.
+- `analyze_results()` emits the four new fields; tests cover the synthetic
+  near-miss case + the four Run-9/10 fixtures (β-squeezed and B' should
+  return `near_miss=false`, α-squeezed and C' should return `near_miss=true`
+  with the right dissenting faction).
+- `CLI_REFERENCE.md` documents `coached_game.py`, `SMOKE_RUNBOOK.md` or
+  `diplomat-testing-doc.md` documents the coached-game flow, and the Tier 1
+  entries in `NEXT_STEPS.md` are updated to reflect Phase 28 status.
+- Full test suite passes (≥ 340).
+
+**Out of scope (carry to a later phase or operator-driven session):**
+- The actual Pi-side coached self-play smoke (operator-driven, requires
+  Telegram + Pi).
+- Backfill of all historical runs with the near-miss diagnostic (only the
+  4 Run-9/10 fixtures used as tests need to be backfilled in this phase).
+- Coaching-system-level work beyond wiring (e.g. live edit-log analysis
+  patterns — that's NEXT_STEPS §4 follow-up).
+
+### Step 28.1: Design + scope confirmation
+
+- [ ] Read `tests/self_play/run_simulation.py` to identify where
+      `GameEnvironment` constructs per-faction Pipelines and where review
+      gates are wired. Read `src/modules/review_gate/telegram.py` and the
+      `TelegramReviewGate` constructor signature. Confirm the coached-game
+      harness can subclass / wrap `run_simulation` rather than fork it.
+      Read `tests/self_play/analysis.py` `analyze_results()` and confirm
+      the rendering insertion point for the near-miss block. Document
+      decisions in DEVLOG (analysis-only; no code change; no test run).
+
+### Step 28.2: Build coached_game.py
+
+- [ ] Add `tests/self_play/coached_game.py` with a `main()` that reuses
+      `run_simulation`'s scenario/persona/LLM-client construction but
+      overrides the coached faction's Pipeline so its `review_gate` is
+      `TelegramReviewGate` (and its `transport` is the operator
+      `TelegramBotTransport` for the coaching chat). CLI flags:
+      `--coach-faction <id>` (required), plus a pass-through of the
+      existing `run_simulation` flags (`--rounds`, `--scenario`,
+      `--analysis-json`, `--factions`, `--output`). When
+      `TELEGRAM_BOT_TOKEN` / `DIPLOMAT_COACHING_CHANNEL_ID` /
+      `DIPLOMAT_OPERATOR_USER_IDS` are not set, fail fast with a clear
+      message. Add a `--dry-run` path that uses a fake review-gate stand-in
+      so wiring can be tested without Telegram. Run
+      `.venv/bin/python -m pytest tests/test_self_play.py` to confirm no
+      regression.
+
+### Step 28.3: Tests for coached_game wiring
+
+- [ ] Add `tests/test_coached_game.py` (or extend `tests/test_self_play.py`)
+      with a `--dry-run` test that constructs a coached-game environment
+      and asserts (a) the named faction's review_gate is the
+      Telegram-flavored stand-in, (b) the other two factions' review_gates
+      are `AutoApproveReviewGate`, (c) running 4 rounds against
+      `DryRunLLMClient` produces the expected transcript shape. Run the
+      focused test plus the existing self-play suite.
+
+### Step 28.4: Near-miss + defection detector in analysis.py
+
+- [ ] Add `compute_near_miss(results)` to `tests/self_play/analysis.py`
+      returning `{near_miss, converging_factions, dissenting_faction,
+      defection_event_log}`. Hand-extract per-faction R4 positions by
+      substring-matching outcome strings from
+      `scenario_analysis['issues'][*]['outcomes']` against each
+      `round_responses[<round>][<faction>]` message. `defection_event_log`
+      diffs R(n) → R(n+1) positions per faction and emits one entry per
+      issue-level change with a `was_contingent` boolean (heuristic: the
+      prior round's message contained "if" / "contingent on" / "conditional
+      on" near the issue). Emit fields in `analyze_results()` output under
+      a "NEAR-MISS DIAGNOSTIC" section parallel to the existing
+      "NO-DEAL-AWARE SCORING" section. Defensive: if
+      `scenario_analysis` is missing, skip silently and emit
+      `near_miss=None`. Run `.venv/bin/python -m pytest
+      tests/test_self_play.py` after.
+
+### Step 28.5: Tests for near-miss detector
+
+- [ ] Add focused tests using a synthetic fixture (3 factions, 4 rounds,
+      hand-crafted R4 messages where 2 of 3 agree exactly) confirming
+      `near_miss=true` with the correct `dissenting_faction` and the
+      expected position-change log. Add four fixture-backed tests using the
+      real run JSONs at `tests/self_play/results/`: Run 9 α-squeezed +
+      Run 10 C' should both return `near_miss=true` with the right
+      dissenting faction (beta, then gamma); Run 9 β-squeezed + Run 10 B'
+      should both return `near_miss=false`. Tolerate the natural-language
+      extraction noise floor — assert what the extractor *should* find, not
+      every position change in the transcript.
+
+### Step 28.6: Doc updates
+
+- [ ] Update `CLI_REFERENCE.md` to add a `tests.self_play.coached_game`
+      entry under the Self-play section, with flags + Telegram env-var
+      requirements + the dry-run path. Update `SMOKE_RUNBOOK.md` or
+      `diplomat-testing-doc.md` §5b with the coached-game smoke procedure
+      (start the bot, route operator to the coaching chat, launch
+      coached_game, expected approve/edit/block messages). Update
+      `NEXT_STEPS.md` §4 (Coaching test loop on Pi) and §1.9 (Near-miss
+      diagnostic) to reflect Phase 28 status — Tier 1 sequencing block too.
+      Update `ASSESSMENT.md` §3.4 if it mentions process signatures, adding
+      `near_miss` as a deterministic signature. No source-code changes in
+      this step. Confirm `.venv/bin/python -m pytest` returns ≥ 340 passing.
 
 <!-- history -->
 

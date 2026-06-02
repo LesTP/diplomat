@@ -4,6 +4,33 @@
      Newest entries at the top. Each step or milestone gets a structured entry.
      This is the audit trail.
 
+## 2026-06-02 — Phase 28 Plan
+
+Action: PLAN
+Mode: Build
+Outcome: Scope and design confirmed for Phase 28 (coached self-play harness + near-miss diagnostic). No code changes in this step.
+
+Design decisions:
+
+**Coached self-play harness (`coached_game.py`):**
+- Subclasses `GameEnvironment`, overriding `setup()` to inject `TelegramReviewGate` (real) or `FakeTelegramReviewGate` (dry-run) via `module_overrides["review_gate"]` for the coached faction's Orchestrator. All other factions continue to use `AutoApproveReviewGate` via YAML config.
+- `TelegramReviewGate` constructor: `(telegram_client, *, coaching_channel_id, state_manager=None, timeout_seconds=None)` — confirmed in `src/modules/review_gate/__init__.py`.
+- `FakeTelegramReviewGate` is a distinct class (not `AutoApproveReviewGate`) so tests can assert wiring via `isinstance` check without requiring Telegram.
+- Reuses scenario compilation, persona loading, and LLM client construction from `run_simulation.py` via imports — does NOT fork the file. Only `GameEnvironment` construction differs.
+- CLI: `--coach-faction <id>` (required) plus pass-through of standard `run_simulation` flags.
+- Fail-fast when Telegram env vars (`TELEGRAM_BOT_TOKEN`, `DIPLOMAT_COACHING_CHANNEL_ID`, `DIPLOMAT_OPERATOR_USER_IDS`) are absent unless `--dry-run`.
+
+**Near-miss diagnostic (`compute_near_miss()` in `analysis.py`):**
+- Reuses `_score_position_text()` logic (already in `analysis.py`) to extract per-faction positions from round responses by matching outcome strings from `scenario_analysis['issues'][*]['outcomes']`.
+- "Converging" threshold: 2+ factions share the same top-scored outcome on a majority of issues in the final round.
+- `defection_event_log`: diffs R(n) → R(n+1) per faction per issue using the same position extraction; emits one entry per issue-level change with `was_contingent` heuristic (substring search for "if"/"contingent on"/"conditional on" in prior round response).
+- Insertion point: new "NEAR-MISS DIAGNOSTIC" section in `analyze_results()`, placed after "NO-DEAL-AWARE SCORING".
+- Defensive: if `scenario_analysis` is missing, emit `near_miss=None` and skip silently.
+
+Contract changes: None. No source-code changes in this step.
+
+Tests: N/A — analysis-only step.
+
      Archival rule: When this file exceeds ~500 lines, move completed
      module entries to DEVLOG_archive.md during phase completion cleanup.
      Add a boundary marker: <!-- Entries above archived from Module N, YYYY-MM-DD -->

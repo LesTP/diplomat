@@ -217,6 +217,13 @@ Decision: Phase 26 will add structured, grep-able logging across startup, Telegr
 Rationale: The Phase 19 smoke exposed a routing/tagging failure that required temporary `print` instrumentation to diagnose. Making per-event logging part of the runtime contract gives future smokes an auditable diagnostic surface without ad-hoc code changes or duplicate log-file writers.
 Revisit if: The runtime moves to a structured log collector that requires JSON output or a non-stream handler.
 
+D-32: Phase 28 coached-game uses module_overrides injection, not YAML swap
+Date: 2026-06-02 | Status: Open
+Priority: Important
+Decision: `coached_game.py` injects `TelegramReviewGate` for the coached faction via `module_overrides["review_gate"]` in the `Orchestrator` constructor rather than writing a custom pipeline YAML with `class: TelegramReviewGate`. `FakeTelegramReviewGate` is a dedicated dry-run stand-in (not `AutoApproveReviewGate`) so test assertions can distinguish the coached faction's gate from auto-approve by type.
+Rationale: `module_overrides` is the existing pattern for injecting test doubles (`TestTransport`). Using the same mechanism for the review gate keeps `_generate_faction_config()` unchanged and makes the coaching wiring visible in one place (`setup()` override). A dedicated fake class avoids coupling test assertions to production-only imports while keeping the dry-run path completely free of Telegram dependencies.
+Revisit if: A future coached-game variant needs to configure the review gate primarily through YAML (e.g., different timeout per run file) — at that point, adding `TelegramReviewGate` to the YAML registry becomes the cleaner path.
+
 D-31: Phase 27 stays metric-only in Build regime
 Date: 2026-06-01 | Status: Closed
 Priority: Important
