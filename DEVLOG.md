@@ -466,6 +466,13 @@ Implementation notes:
 
 Tests: `.venv/bin/python -m pytest tests/test_self_play.py` — 43 passed.
 
+## 2026-06-02 — Phase 28 Step 28.3
+
+Mode: Build
+Outcome: Added `tests/test_coached_game.py`, a focused dry-run wiring test for the coached self-play runner. The test constructs a coached environment with `DryRunLLMClient`, asserts the coached faction uses the `DryRunTelegramReviewGate` stand-in while the other two factions keep `AutoApproveReviewGate`, and verifies that a 4-round run still produces the expected transcript/response shape.
+
+Tests: `.venv/bin/python -m pytest tests/test_coached_game.py tests/test_self_play.py` — 44 passed.
+
 ### Step 27.2: Add baseline-normalized scoring fields
 
 Mode: Build

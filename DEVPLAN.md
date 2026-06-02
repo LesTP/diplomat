@@ -137,7 +137,7 @@ from the diagnostic.
 
 ### Step 28.3: Tests for coached_game wiring
 
-- [ ] Add `tests/test_coached_game.py` (or extend `tests/test_self_play.py`)
+- [x] Add `tests/test_coached_game.py` (or extend `tests/test_self_play.py`)
       with a `--dry-run` test that constructs a coached-game environment
       and asserts (a) the named faction's review_gate is the
       Telegram-flavored stand-in, (b) the other two factions' review_gates
