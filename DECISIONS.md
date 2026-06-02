@@ -218,7 +218,7 @@ Rationale: The Phase 19 smoke exposed a routing/tagging failure that required te
 Revisit if: The runtime moves to a structured log collector that requires JSON output or a non-stream handler.
 
 D-32: Phase 28 coached-game uses module_overrides injection, not YAML swap
-Date: 2026-06-02 | Status: Open
+Date: 2026-06-02 | Status: Closed
 Priority: Important
 Decision: `coached_game.py` injects `TelegramReviewGate` for the coached faction via `module_overrides["review_gate"]` in the `Orchestrator` constructor rather than writing a custom pipeline YAML with `class: TelegramReviewGate`. `FakeTelegramReviewGate` is a dedicated dry-run stand-in (not `AutoApproveReviewGate`) so test assertions can distinguish the coached faction's gate from auto-approve by type.
 Rationale: `module_overrides` is the existing pattern for injecting test doubles (`TestTransport`). Using the same mechanism for the review gate keeps `_generate_faction_config()` unchanged and makes the coaching wiring visible in one place (`setup()` override). A dedicated fake class avoids coupling test assertions to production-only imports while keeping the dry-run path completely free of Telegram dependencies.
