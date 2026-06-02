@@ -19,6 +19,7 @@ Cross-references point at fuller discussion in `TUNING.md`, `DEVPLAN.md`,
 |---|---|
 | Run the production Telegram bot | [`tools/service.sh`](#toolsservicesh--bot-lifecycle-manager) (wraps [`src/main.py`](#srcmainpy--diplomat-bot-production-entry-point)) |
 | Run a multi-agent self-play game | [`tests.self_play.run_simulation`](#testsself_playrun_simulation--multi-agent-self-play-runner) |
+| Run a self-play game with one Telegram-coached faction | [`tests.self_play.coached_game`](#testsself_playcoached_game--coached-self-play-runner) |
 | Validate plumbing without spending money | `--dry-run` flag on `run_simulation` |
 | Compile a narrative scenario into personas | [`tools.scenario_compiler`](#toolsscenario_compiler--narrative--scored-personas) |
 | Check providers are reachable before a live run | [`tests.self_play.probe_providers`](#testsself_playprobe_providers--live-provider-auth--parse-check) |
@@ -149,6 +150,45 @@ python -m tests.self_play.run_simulation \
 - Always dry-run first to catch plumbing bugs (~$0 instead of ~$1)
 - For multi-provider runs, probe each provider live with `probe_providers` (~$0.003) before the real run
 - Pair every live run with `verify_dryrun` for the same `--rounds`/`--num-factions` to assert invariants
+
+### `tests.self_play.coached_game` — coached self-play runner
+
+```bash
+# Dry-run wiring check: no Telegram access required
+python -m tests.self_play.coached_game --dry-run \
+    --coach-faction beta --rounds 4 \
+    --scenario tests/self_play/scenarios/water_rights.md \
+    --analysis-json tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json \
+    --factions alpha,beta,gamma \
+    --output tests/self_play/results/coached_dryrun.json
+
+# Live coached run: one faction uses TelegramReviewGate + TelegramBotTransport
+python -m tests.self_play.coached_game \
+    --coach-faction beta --rounds 4 \
+    --scenario tests/self_play/scenarios/water_rights.md \
+    --analysis-json tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json \
+    --factions alpha,beta,gamma \
+    --output tests/self_play/results/coached_live.json
+```
+
+| Flag / env | Default | Notes |
+|---|---|---|
+| `--coach-faction` * | — | Faction id routed through the Telegram-coached pipeline. |
+| `--rounds` | `4` | Same as `run_simulation`. |
+| `--factions` | `alpha,beta,gamma` | Same as `run_simulation`. |
+| `--scenario` | — | Same as `run_simulation`; required for `--analysis-json` because the seed message still comes from the scenario text. |
+| `--analysis-json` | — | Same as `run_simulation`; preserves hand-edited scenario analysis. |
+| `--output` | auto-timestamped | Same as `run_simulation`. |
+| `--dry-run` | `false` | Uses `DryRunLLMClient` plus a local `DryRunTelegramReviewGate` stand-in. |
+| `TELEGRAM_BOT_TOKEN` | yes (live) | Telegram bot token used by the coached faction transport/review gate. |
+| `DIPLOMAT_PUBLIC_CHANNEL_ID` | yes (live) | Public game channel for the coached faction's outbound messages. |
+| `DIPLOMAT_COACHING_CHANNEL_ID` | yes (live) | Operator coaching channel for `TelegramReviewGate`. |
+| `DIPLOMAT_OPERATOR_USER_IDS` | yes (live) | Comma-separated operator Telegram user IDs; same tagging semantics as the production bot. |
+
+Pass-through flags from `run_simulation` are supported as-is: `--scenario-title`,
+`--batna-fraction`, `--batna-fractions`, `--game-mode`, and
+`--per-faction-providers`. The coached faction's pipeline uses
+`TelegramReviewGate`; other factions stay on `AutoApproveReviewGate`.
 
 ### `tests.self_play.probe_providers` — live provider auth + parse check
 
@@ -350,6 +390,61 @@ python tools/parse_jsonl.py --meta meta.json < input.jsonl > output.txt
 ### `tools/service.sh`, `tools/state_machine.sh`
 
 Shell helpers; read their first lines for usage notes.
+
+### Ad-hoc SQL inspection queries
+
+> Originally diplomat-system-spec.md §13 (Monitoring). Migrated here 2026-06-02. Paths assume the production layout `data/game.db`; adjust if running self-play (no shared SQLite) or the smoke deployment.
+
+The Diplomat bot persists everything in one SQLite file. The State Manager
+owns most tables (see `ARCH_state_manager.md` Schema section); the Event
+Store owns `messages`. These are the queries the operator most often wants
+between rounds:
+
+```bash
+# Game state snapshot (current_round, total_rounds, game_status)
+sqlite3 data/game.db "SELECT * FROM game_state;"
+
+# Promise ledger — all promises tracked, who made them, current status
+sqlite3 data/game.db \
+  "SELECT round_made, from_faction, to_faction, content, status
+   FROM promises ORDER BY round_made;"
+
+# INTEL coaching corrections actually applied
+sqlite3 data/game.db \
+  "SELECT timestamp, table_affected, change_summary
+   FROM state_change_log
+   WHERE trigger_type='intel_coaching';"
+
+# Review-gate edit log for the current round (what the operator did to drafts)
+sqlite3 data/game.db \
+  "SELECT action, original_draft, edited_text
+   FROM review_gate_edits
+   WHERE round_number=(SELECT value FROM game_state WHERE key='current_round');"
+
+# Adversarial reads for the current round (draft + the adversarial analysis)
+sqlite3 data/game.db \
+  "SELECT round_number, draft_response, analysis, posted
+   FROM adversarial_reads
+   WHERE round_number=(SELECT value FROM game_state WHERE key='current_round');"
+```
+
+For cost reports, prefer `tools/inspect_ledger.py` (see above). If you want
+a Python one-liner instead of the CLI:
+
+```bash
+python3 -c "from toolkit.cost_accountant import CostAccountant; \
+  from pathlib import Path; \
+  a = CostAccountant(Path('data/cost_ledger.jsonl')); \
+  r = a.report(); \
+  print(f'Total: \${r.total_spend_usd:.2f}'); \
+  [print(f'  {k}: \${v:.2f}') for k,v in r.by_operation.items()]"
+```
+
+For live Pi diagnostics use the structured logs from Phase 26 instead of
+SQL — grep `logs/diplomat.log` for the documented event names
+(`startup.online`, `event.received`, `event.routed`, `event.tagged`,
+`event.sent`, `extraction.*`, `round.boundary`, `pipeline.*`). See
+`SMOKE_RUNBOOK.md` §3 for the verification command.
 
 ---
 

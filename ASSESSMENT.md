@@ -144,7 +144,7 @@ strategy. Candidates:
   agent on a hard scenario may score lower than a naive agent on an
   easy scenario; this metric controls for that.
 
-### 3.4 Process signatures (4 deterministic signatures implemented)
+### 3.4 Process signatures (5 deterministic signatures implemented)
 
 A *bundle* of behavioral metrics. Not a single formula; a vector of
 diagnostics that characterize *how* the deal was reached, not just
@@ -157,17 +157,18 @@ diagnostics that characterize *how* the deal was reached, not just
 | **Coalition stability** | % of coalitions formed that survived to the final deal | ✓ implemented |
 | **Time-to-deal** | Round number when deal reached (or `∞` if no deal) | ✓ implemented |
 | **Opening gap** | `|opening_position_value - reached_deal_value| / max_possible` | ✓ implemented for exact outcome-name matches |
+| **Near-miss diagnostic** | Final-round 2-of-N convergence plus issue-level defection log | ✓ implemented in `tests/self_play/analysis.py` |
 | **Concession curve** | Sequence of per-round position values; categorize as linear, geometric, anchor-then-capitulate | Partial — needs round-by-round extraction |
 | **Persuasion shifts caused** | Times *other* agents changed position in response to *your* arguments | Needs LLM-judge over transcript |
 
 - Captures: skill *signature*, not skill *outcome*. Useful when
   outcomes are similar across runs and you want to compare *how*
   agents got there.
-- Status: ✓ Four deterministic signatures implemented in
-  `tests/self_play/analysis.py:26`; report rendering lives at
-  `tests/self_play/analysis.py:146`. Position-shift count, concession
-  curve, and persuasion shifts remain deferred because they need
-  transcript interpretation beyond exact outcome-name matching.
+- Status: ✓ Five deterministic signatures implemented in
+  `tests/self_play/analysis.py`; report rendering lives in the same
+  module. Position-shift count, concession curve, and persuasion shifts
+  remain deferred because they need transcript interpretation beyond exact
+  outcome-name matching.
 
 ### 3.5 How they compose
 

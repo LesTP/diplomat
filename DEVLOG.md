@@ -477,6 +477,13 @@ Implementation notes:
 
 Tests: `.venv/bin/python -m pytest tests/test_self_play_near_miss.py tests/test_self_play.py` — 48 passed.
 
+## 2026-06-02 — Phase 28 Step 28.6
+
+Mode: Build
+Outcome: Updated the documentation surface for the coached self-play runner and the near-miss diagnostics. `CLI_REFERENCE.md` now documents `tests.self_play.coached_game` with live Telegram env requirements and the dry-run path. `diplomat-testing-doc.md` now includes the coached-game runner in the self-play architecture/running notes and calls out the `NEAR-MISS DIAGNOSTIC` section. `NEXT_STEPS.md` now marks the coached harness and near-miss diagnostic as Phase 28 build-complete, leaving the operator-driven Pi smoke as the remaining task. `ASSESSMENT.md` now treats `near_miss` as a deterministic signature alongside the existing process signatures.
+
+Tests: `.venv/bin/python -m pytest` — 346 passed.
+
 ## 2026-06-02 — Phase 28 Step 28.3
 
 Mode: Build

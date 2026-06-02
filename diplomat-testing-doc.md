@@ -1176,6 +1176,7 @@ Self-play runs multiple agent instances against each other in a simulated enviro
 | LoggingLLMClient | `tests/self_play/game_environment.py` | Wraps any LLM client; records every call with full prompts, responses, and timing |
 | Scenario Compiler | `src/tools/scenario_compiler.py` | Converts narrative scenario descriptions into scored persona files via LLM |
 | Simulation Runner | `tests/self_play/run_simulation.py` | CLI entry point with `--scenario` flag for auto-compiled personas |
+| Coached Game Runner | `tests/self_play/coached_game.py` | Self-play runner that routes one faction through TelegramReviewGate/TelegramBotTransport; `--dry-run` uses a local stand-in |
 | Analysis | `tests/self_play/analysis.py` | Post-game report: promises, coalitions, communication patterns, process signatures, promise cross-reference |
 | Scenario Library | `Multi-Party Negotiation Scenarios.md` | Catalogue of academic, historical, and game-theoretic negotiation scenarios |
 
@@ -1199,6 +1200,20 @@ python -m tests.self_play.run_simulation \
 
 The `--scenario` flag compiles the scenario description into per-faction personas with private scoring tables, BATNAs, deception tactics, and game-mode-specific behavioral instructions. One LLM call (~$0.01).
 
+**With one Telegram-coached faction:**
+```bash
+python -m tests.self_play.coached_game \
+  --coach-faction beta --rounds 4 \
+  --scenario tests/self_play/scenarios/water_rights.md \
+  --analysis-json tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json \
+  --factions alpha,beta,gamma \
+  --output tests/self_play/results/coached.json
+```
+
+Use `--dry-run` first to validate wiring without Telegram. Live runs require
+`TELEGRAM_BOT_TOKEN`, `DIPLOMAT_PUBLIC_CHANNEL_ID`,
+`DIPLOMAT_COACHING_CHANNEL_ID`, and `DIPLOMAT_OPERATOR_USER_IDS`.
+
 **Post-game analysis:**
 ```bash
 python -m tests.self_play.analysis --results tests/self_play/results/run.json
@@ -1213,7 +1228,10 @@ Scenario-backed simulation JSON also includes `pareto_efficiency`,
 `surplus_distribution_stdev`, `negotiated_surplus_share`,
 `process_signatures`, and `scenario_analysis`. The analysis report
 prints the baseline-normalized scoring fields in a `NO-DEAL-AWARE
-SCORING` section when `results["scores"]` is present.
+SCORING` section when `results["scores"]` is present. Phase 28 also adds a
+`NEAR-MISS DIAGNOSTIC` section when scenario-backed results are available:
+`near_miss`, `converging_factions`, `dissenting_faction`, and
+`defection_event_log`.
 
 ### 6.3 Scenario Compiler
 

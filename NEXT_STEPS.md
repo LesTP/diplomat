@@ -1,7 +1,6 @@
 # Diplomat — Next Steps
 
-> Working document for post-Phase 24 priorities.
-> Updated 2026-06-01.
+> Working document. Updated 2026-06-02.
 >
 > Related: `DEVPLAN.md` (canonical phase plan), `TUNING_LOG.md` (run-by-run record),
 > `ARCH_conversation_model.md` (Stage 1/2/3 migration), `RUN_PROTOCOL.md` (pre-flight),
@@ -20,91 +19,102 @@
 > - 🔨 **PURE BUILD** — code/refactor only, deterministic, no operator judgment mid-loop. Suitable for autonomous build phases.
 > - 🔀 **MIX** — has a build component but needs operator decisions at boundaries.
 > - 👁 **SUPERVISED** — experiments, prompt tuning, design judgment, or interactive work. Operator-driven only.
->
-> **State as of 2026-06-01:** all 🔨 PURE BUILD items shipped via Phases 19 (ad-hoc) and 20–24 (Build cycle). No PURE BUILD items in the queue. Open items below are MIX or SUPERVISED.
+
+> **Tier-priority rationale (operator, 2026-06-02).** `[A]` agent architecture
+> and `[X]` cross-cutting infra are foundational — they enable `[C]` (game design)
+> and `[B]` (prompt tuning) to land cleanly. Work down the tiers gradually
+> rather than chasing the highest-interest item across all tiers in parallel.
+> The "Open items by workstream tier" section below groups everything in that
+> order; the per-section detail (§1.6 through §9) keeps the historical
+> numbering for stable cross-references.
+
+> **State as of 2026-06-02:** Phases 20–27 closed. Runs 9 + 10 closed. Next
+> recommended move: **Coaching test loop on Pi (§4)** — highest-leverage
+> untested product path; only `coached_game.py` (~1 build step) +
+> operator-driven Pi smoke remain.
 
 ---
 
 ## Closed since 2026-05-30
 
-Audit trail; details in `DEVLOG.md` / `DEVLOG_archive.md` under the corresponding phase or Phase 19 ad-hoc entries.
-
-| Item | Where | Status |
-|---|---|---|
-| Layer 3 integration tests for Phase 18 paths | Phase 20 | ✓ Closed 2026-05-31 |
-| Reconciler dedup / fulfillment / inconsistency / missed-proposal (fake-LLM coverage) | Phase 20 | ✓ Closed 2026-05-31 |
-| Module boundary cleanup — orchestration (public `advance_to_round`, `OrchestrationOptions`, `StubAnalyst` registry leak, logged reconciler exceptions) | Phase 21 | ✓ Closed 2026-05-31 |
-| Module boundary cleanup — LLM adapter + config dedup (`_TaggedLLMClient` deleted, `attribution`/`purpose` kwargs threaded, `build_reconciler` + `subsystem_llm_config` factories, `DryRunLLMClient` `purpose`-kwarg classification) | Phase 21 | ✓ Closed 2026-05-31 |
-| Pipeline / Flow split (`Pipeline`, `EventDrivenFlow`, `RoundSteppedFlow`; `Orchestrator` as compat factory; `ARCH_flow.md`) | Phase 22 | ✓ Closed 2026-05-31 |
-| ASSESSMENT §3.2 Pareto efficiency scorer | Phase 23 | ✓ Closed 2026-05-31 |
-| ASSESSMENT §3.4 process signatures (4 deterministic: broken-promise rate, coalition stability, time-to-deal, opening gap) | Phase 23 | ✓ Closed 2026-05-31 |
-| Toolkit `OpenAIProvider.call` `max_completion_tokens` dispatch + unit tests + ARCH_llm_client + API.md | Phase 24.1 + operator-direct | ✓ Closed 2026-05-31 |
-| Per-faction asymmetric `--batna-fractions` JSON flag | Phase 24.2 | ✓ Closed 2026-05-31 |
-| `--force-batna-fraction` post-clamp option | Phase 24.3 | ✓ Closed 2026-05-31 |
-| `--game-mode` runtime override flag | Phase 24.4 | ✓ Closed 2026-05-31 |
-| Level 1 modularization — extraction examples → `config/examples/extraction_examples.json` | Phase 24.5 | ✓ Closed 2026-05-31 |
-| Level 1 modularization — reconciliation + analysis derive entity types from `state_patch.json` schema | Phase 24.6 | ✓ Closed 2026-05-31 |
-| Phase 24 doc updates (CLI_REFERENCE, TUNING, diplomat-testing-doc, ARCH_extraction, ARCH_reconciliation) | Phase 24.7 + operator-direct | ✓ Closed 2026-06-01 |
-| Toolkit `complete_with_retry` (exponential backoff on 429/5xx/empty) | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
-| Toolkit `normalize_model_name` + refreshed pricing (closed ~41× cost-ledger overestimate) | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
-| Scenario compiler BATNA fraction-of-max formula + `--batna-fraction` CLI + `validate_batna_pressure()` | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
-| LoggingLLMClient SCORE/RECON visibility | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
-| Production reconciler wired in `src/main.py` (`_attach_reconciler`) | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
-| Optional `game.total_rounds` in `pipeline.yaml` | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
-| `tools/inspect_ledger.py` rewritten with CLI args | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
-| `CLI_REFERENCE.md` + `SMOKE_RUNBOOK.md` created | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
-| `ASSESSMENT.md` created (skill framework + scoring lenses + workstream blocks) | Phase 19 ad-hoc | ✓ Closed 2026-05-31 |
-| Live Telegram re-smoke (for coaching scope only — game-traffic is not a Telegram concern) | Phase 19 ad-hoc | ✓ Closed 2026-05-31 |
-| WORKER_SPEC loop-discipline hardening (single-call contract, no self-judge budget) | Phase 19 ad-hoc | ✓ Closed 2026-05-31 |
+Audit trail moved to **Appendix A** at the end of this document — 30+ closed
+items across Phases 19-27 + Runs 9-10 + a handful of rescoped / rejected
+items. Canonical detail lives in `DEVLOG.md` / `DEVLOG_archive.md` and
+`TUNING_LOG.md` / `TUNING_LOG_archive.md`.
 
 ---
 
-## Open — current state
+## Open items by workstream tier
 
-### Loop-readiness classification
+Grouped by the operator's priority tiering A/X > C > B. Section detail
+(§1.6 through §9) is below and keeps the historical numbering for stable
+cross-references.
 
-| Item | Class | Notes |
-|---|---|---|
-| §1.6 OpenRouter + Run 9 | 🔀 | Toolkit code is build (Phase 25 candidate); Run 9 itself is supervised |
-| §2 Game pressure beyond BATNA + divorce scenario | 🔀 | Mechanism code is build; scenario design supervised |
-| §2.5 Strategy routing | 👁 | Pure prompt design |
-| §3 Stage 2a (K=2 conversation model) + per-round events | 🔀 | Architecture is build (Phase 25 candidate); convergence detection (Stage 2b) supervised |
-| §4 Coaching test loop on Pi | 👁 | Interactive operator-in-loop |
-| §5 Clankmates exploration | 👁 | Platform team coordination |
-| §6 Pricing audit | 👁 | Judgment vs provider dashboards |
-| §7 Per-role model strategy | 👁 | Cross-provider experiment |
-| §8 Reverse scenario builder | 🔀 | Search algorithm build; constraint definition + narrativizer supervised |
-| §9 Voice / style templates | 👁 | Prompt design |
-| ASSESSMENT §3.3 vs Naive baseline | 🔀 | Naive defn needs operator choice (equal-split is the universal candidate) |
-| ASSESSMENT §3.4 persuasion-shifts / concession-curve signatures | 👁 | Need LLM-judge over transcripts |
-| Pareto-frontier annotation in analyst output | 🔀 | Schema change build; prompt-side change needs Layer 2 supervised validation |
-| Persona payment rigidity / drift / endgame over-anchoring | 👁 | Prompt design |
-| Provider-native structured output (`response_format: json_schema`) | 🔀 | Toolkit plumbing build; model selection supervised |
-| TelegramReviewGate as production default in `pipeline.yaml` | 👁 | Judgment call |
-| Rewrite `tools/service.sh` around `tmux new-window` | 🔨 | **Phase 25 queued** (`DEVPLAN.md`) |
-| Structured per-event logging in orchestrator + transport | 🔨 | **Phase 26 queued** (`DEVPLAN.md`) |
+### Tier 1 — `[A]` agent architecture + `[X]` cross-cutting (foundational)
 
-### Suggested Sequencing (operator-driven)
+| Item | Tags | Loop | Where | Notes |
+|---|---|---|---|---|
+| **Coaching test loop on Pi** | `[X]` | 👁 | §4 | Highest-leverage untested product path. Phase 28 built `coached_game.py`; the remaining work is the operator-driven Pi smoke and edit-log analysis. |
+| **Stage 2a (K=2 conversation model)** | `[A]` | 🔀 | §3 | Foundational architecture for per-round events + multi-pass reactivity. Phase 28 candidate (build slice). Unlocks Tier 2 §2 pressure mechanisms. |
+| **Near-miss + defection diagnostics in `analysis.py`** | `[A]` | 🔨 | §1.9 | Phase 28 implemented the pure-build diagnostic. Closes the "what almost happened" gap from Runs 9/10 and now has fixture coverage. |
+| **Game-platform exploration** (Clankmates / Discord / fallback) | `[X]` | 👁 | §5 | Gated on operator + partner platform decision. Updated 2026-06-02 to consider Discord alongside Clankmates. |
+| **Pricing & accounting audit** | `[X][C]` | 👁 | §6 | Best done before Tier 3 §7 so per-role cost claims have a firm baseline. |
+| **OpenRouter integration** | `[X][B]` | 🔀 | §1.6 | Toolkit plumbing. Less urgent post-Run 10 — `--per-faction-providers` already exposes the key cross-provider variable. Slot in on a cheap day. |
+| **TelegramReviewGate as production default** | `[X]` | 👁 | (decision) | Whether to flip `pipeline.yaml` `review_gate` to `TelegramReviewGate` as the production default. Smoke runs on `pipeline_smoke.yaml` already use it. |
+| **Provider-native structured output** (`response_format: json_schema`) | `[X]` | 🔀 | Carry-forward | Toolkit plumbing build; gives token-level schema compliance. Lower priority — current `structured_call` retry loop is working. |
 
-All Phases 20–24 closed → no PURE BUILD items in autonomous queue. Next moves are operator-driven sessions, ordered by leverage:
+### Tier 2 — `[C]` game creation & scoring
 
-1. **`[X]` Coaching test loop on Pi** (§4) — highest-value test not yet run; validates the original product hypothesis end-to-end. The Telegram coaching surface was verified by the 2026-05-31 smoke; this builds on it.
-2. **`[X][B]` OpenRouter integration + Run 9** (§1.6) — biggest experimental payoff per day of work.
-3. **`[C]` Divorce / pressure-mechanism scenario design** (§2) — extends scenario compiler; sets up Run 10.
-4. **`[A]` Stage 2a (K=2 conversation model) + per-round events** (§3) — unlocks the next phase of experimentation.
-5. **`[X]` Clankmates discovery → mock → transport** (§5) — timeline depends on platform team.
+| Item | Tags | Loop | Where | Notes |
+|---|---|---|---|---|
+| **Game pressure beyond BATNA + divorce scenario** | `[C]` | 🔀 | §2 | Run 10 confirmed BATNA is refusal-strengthening; round-cost decay + exogenous events are the missing concession-eliciting mechanisms. Wants Tier 1 §3 (Stage 2a) for the per-round events mechanism. |
+| **Reverse scenario builder** | `[C]` | 🔀 | §8 | Outcome-shape → scenario. Best done after one divorce scenario surfaces the constraint vocabulary. |
+| **Pareto-frontier annotation in analyst output** | `[C][B]` | 🔀 | §2 TODOs | Analyst surfaces threats/leverage; add Pareto-compromise opportunities. Schema + prompt change. |
+| **Surplus-distribution diagnosis** | `[C]` | 👁 | Backlog | Cross-scenario investigation of "why does gamma extract 52-55% of surplus?" Likely game-theoretic; if confirmed, a scenario-design lever. |
+| **Identify-the-blocker tool** | `[C][X]` | 🔀 | (loop-readiness) | Pre-game LLM analyst pass over scoring tables to predict squeeze target. Lower priority post-Run 10 but still a useful scenario-design aid. |
+| **ASSESSMENT §3.3 vs Naive baseline (equal-split scorer)** | `[C]` | 🔨 | (loop-readiness) | Pure build candidate. Slots in alongside existing Pareto/Naive comparison. |
+| **ASSESSMENT §3.4 persuasion-shifts / concession-curve signatures** | `[C]` | 👁 | (loop-readiness) | Needs LLM-judge over transcripts. Higher cost; defer until other Tier 2 items land. |
+| **Reconciliation live validation** | `[C]` | 👁 | Backlog | Status transitions + inconsistency flagging untested in live runs. Run 10 B' and α-squeezed defection are natural inspection targets. |
 
-Strategy routing (§2.5), per-role model strategy (§7), and pricing audit (§6) are dedicated investigations of their own; they slot in after the experimental program produces enough signal to inform them.
+### Tier 3 — `[B]` prompt tuning & strategy
+
+| Item | Tags | Loop | Where | Notes |
+|---|---|---|---|---|
+| **Per-role model strategy** (consistency + cost + quality axes) | `[B]` | 👁 | §7 | Materially informed by Run 10. Wants Tier 1 §6 (pricing audit) for cost baseline + Tier 3 §1.7/§1.8 results. |
+| **Provider consistency tests** (all-Anthropic baseline + cross-scenario) | `[B][X]` | 👁 | §1.7 / §1.8 | Run 11 candidates. Generalize Run 10 finding. ~$3-4 + ~$0.30. Cheap and operator-driven, can run independently of other tiers. |
+| **Strategy routing** (hardball / integrative / tit-for-tat / etc.) | `[B]` | 👁 | §2.5 | Prompt library + operator-pickable strategy. Real-game value: pick a strategy mid-game and the prompt machinery executes it. |
+| **Persona payment rigidity / drift / endgame over-anchoring** | `[B]` | 👁 | Carry-forward | Recurring across Runs 7-10. Run 10 showed provider consistency matters more than persona rule. A/B in a future run. |
+| **Voice / style templates** (Kissinger, Gen Alpha, etc.) | `[B]` | 👁 | §9 | Genuinely low priority. Slot in when other backlogs are empty. |
+
+### Sequencing within Tier 1 (most actionable now)
+
+If working down the tiers, the immediate decision is which Tier 1 item to do first. Recommended order:
+
+1. **Coaching test loop on Pi (§4)** — highest leverage; validates the original product hypothesis. Operator-driven Pi smoke after a small build.
+2. **Near-miss + defection diagnostics (§1.9)** — cheapest, pure build, closes a real diagnostic gap. Could ship alongside Coaching test.
+3. **Stage 2a multi-pass (§3)** — biggest architectural unlock for Tier 2 work. Has a clean build slice (Phase 28 candidate).
+4. **Pricing audit (§6)** — best done before Tier 3 §7 so per-role decisions have a firm cost baseline.
+5. **OpenRouter (§1.6)** — slot in if there's a cheap day; not blocking anything.
+6. **Game-platform exploration (§5)** — gated on operator + partner alignment; explore Discord alongside Clankmates while the partner decision is pending.
+
+### Cross-tier dependencies worth knowing
+
+- **Tier 2 §2** (pressure mechanisms) wants **Tier 1 §3** (Stage 2a per-round events) if pressure is partly delivered as exogenous events between passes — building both around the same time locks them in cleanly.
+- **Tier 3 §7** (per-role models) wants **Tier 1 §6** (pricing audit) — cost-quality tradeoffs need accurate cost numbers.
+- **Tier 3 §1.7 + §1.8** (provider consistency tests) are *experimental data feeding into Tier 3 §7* — listed in Tier 3 because the deliverable is a tuning rule, but cheap + operator-driven so they can run independently of other tiers.
 
 ### Pure-build extensions (if extending the autonomous queue)
 
-If you want to keep the loop fed rather than pivot to operator-driven work, three items have a clean "build half" that could be split off as their own Phase 25 / 26 / 27:
+Items with a clean "build half" suitable for a future Phase 28+:
 
 | Candidate | Build slice | What stays supervised |
 |---|---|---|
-| §1.6 OpenRouter | Add OpenRouter as a provider in `toolkit/llm_client/providers.py` + factory branch + tests | Run 9 itself; writing TUNING notes about its behavior |
+| §1.6 OpenRouter | Add OpenRouter as a provider in `toolkit/llm_client/providers.py` + factory branch + tests | Run choice; writing TUNING notes about its behavior |
 | §3 Stage 2a | Add `RoundSteppedFlow` configuration for 2-pass rounds (open + react) + `MultiPassMode` plumbing; round-events injection between passes | Stage 2b convergence detection; judging quality of multi-pass transcripts |
-| ASSESSMENT §3.3 vs-Naive baseline (equal-split) | Implement equal-split baseline scorer (universal definition) + add to scoring output alongside Pareto efficiency | Choosing whether equal-split is "the" baseline vs Nash bargaining vs BATNA-clearing |
+| ASSESSMENT §3.3 vs-Naive baseline (equal-split) | Implement equal-split baseline scorer + add to scoring output alongside Pareto efficiency | Choosing whether equal-split is "the" baseline vs Nash bargaining vs BATNA-clearing |
+| **Coached self-play harness** | Build `tests/self_play/coached_game.py` taking `--coach-faction <name>`. Swap that faction's Pipeline transport+review_gate to TelegramReviewGate; others stay AutoApproveReviewGate. Phase 22 Pipeline/Flow split makes this additive. | Operator-driven Pi smoke + edit-log analysis |
+| **Near-miss + defection diagnostics in `analysis.py`** | Add `near_miss: bool`, `converging_factions: [...]`, `dissenting_faction: ...`, `defection_event_log: [{faction, round, from, to}]`. Read-only on score. Tests on Run 9 α-squeezed and Run 10 C' fixtures. | None — pure diagnostic. |
+| **`tools/identify_blocker.py`** | Read `scenario_analysis.json`; one `structured_call` to an analyst LLM asking "for the Pareto-optimal deal, which faction has to concede most on their priority issue?" Output ranked list of squeeze candidates. | Scenario-design judgment about whether to act on the recommendation. |
 
 ---
 
@@ -112,6 +122,14 @@ If you want to keep the loop fed rather than pivot to operator-driven work, thre
 
 **Goal:** Expand the provider matrix cheaply by routing through OpenRouter,
 then promote winners to native integrations if needed.
+
+**Priority context (2026-06-02):** Lower urgency than before — Run 10 B'
+showed that the cross-provider variable we cared about most (Generator
+provider per faction) is already accessible via `--per-faction-providers`
+with the native OpenAI / Anthropic / Google integrations. OpenRouter would
+add Groq / DeepSeek / Mistral / etc. to that mix cheaply, but the immediate
+deal-making questions don't require it. Treat as a Tier 1 `[X]`
+infrastructure item to slot in on a cheap day.
 
 ARCHITECTURE.md already lists OpenRouter as supported via toolkit, so the
 entry point exists. This is mostly config + provider routing work.
@@ -125,9 +143,10 @@ entry point exists. This is mostly config + provider routing work.
       runner.
 - [ ] Extend `--per-faction-providers` JSON schema to accept OpenRouter
       sub-model spec (e.g. `{"model": "deepseek/deepseek-v3"}`).
-- [ ] Run a 4–6 provider Run 9: rotate which provider plays which faction in
-      Water Rights, mix native (OpenAI/Anthropic) and OpenRouter-routed
-      (Groq Llama, DeepSeek, Mistral) generators.
+- [ ] Once routed, run a multi-provider tournament: rotate which provider
+      plays which faction in Water Rights, mix native (OpenAI/Anthropic/Google)
+      and OpenRouter-routed (Groq Llama, DeepSeek, Mistral) generators.
+      Slot this in as a Run 12+ candidate after the Tier 1 priorities clear.
 - [ ] Document provider behavior notes in `TUNING.md` — voice, latency,
       reliability, cost — as we accumulate runs.
 
@@ -139,6 +158,107 @@ entry point exists. This is mostly config + provider routing work.
 | **DeepSeek** | V3 ~$0.27/$1.10 per MTok; R1 reasoning very cheap | No real free tier, but absurdly cheap | Strong reasoning at GPT-4 quality for ~10% the cost; R1 may produce visibly different *strategic* reasoning |
 | **Mistral** | Mistral Large, Codestral, EU-hosted | La Plateforme free tier on smaller models | French RLHF lineage → noticeably different negotiation voice |
 | **OpenRouter** | One key, ~200 models, auto-routing | Some free models (Llama variants, Gemma) | Lets us test any provider with no per-provider plumbing |
+
+---
+
+## 1.7. `[B][C]` Provider consistency as a deal-making variable (Run 10 finding)
+
+**Headline.** Run 10 B' (alpha-squeezed BATNAs unchanged, beta's Generator
+re-routed from OpenAI gpt-4.1-mini to Anthropic claude-haiku-4-5) reached the
+Pareto-optimal deal that Run 9 alpha-squeezed had missed. The R3→R4 defection
+pattern that broke Run 9 (beta-on-OpenAI proposed `Medium + Heavy-Downstream +
+JFD` in R3 then pivoted to `High + Shared + JFD` in R4, killing the alpha+gamma
+convergence) was reproduced in Run 10 C' — this time with *gamma* defecting on
+the same OpenAI gpt-4.1-mini model. **Two-of-two instances of the same failure
+mode on the same model, different factions.**
+
+The cleanest reading: for OpenAI gpt-4.1-mini on Water-Rights-style scenarios,
+R3 contingent commitments are unreliable — the model will textually commit then
+propose something different at R4. Anthropic claude-haiku-4-5 honored beta's R3
+contingent verbatim at R4 (Run 10 B').
+
+**Why this matters.** BATNA pressure (Run 9 β-squeezed) and provider consistency
+(Run 10 B') reached the *same* Pareto deal via different mechanisms. BATNA pressure
+*forced* the OpenAI agent to be consistent (defecting back to BATNA was costly enough
+to bind); Anthropic was consistent by default. Once you account for the provider
+effect, the BATNA-pressure thesis simplifies: BATNA is a *substitute* for native
+consistency on consistency-flaky models, and a *no-op* on consistency-reliable ones.
+
+### TODOs
+
+- [ ] **§1.7.a All-Anthropic baseline (Run 11 candidate).** Run all three Run 9
+      BATNA variants (symmetric / α-squeezed / β-squeezed) with single-provider
+      Anthropic claude-haiku-4-5. Tells us whether Anthropic reaches Pareto across
+      the BATNA spectrum (confirming the provider-default consistency thesis) or
+      only when structure favors it. ~$3-4 spend.
+- [ ] **§1.7.b OpenAI defection on Three-Party Coalition / Trade Summit (§1.8).**
+      Cheap (~$0.30) cross-scenario check. If the R3→R4 defection reproduces, it's
+      a general OpenAI gpt-4.1-mini tuning rule (consistency-critical seats need
+      Anthropic). If it doesn't, it's a Water-Rights-specific quirk likely tied to
+      how the Payment issue is framed.
+- [ ] **§1.7.c Update TUNING.md provider-assignment table.** Once §1.7.a + §1.7.b
+      land, add a "Consistency-critical seats" row noting that beta-style
+      bottleneck-holder roles should default to Anthropic for multi-round
+      negotiations.
+- [ ] **§1.7.d Promote provider consistency to ASSESSMENT.md §3.4.** Process
+      signature "across-round commitment-following rate" is a meaningful skill
+      dimension that wasn't on the original list. Worth adding once we have
+      cross-scenario data.
+
+---
+
+## 1.8. `[B]` OpenAI gpt-4.1-mini R3→R4 defection — cross-scenario scope test
+
+**Status.** Two instances on Water Rights so far (Run 9 α-squeezed beta, Run 10 C'
+gamma). Both: faction commits at R3 to a position the other two are converging
+toward, then proposes a personally-preferred alternative at R4 breaking consensus.
+
+**Question.** Water-Rights-specific or general? If general, OpenAI gpt-4.1-mini
+should not occupy any consistency-critical seat in multi-round negotiations.
+
+### TODOs
+
+- [ ] Re-run **Three-Party Coalition** (Run 6/7 scenario) with all OpenAI
+      gpt-4.1-mini Generators, observe R3→R4 transitions for any faction.
+      Use a scenario where coalition formation requires a faction to commit
+      to A+B in R3 — the natural shape for the defection pattern. ~$0.30.
+- [ ] Re-run **Trade Summit** (Run 5 scenario, dirty bargaining with deception
+      tactics) on all OpenAI gpt-4.1-mini, observe whether the deception-then-reveal
+      arc that worked in Run 5 still holds. Different question (tactical
+      commitment vs cross-round commitment) but related. ~$0.30.
+
+---
+
+## 1.9. `[A]` Near-miss + defection diagnostics in `analysis.py`
+
+**Status.** Implemented in Phase 28 as a read-only diagnostic. Operator
+rationale 2026-06-01: "no agreement = no agreement, doesn't matter if
+missed by an inch or a mile." The helper stays off the score and only
+annotates the report.
+
+### Design
+
+- `near_miss: bool` — true when N-1 factions stated identical positions (per issue)
+  in R4 but the Nth diverged.
+- `converging_factions: [list]` — the N-1 that agreed.
+- `dissenting_faction: <id>` — the one that broke consensus.
+- `defection_event_log: [{faction, round, from: {issue: outcome}, to: {issue: outcome}, was_contingent: bool}]`
+  — per-faction position changes round-over-round, with a flag for whether the
+  R3 statement was contingent on something the other factions then satisfied.
+
+### TODOs
+
+- [x] Add the fields to `analyze_results()` in `tests/self_play/analysis.py`.
+      Hand-extract positions from R4 messages (regex/substring against
+      `scenario_analysis['issues'][*]['outcomes']`).
+- [x] Backfill on Run 9 α-squeezed and Run 10 C' (both flag
+      `near_miss=true`). Backfill on Run 9 β-squeezed and Run 10 B'
+      (both flag `near_miss=false` because the final round is unanimous).
+- [x] Add reliability coverage with a synthetic 4-round fixture plus
+      Run 9/10 fixture-backed tests. The token-based matcher still has a
+      noise floor, but the documented cases now pin the intended behavior.
+
+~2-step build, no LLM cost, no test infrastructure beyond existing fixtures.
 
 ---
 
@@ -281,10 +401,14 @@ evolution from a single narrative spec.
 operator coaches a self-play agent via Telegram while other agents run
 autonomously.
 
+**Status.** Phase 28 completed the build slice (`tests/self_play/coached_game.py`
+and the near-miss diagnostics). The remaining work here is the operator-driven
+Pi smoke and edit-log analysis.
+
 Most of the wiring already exists:
 - Self-play harness runs 3 agents
-- One agent's `transport` and `review_gate` swap to `TelegramReviewGate`
-  pointed at operator chat
+- One agent's `transport` and `review_gate` swap to Telegram-backed coaching
+  routing (`TelegramReviewGate` + `TelegramBotTransport`)
 - Other 2 agents on `AutoApproveReviewGate`
 - Operator coaches via tagged messages (PRIORITY/CONSTRAINT/INTEL/TONE/WATCH)
   and uses `/approve`, `/edit`, `/block` on drafts
@@ -298,9 +422,10 @@ Most of the wiring already exists:
 
 ### TODOs
 
-- [ ] Build a `tests/self_play/coached_game.py` variant that takes
+- [x] Build a `tests/self_play/coached_game.py` variant that takes
       `--coach-faction <name>` and wires TelegramReviewGate for that faction
-      only.
+      only. Phase 28 implemented a dry-run/live capable runner with a
+      Telegram-backed coached transport.
 - [ ] Test scenario: Trade Summit or Water Rights (~4 rounds, bounded
       session, strong differentiation already proven).
 - [ ] Run on the Pi (start via tmux pattern per `CLI_REFERENCE.md`).
@@ -310,31 +435,89 @@ Most of the wiring already exists:
 
 ---
 
-## 5. `[X]` Clankmates exploration
+## 5. `[X]` Game-platform exploration (Clankmates / Discord / fallback)
+
+**Status 2026-06-02.** Both candidate platforms are theoretical right now.
+Clankmates is blocked on the operator's partners committing to it.
+Discord is a hedge that should be researched in parallel — it has documented
+APIs, a large bot ecosystem, and no partner dependency. Until one of these
+becomes concrete, this section stays exploratory: don't build a
+`ClankmatesTransport` or `DiscordTransport` until there's a real game to ship.
+
+### Why this is on the backlog rather than queued
+
+The game-traffic surface (where factions post to each other) needs to be
+*something*. Telegram has been ruled out for game traffic because it doesn't
+deliver bot-to-bot messages in groups regardless of privacy mode (see
+"Telegram-platform finding" in Backlog). Telegram stays as the operator
+coaching + review-gate surface.
+
+### Clankmates — primary candidate (blocked on third party)
 
 Three angles to weigh:
 
 1. **Forcing function** — building `ClankmatesTransport` before the platform
-   ships is a credible signal to that team
+   ships is a credible signal to that team.
 2. **Risk** — polling-based with unknown API stability; could be wasted
-   effort if the interface changes pre-launch
+   effort if the interface changes pre-launch.
 3. **Hedge** — build a thin Transport interface adapter, mock against
-   *expected* API shape, verify against real API when available
+   *expected* API shape, verify against real API when available.
 
-### TODOs
+Reference: `for-clankers.md` documents the expected interface (browser for
+human, CLI/API for the agent, inbox screening pattern).
 
-- [ ] Discovery pass: does Clankmates have public docs, OpenAPI spec, a
-      partner program? Talk to the platform team before building
-      speculatively.
-- [ ] If documented: build `ClankmatesTransport` against the real API.
-- [ ] If not documented: build a `ClankmatesMockTransport` against the
-      shape expected in `for-clankers.md`, and a thin interface adapter
-      that can swap to the real transport once available.
-- [ ] Hybrid deployment plan: Clankmates handles game-facing communication,
-      Telegram handles private operator coaching + review gate (already in
-      PROJECT.md as design intent). With the Phase 22 Pipeline/Flow split,
-      this can land as a new `HybridFlow` driving one `Pipeline` per agent
-      with two transports — additive, not a fork.
+### Discord — parallel hedge candidate (no partner dependency)
+
+**Why consider Discord:**
+
+- Public, stable Bot API (REST + WebSocket Gateway, versioned and well-documented).
+- Standard webhook + slash-command patterns.
+- Channels + threads map cleanly to public game channel + faction-pair DMs / private threads.
+- Large bot ecosystem; mature Python libraries (`discord.py`, `hikari`).
+- No partner dependency — we can prototype and test entirely on a private server.
+- Bots can DM each other (unlike Telegram), so faction-to-faction private
+  channels work natively.
+
+**Pre-conditions before building:**
+
+- Operator commits to Discord as either primary or hedge target.
+- Game moderator agrees to host the game in a Discord server (or operator
+  controls a server for testing).
+
+**Effort estimate if greenlit:**
+
+- `DiscordTransport` similar shape to `TelegramBotTransport`. Choose `discord.py`
+  (most popular, well-maintained) or `hikari` (modern, type-hinted, more
+  performant). Both have stable enough APIs that the choice is taste.
+- ~2-3 day build for a transport equivalent in capability to
+  `TelegramBotTransport`.
+- Phase 22 Pipeline/Flow split means it's additive — new Transport
+  implementation, no orchestrator/pipeline changes.
+
+### Fallback patterns if both Clankmates and Discord stall
+
+- **CLI transport for testing** — already exists (`CLITransport`); good for
+  solo demos but no multi-party negotiation.
+- **Bring-your-own-server** — Telegram with non-bot accounts (Telethon) on a
+  private group. Sidesteps the bot-to-bot restriction.
+- **Matrix.org bridge** — federated, self-hostable, supports bots without
+  group restrictions. More setup overhead than Discord.
+
+### TODOs (gated on platform decision)
+
+- [ ] Operator alignment with partners on platform choice (or decision to
+      hedge across both).
+- [ ] If Clankmates greenlit: docs/API discovery → build `ClankmatesTransport`
+      against the real API. If undocumented at the time: build
+      `ClankmatesMockTransport` against `for-clankers.md` expectations + thin
+      adapter for swap-in later.
+- [ ] If Discord greenlit: API survey → library choice (`discord.py` vs
+      `hikari`) → build `DiscordTransport`. Set up a test Discord server with
+      a public channel + faction threads.
+- [ ] Either way: `HybridFlow` combining game-platform transport with
+      Telegram for operator coaching + review gate (already in PROJECT.md as
+      design intent). With Phase 22, this lands as a new `Flow` driving one
+      `Pipeline` per agent with two transports — additive, not a fork.
 
 ---
 
@@ -393,9 +576,23 @@ decrease in promise/coalition tracking accuracy.
 `gemini-2.5-flash` or `pro` for stronger reasoning while Extraction /
 Analyst / Adversarial stay on `flash-lite`? Same question applies cross-provider.
 
+**Update 2026-06-01 (Run 10):** A new dimension has emerged that wasn't in the
+original framing — *cross-round consistency*. Run 10 B' showed Anthropic
+claude-haiku-4-5 honoring an R3 contingent commitment that OpenAI gpt-4.1-mini
+defected from in Run 9 α-squeezed (and again in Run 10 C' on a different
+faction). For multi-round negotiations, the per-slot decision now has two axes:
+(a) **per-round quality** — fluency, schema discipline, reasoning depth — and
+(b) **across-round consistency** — does the model honor its own prior
+commitments when the contingency is met? Run 10 suggests consistency is at
+least as important as quality for Generator seats on multi-round games.
+
+The §7 experimental program should now factor consistency as a primary axis,
+not just cost-vs-quality. See §1.7 / §1.8 for the cross-scenario tests that
+would generalize the Run 10 finding.
+
 **Why not now:** Best done after pricing audit (§6) so cost savings can be
-quantified precisely. Natural slot: between Run 9 (rotation control) and
-Run 10 (pressure scenarios).
+quantified precisely. Cross-provider consistency tests (§1.7.a all-Anthropic
+baseline, §1.8 cross-scenario) are higher-leverage and cheaper to run first.
 
 ---
 
@@ -472,24 +669,53 @@ the primary backlog is empty.
 
 ## Backlog — still-open items
 
-### Why no agent proposed the Pareto-optimal Shared deal (Run 8)
+### Surplus distribution favors the un-pressured neutral-on-bottleneck faction
 
-Run 8's Pareto-optimal solution was **High + Shared + Joint-Funded** →
-alpha=14, beta=20, gamma=22 (all beat BATNA comfortably: alpha 11, beta 8,
-gamma 10). No agent proposed it. Everyone stayed at extremes on Payment.
+In both deal-reaching runs to date — Run 9 β-squeezed (deltas [+6, +3, +11])
+and Run 10 B' (deltas [0, +10, +11]) — gamma extracted 52-55% of negotiated
+surplus. Both times gamma was the faction with neutral position on the
+bottleneck issue (Payment) and a moderate (un-squeezed) BATNA. Whether this
+is a Water-Rights-specific characteristic or a general property of asymmetric
+3-party negotiations is open.
 
-- [ ] **Investigate why no agent found the Shared compromise.** Hypotheses:
-  - Is the "don't accept the first reasonable framework" persona rule
-    over-anchoring agents to extreme positions?
-  - Does the analyst surface Pareto-optimal compromises explicitly, or only
-    threats/leverage? If not, add it (see §2 Pareto-frontier annotation).
-  - Would adding a *Pareto-seeker* strategy (§2.5) in even one faction
-    surface the optimum?
-  - Is the LLM capable of enumerating "all 27 outcomes, score each" in-context
-    when asked, or does it need explicit scratchpad / tool support?
+- [ ] **Investigate surplus-distribution asymmetry.** Likely game-theoretic
+      explanation: the neutral-on-bottleneck faction has credible "I'll go
+      either way" leverage so extracts more in any deal that closes. If
+      generally true, it's a scenario-design lever: route the faction you want
+      to favor toward a neutral position on the bottleneck issue. Confirm via
+      §1.7.a all-Anthropic baseline (does gamma still take 52-55% across BATNA
+      variants?) and via Three-Party Coalition / Trade Summit scoring data.
+- [ ] **Cross-scenario surplus-distribution data.** Currently 2-of-2 in Water
+      Rights. Need at least one Pareto-reaching deal in Three-Party Coalition
+      or Trade Summit to test generality.
+
+### Why no agent proposed the Pareto-optimal deal (Run 8) — partially answered
+
+Run 8's Pareto-optimal deals were on the Heavy-Downstream frontier (sum=54,
+alpha=16/beta=18/gamma=20) and the Shared frontier (sum=51,
+alpha=13/beta=17/gamma=21). No agent proposed either; everyone stayed at
+extremes on Payment.
+
+Runs 9-10 partially closed this:
+- **Asymmetric BATNA squeeze on the right faction (β-squeezed)** produced the
+  Heavy-Downstream Pareto deal in Run 9 — the "don't accept the first
+  reasonable framework" persona rule is not the binding constraint when the
+  squeezed faction can't afford to defect to BATNA.
+- **Provider consistency on Anthropic (Run 10 B')** produced the same Pareto
+  deal under unfavorable BATNAs — the OpenAI gpt-4.1-mini R3→R4 defection
+  pattern was breaking commitment-following, not the persona rule.
+
+Still open as a controlled A/B (lower priority post-Runs 9-10):
+
 - [ ] **A/B test softened "don't accept first framework" rule.** Variant A:
       current persona. Variant B: "actively look for compromises that beat all
       BATNAs; propose at least one Pareto-improving alternative per round."
+      Run on the symmetric (un-squeezed) configuration to isolate the persona
+      variable. ~$0.60.
+- [ ] **Pareto-frontier annotation in analyst output** (carried to §2 TODOs).
+      Adds a "compromise opportunities" field that enumerates BATNA-clearing
+      deals. May reduce the persona-rule load by surfacing the answer in the
+      intelligence report.
 
 ### Reconciliation: live validation in real scenarios
 
@@ -498,25 +724,27 @@ fulfillment, inconsistency, missed-proposal). Status-transition (`pending →
 kept/broken`) and inconsistency-flagging still need **live** validation in
 a real self-play scenario, not just deterministic fixtures.
 
-- [ ] **Status transitions live** — needs a scenario where at least one promise
-      resolves mid-game (e.g. a one-shot favor in early rounds that the
-      receiving faction acknowledges), OR a faction makes an explicit
-      commitment and then visibly contradicts it. A staged scenario from §2
-      (divorce) is the natural venue.
-- [ ] **Inconsistency detection live — zero hits across 8 runs to date** despite
-      obvious position shifts. Reconciler reads them as legitimate moves.
-      Possible fixes:
-  - Strengthen reconciler prompt to flag position shifts on *specific
-    quantitative claims* (number changes, named-outcome changes) rather than
-    generic "position evolution"
-  - Add a specific scenario designed to provoke a clean contradiction
-  - Consider whether the reconciler needs round-by-round position tracking
-    in its prompt rather than just the final state
+- [ ] **Status transitions live** — Run 10 B' reached a Pareto deal with
+      reconciler logs showing position shifts (e.g. "Merged beta's promises on
+      volume, payment, and infrastructure into beta-alpha-volume-payment-…").
+      Worth inspecting whether any `pending → kept` transitions fired when the
+      R4 deal closed. If not, the reconciler still doesn't detect fulfillment.
+- [ ] **Inconsistency detection on Run 9 α-squeezed / Run 10 C' defections** —
+      both are clean R3→R4 contradictions (beta R3 "Heavy-Downstream" → R4
+      "Shared"; gamma R3 "Heavy-Downstream" → R4 "Shared"). Reconciler likely
+      did not flag these. Worth a focused look at those run logs; if zero
+      flags despite obvious contradictions, the reconciler prompt needs the
+      strengthening called out in earlier sweeps (round-by-round position
+      tracking, specific quantitative-claim watching).
+- [ ] **Status transitions live (older)** — needs a scenario where at least one
+      promise resolves mid-game (one-shot favor in early rounds that the
+      receiving faction acknowledges). A staged scenario from §2 (divorce)
+      is the natural venue if Run 10 inspection above doesn't suffice.
 
 ### Outstanding tooling debt (🔨 PURE BUILD)
 
-- [x] ~~**Rewrite `tools/service.sh` around `tmux new-window -t bot`**~~ — **Queued as Phase 25 in `DEVPLAN.md`.** Closes the broken-via-incus-exec issue. 7 steps; auto-loop-ready.
-- [x] ~~**Add structured per-event logging** to orchestrator + transport~~ — **Queued as Phase 26 in `DEVPLAN.md`.** Replaces the ad-hoc `print` instrumentation needed during the Phase 19 smoke. 8 steps; auto-loop-ready. Independent of Phase 25.
+None — both prior items (service.sh tmux rewrite, structured per-event
+logging) shipped as Phases 25 and 26. See Appendix A.
 
 ### Telegram-platform finding (worth knowing)
 
@@ -542,14 +770,16 @@ not Telegram.
 ## Carry-Forward Items (from DEVPLAN + TUNING_LOG)
 
 Tracked here for visibility; canonical sources remain authoritative.
+Closed items have been moved to **Appendix A**.
 
-- [ ] **Run 9 — rotated provider assignments** (Water Rights, control for
-      position confound). See `TUNING_LOG.md` Run 8 → Run 9 transition. Use
-      `gemini-2.5-flash-lite` for Google per `TUNING.md` §1 default.
-- [ ] **Persona payment rigidity** — recurring across Runs 7, 8. See
-      TUNING_LOG. A/B test the persona rule.
-- [ ] **Scoring rule strictness** — partial-deal scoring mode for cases
-      where most issues converge but one deadlocks.
+- [ ] **Run 11 candidate — all-Anthropic baseline across 3 BATNA variants**
+      (§1.7.a). Generalizes Run 10 B'. ~$3-4 spend.
+- [ ] **Run 11 alternate / Run 12 — OpenAI defection cross-scenario test**
+      (§1.8). Cheap (~$0.30). Tells us whether the gpt-4.1-mini R3→R4
+      defection is Water-Rights-specific or general.
+- [ ] **Persona payment rigidity** — recurring across Runs 7-10. Run 9
+      post-mortem partially deflated this: under squeeze, the rule isn't
+      binding. Still worth an A/B in a future run (Tier 3 `[B]`).
 - [ ] **Persona drift over 8+ rounds** — all runs were 4 rounds; longer
       games may show drift.
 - [ ] **Provider-native structured output** — OpenAI `response_format:
@@ -558,6 +788,76 @@ Tracked here for visibility; canonical sources remain authoritative.
 - [ ] **Persona endgame over-anchoring (Run 7)** — static `ENDGAME:`
       paragraph leaks into early rounds. Decide whether to soften, move to
       dynamic-only, or accept.
+
+---
+
+## Appendix A — Closed since 2026-05-30
+
+Audit trail. Canonical detail in `DEVLOG.md` / `DEVLOG_archive.md` under the
+corresponding phase or Phase 19 ad-hoc entries, and `TUNING_LOG.md` /
+`TUNING_LOG_archive.md` for runs.
+
+### Build phases (20-27)
+
+| Item | Where | Status |
+|---|---|---|
+| Layer 3 integration tests for Phase 18 paths | Phase 20 | ✓ Closed 2026-05-31 |
+| Reconciler dedup / fulfillment / inconsistency / missed-proposal (fake-LLM coverage) | Phase 20 | ✓ Closed 2026-05-31 |
+| Module boundary cleanup — orchestration (public `advance_to_round`, `OrchestrationOptions`, `StubAnalyst` registry leak, logged reconciler exceptions) | Phase 21 | ✓ Closed 2026-05-31 |
+| Module boundary cleanup — LLM adapter + config dedup (`_TaggedLLMClient` deleted, `attribution`/`purpose` kwargs threaded, `build_reconciler` + `subsystem_llm_config` factories, `DryRunLLMClient` `purpose`-kwarg classification) | Phase 21 | ✓ Closed 2026-05-31 |
+| Pipeline / Flow split (`Pipeline`, `EventDrivenFlow`, `RoundSteppedFlow`; `Orchestrator` as compat factory; `ARCH_flow.md`) | Phase 22 | ✓ Closed 2026-05-31 |
+| ASSESSMENT §3.2 Pareto efficiency scorer | Phase 23 | ✓ Closed 2026-05-31 |
+| ASSESSMENT §3.4 process signatures (4 deterministic: broken-promise rate, coalition stability, time-to-deal, opening gap) | Phase 23 | ✓ Closed 2026-05-31 |
+| Toolkit `OpenAIProvider.call` `max_completion_tokens` dispatch + unit tests + ARCH_llm_client + API.md | Phase 24.1 + operator-direct | ✓ Closed 2026-05-31 |
+| Per-faction asymmetric `--batna-fractions` JSON flag | Phase 24.2 | ✓ Closed 2026-05-31 |
+| `--force-batna-fraction` post-clamp option | Phase 24.3 | ✓ Closed 2026-05-31 |
+| `--game-mode` runtime override flag | Phase 24.4 | ✓ Closed 2026-05-31 |
+| Level 1 modularization — extraction examples → `config/examples/extraction_examples.json` | Phase 24.5 | ✓ Closed 2026-05-31 |
+| Level 1 modularization — reconciliation + analysis derive entity types from `state_patch.json` schema | Phase 24.6 | ✓ Closed 2026-05-31 |
+| Phase 24 doc updates (CLI_REFERENCE, TUNING, diplomat-testing-doc, ARCH_extraction, ARCH_reconciliation) | Phase 24.7 + operator-direct | ✓ Closed 2026-06-01 |
+| `tools/service.sh` rewrite around `tmux new-window` | Phase 25 | ✓ Closed 2026-06-01 |
+| Structured per-event logging in orchestrator + transport (`diplomat.*` namespace, `DIPLOMAT_LOG_LEVEL`, caplog tests) | Phase 26 | ✓ Closed 2026-06-01 |
+| No-deal-aware scoring metrics (`negotiated_surplus_share`, `delta_above_batna_sum`, `min_faction_delta`, `surplus_distribution_stdev`, `faction_deltas`) + `tools/backfill_scoring_metrics.py` | Phase 27 | ✓ Closed 2026-06-01 |
+
+### Phase 19 ad-hoc (toolkit + tooling)
+
+| Item | Where | Status |
+|---|---|---|
+| Toolkit `complete_with_retry` (exponential backoff on 429/5xx/empty) | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
+| Toolkit `normalize_model_name` + refreshed pricing (closed ~41× cost-ledger overestimate) | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
+| Scenario compiler BATNA fraction-of-max formula + `--batna-fraction` CLI + `validate_batna_pressure()` | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
+| LoggingLLMClient SCORE/RECON visibility | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
+| Production reconciler wired in `src/main.py` (`_attach_reconciler`) | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
+| Optional `game.total_rounds` in `pipeline.yaml` | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
+| `tools/inspect_ledger.py` rewritten with CLI args | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
+| `CLI_REFERENCE.md` + `SMOKE_RUNBOOK.md` created | Phase 19 ad-hoc | ✓ Closed 2026-05-30 |
+| `ASSESSMENT.md` created (skill framework + scoring lenses + workstream blocks) | Phase 19 ad-hoc | ✓ Closed 2026-05-31 |
+| Live Telegram re-smoke (for coaching scope only — game-traffic is not a Telegram concern) | Phase 19 ad-hoc | ✓ Closed 2026-05-31 |
+| WORKER_SPEC loop-discipline hardening (single-call contract, no self-judge budget) | Phase 19 ad-hoc | ✓ Closed 2026-05-31 |
+
+### Experiments (TUNING_LOG)
+
+| Item | Where | Status |
+|---|---|---|
+| Run 9 — Asymmetric BATNA pressure (Water Rights, 3 variants: symmetric / α-squeezed / β-squeezed). β-squeezed reached Pareto deal. `negotiated_surplus_share=1.05`. | TUNING_LOG Phase 8 | ✓ Closed 2026-06-01 |
+| Run 10 — Asymmetric BATNA refinements (B' = α-squeezed + Anthropic on beta; C' = α+β dual-squeeze, all OpenAI). B' reached Pareto deal; C' did not. Confirmed OpenAI gpt-4.1-mini R3→R4 defection is provider-specific (2-of-2 instances). | TUNING_LOG Phase 9 | ✓ Closed 2026-06-01 |
+
+### Re-scoped / rejected
+
+| Item | Decision | Status |
+|---|---|---|
+| **Run 9 carry-forward** (original "rotated provider assignments") | Replanned 2026-06-01 to asymmetric BATNA pressure; partially absorbed into Run 10 B'. Full all-Anthropic rotation control still open as §1.7. | ✓ Closed (replanned) |
+| **Partial-consensus scoring** (recurring Run 7/8/9 open item) | Rejected 2026-06-01. Operator: "no agreement = no agreement, doesn't matter if missed by an inch or a mile." Replaced by near-miss diagnostic in §1.9. | ✓ Closed (won't do) |
+| **No-deal `pareto_efficiency` BATNA-height confound** | Closed by Phase 27. Metric `negotiated_surplus_share` reads 0.000 at floor regardless of BATNA height. | ✓ Closed (Phase 27) |
+| **Scoring rule strictness — partial-deal scoring mode** | Closed 2026-06-01 alongside partial-consensus rejection. Replaced by near-miss diagnostic in §1.9. | ✓ Closed (won't do) |
+| **Original Run 9 provider-rotation scope (residual)** | Run 10 B' addressed α-squeezed configuration with mixed providers. Full all-Anthropic rotation control re-opened as §1.7.a (Run 11 candidate). | ✓ Closed (re-tracked in §1.7) |
+
+### Outstanding tooling debt (closed)
+
+| Item | Where | Status |
+|---|---|---|
+| Rewrite `tools/service.sh` around `tmux new-window -t bot` | Phase 25 | ✓ Closed 2026-06-01 |
+| Add structured per-event logging to orchestrator + transport | Phase 26 | ✓ Closed 2026-06-01 |
 
 ---
 
@@ -580,3 +880,6 @@ Tracked here for visibility; canonical sources remain authoritative.
 | 2026-06-01 | **Big cleanup pass.** All Phases 20–24 items collapsed to a single "Closed since 2026-05-30" table at top. Removed §1.5 / §1.7 / §1.8 / §1.9 detail sections (done; details in DEVLOG_archive Phase 20–22 entries). Removed Backlog → Tooling debt RESOLVED items and Open BATNA follow-ups (all done in Phase 24). Removed Live TG re-smoke CLOSED detail block (audit lives in DEVLOG_archive). Promoted `service.sh` rewrite + structured per-event logging from CLOSED tooling-debt narrative into a fresh "Outstanding tooling debt (🔨 PURE BUILD; not in any phase yet)" subsection so they're not lost. Carry-forward list trimmed to actually-still-open items. File shrunk 770 → ~470 lines. | Operator: "please review the closed items and clean up NEXT_STEPS with the items we just completed" |
 | 2026-06-01 | `tools/service.sh` rewrite around tmux **queued as Phase 25 in `DEVPLAN.md`** (7 steps; auto-loop-ready). Outstanding tooling debt subsection trimmed accordingly; pure-build extensions table updated (per-event logging is now the only candidate alongside §1.6 / §3 / §3.3); classification row for service.sh now points at Phase 25. | Operator: "please write up the service.sh rewrite into devplan as next phase" |
 | 2026-06-01 | Structured per-event logging **queued as Phase 26 in `DEVPLAN.md`** (8 steps; auto-loop-ready; independent of Phase 25). Classification row updated to point at Phase 26. Outstanding tooling debt subsection now shows both items closed-out into phases. Pure-build extensions table dropped the per-event-logging row (no longer a candidate — it's queued). | Operator: "can you line up Structured per-event logging in orchestrator + transport as the following phase into devplan as well?" |
+| 2026-06-01 | **Phase 25 / 26 / 27 closed** (service.sh tmux rewrite, structured per-event logging, no-deal-aware scoring metrics). Added to Closed-since table. | Phases shipped. |
+| 2026-06-01 | **Runs 9 + 10 closed.** Run 9 (3 asymmetric BATNA variants, single-provider): β-squeezed reached Pareto deal, others no-deal. Run 10 B' (α-squeezed + Anthropic on β): reached Pareto deal — same configuration that produced no-deal in Run 9 α-squeezed (all OpenAI). Run 10 C' (α+β dual-squeeze, all OpenAI): no-deal, γ defected R3→R4. **Provider consistency confirmed as dominant variable.** Added §1.7 / §1.8 / §1.9; updated §7 with consistency-as-axis note; carry-forward + backlog updated; loop-readiness table refreshed. | Operator: "Sync Run 10 findings into NEXT_STEPS.md (Open Items + provider consistency discovery)" |
+| 2026-06-02 | **Tier-priority restructure.** Replaced "Suggested Sequencing" with "Open items by workstream tier" (A/X foundational → C game-design → B prompt-tuning) per operator: "these are tiers that support the next one so we should move in that sequence." Updated §1.6 (drop stale "Run 9" planning), §5 (expanded with Discord + fallback platforms — Clankmates blocked on partners, Discord as hedge). Backlog "Why no Pareto-optimal Shared deal (Run 8)" → marked partially answered by Runs 9-10. Closed items moved to Appendix A (organized: Build phases / Phase 19 ad-hoc / Experiments / Re-scoped / Tooling debt). Carry-forward + tooling-debt sections trimmed of closed items. Header dropped "post-Phase 24" framing; date bumped to 2026-06-02. | Operator: "review next_steps.md: check if there are stale/obsolete items and update; closed items should probably be moved to appendix... discuss open items in terms of workstream blocks... it's unclear if clankmates are happening, maybe we should also look into discord" |

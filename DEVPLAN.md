@@ -178,7 +178,7 @@ from the diagnostic.
 
 ### Step 28.6: Doc updates
 
-- [ ] Update `CLI_REFERENCE.md` to add a `tests.self_play.coached_game`
+- [x] Update `CLI_REFERENCE.md` to add a `tests.self_play.coached_game`
       entry under the Self-play section, with flags + Telegram env-var
       requirements + the dry-run path. Update `SMOKE_RUNBOOK.md` or
       `diplomat-testing-doc.md` §5b with the coached-game smoke procedure
