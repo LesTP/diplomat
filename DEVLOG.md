@@ -454,6 +454,18 @@ Notes: Step 27.2 can extend the existing helper in place; no scorer prompt or pa
 
 Tests: Not run; analysis-only step per checklist.
 
+## 2026-06-02 — Phase 28 Step 28.2
+
+Mode: Build
+Outcome: Added `tests/self_play/coached_game.py`, a coached self-play CLI that reuses the existing self-play scenario/persona/LLM helpers from `tests.self_play.run_simulation` and specializes one faction through per-instance module overrides. The coached faction now runs behind a hybrid `CoachedGameTransport` that keeps the local self-play injection path intact while mirroring outbound sends through `TelegramBotTransport` in live mode. The coached faction's review gate is `TelegramReviewGate` in live mode and `DryRunTelegramReviewGate` under `--dry-run`.
+
+Implementation notes:
+- The new runner accepts `--coach-faction` and the standard self-play flags, including scenario compilation and precompiled-analysis mode.
+- Live mode fails fast if the Telegram bot token or coaching channel/operator env vars are missing.
+- The shared self-play suite still passes after the new file landed.
+
+Tests: `.venv/bin/python -m pytest tests/test_self_play.py` — 43 passed.
+
 ### Step 27.2: Add baseline-normalized scoring fields
 
 Mode: Build

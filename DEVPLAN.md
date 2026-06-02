@@ -2,7 +2,7 @@
 phase: 28
 blocked: false
 state: execute
-steps_remaining: 6
+steps_remaining: 5
 ---
 
 # Diplomat — Development Plan
@@ -120,7 +120,7 @@ from the diagnostic.
 
 ### Step 28.2: Build coached_game.py
 
-- [ ] Add `tests/self_play/coached_game.py` with a `main()` that reuses
+- [x] Add `tests/self_play/coached_game.py` with a `main()` that reuses
       `run_simulation`'s scenario/persona/LLM-client construction but
       overrides the coached faction's Pipeline so its `review_gate` is
       `TelegramReviewGate` (and its `transport` is the operator
