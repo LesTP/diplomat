@@ -531,3 +531,15 @@ Contract changes: Self-play `scores` payloads now include the six Phase 27 field
 Tests: `.venv/bin/python -m pytest` — 340 passed.
 
 DEVLOG archival: Archived Phase 26 entries to `DEVLOG_archive.md`; Phase 27 entries remain in `DEVLOG.md` for immediate audit.
+
+## 2026-06-02 — Phase 28 Step 28.1
+
+Mode: Execute
+Outcome: Confirmed the coached-game harness can stay layered on top of `tests/self_play/game_environment.py` rather than forking `run_simulation.py`. `run_simulation.py` already centralizes scenario compile/load, cost-accountant wiring, and `GameEnvironment` construction, so the new harness can reuse its scenario/persona/bootstrap flow and swap in a coached review gate at the per-faction config boundary. Also confirmed `TelegramReviewGate` lives in `src/modules/review_gate/__init__.py` and its constructor takes `telegram_client`, `coaching_channel_id`, optional `state_manager`, and optional `timeout_seconds`.
+
+Analysis findings:
+- The coached-game path is best implemented as a wrapper around `GameEnvironment` setup, not a fork of the self-play runner.
+- Per-faction review-gate customization belongs in the generated pipeline config or module overrides, since `GameEnvironment._generate_faction_config()` is already the single place where review gates are declared.
+- `tests/self_play/analysis.py` has a clean insertion point for the near-miss block immediately after `NO-DEAL-AWARE SCORING` and before `PROCESS SIGNATURES`.
+
+Tests: Not run; analysis-only step per checklist.

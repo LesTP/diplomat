@@ -2,7 +2,7 @@
 phase: 28
 blocked: false
 state: execute
-steps_remaining: 0
+steps_remaining: 6
 ---
 
 # Diplomat — Development Plan
@@ -109,7 +109,7 @@ from the diagnostic.
 
 ### Step 28.1: Design + scope confirmation
 
-- [ ] Read `tests/self_play/run_simulation.py` to identify where
+- [x] Read `tests/self_play/run_simulation.py` to identify where
       `GameEnvironment` constructs per-faction Pipelines and where review
       gates are wired. Read `src/modules/review_gate/telegram.py` and the
       `TelegramReviewGate` constructor signature. Confirm the coached-game
