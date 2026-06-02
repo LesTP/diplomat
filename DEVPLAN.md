@@ -165,7 +165,7 @@ from the diagnostic.
 
 ### Step 28.5: Tests for near-miss detector
 
-- [ ] Add focused tests using a synthetic fixture (3 factions, 4 rounds,
+- [x] Add focused tests using a synthetic fixture (3 factions, 4 rounds,
       hand-crafted R4 messages where 2 of 3 agree exactly) confirming
       `near_miss=true` with the correct `dissenting_faction` and the
       expected position-change log. Add four fixture-backed tests using the

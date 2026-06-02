@@ -466,6 +466,17 @@ Implementation notes:
 
 Tests: `.venv/bin/python -m pytest tests/test_self_play.py` — 43 passed.
 
+## 2026-06-02 — Phase 28 Step 28.5
+
+Mode: Build
+Outcome: Added `tests/test_self_play_near_miss.py` with one synthetic 4-round near-miss fixture plus four historical fixture-backed cases from `tests/self_play/results/`. The synthetic case asserts the exact position-change log, while the real Run 9/10 fixtures pin the expected `near_miss` boolean and dissenting faction.
+
+Implementation notes:
+- The near-miss helper now uses token-level outcome matching with a fallback for abbreviated issue phrasing, plus a final-round split heuristic that favors the issue whose dissenting faction was part of the prior-round coalition.
+- The historical fixtures now behave as expected: Run 9 alpha-squeezed and Run 10 C' return `near_miss=true` with beta and gamma as the dissenters, while Run 9 beta-squeezed and Run 10 B' return `false`.
+
+Tests: `.venv/bin/python -m pytest tests/test_self_play_near_miss.py tests/test_self_play.py` — 48 passed.
+
 ## 2026-06-02 — Phase 28 Step 28.3
 
 Mode: Build

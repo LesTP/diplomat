@@ -115,30 +115,89 @@ def compute_near_miss(results: dict[str, Any]) -> dict[str, Any]:
             scenario_analysis,
             _round_response_text(round_responses, final_round_key, faction_id),
         )
-
-    signatures: dict[tuple[str | None, ...], list[str]] = {}
-    for faction_id in factions:
-        signature = tuple(final_positions[faction_id].get(issue["name"]) for issue in issues)
-        signatures.setdefault(signature, []).append(faction_id)
-
-    near_miss = False
-    converging_factions: list[str] = []
-    dissenting_faction: str | None = None
-    for grouped_factions in signatures.values():
-        if len(grouped_factions) == len(factions) - 1 and len(factions) >= 3:
-            near_miss = True
-            converging_factions = grouped_factions
-            dissenting_faction = next(
-                (faction for faction in factions if faction not in grouped_factions),
-                None,
+    previous_round_key = _previous_round_key(round_responses, final_round_key)
+    previous_positions: dict[str, dict[str, str | None]] = {}
+    if previous_round_key is not None:
+        for faction_id in factions:
+            previous_positions[faction_id] = _extract_positions_for_round(
+                scenario_analysis,
+                _round_response_text(round_responses, previous_round_key, faction_id),
             )
-            break
-
     defection_event_log = _build_defection_event_log(
         scenario_analysis,
         round_responses,
         factions,
     )
+
+    near_miss = False
+    converging_factions: list[str] = []
+    dissenting_faction: str | None = None
+    candidate: tuple[int, int, list[str], str] | None = None
+    for issue in issues:
+        issue_name = str(issue["name"])
+        issue_positions = {
+            faction_id: final_positions[faction_id].get(issue_name)
+            for faction_id in factions
+        }
+        if any(position is None for position in issue_positions.values()):
+            continue
+
+        grouped_factions: dict[str | None, list[str]] = {}
+        for faction_id, position in issue_positions.items():
+            grouped_factions.setdefault(position, []).append(faction_id)
+
+        if len(grouped_factions) != 2:
+            continue
+
+        majority_position, majority_factions = max(
+            grouped_factions.items(),
+            key=lambda item: len(item[1]),
+        )
+        if len(majority_factions) != len(factions) - 1:
+            continue
+
+        issue_dissent = next(
+            (faction for faction in factions if faction not in majority_factions),
+            None,
+        )
+        if issue_dissent is None:
+            continue
+
+        if previous_round_key is None:
+            continue
+
+        previous_issue_positions = {
+            faction_id: previous_positions[faction_id].get(issue_name)
+            for faction_id in factions
+        }
+        if any(position is None for position in previous_issue_positions.values()):
+            continue
+
+        previous_grouped: dict[str | None, list[str]] = {}
+        for faction_id, position in previous_issue_positions.items():
+            previous_grouped.setdefault(position, []).append(faction_id)
+        previous_majority_position, previous_majority_factions = max(
+            previous_grouped.items(),
+            key=lambda item: len(item[1]),
+        )
+        if len(previous_majority_factions) < 2:
+            continue
+        if previous_issue_positions[issue_dissent] != previous_majority_position:
+            continue
+
+        current_candidate = (
+            len(previous_majority_factions),
+            next((index for index, known_issue in enumerate(issues) if known_issue is issue), 0),
+            majority_factions,
+            issue_dissent,
+        )
+        if candidate is None or current_candidate > candidate:
+            candidate = current_candidate
+
+    if candidate is not None:
+        near_miss = True
+        converging_factions = candidate[2]
+        dissenting_faction = candidate[3]
 
     return {
         "near_miss": near_miss,
@@ -401,6 +460,45 @@ def _latest_round_key(
     return max(numeric_rounds, key=lambda item: item[0])[1]
 
 
+def _previous_round_key(
+    round_responses: dict[str, Any],
+    final_round_key: str,
+) -> str | None:
+    if not isinstance(round_responses, dict) or not round_responses:
+        return None
+    try:
+        final_round = int(str(final_round_key))
+    except (TypeError, ValueError):
+        return None
+
+    previous_rounds = sorted(
+        {
+            int(str(key))
+            for key in round_responses.keys()
+            if str(key).isdigit() and int(str(key)) < final_round
+        }
+    )
+    if not previous_rounds:
+        return None
+    return str(previous_rounds[-1])
+
+
+def _last_change_round(
+    defection_event_log: list[dict[str, Any]],
+    *,
+    faction_id: str,
+    issue_name: str,
+) -> int | None:
+    rounds = [
+        int(entry["round_to"])
+        for entry in defection_event_log
+        if entry.get("faction") == faction_id and entry.get("issue") == issue_name
+    ]
+    if not rounds:
+        return None
+    return max(rounds)
+
+
 def _round_response_text(
     round_responses: dict[str, Any],
     round_key: str,
@@ -420,13 +518,12 @@ def _extract_positions_for_round(
     response_text: str,
 ) -> dict[str, str | None]:
     positions: dict[str, str | None] = {}
-    lowered = response_text.lower()
     for issue in _scenario_issues(scenario_analysis):
         issue_name = str(issue["name"])
         position = None
         for outcome in issue.get("outcomes", []):
             outcome_text = str(outcome)
-            if outcome_text.lower() in lowered:
+            if _response_matches_outcome(response_text, outcome_text):
                 position = outcome_text
                 break
         positions[issue_name] = position
@@ -488,6 +585,34 @@ def _build_defection_event_log(
 def _is_contingent(response_text: str) -> bool:
     lowered = response_text.lower()
     return any(marker in lowered for marker in _CONTINGENCY_MARKERS)
+
+
+def _response_matches_outcome(response_text: str, outcome_text: str) -> bool:
+    response_tokens = _tokenize(response_text)
+    outcome_tokens = _tokenize(outcome_text)
+    if not response_tokens or not outcome_tokens:
+        return False
+    if _is_subsequence(outcome_tokens, response_tokens):
+        return True
+    return outcome_tokens[0] in response_tokens
+
+
+def _tokenize(text: str) -> list[str]:
+    import re
+
+    return re.findall(r"[a-z0-9]+", text.lower())
+
+
+def _is_subsequence(needle: list[str], haystack: list[str]) -> bool:
+    if len(needle) > len(haystack):
+        return False
+    index = 0
+    for token in haystack:
+        if token == needle[index]:
+            index += 1
+            if index == len(needle):
+                return True
+    return False
 
 
 def _unique_records(records: Any, id_key: str) -> list[dict[str, Any]]:
