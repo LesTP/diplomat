@@ -484,6 +484,13 @@ Outcome: Updated the documentation surface for the coached self-play runner and 
 
 Tests: `.venv/bin/python -m pytest` — 346 passed.
 
+## 2026-06-02 — Phase 28 Review
+
+Mode: Review
+Outcome: Phase 28 review passed. No must-fix items. One should-fix applied: removed dead `accountant = None` assignment from `coached_game.py` dry-run branch (variable never read after the if/else). Architecture conformance: `coached_game.py` uses module_overrides injection as designed in 28.1 plan (D-32). `compute_near_miss` is a pure function on the results dict with no side effects. All decision-rule criteria met: `coached_game.py` exists with dry-run test; `compute_near_miss()` emits all four fields with near-miss and non-near-miss fixture coverage; CLI_REFERENCE.md, SMOKE/testing docs, and NEXT_STEPS.md updated; 346 tests passing (≥340).
+
+Tests: `.venv/bin/python -m pytest` — 346 passed.
+
 ## 2026-06-02 — Phase 28 Step 28.3
 
 Mode: Build

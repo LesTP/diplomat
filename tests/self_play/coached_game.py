@@ -373,7 +373,6 @@ async def _run(args: argparse.Namespace) -> None:
         print("=" * 60)
         print("  DRY RUN MODE — no real LLM calls, no cost")
         print("=" * 60)
-        accountant = None
         llm_client = LoggingLLMClient(DryRunLLMClient())
         cost_accountant = FakeCostAccountant()
         live_telegram = None
