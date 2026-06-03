@@ -2,7 +2,7 @@
 phase: 30
 blocked: false
 state: execute
-steps_remaining: 2
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -100,7 +100,7 @@ Unlocks the "what % of outcome is model vs harness?" experiment matrix.
   Read `config.api_key` from the config and construct `OpenRouterProvider`.
   Update the error message to list `openrouter` as a supported provider.
 
-- [ ] **30.3 Add `OPENROUTER_API_KEY` to diplomat's env loading.**
+- [x] **30.3 Add `OPENROUTER_API_KEY` to diplomat's env loading.**
   Update `_api_key_env_for()` in `tests/self_play/run_simulation.py` to map
   `"openrouter"` → `"OPENROUTER_API_KEY"`. Add to `.env.template`.
 

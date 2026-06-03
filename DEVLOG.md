@@ -204,3 +204,14 @@ Tests:
 
 Contract changes:
 - `../toolkit/src/toolkit/llm_client/providers.py`
+
+### Step 30.3: OpenRouter env template
+
+Mode: Execute
+Outcome: Added `OPENROUTER_API_KEY` to `.env.template` so the self-play/OpenRouter setup advertises the expected credential alongside the existing provider keys. The checked-in self-play code already maps `openrouter` to `OPENROUTER_API_KEY`, so no code-path change was needed in this repo for the env lookup.
+
+Tests:
+- `grep -n "OPENAI_API_KEY\\|ANTHROPIC_API_KEY\\|OPENROUTER_API_KEY" .env.template`
+
+Contract changes:
+- `.env.template`
