@@ -181,3 +181,15 @@ Docs updated during close:
 
 Mode: Build
 Outcome: Planned the OpenRouter provider connector phase. Scope is limited to adding an OpenAI-compatible OpenRouter provider, wiring provider selection and env loading, adding representative pricing entries, validating probe/dry-run compatibility, and updating the affected docs.
+
+## 2026-06-03 — Phase 30 Step 30.1
+
+Mode: Execute
+Outcome: Added `OpenRouterProvider` to `toolkit.llm_client.providers` as a thin OpenAI-SDK wrapper with `base_url="https://openrouter.ai/api/v1"`, always sending `max_tokens`, returning `provider="openrouter"`, and mapping OpenAI-style rate-limit/status/connection errors into the existing toolkit error types. Also exported `OpenRouterProvider` from `toolkit.llm_client.__init__` so the new provider is available from the package surface.
+
+Tests:
+- `/home/claude/workspace/diplomat/.venv/bin/python3 - <<'PY' ...` import sanity check for `toolkit.llm_client.providers.OpenRouterProvider` and the package export
+
+Contract changes:
+- `toolkit/src/toolkit/llm_client/providers.py`
+- `toolkit/src/toolkit/llm_client/__init__.py`

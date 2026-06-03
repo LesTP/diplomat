@@ -1,7 +1,7 @@
 ---
 phase: 30
 blocked: false
-state: plan
+state: execute
 steps_remaining: 7
 ---
 
@@ -87,7 +87,7 @@ Unlocks the "what % of outcome is model vs harness?" experiment matrix.
 
 ### Steps
 
-- [ ] **30.1 Add `OpenRouterProvider` class to `toolkit/llm_client/providers.py`.**
+- [x] **30.1 Add `OpenRouterProvider` class to `toolkit/llm_client/providers.py`.**
   Reuse the OpenAI SDK with `base_url="https://openrouter.ai/api/v1"`. The
   constructor takes `api_key` (OpenRouter key, not OpenAI). The `call()` method
   is identical to `OpenAIProvider.call()` except: (a) response `provider` field
