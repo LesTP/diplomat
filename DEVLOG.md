@@ -215,3 +215,14 @@ Tests:
 
 Contract changes:
 - `.env.template`
+
+### Step 30.4: OpenRouter pricing in cost_accountant
+
+Mode: Execute
+Outcome: Added OpenRouter model pricing entries to `toolkit/cost_accountant/types.py` `DEFAULT_PRICING` dict. Used `provider/model` format matching OpenRouter's naming convention: `deepseek/deepseek-v3` ($0.27/$1.10), `groq/llama-3.3-70b` ($0.59/$0.79), `mistralai/mistral-large` ($2.0/$6.0), `meta-llama/llama-3.3-70b-instruct` and `meta-llama/llama-3.3-70b-instruct:free` ($0.0/$0.0). Unknown OpenRouter models fall through to the existing conservative default (15.0/75.0) in `estimate_cost()`.
+
+Tests:
+- `python3 -m pytest tests/cost_accountant/ -v` — 44 passed
+
+Contract changes:
+- `toolkit/src/toolkit/cost_accountant/types.py` — 5 new pricing entries

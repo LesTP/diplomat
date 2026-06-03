@@ -2,7 +2,7 @@
 phase: 30
 blocked: false
 state: execute
-steps_remaining: 0
+steps_remaining: 7
 ---
 
 # Diplomat — Development Plan
@@ -104,7 +104,7 @@ Unlocks the "what % of outcome is model vs harness?" experiment matrix.
   Update `_api_key_env_for()` in `tests/self_play/run_simulation.py` to map
   `"openrouter"` → `"OPENROUTER_API_KEY"`. Add to `.env.template`.
 
-- [ ] **30.4 Add OpenRouter pricing to `cost_accountant/types.py`.**
+- [x] **30.4 Add OpenRouter pricing to `cost_accountant/types.py`.**
   OpenRouter charges underlying model cost + ~$0 markup on free models,
   varying markup on paid. Add a few representative entries:
   `deepseek/deepseek-v3`, `groq/llama-3.3-70b`, `mistralai/mistral-large`,
