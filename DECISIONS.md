@@ -237,3 +237,10 @@ Priority: Important
 Decision: Phase 29 will add equal-split, BATNA-clearing, and Nash bargaining baseline scorers to the self-play scoring pipeline, plus report rendering, backfill support, and documentation updates, without changing negotiation behavior, scenario compilation, or provider routing.
 Rationale: The new metrics answer "did negotiation outperform naive strategies?" in a way that is comparable across scenarios while keeping the scoring layer purely observational. That preserves the existing runtime contract and keeps the phase inside the current self-play/test surface.
 Revisit if: A later tuning phase needs these baselines to influence prompts or live decision-making rather than remain post-game diagnostics.
+
+D-34: Phase 30 keeps OpenRouter support as a thin OpenAI-compatible adapter
+Date: 2026-06-03 | Status: Open
+Priority: Important
+Decision: Phase 30 will add `OpenRouterProvider` as a thin wrapper around the OpenAI-compatible client, wire `"openrouter"` through provider selection and self-play env loading, add representative OpenRouter pricing entries, and keep the phase scoped to provider plumbing, probe support, and docs.
+Rationale: OpenRouter is a provider concern, not a new runtime behavior. Keeping the phase narrow preserves the existing `toolkit/llm_client` contract, avoids broader refactors, and lets the phase land as a pure build step.
+Revisit if: OpenRouter needs provider-specific behavior beyond OpenAI-compatible request/response handling or a later provider abstraction refactor is warranted.

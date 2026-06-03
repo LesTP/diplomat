@@ -176,3 +176,8 @@ Docs updated during close:
 - `DEVPLAN.md` Phase 29 reduced to a close summary and current status marked complete.
 - `DECISIONS.md` D-33 closed.
 - `ARCHITECTURE.md` testing status refreshed to the 353-test suite snapshot.
+
+## 2026-06-03 — Phase 30 Plan
+
+Mode: Build
+Outcome: Planned the OpenRouter provider connector phase. Scope is limited to adding an OpenAI-compatible OpenRouter provider, wiring provider selection and env loading, adding representative pricing entries, validating probe/dry-run compatibility, and updating the affected docs.

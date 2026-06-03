@@ -1,8 +1,8 @@
 ---
-phase: 29
-blocked: true
-state: close
-steps_remaining: 0
+phase: 30
+blocked: false
+state: plan
+steps_remaining: 7
 ---
 
 # Diplomat — Development Plan
@@ -53,9 +53,9 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 29 complete (vs-Naive baseline scorers). See `DEVLOG.md` "Phase 29 close".
-- **Focus** — Baseline scorers landed; awaiting next dispatch.
-- **Blocked/Broken** — None. Reset from stale review state (iter 81 broken sed + missing checkboxes caused skip-to-review).
+- **Phase** — Phase 30 queued (OpenRouter provider connector). Phase 29 closed.
+- **Focus** — Add OpenRouter as a provider in toolkit/llm_client, enabling access to ~200 models (Groq Llama, DeepSeek, Mistral, etc.) through a single API key. Pure build, no LLM cost.
+- **Blocked/Broken** — None.
 
 <!-- Phase ordering convention:
        - Open / queued phases first, in forward execution order (next-to-do first).
@@ -64,6 +64,83 @@ steps_remaining: 0
          (most recently closed first; same-day closes sorted by phase number descending).
      This puts the active work at the top and the "recent past" right under it,
      with deep history at the bottom. -->
+
+## Phase 30: OpenRouter provider connector
+
+**Goal:** Add OpenRouter as a provider in `toolkit/llm_client` so any model
+accessible through OpenRouter (Groq Llama, DeepSeek, Mistral, free Llama
+variants, etc.) can be used in self-play experiments via a single API key.
+Unlocks the "what % of outcome is model vs harness?" experiment matrix.
+**Work regime:** Build.
+
+**Key infrastructure (read before starting):**
+- `OpenAIProvider` in `toolkit/llm_client/providers.py:167` — OpenRouter uses
+  the OpenAI-compatible API, so the implementation is a thin subclass or
+  parameterization of `OpenAIProvider` with `base_url="https://openrouter.ai/api/v1"`.
+- `create_provider()` in `toolkit/llm_client/providers.py:246` — factory
+  dispatch; add `"openrouter"` branch.
+- `_api_key_env_for()` in `diplomat/tests/self_play/run_simulation.py` — maps
+  provider name → env var name for API key loading.
+- `probe_providers.py` — must support `provider: openrouter` in the JSON map.
+- `toolkit/cost_accountant/types.py` — pricing table; OpenRouter has its own
+  pricing (pass-through of underlying model cost + small markup).
+
+### Steps
+
+- [ ] **30.1 Add `OpenRouterProvider` class to `toolkit/llm_client/providers.py`.**
+  Reuse the OpenAI SDK with `base_url="https://openrouter.ai/api/v1"`. The
+  constructor takes `api_key` (OpenRouter key, not OpenAI). The `call()` method
+  is identical to `OpenAIProvider.call()` except: (a) response `provider` field
+  is `"openrouter"`, (b) skip the reasoning-model `max_completion_tokens`
+  dispatch (OpenRouter handles this internally), (c) always use `max_tokens`.
+  Consider making `OpenRouterProvider` a subclass of `OpenAIProvider` with only
+  `__init__` and `provider` name overridden, or a parameterized factory.
+
+- [ ] **30.2 Add `"openrouter"` branch to `create_provider()` factory.**
+  Read `config.api_key` from the config and construct `OpenRouterProvider`.
+  Update the error message to list `openrouter` as a supported provider.
+
+- [ ] **30.3 Add `OPENROUTER_API_KEY` to diplomat's env loading.**
+  Update `_api_key_env_for()` in `tests/self_play/run_simulation.py` to map
+  `"openrouter"` → `"OPENROUTER_API_KEY"`. Add to `.env.template`.
+
+- [ ] **30.4 Add OpenRouter pricing to `cost_accountant/types.py`.**
+  OpenRouter charges underlying model cost + ~$0 markup on free models,
+  varying markup on paid. Add a few representative entries:
+  `deepseek/deepseek-v3`, `groq/llama-3.3-70b`, `mistralai/mistral-large`,
+  `meta-llama/llama-3.3-70b-instruct` (free). Unknown models should fall
+  through to a conservative default estimate.
+
+- [ ] **30.5 Unit tests for `OpenRouterProvider`.**
+  Add `TestOpenRouterProvider` in toolkit's test suite. Test cases:
+  - Constructor creates client with correct base_url.
+  - `call()` returns `LLMResponse` with `provider="openrouter"`.
+  - Rate limit errors surface as `LLMAPIError` with correct status code.
+  - Empty response raises `LLMResponseError`.
+  Use the same mock pattern as existing `TestOpenAIProvider`.
+
+- [ ] **30.6 Integration: verify probe + dry-run with OpenRouter.**
+  Add a test or doc note confirming that `probe_providers.py` works with:
+  ```json
+  {"alpha":{"provider":"openrouter","model":"meta-llama/llama-3.3-70b-instruct"}}
+  ```
+  Verify `verify_dryrun.py --expect-providers '{"alpha":"openrouter"}'` passes.
+
+- [ ] **30.7 Doc updates.**
+  - `toolkit/ARCH_llm_client.md` / `API.md`: add OpenRouter to supported
+    providers list with usage example.
+  - `diplomat/CLI_REFERENCE.md`: add OpenRouter example to `--per-faction-providers`.
+  - `diplomat/TUNING.md`: add OpenRouter to provider table.
+  - `diplomat/NEXT_STEPS.md`: mark §1.6 OpenRouter as closed.
+  - `diplomat/.env.template`: add `OPENROUTER_API_KEY=`.
+
+### Verification
+
+`python -m pytest toolkit/tests/ -v -k "openrouter"` — all new tests pass.
+Existing toolkit tests still pass.
+`python -m tests.self_play.probe_providers --providers '{"test":{"provider":"openrouter","model":"meta-llama/llama-3.3-70b-instruct"}}'` — PASS (if key is set).
+
+<!-- history -->
 
 ## Phase 29: vs-Naive baseline scorers (equal-split, BATNA-clearing, Nash bargaining) — Complete
 
