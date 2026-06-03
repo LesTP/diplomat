@@ -1,5 +1,5 @@
 # AI Diplomat — Testing and Tuning Guide
-**Version 0.6 | Updated 2026-05-27 — Phase 17 prompt regression infrastructure complete**
+**Version 0.8 | Updated 2026-06-02 — Phase 28 coached self-play + near-miss diagnostic**
 
 ---
 
@@ -17,35 +17,42 @@ The modular architecture in the main spec was partly designed with testability i
 
 | Layer | What it tests | Speed | Cost | When to run | Status |
 |---|---|---|---|---|---|
-| 1 — Unit | Module correctness | Fast | Free | Every commit | **Complete** — 176 tests |
+| 1 — Unit | Module correctness | Fast | Free | Every commit | **Complete** — 25 test files |
 | 2 — Prompt regression | Prompt quality and constraint compliance | Slow | Low | Before prompt changes go live | **Complete** — infrastructure + 6 starter scenarios |
-| 3 — Pipeline integration | Cross-module behavior, failure handling, transcript replay, Phase 18 reconciliation paths | Medium | Free | Before deployments | **Complete** — 23 tests, 290 total |
+| 3 — Pipeline integration | Cross-module behavior, failure handling, transcript replay, Phase 18 reconciliation paths | Medium | Free | Before deployments | **Complete** — 5 test files |
 | — Live smoke test | Real Telegram + real LLM end-to-end | Manual | Low | Before first game | **Complete** |
-| 4 — Multi-agent self-play | Game-level behavior, persona coherence | Slow | Medium-high | Final validation before real game | **In progress** — infrastructure + 37 tests |
+| 4 — Multi-agent self-play | Game-level behavior, persona coherence | Slow | Medium-high | Final validation before real game | **Operational** — 10 simulation runs, ongoing tuning |
+
+**Total: 346 tests passing** (Phase 28).
 
 ### What Already Exists
 
 | Artifact | Location | Notes |
 |---|---|---|
-| 12 unit test files | `tests/test_*.py` | One per module, 176 tests total |
-| Pipeline integration tests | `tests/integration/` | 12 flow/failure tests + 5 transcript replay tests + 6 Phase 18 path tests |
+| 25 unit test files | `tests/test_*.py` | One per module + cross-cutting, 346 tests total |
+| Pipeline integration tests | `tests/integration/` | 5 test files: pipeline flow, failure handling, replay, Phase 18 paths, pipeline fixture |
 | Transcript fixtures | `tests/integration/fixtures/transcripts/` | cooperative_3round.json, betrayal_arc.json |
 | CLITransport | `src/modules/transport/__init__.py` | JSON reader/writer, no inject() |
 | TestTransport | `tests/helpers/test_transport.py` | Queue-backed event injection and output capture |
 | AutoApproveReviewGate | `src/modules/review_gate/__init__.py` | Approves all drafts |
 | RuleBasedExtractor | `src/modules/extraction/__init__.py` | Regex-based promise/coalition/inconsistency detection |
 | Pipeline config | `config/pipeline.yaml` | Production configuration |
+| Smoke pipeline config | `config/pipeline_smoke.yaml` | TelegramReviewGate-backed smoke configuration |
 | Test pipeline config | `config/pipeline_test.yaml` | Fake-backed integration configuration |
-| Fake LLM clients | `tests/test_*.py` (inline), `tests/helpers/factories.py`, `tests/integration/test_phase18_paths.py` | Per-module and integration fakes for dependency injection |
+| Fake LLM clients | `tests/self_play/fake_llm_client.py`, `tests/helpers/factories.py`, `tests/integration/test_phase18_paths.py` | Shared and per-test fakes for dependency injection |
 | Prompt regression runner | `tests/prompt_regression/runner.py` | Scenario loader, structural checks, LLM-as-judge checks, CLI |
 | Prompt regression scenarios | `tests/prompt_regression/scenarios/` | 4 extraction scenarios + 2 generation scenarios |
+| Self-play infrastructure | `tests/self_play/` | GameEnvironment, simulation runner, coached game runner, analysis, scenario compiler, verification tools |
+| Scenario verification | `tests/self_play/verify_scenario_optimum.py`, `verify_dryrun.py` | Pareto frontier enumeration and dry-run plumbing checks |
+| Provider probing | `tests/self_play/probe_providers.py` | Pre-flight API key + model verification (~$0.001) |
 | Structured logging config | `config/pipeline.yaml`, `config/pipeline_smoke.yaml`, `src/logging_config.py` | `logging.level` / `logging.format`, with `DIPLOMAT_LOG_LEVEL` override |
+| Extraction examples | `config/examples/extraction_examples.json` | Few-shot examples for LLM extraction (Phase 24.5) |
 
 ---
 
-## 2. Implementation Changes Required
+## 2. Test Infrastructure Reference
 
-The following changes are needed to support Layers 2–4. None affect production behavior.
+The following test infrastructure supports Layers 2–4. All items are implemented. Code samples below document the design patterns for reference; the actual implementations may differ in minor details.
 
 ### 2.1 TestTransport — Event Injection and Output Capture
 
@@ -154,84 +161,134 @@ Register in `src/registry.py` if loading from `pipeline_test.yaml`, or pass via 
 - `AutoApproveReviewGate` — `src/modules/review_gate/__init__.py`
 - `RuleBasedExtractor` — `src/modules/extraction/__init__.py`
 
-### 2.4 Directory Structure Additions
+### 2.4 Directory Structure
 
 ```
 diplomat/
 ├── src/
 │   ├── adapters.py                    # ToolkitLLMAdapter, DiplomatCostGate
-│   ├── orchestrator.py                # Pipeline wiring
+│   ├── orchestrator.py                # Compat factory → EventDrivenFlow(Pipeline(core))
+│   ├── pipeline.py                    # Pipeline interface (Phase 22)
 │   ├── main.py                        # Production entry point
 │   ├── registry.py                    # Module registry
-│   └── modules/
-│       ├── analyst/
-│       │   ├── __init__.py            # LLMAnalyst
-│       │   └── divergence.py          # compare()
-│       └── ...                        # (existing modules unchanged)
+│   ├── logging_config.py              # diplomat.* structured logging (Phase 26)
+│   ├── flows/
+│   │   ├── event_driven.py            # Production Telegram/CLI flow
+│   │   └── round_stepped.py           # Self-play round-by-round flow
+│   ├── modules/
+│   │   ├── adversarial/               # LLMAdversarialReader
+│   │   ├── analyst/                   # LLMAnalyst + divergence.py
+│   │   ├── coaching/                  # TaggedCoachingParser
+│   │   ├── context_assembler/         # DefaultContextAssembler
+│   │   ├── event_store/               # SQLiteEventStore
+│   │   ├── extraction/                # LLM + RuleBasedExtractor
+│   │   ├── generation/                # LLMGenerator
+│   │   ├── persona/                   # FileBasedPersona (hot-reload)
+│   │   ├── reconciliation/            # StateReconciler (Phase 18)
+│   │   ├── review_gate/               # Auto/Telegram review gates
+│   │   ├── state_manager/             # SQLiteStateManager
+│   │   ├── transport/                 # CLI/TelegramBot transports
+│   │   └── types.py                   # Shared domain types
+│   └── tools/
+│       └── scenario_compiler.py       # Narrative → scored personas
 ├── tests/
-│   ├── test_*.py                      # existing unit tests (Layer 1)
-│   ├── helpers/                       # ADD: shared test infrastructure
-│   │   ├── __init__.py
+│   ├── conftest.py                    # diplomat.* logger suppression
+│   ├── test_*.py                      # 25 unit test files (Layer 1)
+│   ├── helpers/                       # Shared test infrastructure
 │   │   ├── test_transport.py          # TestTransport
 │   │   ├── stub_analyst.py           # StubAnalyst (via module_overrides)
 │   │   └── factories.py              # InboundEvent/patch factories
-│   ├── integration/                   # ADD: Layer 3
+│   ├── integration/                   # Layer 3
+│   │   ├── conftest.py
 │   │   ├── test_pipeline_flow.py
-│   │   ├── test_intel_routing.py
+│   │   ├── test_pipeline_fixture.py
 │   │   ├── test_failure_handling.py
 │   │   ├── test_replay.py
+│   │   ├── test_phase18_paths.py
 │   │   └── fixtures/
 │   │       ├── intelligence_stub.json
 │   │       ├── test_persona.txt
 │   │       └── transcripts/
-│   ├── prompt_regression/             # ADD: Layer 2
+│   ├── prompt_regression/             # Layer 2
 │   │   ├── runner.py
 │   │   ├── judge.py
+│   │   ├── types.py
 │   │   └── scenarios/
-│   │       ├── extraction/
-│   │       ├── analyst/
-│   │       ├── adversarial/
-│   │       └── generation/
-│   └── self_play/                     # ADD: Layer 4
-│       ├── game_environment.py
-│       ├── run_simulation.py
-│       └── personas/
+│   │       ├── extraction/            # 4 scenarios
+│   │       └── generation/            # 2 scenarios
+│   └── self_play/                     # Layer 4
+│       ├── game_environment.py        # GameEnvironment + LoggingLLMClient
+│       ├── run_simulation.py          # CLI simulation runner
+│       ├── coached_game.py            # Telegram-coached self-play (Phase 28)
+│       ├── analysis.py                # Post-game report + process signatures + near-miss
+│       ├── fake_llm_client.py         # Deterministic LLM for tests
+│       ├── scenario.py                # Legacy scenario definitions
+│       ├── probe_providers.py         # Pre-flight API key verification
+│       ├── verify_dryrun.py           # Dry-run plumbing verification
+│       ├── verify_scenario_optimum.py # Pareto frontier enumeration
+│       ├── personas/                  # Pre-built persona files
+│       ├── scenarios/                 # Scenario .md files + compiled variants
+│       └── results/                   # Run JSON + log output
 ├── config/
-│   ├── pipeline.yaml                  # production config
-│   └── pipeline_test.yaml             # ADD: integration test config
+│   ├── pipeline.yaml                  # Production config
+│   ├── pipeline_smoke.yaml            # Smoke config (TelegramReviewGate)
+│   ├── pipeline_test.yaml             # Integration test config
+│   ├── coaching_routes.yaml           # Tag → routing rules
+│   ├── faction_prompt.txt             # Production persona
+│   ├── diplomat.service               # Systemd unit (non-container hosts)
+│   ├── examples/
+│   │   └── extraction_examples.json   # Few-shot examples (Phase 24.5)
+│   ├── prompts/                       # Module prompt files
+│   │   ├── state_updater.txt
+│   │   ├── analyst.txt
+│   │   ├── generation.txt
+│   │   └── adversarial.txt
+│   └── schemas/                       # JSON schemas for structured output
+│       ├── state_patch.json
+│       ├── intelligence.json
+│       └── adversarial.json
+└── tools/                             # CLI tools + deployment
+    ├── service.sh                     # tmux-backed bot lifecycle (Phase 25)
+    ├── backfill_scoring_metrics.py    # Backfill no-deal-aware metrics (Phase 27)
+    ├── backfill_pareto.py             # Backfill Pareto efficiency
+    ├── recompile_batnas.py            # Recompile BATNAs for existing scenarios
+    ├── inspect_ledger.py              # Cost ledger inspection
+    ├── inspect_dryrun.py              # Dry-run output inspection
+    └── digest_logs.py                 # Log file digestion
 ```
 
 ### 2.5 Test Pipeline Configuration
 
-`config/pipeline_test.yaml` uses the real schema format with test implementations substituted:
+`config/pipeline_test.yaml` uses the real schema format with test implementations substituted. The `llm_providers` use `provider: fake` with fake model names — no real API keys needed. Integration tests override specific modules at fixture level via `module_overrides`.
 
 ```yaml
-faction_id: test_faction
+faction_id: england
 
 database:
-  path: data/test_game.db   # overridden by fixture in integration tests
+  path: data/pipeline_test.db   # overridden by fixture in integration tests
 
 transport:
   type: cli
   class: CLITransport
   public_channel_id_env: DIPLOMAT_PUBLIC_CHANNEL_ID
   coaching_channel_id_env: DIPLOMAT_COACHING_CHANNEL_ID
+  operator_user_ids_env: DIPLOMAT_OPERATOR_USER_IDS
 
 llm_providers:
   primary:
-    provider: openai
+    provider: fake
     models:
-      quality: gpt-4.1
-      default: gpt-4.1
-      commodity: gpt-4.1-mini
-    api_key_env: OPENAI_API_KEY
+      quality: fake-quality
+      default: fake-default
+      commodity: fake-commodity
+    api_key_env: FAKE_OPENAI_API_KEY
   secondary:
-    provider: anthropic
+    provider: fake
     models:
-      quality: claude-3-5-sonnet-latest
-      default: claude-3-5-sonnet-latest
-      commodity: claude-haiku-4-5
-    api_key_env: ANTHROPIC_API_KEY
+      quality: fake-quality
+      default: fake-default
+      commodity: fake-commodity
+    api_key_env: FAKE_ANTHROPIC_API_KEY
 
 modules:
   event_store:
@@ -240,6 +297,7 @@ modules:
     class: SQLiteStateManager
   extractor:
     class: RuleBasedExtractor
+    provider: primary
   coaching_parser:
     class: TaggedCoachingParser
   transport:
@@ -247,17 +305,19 @@ modules:
   persona:
     class: FileBasedPersona
   primary_analyst:
-    class: StubAnalyst          # swap to LLMAnalyst for Layer 2+
+    class: LLMAnalyst              # overridden to StubAnalyst in fixtures
     provider: primary
+    tier: quality
   secondary_analyst:
-    class: StubAnalyst
+    class: LLMAnalyst              # overridden to StubAnalyst in fixtures
     provider: secondary
+    tier: quality
   divergence:
     class: modules.analyst.divergence.compare
   context_assembler:
     class: DefaultContextAssembler
   generator:
-    class: LLMGenerator         # real LLM for Layer 2+
+    class: LLMGenerator
     provider: primary
     tier: quality
     max_tokens: 1024
@@ -274,7 +334,9 @@ cost:
 
 round_detection:
   mode: signal
-  pattern: "\\[ROUND END\\]"
+  pattern: "^\\[ROUND END\\]$"
+
+message_debounce_seconds: 0.01
 
 feature_flags:
   adversarial:
@@ -318,7 +380,7 @@ pipeline fixture event.
 
 Unit tests cover module correctness in isolation. No real API calls. Run on every commit. Complete in under 30 seconds.
 
-**Status:** 165+ tests across 12 test files. All modules covered.
+**Status:** 25 unit test files covering all modules and cross-cutting infrastructure.
 
 | Test file | Module | Tests |
 |---|---|---|
@@ -334,6 +396,19 @@ Unit tests cover module correctness in isolation. No real API calls. Run on ever
 | `tests/test_review_gate.py` | Review Gate | Auto-approve, Telegram workflow, timeout |
 | `tests/test_adversarial.py` | Adversarial | Schema validation, failure handling |
 | `tests/test_orchestrator.py` | Orchestrator | Config, event loop, routing, round management, cost gates |
+| `tests/test_adapters.py` | Adapters | ToolkitLLMAdapter, DiplomatCostGate wiring |
+| `tests/test_reconciliation.py` | Reconciliation | StateReconciler dedup, fulfillment, inconsistency |
+| `tests/test_pipeline.py` | Pipeline | Pipeline interface contract (Phase 22) |
+| `tests/test_flows.py` | Flows | EventDrivenFlow, RoundSteppedFlow (Phase 22) |
+| `tests/test_main.py` | Main | Production entry point wiring |
+| `tests/test_coached_game.py` | Coached Game | Coached self-play harness dry-run + wiring (Phase 28) |
+| `tests/test_self_play.py` | Self-Play | GameEnvironment, scoring, Pareto efficiency |
+| `tests/test_self_play_near_miss.py` | Near-Miss | `compute_near_miss()` diagnostic on Run 9/10 fixtures (Phase 28) |
+| `tests/test_scenario_compiler.py` | Scenario Compiler | Narrative → persona compilation |
+| `tests/test_prompt_regression_runner.py` | PR Runner | Scenario loading, property checking, report formatting |
+| `tests/test_prompt_regression_judge.py` | PR Judge | LLM-as-judge verdict parsing |
+| `tests/test_prompt_regression_types.py` | PR Types | Dataclass contracts for prompt regression |
+| `tests/test_service_sh.py` | Service | `tools/service.sh` tmux lifecycle shell smoke (Phase 25) |
 
 **Run:**
 ```bash
@@ -442,7 +517,7 @@ Build this incrementally. Start with the highest-risk scenarios — constraint v
 - Ambiguous message produces no false positives
 - INTEL correction overrides prior credibility score — starter coverage implemented as inconsistency detection
 
-**Analyst scenarios** (`tests/prompt_regression/scenarios/analyst/`):
+**Analyst scenarios** (`tests/prompt_regression/scenarios/analyst/`) — _not yet built:_
 - Two broken promises lower credibility score
 - Coordinated behavior between two factions raises coalition strength
 - Faction with no recent activity flagged as anomaly
@@ -450,7 +525,7 @@ Build this incrementally. Start with the highest-risk scenarios — constraint v
 - High-value leverage item appears in spend schedule
 - Threat level reflects promise history
 
-**Adversarial scenarios** (`tests/prompt_regression/scenarios/adversarial/`):
+**Adversarial scenarios** (`tests/prompt_regression/scenarios/adversarial/`) — _not yet built:_
 - Vague offer: no explicit commitments extracted
 - Conditional statement: implicit commitment correctly identified
 - Deliberate ambiguity: flagged as such rather than resolved
@@ -1166,18 +1241,22 @@ Run `python src/main.py` on the Pi, then manually test each path:
 
 Self-play runs multiple agent instances against each other in a simulated environment. It validates game-level behavior, persona coherence, extraction quality, and strategic play. See `TUNING_LOG.md` for the full iterative tuning record.
 
-**Status:** Operational. 8 simulation runs completed across 4 scenario types. 37 unit tests.
+**Status:** Operational. 10 simulation runs completed across 4 scenario types (Runs 1–6 archived in `TUNING_LOG_archive.md`, Runs 7–10 in `TUNING_LOG.md`).
 
 ### 6.1 Architecture
 
 | Component | Location | Purpose |
-|-----------|----------|---------|
+|-----------|----------|----------|
 | GameEnvironment | `tests/self_play/game_environment.py` | Orchestrates N agents: config generation, message routing, round lifecycle, results collection, post-game scoring |
 | LoggingLLMClient | `tests/self_play/game_environment.py` | Wraps any LLM client; records every call with full prompts, responses, and timing |
+| FakeLLMClient | `tests/self_play/fake_llm_client.py` | Deterministic LLM client for unit tests (no API calls) |
 | Scenario Compiler | `src/tools/scenario_compiler.py` | Converts narrative scenario descriptions into scored persona files via LLM |
 | Simulation Runner | `tests/self_play/run_simulation.py` | CLI entry point with `--scenario` flag for auto-compiled personas |
-| Coached Game Runner | `tests/self_play/coached_game.py` | Self-play runner that routes one faction through TelegramReviewGate/TelegramBotTransport; `--dry-run` uses a local stand-in |
-| Analysis | `tests/self_play/analysis.py` | Post-game report: promises, coalitions, communication patterns, process signatures, promise cross-reference |
+| Coached Game Runner | `tests/self_play/coached_game.py` | Self-play runner that routes one faction through TelegramReviewGate/TelegramBotTransport; `--dry-run` uses a local stand-in (Phase 28) |
+| Analysis | `tests/self_play/analysis.py` | Post-game report: promises, coalitions, communication patterns, process signatures, near-miss diagnostic, promise cross-reference |
+| Scenario Verifier | `tests/self_play/verify_scenario_optimum.py` | Enumerates all deals, reports Pareto frontier, BATNA-clearing count, logrolling quality |
+| Dry-Run Verifier | `tests/self_play/verify_dryrun.py` | Validates dry-run plumbing (provider routing, DryRunLLMClient classification) |
+| Provider Prober | `tests/self_play/probe_providers.py` | Pre-flight API key + model verification (~$0.001 per probe) |
 | Scenario Library | `Multi-Party Negotiation Scenarios.md` | Catalogue of academic, historical, and game-theoretic negotiation scenarios |
 
 ### 6.2 Running Self-Play
@@ -1226,9 +1305,13 @@ Scenario-backed simulation JSON also includes `pareto_efficiency`,
 `achieved_score_sum`, `max_pareto_sum`, `sum_batnas`, `faction_deltas`,
 `delta_above_batna_sum`, `min_faction_delta`,
 `surplus_distribution_stdev`, `negotiated_surplus_share`,
-`process_signatures`, and `scenario_analysis`. The analysis report
-prints the baseline-normalized scoring fields in a `NO-DEAL-AWARE
-SCORING` section when `results["scores"]` is present. Phase 28 also adds a
+`equal_split_baseline`, `vs_equal_split`,
+`max_possible_per_faction`, `skill_premium_vs_batna`,
+`nash_deal_scores`, `nash_deal_sum`, `nash_product`,
+`vs_nash_efficiency`, `process_signatures`, and `scenario_analysis`.
+The analysis report prints the baseline-normalized scoring fields in a
+`NO-DEAL-AWARE SCORING` section, with a nested `BASELINE COMPARISONS`
+subsection when `results["scores"]` is present. Phase 28 also adds a
 `NEAR-MISS DIAGNOSTIC` section when scenario-backed results are available:
 `near_miss`, `converging_factions`, `dissenting_faction`, and
 `defection_event_log`.
@@ -1256,25 +1339,33 @@ GameEnvironment includes `score_game()` which evaluates the final round's propos
 - Calculates per-faction point scores from agreed outcomes
 - Compares each score to BATNA — above BATNA = WIN, below = LOSE
 - Declares the winner (highest score)
+- Computes `pareto_efficiency`, `negotiated_surplus_share`, and baseline-normalized companion fields (Phase 27)
+- Computes baseline comparisons against equal-split, BATNA-clearing, and Nash-bargaining reference points
 
 ### 6.5 What Self-Play Has Revealed
 
-Key findings from 7 runs across 4 scenario types (see `TUNING_LOG.md` for details):
+Key findings from 10 runs across 4 scenario types (see `TUNING_LOG.md` and `TUNING_LOG_archive.md` for details):
 
 1. **LLMs default to cooperative.** Without explicit competitive instructions, agents converge on reasonable deals too quickly. Point tables + named deception tactics produce dramatically more strategic behavior.
 2. **Extraction definition matters.** "Promise = binding commitment" missed most negotiation language. Broadened to include concrete proposals with specific terms.
 3. **Infrastructure bugs hide behind prompt problems.** The debounce bug (Run 2) looked like extraction failure but was actually a pipeline race condition dropping messages.
 4. **Asymmetric scenarios produce richer behavior.** Generic territory disputes produce vague percentage splits. Specific asymmetric positions (dam/farms/money) or private scoring tables produce concrete, trackable proposals.
 5. **Few-shot examples + retry eliminates schema failures.** Narrative-only prompts failed ~30% of the time. `structured_call` with examples and retry reduced failures to near zero.
+6. **Provider consistency is a first-class variable.** Run 10 showed OpenAI gpt-4.1-mini defects from R3 contingent commitments at R4 (2-of-2 instances); Anthropic claude-haiku-4-5 honored them. BATNA pressure substitutes for native consistency on flaky models.
+7. **BATNA squeeze works asymmetrically.** Run 9 β-squeezed reached the Pareto-optimal deal that symmetric BATNAs missed. Squeeze the faction that holds the bottleneck issue.
 
 ### 6.6 Available Scenarios
 
 | Scenario | File | Type | Factions |
 |----------|------|------|----------|
 | Territory Dispute | `tests/self_play/scenario.py` (legacy) | Cooperative | 3 generic |
-| Water Rights | (replaced by dirty bargaining) | Cooperative | 3 asymmetric |
+| Water Rights | `tests/self_play/scenarios/water_rights.md` | Mixed | 3 asymmetric (alpha/beta/gamma) |
 | Dirty Bargaining | `tests/self_play/scenario.py` (current) | Mixed | 3 with scoring |
 | Three-Party Coalition | `tests/self_play/scenarios/three_party_coalition.md` | Competitive | 3 (Susskind) |
+
+Pre-compiled BATNA variants exist in `tests/self_play/scenarios/` for Water Rights:
+`water_rights_compiled/`, `water_rights_symmetric_050/`, `water_rights_alpha_squeezed/`,
+`water_rights_beta_squeezed/`, `water_rights_dual_squeezed/`.
 
 Additional scenarios available in `Multi-Party Negotiation Scenarios.md` (Harborco, Congress of Vienna, Six-Party Talks, climate COPs, etc.).
 
@@ -1350,17 +1441,20 @@ Recurring patterns in `constraint_enforcement` or `persona_correction` indicate 
 
 | Phase | What to build | Depends on |
 |---|---|---|
-| **Done** | Layer 1 unit tests (176 tests) | — |
+| **Done** | Layer 1 unit tests | — |
 | **Done** | Phase 12: Orchestrator refactor (adapters, State Manager expansion) | — |
 | **Done** | Layer 3 infrastructure: TestTransport, StubAnalyst, pipeline_test.yaml | Phase 12 |
 | **Done** | Layer 3 tests: pipeline flow and failure handling | TestTransport + StubAnalyst |
 | **Done** | Layer 3 transcript replay: 2 fixtures, 5 replay tests | TestTransport + StubAnalyst |
 | **Done** | Layer 3 Phase 18 path coverage: debounce burst, reconciliation dedup/fulfillment/inconsistency/missed proposal | TestTransport + StubAnalyst + fake reconciler LLM |
 | **Done** | Live smoke test: real Telegram bot + real LLM, manual validation | Bot token + API keys + channel IDs |
-| **Done** | Deployment readiness: regression coverage, two-channel Telegram docs, systemd unit, production log cleanup (193 total) | Live smoke fixes |
+| **Done** | Deployment readiness: regression coverage, two-channel Telegram docs, systemd unit, production log cleanup | Live smoke fixes |
 | **Done** | Layer 2 infrastructure: scenario runner, LLM-as-judge | Live API keys for paid scenario execution |
 | **Done** | Layer 2 starter scenarios: 4 extraction + 2 generation | Runner infrastructure |
-| **Done** | Layer 4: GameEnvironment, scenario compiler, post-game scoring, game-mode, 7 simulation runs | All above stable |
+| **Done** | Layer 4: GameEnvironment, scenario compiler, post-game scoring, game-mode | All above stable |
+| **Done** | Phases 20–24: Layer 3 Phase 18 path tests, module boundary cleanup, Pipeline/Flow split, Pareto scoring, asymmetric BATNA flags, Level 1 modularization | Layer 4 stable |
+| **Done** | Phases 25–27: service.sh tmux rewrite, structured per-event logging, no-deal-aware scoring metrics | Phases 20–24 |
+| **Done** | Phase 28: Coached self-play harness (`coached_game.py`) + near-miss diagnostic (`compute_near_miss()`) | Pipeline/Flow split (Phase 22) |
 | **Ongoing** | Add scenarios and tune prompts based on self-play analysis. See `TUNING_LOG.md` | — |
 
 ---
@@ -1403,6 +1497,40 @@ python -m tests.self_play.run_simulation \
   --output tests/self_play/results/run.json
 ```
 
+### Run coached self-play (one Telegram-coached faction)
+
+```bash
+# Dry-run first (no Telegram needed)
+python -m tests.self_play.coached_game \
+  --coach-faction beta --rounds 4 \
+  --scenario tests/self_play/scenarios/water_rights.md \
+  --analysis-json tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json \
+  --factions alpha,beta,gamma --dry-run \
+  --output tests/self_play/results/coached_dry.json
+
+# Live (requires TELEGRAM_BOT_TOKEN + channel IDs)
+python -m tests.self_play.coached_game \
+  --coach-faction beta --rounds 4 \
+  --scenario tests/self_play/scenarios/water_rights.md \
+  --analysis-json tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json \
+  --factions alpha,beta,gamma \
+  --output tests/self_play/results/coached.json
+```
+
+### Verify scenario optimum
+
+```bash
+python -m tests.self_play.verify_scenario_optimum \
+  --analysis tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json
+```
+
+### Probe providers before a live run
+
+```bash
+python -m tests.self_play.probe_providers \
+  --providers '{"alpha":{"provider":"openai","model":"gpt-4.1-mini"},"beta":{"provider":"anthropic","model":"claude-haiku-4-5"}}'
+```
+
 ### Compile a scenario into personas
 
 ```bash
@@ -1416,3 +1544,12 @@ python -m tools.scenario_compiler \
 python -m tests.self_play.analysis \
   --results tests/self_play/results/run.json
 ```
+
+---
+
+## Change History
+
+| Date | What Changed | Why |
+|------|-------------|-----|
+| 2026-05-27 | Version 0.6 — Phase 17 prompt regression infrastructure complete | Initial stable version with Layers 1–4 |
+| 2026-06-02 | Version 0.8 — Phase 28 sync. Updated version header, testing layers table (346 tests), "What Already Exists" inventory, directory structure (added `src/flows/`, `src/pipeline.py`, `src/logging_config.py`, `src/modules/reconciliation/`, `config/examples/`, `tools/`), Layer 1 table (12 → 25 test files), Layer 4 architecture table (added 4 components), run count (8 → 10), scenario table (Water Rights .md + BATNA variants), post-game scoring (Pareto + surplus fields), self-play findings (provider consistency, BATNA squeeze), build order (added Phases 20–28), Quick Reference (coached game runner, verify scenario, probe providers). Reframed §2 header from "Changes Required" to "Reference." | Sync doc with Phases 20–28, Runs 9–10, and actual codebase structure |

@@ -319,6 +319,49 @@ def analyze_results(
         else:
             print("    faction_deltas: n/a")
 
+        print(f"\n    BASELINE COMPARISONS")
+        equal_split_baseline = scores.get("equal_split_baseline")
+        if equal_split_baseline is None:
+            print("      equal_split_baseline: n/a")
+        else:
+            print(f"      equal_split_baseline: {float(equal_split_baseline):.3f}")
+
+        vs_equal_split = scores.get("vs_equal_split", {})
+        if vs_equal_split:
+            print("      vs_equal_split:")
+            for faction_id, delta in sorted(vs_equal_split.items()):
+                print(f"        {faction_id}: {float(delta):+.3f}")
+        else:
+            print("      vs_equal_split: n/a")
+
+        skill_premium_vs_batna = scores.get("skill_premium_vs_batna", {})
+        if skill_premium_vs_batna:
+            print("      skill_premium_vs_batna:")
+            for faction_id, premium in sorted(skill_premium_vs_batna.items()):
+                print(f"        {faction_id}: {float(premium):.3f}")
+        else:
+            print("      skill_premium_vs_batna: n/a")
+
+        nash_deal_sum = scores.get("nash_deal_sum")
+        nash_product = scores.get("nash_product")
+        vs_nash_efficiency = scores.get("vs_nash_efficiency")
+        if nash_deal_sum is None:
+            print("      nash_deal_sum: n/a")
+            print("      nash_product: n/a")
+            print("      vs_nash_efficiency: n/a")
+        else:
+            print(f"      nash_deal_sum: {float(nash_deal_sum):.3f}")
+            print(f"      nash_product: {float(nash_product):.3f}")
+            print(f"      vs_nash_efficiency: {float(vs_nash_efficiency):.3f}")
+
+        nash_deal_scores = scores.get("nash_deal_scores")
+        if nash_deal_scores:
+            print("      nash_deal_scores:")
+            for faction_id, points in sorted(nash_deal_scores.items()):
+                print(f"        {faction_id}: {float(points):.3f}")
+        else:
+            print("      nash_deal_scores: n/a")
+
     near_miss_data = compute_near_miss(results)
     if near_miss_data.get("near_miss") is not None:
         print(f"\n{'-'*60}")

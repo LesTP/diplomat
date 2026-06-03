@@ -1,6 +1,6 @@
 # Diplomat — Next Steps
 
-> Working document. Updated 2026-06-02.
+> Working document. Updated 2026-06-03.
 >
 > Related: `DEVPLAN.md` (canonical phase plan), `TUNING_LOG.md` (run-by-run record),
 > `ARCH_conversation_model.md` (Stage 1/2/3 migration), `RUN_PROTOCOL.md` (pre-flight),
@@ -28,17 +28,17 @@
 > order; the per-section detail (§1.6 through §9) keeps the historical
 > numbering for stable cross-references.
 
-> **State as of 2026-06-02:** Phases 20–27 closed. Runs 9 + 10 closed. Next
+> **State as of 2026-06-02:** Phases 20–28 closed. Runs 9 + 10 closed. Next
 > recommended move: **Coaching test loop on Pi (§4)** — highest-leverage
-> untested product path; only `coached_game.py` (~1 build step) +
-> operator-driven Pi smoke remain.
+> untested product path; Phase 28 built `coached_game.py` + near-miss
+> diagnostic; remaining work is operator-driven Pi smoke + edit-log analysis.
 
 ---
 
 ## Closed since 2026-05-30
 
 Audit trail moved to **Appendix A** at the end of this document — 30+ closed
-items across Phases 19-27 + Runs 9-10 + a handful of rescoped / rejected
+items across Phases 19-28 + Runs 9-10 + a handful of rescoped / rejected
 items. Canonical detail lives in `DEVLOG.md` / `DEVLOG_archive.md` and
 `TUNING_LOG.md` / `TUNING_LOG_archive.md`.
 
@@ -55,8 +55,6 @@ cross-references.
 | Item | Tags | Loop | Where | Notes |
 |---|---|---|---|---|
 | **Coaching test loop on Pi** | `[X]` | 👁 | §4 | Highest-leverage untested product path. Phase 28 built `coached_game.py`; the remaining work is the operator-driven Pi smoke and edit-log analysis. |
-| **Stage 2a (K=2 conversation model)** | `[A]` | 🔀 | §3 | Foundational architecture for per-round events + multi-pass reactivity. Phase 28 candidate (build slice). Unlocks Tier 2 §2 pressure mechanisms. |
-| **Near-miss + defection diagnostics in `analysis.py`** | `[A]` | 🔨 | §1.9 | Phase 28 implemented the pure-build diagnostic. Closes the "what almost happened" gap from Runs 9/10 and now has fixture coverage. |
 | **Game-platform exploration** (Clankmates / Discord / fallback) | `[X]` | 👁 | §5 | Gated on operator + partner platform decision. Updated 2026-06-02 to consider Discord alongside Clankmates. |
 | **Pricing & accounting audit** | `[X][C]` | 👁 | §6 | Best done before Tier 3 §7 so per-role cost claims have a firm baseline. |
 | **OpenRouter integration** | `[X][B]` | 🔀 | §1.6 | Toolkit plumbing. Less urgent post-Run 10 — `--per-faction-providers` already exposes the key cross-provider variable. Slot in on a cheap day. |
@@ -67,12 +65,11 @@ cross-references.
 
 | Item | Tags | Loop | Where | Notes |
 |---|---|---|---|---|
-| **Game pressure beyond BATNA + divorce scenario** | `[C]` | 🔀 | §2 | Run 10 confirmed BATNA is refusal-strengthening; round-cost decay + exogenous events are the missing concession-eliciting mechanisms. Wants Tier 1 §3 (Stage 2a) for the per-round events mechanism. |
+| **Game pressure beyond BATNA + divorce scenario** | `[C]` | 🔀 | §2 | Run 10 confirmed BATNA is refusal-strengthening; round-cost decay + exogenous events are the missing concession-eliciting mechanisms. Works with current Stage 1 round model (extra rounds, not multi-pass). |
 | **Reverse scenario builder** | `[C]` | 🔀 | §8 | Outcome-shape → scenario. Best done after one divorce scenario surfaces the constraint vocabulary. |
 | **Pareto-frontier annotation in analyst output** | `[C][B]` | 🔀 | §2 TODOs | Analyst surfaces threats/leverage; add Pareto-compromise opportunities. Schema + prompt change. |
 | **Surplus-distribution diagnosis** | `[C]` | 👁 | Backlog | Cross-scenario investigation of "why does gamma extract 52-55% of surplus?" Likely game-theoretic; if confirmed, a scenario-design lever. |
 | **Identify-the-blocker tool** | `[C][X]` | 🔀 | (loop-readiness) | Pre-game LLM analyst pass over scoring tables to predict squeeze target. Lower priority post-Run 10 but still a useful scenario-design aid. |
-| **ASSESSMENT §3.3 vs Naive baseline (equal-split scorer)** | `[C]` | 🔨 | (loop-readiness) | Pure build candidate. Slots in alongside existing Pareto/Naive comparison. |
 | **ASSESSMENT §3.4 persuasion-shifts / concession-curve signatures** | `[C]` | 👁 | (loop-readiness) | Needs LLM-judge over transcripts. Higher cost; defer until other Tier 2 items land. |
 | **Reconciliation live validation** | `[C]` | 👁 | Backlog | Status transitions + inconsistency flagging untested in live runs. Run 10 B' and α-squeezed defection are natural inspection targets. |
 
@@ -86,34 +83,34 @@ cross-references.
 | **Persona payment rigidity / drift / endgame over-anchoring** | `[B]` | 👁 | Carry-forward | Recurring across Runs 7-10. Run 10 showed provider consistency matters more than persona rule. A/B in a future run. |
 | **Voice / style templates** (Kissinger, Gen Alpha, etc.) | `[B]` | 👁 | §9 | Genuinely low priority. Slot in when other backlogs are empty. |
 
+### Deferred — `[A]` conversation model evolution
+
+| Item | Tags | Loop | Where | Notes |
+|---|---|---|---|---|
+| **Conversation model evolution** (multi-pass / async) | `[A]` | 👁 | §3 | Stage 2a (K-pass rounds), 2b (convergence detection), 3 (true async). Demoted 2026-06-02: current Stage 1 sealed-bid model produces real negotiation dynamics; pressure mechanisms (§2) work with extra rounds. Pursue when a use case demands within-round reactivity or timing-as-strategy. |
+
 ### Sequencing within Tier 1 (most actionable now)
 
 If working down the tiers, the immediate decision is which Tier 1 item to do first. Recommended order:
 
-1. **Coaching test loop on Pi (§4)** — highest leverage; validates the original product hypothesis. Operator-driven Pi smoke after a small build.
-2. **Near-miss + defection diagnostics (§1.9)** — cheapest, pure build, closes a real diagnostic gap. Could ship alongside Coaching test.
-3. **Stage 2a multi-pass (§3)** — biggest architectural unlock for Tier 2 work. Has a clean build slice (Phase 28 candidate).
-4. **Pricing audit (§6)** — best done before Tier 3 §7 so per-role decisions have a firm cost baseline.
-5. **OpenRouter (§1.6)** — slot in if there's a cheap day; not blocking anything.
-6. **Game-platform exploration (§5)** — gated on operator + partner alignment; explore Discord alongside Clankmates while the partner decision is pending.
+1. **Coaching test loop on Pi (§4)** — highest leverage; validates the original product hypothesis. Build slice done (Phase 28); remaining work is operator-driven Pi smoke + edit-log analysis.
+2. **Pricing audit (§6)** — best done before Tier 3 §7 so per-role decisions have a firm cost baseline.
+3. **OpenRouter (§1.6)** — slot in if there's a cheap day; not blocking anything.
+4. **Game-platform exploration (§5)** — gated on operator + partner alignment; explore Discord alongside Clankmates while the partner decision is pending.
 
 ### Cross-tier dependencies worth knowing
 
-- **Tier 2 §2** (pressure mechanisms) wants **Tier 1 §3** (Stage 2a per-round events) if pressure is partly delivered as exogenous events between passes — building both around the same time locks them in cleanly.
 - **Tier 3 §7** (per-role models) wants **Tier 1 §6** (pricing audit) — cost-quality tradeoffs need accurate cost numbers.
 - **Tier 3 §1.7 + §1.8** (provider consistency tests) are *experimental data feeding into Tier 3 §7* — listed in Tier 3 because the deliverable is a tuning rule, but cheap + operator-driven so they can run independently of other tiers.
 
 ### Pure-build extensions (if extending the autonomous queue)
 
-Items with a clean "build half" suitable for a future Phase 28+:
+Items with a clean "build half" suitable for a future Phase 30+:
 
 | Candidate | Build slice | What stays supervised |
 |---|---|---|
 | §1.6 OpenRouter | Add OpenRouter as a provider in `toolkit/llm_client/providers.py` + factory branch + tests | Run choice; writing TUNING notes about its behavior |
-| §3 Stage 2a | Add `RoundSteppedFlow` configuration for 2-pass rounds (open + react) + `MultiPassMode` plumbing; round-events injection between passes | Stage 2b convergence detection; judging quality of multi-pass transcripts |
 | ASSESSMENT §3.3 vs-Naive baseline (equal-split) | Implement equal-split baseline scorer + add to scoring output alongside Pareto efficiency | Choosing whether equal-split is "the" baseline vs Nash bargaining vs BATNA-clearing |
-| **Coached self-play harness** | Build `tests/self_play/coached_game.py` taking `--coach-faction <name>`. Swap that faction's Pipeline transport+review_gate to TelegramReviewGate; others stay AutoApproveReviewGate. Phase 22 Pipeline/Flow split makes this additive. | Operator-driven Pi smoke + edit-log analysis |
-| **Near-miss + defection diagnostics in `analysis.py`** | Add `near_miss: bool`, `converging_factions: [...]`, `dissenting_faction: ...`, `defection_event_log: [{faction, round, from, to}]`. Read-only on score. Tests on Run 9 α-squeezed and Run 10 C' fixtures. | None — pure diagnostic. |
 | **`tools/identify_blocker.py`** | Read `scenario_analysis.json`; one `structured_call` to an analyst LLM asking "for the Pareto-optimal deal, which faction has to concede most on their priority issue?" Output ranked list of squeeze candidates. | Scenario-design judgment about whether to act on the recommendation. |
 
 ---
@@ -279,7 +276,8 @@ incentive to negotiate.
    Builds urgency without explicit endgame talk.
 2. **Exogenous events per round** — e.g. "Round 3: drought reduces water
    supply 30%" — recomputes BATNAs mid-game and forces position revision.
-   Connects directly to §3 (per-round events injection).
+   Inject as moderator round-update messages between rounds (existing
+   `round_updates` mechanism in `RoundSteppedFlow`).
 3. **Asymmetric clocks** — one faction has a hard deadline (election, market
    close, covenant expiring); others can wait. Creates structural urgency for
    one player only.
@@ -360,38 +358,42 @@ strategy library, A/B test per-faction.
 
 ---
 
-## 3. `[A]` Free conversation + per-round game events
+## 3. `[A]` Conversation model evolution (multi-pass / async)
 
-`ARCH_conversation_model.md` already maps the staged migration. Realistic
-sequencing:
+> **Deprioritized 2026-06-02.** Stage 2a (K=2 open+react) was originally
+> Tier 1 as a prerequisite for §2 pressure mechanisms. On review, pressure
+> mechanisms work fine with extra rounds on the current Stage 1 sealed-bid
+> model — the "pass" vs "round" distinction doesn't produce meaningfully
+> different agent behavior. The full conversation model migration is
+> interesting but not blocking anything. Pursue when a use case demands
+> within-round reactivity or timing-as-strategy.
 
-1. **Stage 2a (K=2 passes per round)** — every agent generates once "open,"
-   sees everyone's open messages, generates once "react." Doubles cost,
-   doubles interaction quality.
-2. **Round events injected between passes** — moderator inserts shocks
-   between open and react. Forces visible adaptation.
+`ARCH_conversation_model.md` maps the staged migration:
+
+1. **Stage 1 (current)** — each faction generates once per round, sealed-bid
+   style. No within-round reactivity. All Runs 1–10 used this model.
+2. **Stage 2a (K-pass rounds)** — every agent generates K times per round
+   with intermediate broadcasts. K=2 = open+react. Doubles cost per round.
+   Functionally similar to running 2× rounds with adjusted endgame markers.
 3. **Stage 2b (K=N until convergence)** — agents keep responding until no
-   new commitments are made or N caps it. Closer to real diplomacy. Needs
-   convergence detection.
-4. **Stage 3 (true async / M2-async)** — agents post when they have
-   something to say. Hardest because turn order and timing matter. Likely
-   never necessary for the diplomacy game; possibly necessary for some
-   real-world domains.
+   new commitments are made or N caps it. First stage with genuinely new
+   behavior — agents stop talking when they have nothing to add.
+4. **Stage 3 (true async)** — agents decide *when* to speak. Silence
+   becomes a strategic signal. Timing matters. Novel research territory.
 
-Per-round events tie back to §2 — they're the *mechanism* for game
-pressure. The scenario compiler should produce both starting conditions and
-evolution from a single narrative spec.
+### When to revisit
 
-### TODOs
+- If Stage 1 runs show agents talking past each other in ways that more
+  rounds can't fix (not seen in Runs 1–10).
+- If a real-game moderator wants within-round reaction dynamics.
+- If async timing-as-strategy becomes a research goal.
 
-- [ ] Implement Stage 2a (`K=2 passes per round`) — open then react. Update
-      `RoundSteppedFlow` to support multi-pass. (Architecture is build —
-      Phase 25 candidate.)
-- [ ] Add round-events injection point between passes; round-events come
-      from scenario data.
-- [ ] Convergence detection for Stage 2b: heuristic (no new commitments for
-      N passes), or LLM-judged ("would another round add value?").
-- [ ] Defer Stage 3 (async) until a real use case demands it.
+### TODOs (deferred)
+
+- [ ] Stage 2a: add `MultiPassMode` to `RoundSteppedFlow`; K configurable.
+- [ ] Stage 2b: convergence detection (no new commitments for N passes, or LLM-judged).
+- [ ] Stage 3: generation schema emits `next_response_delay`; timing as strategy.
+- [ ] Update scenario compiler to produce round-events tables if multi-pass is used.
 
 ---
 
@@ -525,7 +527,7 @@ human, CLI/API for the agent, inbox screening pattern).
 
 **Scope:** Audit `toolkit.cost_accountant` pricing accuracy across all providers
 and models we actually use. Tally observed spend vs predicted spend across
-the Run 1–8 archive to find drift.
+the Run 1–10 archive to find drift.
 
 **Known gaps:**
 - Gemini 2.5 thinking-token billing not modeled (becomes relevant when we promote flash/pro)
@@ -797,7 +799,7 @@ Audit trail. Canonical detail in `DEVLOG.md` / `DEVLOG_archive.md` under the
 corresponding phase or Phase 19 ad-hoc entries, and `TUNING_LOG.md` /
 `TUNING_LOG_archive.md` for runs.
 
-### Build phases (20-27)
+### Build phases (20-28)
 
 | Item | Where | Status |
 |---|---|---|
@@ -818,6 +820,14 @@ corresponding phase or Phase 19 ad-hoc entries, and `TUNING_LOG.md` /
 | `tools/service.sh` rewrite around `tmux new-window` | Phase 25 | ✓ Closed 2026-06-01 |
 | Structured per-event logging in orchestrator + transport (`diplomat.*` namespace, `DIPLOMAT_LOG_LEVEL`, caplog tests) | Phase 26 | ✓ Closed 2026-06-01 |
 | No-deal-aware scoring metrics (`negotiated_surplus_share`, `delta_above_batna_sum`, `min_faction_delta`, `surplus_distribution_stdev`, `faction_deltas`) + `tools/backfill_scoring_metrics.py` | Phase 27 | ✓ Closed 2026-06-01 |
+| Coached self-play harness (`tests/self_play/coached_game.py` with `--coach-faction`, `--dry-run`, `DryRunTelegramReviewGate`, `module_overrides` injection) | Phase 28 | ✓ Closed 2026-06-02 |
+| Near-miss + defection diagnostic (`compute_near_miss()` in `tests/self_play/analysis.py` — `near_miss`, `converging_factions`, `dissenting_faction`, `defection_event_log`) + fixture-backed tests on Run 9/10 scenarios | Phase 28 | ✓ Closed 2026-06-02 |
+
+### Closed backlog items
+
+| Item | Where | Status |
+|---|---|---|
+| ASSESSMENT §3.3 vs Naive baseline (equal-split scorer, BATNA-clearing, Nash bargaining) | Appendix A | ✓ Closed 2026-06-03 |
 
 ### Phase 19 ad-hoc (toolkit + tooling)
 
@@ -883,3 +893,5 @@ corresponding phase or Phase 19 ad-hoc entries, and `TUNING_LOG.md` /
 | 2026-06-01 | **Phase 25 / 26 / 27 closed** (service.sh tmux rewrite, structured per-event logging, no-deal-aware scoring metrics). Added to Closed-since table. | Phases shipped. |
 | 2026-06-01 | **Runs 9 + 10 closed.** Run 9 (3 asymmetric BATNA variants, single-provider): β-squeezed reached Pareto deal, others no-deal. Run 10 B' (α-squeezed + Anthropic on β): reached Pareto deal — same configuration that produced no-deal in Run 9 α-squeezed (all OpenAI). Run 10 C' (α+β dual-squeeze, all OpenAI): no-deal, γ defected R3→R4. **Provider consistency confirmed as dominant variable.** Added §1.7 / §1.8 / §1.9; updated §7 with consistency-as-axis note; carry-forward + backlog updated; loop-readiness table refreshed. | Operator: "Sync Run 10 findings into NEXT_STEPS.md (Open Items + provider consistency discovery)" |
 | 2026-06-02 | **Tier-priority restructure.** Replaced "Suggested Sequencing" with "Open items by workstream tier" (A/X foundational → C game-design → B prompt-tuning) per operator: "these are tiers that support the next one so we should move in that sequence." Updated §1.6 (drop stale "Run 9" planning), §5 (expanded with Discord + fallback platforms — Clankmates blocked on partners, Discord as hedge). Backlog "Why no Pareto-optimal Shared deal (Run 8)" → marked partially answered by Runs 9-10. Closed items moved to Appendix A (organized: Build phases / Phase 19 ad-hoc / Experiments / Re-scoped / Tooling debt). Carry-forward + tooling-debt sections trimmed of closed items. Header dropped "post-Phase 24" framing; date bumped to 2026-06-02. | Operator: "review next_steps.md: check if there are stale/obsolete items and update; closed items should probably be moved to appendix... discuss open items in terms of workstream blocks... it's unclear if clankmates are happening, maybe we should also look into discord" |
+| 2026-06-02 | **Phase 28 cleanup.** State summary updated (Phases 20–28 closed). Near-miss §1.9 marked closed in Tier 1 table (all TODOs done). Coached self-play harness + near-miss rows removed from pure-build extensions table (shipped). Sequencing list trimmed (near-miss removed; coaching test updated to reflect build-done status). Stage 2a → "Phase 29 candidate." §3 TODO removed stale "Phase 25 candidate" note. §6 audit scope updated to Runs 1–10. Appendix A expanded with Phase 28 items. | Sync with Phase 28 completion |
+| 2026-06-02 | **Conversation model deprioritized.** Stage 2a removed from Tier 1 (sealed-bid rounds produce real dynamics; pressure mechanisms work with extra rounds). §3 rewritten as standalone deferred section with deprioritization rationale. §2 pressure mechanisms decoupled from §3 dependency ("Connects directly to §3" → uses existing `round_updates` mechanism). Conversation model moved to new "Deferred" tier below Tier 3. §2 Tier 2 row updated. Cross-tier deps trimmed. Pure-build table dropped Stage 2a row. Sequencing list shortened. | Operator: "unclear how this is different from having twice as many rounds... I don't see the value" |

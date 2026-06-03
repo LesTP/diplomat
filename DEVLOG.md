@@ -131,3 +131,16 @@ Tests: `.venv/bin/python -m pytest` — 346 passed (transient 1-failure rerun co
 
 Mode: Build
 Outcome: Planned the Phase 29 baseline-scorer work. The phase will add equal-split, BATNA-clearing, and Nash bargaining reference points to the self-play scoring pipeline, then wire them into report rendering, backfill support, and documentation. The work is scoped as diagnostic-only and does not alter negotiation behavior or provider routing.
+
+## 2026-06-03 — Phase 29 Step 29.1
+
+Mode: Execute
+Outcome: Added `_compute_baselines()` to `tests/self_play/game_environment.py` and wired it into `score_game()` so self-play scoring now emits equal-split, BATNA-clearing, and Nash bargaining comparisons alongside the existing Pareto metrics. Updated `tests/self_play/analysis.py` to render a `BASELINE COMPARISONS` subsection, extended `tools/backfill_scoring_metrics.py` to backfill the new fields, and added focused baseline/Nash coverage to `tests/test_self_play.py`.
+
+Tests:
+- `python3 -m pytest tests/test_self_play.py -v -k "baseline or nash or equal_split or no_deal_aware_scoring"`
+- `python3 tools/backfill_scoring_metrics.py --results tests/self_play/results/run9_beta_squeezed_live.json --analysis tests/self_play/scenarios/water_rights_beta_squeezed/scenario_analysis.json`
+
+Notes:
+- The BATNA-clearing normalization returns `0.0` when the faction max equals BATNA, matching the existing metric style of avoiding division-by-zero noise.
+- The backfill script now prints the new baseline keys even when historical runs predate Phase 29, which keeps the CLI stable for older JSONs.

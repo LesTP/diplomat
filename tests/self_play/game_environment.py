@@ -623,6 +623,7 @@ class GameEnvironment:
 
         score_data = dict(result.data)
         score_data.update(_pareto_efficiency_metrics(self.scenario_analysis, score_data))
+        score_data.update(_compute_baselines(self.scenario_analysis, score_data))
         return score_data
 
     # ------------------------------------------------------------------
@@ -737,4 +738,80 @@ def _pareto_efficiency_metrics(
         "min_faction_delta": min_faction_delta,
         "surplus_distribution_stdev": surplus_distribution_stdev,
         "negotiated_surplus_share": negotiated_surplus_share,
+    }
+
+
+def _compute_baselines(
+    scenario_analysis: dict[str, Any],
+    score_data: dict[str, Any],
+) -> dict[str, Any]:
+    """Calculate baseline comparisons against equal split, BATNA, and Nash bargaining."""
+    from tests.self_play.verify_scenario_optimum import (
+        beats_batna,
+        enumerate_deals,
+        faction_score,
+        find_pareto_frontier,
+    )
+
+    factions = list(scenario_analysis.get("factions", []))
+    deals = enumerate_deals(scenario_analysis)
+    frontier = find_pareto_frontier(scenario_analysis, deals)
+    max_pareto_sum = max((sum(scores.values()) for _, scores in frontier), default=0.0)
+    equal_split_baseline = max_pareto_sum / len(factions) if factions else 0.0
+
+    faction_scores = score_data.get("faction_scores", {})
+    batnas = scenario_analysis.get("batna", {})
+    achieved_sum = 0.0
+    vs_equal_split: dict[str, float] = {}
+    max_possible_per_faction: dict[str, float] = {}
+    skill_premium_vs_batna: dict[str, float] = {}
+
+    for faction in factions:
+        faction_data = faction_scores.get(faction, {})
+        points = float(faction_data.get("points", 0.0))
+        batna = float(batnas.get(faction, 0.0))
+        achieved_sum += points
+        vs_equal_split[faction] = points - equal_split_baseline
+
+        max_possible = max(
+            (faction_score(scenario_analysis, faction, deal) for deal in deals),
+            default=batna,
+        )
+        max_possible_per_faction[faction] = max_possible
+        denominator = max_possible - batna
+        skill_premium_vs_batna[faction] = (
+            (points - batna) / denominator if denominator > 0 else 0.0
+        )
+
+    nash_deal_scores: dict[str, float] | None = None
+    nash_deal_sum: float | None = None
+    nash_product: float | None = None
+    vs_nash_efficiency: float | None = None
+
+    nash_candidates: list[tuple[dict[str, str], dict[str, float], float]] = []
+    for deal in deals:
+        scores = {faction: faction_score(scenario_analysis, faction, deal) for faction in factions}
+        if beats_batna(scenario_analysis, scores):
+            product = 1.0
+            for faction in factions:
+                product *= scores[faction] - float(batnas.get(faction, 0.0))
+            nash_candidates.append((deal, scores, product))
+
+    if nash_candidates:
+        _, nash_deal_scores, nash_product = max(
+            nash_candidates,
+            key=lambda item: item[2],
+        )
+        nash_deal_sum = sum(nash_deal_scores.values())
+        vs_nash_efficiency = achieved_sum / nash_deal_sum if nash_deal_sum > 0 else 0.0
+
+    return {
+        "equal_split_baseline": equal_split_baseline,
+        "vs_equal_split": vs_equal_split,
+        "max_possible_per_faction": max_possible_per_faction,
+        "skill_premium_vs_batna": skill_premium_vs_batna,
+        "nash_deal_scores": nash_deal_scores,
+        "nash_deal_sum": nash_deal_sum,
+        "nash_product": nash_product,
+        "vs_nash_efficiency": vs_nash_efficiency,
     }

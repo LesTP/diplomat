@@ -1,7 +1,7 @@
 ---
 phase: 29
 blocked: false
-state: plan
+state: execute
 steps_remaining: 7
 ---
 
@@ -53,9 +53,9 @@ steps_remaining: 7
 
 ## Current Status
 
-- **Phase** — Phase 29 active (vs-Naive baseline scorers). Phase 28 closed.
+- **Phase** — Phase 29 active (vs-Naive baseline scorers). Executing.
 - **Focus** — Add three baseline scorers (equal-split, BATNA-clearing, Nash bargaining) to the scoring pipeline. Pure build, no LLM cost.
-- **Blocked/Broken** — None.
+- **Blocked/Broken** — None. Reset from stale review state (iter 81 broken sed + missing checkboxes caused skip-to-review).
 
 <!-- Phase ordering convention:
        - Open / queued phases first, in forward execution order (next-to-do first).
@@ -83,71 +83,71 @@ ASSESSMENT.md §3.3. Pure build — no LLM calls, no experiments.
 
 ### Steps
 
-1. **Add `_compute_baselines()` to `game_environment.py`.**
-   New function alongside `_pareto_efficiency_metrics()`. Same signature:
-   `(scenario_analysis: dict, score_data: dict) -> dict`. Reuses
-   `enumerate_deals()`, `faction_score()`, `beats_batna()` from
-   `verify_scenario_optimum.py` (already importable — same package).
-   Returns a dict with all baseline fields (steps 2–4 below).
+- [x] **29.1 Add `_compute_baselines()` to `game_environment.py`.**
+  New function alongside `_pareto_efficiency_metrics()`. Same signature:
+  `(scenario_analysis: dict, score_data: dict) -> dict`. Reuses
+  `enumerate_deals()`, `faction_score()`, `beats_batna()` from
+  `verify_scenario_optimum.py` (already importable — same package).
+  Returns a dict with all baseline fields (steps 2–4 below).
 
-2. **Equal-split baseline.**
-   `equal_split_baseline = max_pareto_sum / len(factions)` — the score each
-   faction would get if optimal surplus were divided equally. Per-faction:
-   `vs_equal_split[faction] = achieved_score - equal_split_baseline`.
-   Positive = beat fair share, negative = below.
-   Output keys: `equal_split_baseline`, `vs_equal_split: {faction: float}`.
+- [x] **29.2 Equal-split baseline.**
+  `equal_split_baseline = max_pareto_sum / len(factions)` — the score each
+  faction would get if optimal surplus were divided equally. Per-faction:
+  `vs_equal_split[faction] = achieved_score - equal_split_baseline`.
+  Positive = beat fair share, negative = below.
+  Output keys: `equal_split_baseline`, `vs_equal_split: {faction: float}`.
 
-3. **BATNA-clearing baseline.**
-   Per-faction max possible: `max_possible[faction] = max(faction_score(analysis, faction, d) for d in all_deals)`.
-   Per-faction skill premium: `skill_premium_vs_batna[faction] = (score - batna) / (max_possible - batna)`.
-   Range: 0.0 = scored at BATNA, 1.0 = scored at faction max. Can be negative.
-   Output keys: `max_possible_per_faction: {faction: float}`,
-   `skill_premium_vs_batna: {faction: float}`.
+- [x] **29.3 BATNA-clearing baseline.**
+  Per-faction max possible: `max_possible[faction] = max(faction_score(analysis, faction, d) for d in all_deals)`.
+  Per-faction skill premium: `skill_premium_vs_batna[faction] = (score - batna) / (max_possible - batna)`.
+  Range: 0.0 = scored at BATNA, 1.0 = scored at faction max. Can be negative.
+  Output keys: `max_possible_per_faction: {faction: float}`,
+  `skill_premium_vs_batna: {faction: float}`.
 
-4. **Nash bargaining baseline.**
-   Filter deals to those where `beats_batna()` is true (all factions strictly
-   above BATNA). For each, compute `math.prod(scores[f] - batna[f] for f in factions)`.
-   Find the deal with the maximum product — that's the Nash bargaining solution.
-   Output keys: `nash_deal_scores: {faction: float}`, `nash_deal_sum: float`,
-   `nash_product: float`, `vs_nash_efficiency: float` (= `achieved_sum / nash_deal_sum`).
-   Edge case: if no deal beats all BATNAs, set all Nash fields to `None`.
+- [x] **29.4 Nash bargaining baseline.**
+  Filter deals to those where `beats_batna()` is true (all factions strictly
+  above BATNA). For each, compute `math.prod(scores[f] - batna[f] for f in factions)`.
+  Find the deal with the maximum product — that's the Nash bargaining solution.
+  Output keys: `nash_deal_scores: {faction: float}`, `nash_deal_sum: float`,
+  `nash_product: float`, `vs_nash_efficiency: float` (= `achieved_sum / nash_deal_sum`).
+  Edge case: if no deal beats all BATNAs, set all Nash fields to `None`.
 
-5. **Wire into scoring pipeline.**
-   In `score_game()` (or `_pareto_efficiency_metrics()`), call
-   `_compute_baselines(scenario_analysis, score_data)` and merge the result
-   into the returned dict, same pattern as the existing
-   `score_data.update(_pareto_efficiency_metrics(...))`.
+- [x] **29.5 Wire into scoring pipeline.**
+  In `score_game()` (or `_pareto_efficiency_metrics()`), call
+  `_compute_baselines(scenario_analysis, score_data)` and merge the result
+  into the returned dict, same pattern as the existing
+  `score_data.update(_pareto_efficiency_metrics(...))`.
 
-6. **Unit tests.**
-   Add a `TestBaselines` class (or extend `TestParetoEfficiency`) in
-   `tests/test_self_play.py`. Use the existing `_pareto_scenario()` fixture.
-   Test cases:
-   - Equal-split: optimal deal → `vs_equal_split` shows which faction gained/lost vs fair share.
-   - Equal-split: no-deal → `vs_equal_split` all negative (scores at BATNA < equal share of optimum).
-   - BATNA-clearing: optimal deal → `skill_premium_vs_batna` = 1.0 for all factions.
-   - BATNA-clearing: at-BATNA deal → `skill_premium_vs_batna` = 0.0 for all factions.
-   - Nash: on `_pareto_scenario()`, the Nash deal should equal the Pareto optimum (2 factions, 1 issue — product is maximized at the sum-maximizing deal).
-   - Nash: no BATNA-clearing deals exist → all Nash fields are `None`.
-   - 3-faction fixture where Nash deal ≠ Pareto-sum-maximizing deal (asymmetric surplus).
+- [x] **29.6 Unit tests.**
+  Add a `TestBaselines` class (or extend `TestParetoEfficiency`) in
+  `tests/test_self_play.py`. Use the existing `_pareto_scenario()` fixture.
+  Test cases:
+  - Equal-split: optimal deal → `vs_equal_split` shows which faction gained/lost vs fair share.
+  - Equal-split: no-deal → `vs_equal_split` all negative (scores at BATNA < equal share of optimum).
+  - BATNA-clearing: optimal deal → `skill_premium_vs_batna` = 1.0 for all factions.
+  - BATNA-clearing: at-BATNA deal → `skill_premium_vs_batna` = 0.0 for all factions.
+  - Nash: on `_pareto_scenario()`, the Nash deal should equal the Pareto optimum (2 factions, 1 issue — product is maximized at the sum-maximizing deal).
+  - Nash: no BATNA-clearing deals exist → all Nash fields are `None`.
+  - 3-faction fixture where Nash deal ≠ Pareto-sum-maximizing deal (asymmetric surplus).
 
-7. **Report rendering.**
-   Add a `BASELINE COMPARISONS` subsection to the `NO-DEAL-AWARE SCORING`
-   block in `tests/self_play/analysis.py`. Print:
-   - `equal_split_baseline`, per-faction `vs_equal_split`
-   - Per-faction `skill_premium_vs_batna`
-   - `nash_deal_sum`, `nash_product`, `vs_nash_efficiency`, per-faction `nash_deal_scores`
+- [x] **29.7 Report rendering.**
+  Add a `BASELINE COMPARISONS` subsection to the `NO-DEAL-AWARE SCORING`
+  block in `tests/self_play/analysis.py`. Print:
+  - `equal_split_baseline`, per-faction `vs_equal_split`
+  - Per-faction `skill_premium_vs_batna`
+  - `nash_deal_sum`, `nash_product`, `vs_nash_efficiency`, per-faction `nash_deal_scores`
 
-8. **Backfill support.**
-   Add the new keys to `_METRIC_KEYS` in `tools/backfill_scoring_metrics.py`.
-   Verify the backfill script runs cleanly on one historical run JSON
-   (e.g. `run9_beta_squeezed_live.json`).
+- [x] **29.8 Backfill support.**
+  Add the new keys to `_METRIC_KEYS` in `tools/backfill_scoring_metrics.py`.
+  Verify the backfill script runs cleanly on one historical run JSON
+  (e.g. `run9_beta_squeezed_live.json`).
 
-9. **Doc updates.**
-   - `ASSESSMENT.md` §3.3: mark equal-split as implemented; add BATNA-clearing
-     and Nash bargaining descriptions. Update §3.5 composition table.
-   - `diplomat-testing-doc.md`: update Layer 4 scoring description with new fields.
-   - `NEXT_STEPS.md`: mark "ASSESSMENT §3.3 vs Naive baseline" as closed in
-     Tier 2 table; move to Appendix A.
+- [x] **29.9 Doc updates.**
+  - `ASSESSMENT.md` §3.3: mark equal-split as implemented; add BATNA-clearing
+    and Nash bargaining descriptions. Update §3.5 composition table.
+  - `diplomat-testing-doc.md`: update Layer 4 scoring description with new fields.
+  - `NEXT_STEPS.md`: mark "ASSESSMENT §3.3 vs Naive baseline" as closed in
+    Tier 2 table; move to Appendix A.
 
 ### Verification
 

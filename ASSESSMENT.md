@@ -120,7 +120,7 @@ that beat every faction's BATNA.
   `pareto_efficiency` values solely because BATNAs differ. The
   normalized surplus fields make those cases comparable across runs.
 
-### 3.3 vs Naive Baseline (NOT YET implemented)
+### 3.3 vs Naive Baseline (implemented in self-play scoring)
 
 ```
 skill_premium = (your_score - baseline_score) / (max_possible - baseline_score)
@@ -129,17 +129,20 @@ skill_premium = (your_score - baseline_score) / (max_possible - baseline_score)
 where `baseline_score` is what an agent would get from a defined naive
 strategy. Candidates:
 
-- **Equal-split baseline:** each faction takes 1/N of every issue
-- **BATNA-clearing baseline:** each faction holds at BATNA until a
-  Pareto-improving deal is offered
+- **Equal-split baseline:** each faction takes 1/N of the Pareto-optimal
+  surplus
+- **BATNA-clearing baseline:** each faction scores at BATNA until a
+  Pareto-improving deal is offered, then normalize against faction max
 - **Nash bargaining baseline:** the analytic solution given full
-  information
+  information, computed over BATNA-clearing deals only
 
 - Range: `(-∞, 1.0]`. Positive = outperformed calculation alone.
 - Captures: "Did the negotiation surface value calculation wouldn't have?"
-- Status: not implemented. Tricky because "naive" needs precise
-  definition per scenario. Recommend starting with equal-split, since
-  it's universal and trivial to compute.
+- Status: ✓ Implemented in `tests/self_play/game_environment.py` and
+  rendered in `tests/self_play/analysis.py`. The scorer now emits
+  `equal_split_baseline`, `vs_equal_split`, `max_possible_per_faction`,
+  `skill_premium_vs_batna`, `nash_deal_scores`, `nash_deal_sum`,
+  `nash_product`, and `vs_nash_efficiency`.
 - Why diagnostic: isolates skill from scenario difficulty. A skilled
   agent on a hard scenario may score lower than a naive agent on an
   easy scenario; this metric controls for that.
@@ -156,7 +159,7 @@ diagnostics that characterize *how* the deal was reached, not just
 | **Position-shift count** | Number of times an agent's stated position on an issue changed in response to another agent's argument | Partial — needs LLM-judge over transcript |
 | **Coalition stability** | % of coalitions formed that survived to the final deal | ✓ implemented |
 | **Time-to-deal** | Round number when deal reached (or `∞` if no deal) | ✓ implemented |
-| **Opening gap** | `|opening_position_value - reached_deal_value| / max_possible` | ✓ implemented for exact outcome-name matches |
+| **Opening gap** | `(opening_position_value - reached_deal_value) / max_possible` | ✓ implemented for exact outcome-name matches |
 | **Near-miss diagnostic** | Final-round 2-of-N convergence plus issue-level defection log | ✓ implemented in `tests/self_play/analysis.py` |
 | **Concession curve** | Sequence of per-round position values; categorize as linear, geometric, anchor-then-capitulate | Partial — needs round-by-round extraction |
 | **Persuasion shifts caused** | Times *other* agents changed position in response to *your* arguments | Needs LLM-judge over transcript |
@@ -178,7 +181,7 @@ Different questions call for different combinations:
 |---|---|
 | "Which agent did best in this run?" | 3.1 BATNA-relative |
 | "Did the group find the available value?" | 3.2 Pareto efficiency |
-| "Is this agent's prompt actually better, or is it just an easier scenario?" | 3.3 vs Naive (controls for scenario) |
+| "Is this agent's prompt actually better, or is it just an easier scenario?" | 3.2 + 3.3 (controls for scenario, then compares to equal-split/BATNA/Nash baselines) |
 | "How did they negotiate, not just what they got?" | 3.4 Process signatures |
 | "Is a new persona/strategy/model better?" | 3.1 + 3.2 across multiple scenarios |
 | "Does this strategy work in mixed-motive games but not zero-sum?" | 3.1 + 3.3 per game-mode |

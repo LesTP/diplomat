@@ -96,6 +96,24 @@ def _pareto_scenario() -> dict:
     }
 
 
+def _three_faction_nash_scenario() -> dict:
+    return {
+        "factions": ["alpha", "beta", "gamma"],
+        "issues": [
+            {
+                "name": "resource_split",
+                "outcomes": ["aggressive", "balanced"],
+            }
+        ],
+        "scoring": {
+            "alpha": {"resource_split": {"aggressive": 100, "balanced": 30}},
+            "beta": {"resource_split": {"aggressive": 1, "balanced": 30}},
+            "gamma": {"resource_split": {"aggressive": 1, "balanced": 30}},
+        },
+        "batna": {"alpha": 0, "beta": 0, "gamma": 0},
+    }
+
+
 def _process_signature_results() -> dict:
     return {
         "rounds_completed": 4,
@@ -486,6 +504,13 @@ class TestAnalysis:
                 "min_faction_delta": 0.000,
                 "surplus_distribution_stdev": 2.000,
                 "faction_deltas": {"alpha": 0.0, "beta": 4.0},
+                "equal_split_baseline": 10.0,
+                "vs_equal_split": {"alpha": 0.0, "beta": 4.0},
+                "skill_premium_vs_batna": {"alpha": 0.0, "beta": 1.0},
+                "nash_deal_sum": 20.0,
+                "nash_product": 24.0,
+                "vs_nash_efficiency": 1.0,
+                "nash_deal_scores": {"alpha": 10.0, "beta": 10.0},
             }
         )
 
@@ -499,6 +524,10 @@ class TestAnalysis:
         assert "surplus_distribution_stdev: 2.000" in captured.out
         assert "alpha: +0.000" in captured.out
         assert "beta: +4.000" in captured.out
+        assert "BASELINE COMPARISONS" in captured.out
+        assert "equal_split_baseline: 10.000" in captured.out
+        assert "skill_premium_vs_batna" in captured.out
+        assert "nash_deal_sum: 20.000" in captured.out
 
 
 # ── Pareto efficiency scoring ───────────────────────────────────────
@@ -604,6 +633,143 @@ class TestParetoEfficiency:
         assert metrics["max_pareto_sum"] == 20
         assert metrics["sum_batnas"] == 20
         assert metrics["negotiated_surplus_share"] == 0.0
+
+
+class TestBaselines:
+    def test_equal_split_baseline_shows_gain_and_loss(self) -> None:
+        from tests.self_play.game_environment import _compute_baselines
+
+        scenario = _pareto_scenario()
+        scenario["scoring"]["alpha"]["resource_split"]["optimum"] = 12
+        scenario["scoring"]["beta"]["resource_split"]["optimum"] = 8
+
+        metrics = _compute_baselines(
+            scenario,
+            {
+                "deal_reached": True,
+                "faction_scores": {
+                    "alpha": {"points": 12, "batna": 4},
+                    "beta": {"points": 8, "batna": 6},
+                },
+            },
+        )
+
+        assert metrics["equal_split_baseline"] == 10
+        assert metrics["vs_equal_split"] == {"alpha": 2.0, "beta": -2.0}
+
+    def test_equal_split_baseline_is_negative_when_no_deal_occurs(self) -> None:
+        from tests.self_play.game_environment import _compute_baselines
+
+        metrics = _compute_baselines(
+            _pareto_scenario(),
+            {
+                "deal_reached": False,
+                "faction_scores": {
+                    "alpha": {"points": 4, "batna": 4},
+                    "beta": {"points": 6, "batna": 6},
+                },
+            },
+        )
+
+        assert metrics["vs_equal_split"] == {"alpha": -6.0, "beta": -4.0}
+
+    def test_batna_clearing_skill_premium_ranges_to_one_at_optimum(self) -> None:
+        from tests.self_play.game_environment import _compute_baselines
+
+        metrics = _compute_baselines(
+            _pareto_scenario(),
+            {
+                "deal_reached": True,
+                "faction_scores": {
+                    "alpha": {"points": 10, "batna": 4},
+                    "beta": {"points": 10, "batna": 6},
+                },
+            },
+        )
+
+        assert metrics["max_possible_per_faction"] == {"alpha": 10, "beta": 10}
+        assert metrics["skill_premium_vs_batna"] == {"alpha": 1.0, "beta": 1.0}
+
+    def test_batna_clearing_skill_premium_is_zero_at_batna(self) -> None:
+        from tests.self_play.game_environment import _compute_baselines
+
+        metrics = _compute_baselines(
+            _pareto_scenario(),
+            {
+                "deal_reached": False,
+                "faction_scores": {
+                    "alpha": {"points": 4, "batna": 4},
+                    "beta": {"points": 6, "batna": 6},
+                },
+            },
+        )
+
+        assert metrics["skill_premium_vs_batna"] == {"alpha": 0.0, "beta": 0.0}
+
+    def test_nash_matches_pareto_optimum_for_two_factions_one_issue(self) -> None:
+        from tests.self_play.game_environment import _compute_baselines
+
+        metrics = _compute_baselines(
+            _pareto_scenario(),
+            {
+                "deal_reached": True,
+                "faction_scores": {
+                    "alpha": {"points": 10, "batna": 4},
+                    "beta": {"points": 10, "batna": 6},
+                },
+            },
+        )
+
+        assert metrics["nash_deal_scores"] == {"alpha": 10, "beta": 10}
+        assert metrics["nash_deal_sum"] == 20
+        assert metrics["nash_product"] == 24.0
+        assert metrics["vs_nash_efficiency"] == 1.0
+
+    def test_nash_fields_are_none_when_no_deal_clears_all_batnas(self) -> None:
+        from tests.self_play.game_environment import _compute_baselines
+
+        scenario = _pareto_scenario()
+        scenario["batna"] = {"alpha": 10, "beta": 10}
+
+        metrics = _compute_baselines(
+            scenario,
+            {
+                "deal_reached": False,
+                "faction_scores": {
+                    "alpha": {"points": 10, "batna": 10},
+                    "beta": {"points": 10, "batna": 10},
+                },
+            },
+        )
+
+        assert metrics["nash_deal_scores"] is None
+        assert metrics["nash_deal_sum"] is None
+        assert metrics["nash_product"] is None
+        assert metrics["vs_nash_efficiency"] is None
+
+    def test_nash_can_differ_from_sum_maximizing_deal(self) -> None:
+        from tests.self_play.game_environment import _compute_baselines
+
+        metrics = _compute_baselines(
+            _three_faction_nash_scenario(),
+            {
+                "deal_reached": True,
+                "faction_scores": {
+                    "alpha": {"points": 100, "batna": 0},
+                    "beta": {"points": 1, "batna": 0},
+                    "gamma": {"points": 1, "batna": 0},
+                },
+            },
+        )
+
+        assert metrics["nash_deal_scores"] == {
+            "alpha": 30,
+            "beta": 30,
+            "gamma": 30,
+        }
+        assert metrics["nash_deal_sum"] == 90
+        assert metrics["nash_product"] == 27000.0
+        assert metrics["vs_nash_efficiency"] == pytest.approx(102 / 90)
 
     @pytest.mark.asyncio
     async def test_score_game_outputs_numeric_pareto_efficiency(

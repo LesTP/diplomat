@@ -31,6 +31,14 @@ _METRIC_KEYS = (
     "min_faction_delta",
     "surplus_distribution_stdev",
     "negotiated_surplus_share",
+    "equal_split_baseline",
+    "vs_equal_split",
+    "max_possible_per_faction",
+    "skill_premium_vs_batna",
+    "nash_deal_scores",
+    "nash_deal_sum",
+    "nash_product",
+    "vs_nash_efficiency",
 )
 
 
