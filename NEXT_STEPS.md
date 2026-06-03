@@ -57,7 +57,7 @@ cross-references.
 | **Coaching test loop on Pi** | `[X]` | 👁 | §4 | Highest-leverage untested product path. Phase 28 built `coached_game.py`; the remaining work is the operator-driven Pi smoke and edit-log analysis. |
 | **Game-platform exploration** (Clankmates / Discord / fallback) | `[X]` | 👁 | §5 | Gated on operator + partner platform decision. Updated 2026-06-02 to consider Discord alongside Clankmates. |
 | **Pricing & accounting audit** | `[X][C]` | 👁 | §6 | Best done before Tier 3 §7 so per-role cost claims have a firm baseline. |
-| **OpenRouter integration** | `[X][B]` | 🔀 | §1.6 | Toolkit plumbing. Less urgent post-Run 10 — `--per-faction-providers` already exposes the key cross-provider variable. Slot in on a cheap day. |
+| **OpenRouter integration** | `[X][B]` | ✓ | §1.6 | **CLOSED Phase 30 (2026-06-03).** `OpenRouterProvider` wired in toolkit; probe/dry-run verified; use `--per-faction-providers` with `provider:"openrouter"`. |
 | **TelegramReviewGate as production default** | `[X]` | 👁 | (decision) | Whether to flip `pipeline.yaml` `review_gate` to `TelegramReviewGate` as the production default. Smoke runs on `pipeline_smoke.yaml` already use it. |
 | **Provider-native structured output** (`response_format: json_schema`) | `[X]` | 🔀 | Carry-forward | Toolkit plumbing build; gives token-level schema compliance. Lower priority — current `structured_call` retry loop is working. |
 
@@ -115,10 +115,16 @@ Items with a clean "build half" suitable for a future Phase 30+:
 
 ---
 
-## 1.6. `[X][B]` OpenRouter + Mistral / Groq / DeepSeek
+## 1.6. `[X][B]` OpenRouter + Mistral / Groq / DeepSeek — **CLOSED Phase 30**
 
 **Goal:** Expand the provider matrix cheaply by routing through OpenRouter,
 then promote winners to native integrations if needed.
+
+**Status (2026-06-03):** Phase 30 complete. `OpenRouterProvider` added to
+`toolkit/llm_client/providers.py`, factory dispatch wired, pricing entries in
+`cost_accountant/types.py`, probe/dry-run integration verified, 6 tests pass.
+Use `--per-faction-providers '{"faction":{"provider":"openrouter","model":"<model-id>"}}'`
+in any self-play run with `OPENROUTER_API_KEY` set.
 
 **Priority context (2026-06-02):** Lower urgency than before — Run 10 B'
 showed that the cross-provider variable we cared about most (Generator
@@ -131,14 +137,14 @@ infrastructure item to slot in on a cheap day.
 ARCHITECTURE.md already lists OpenRouter as supported via toolkit, so the
 entry point exists. This is mostly config + provider routing work.
 
-### TODOs
+### TODOs — remaining (plumbing complete)
 
-- [ ] Confirm OpenRouter wiring in `toolkit/llm_client` actually works — write
+- [x] Confirm OpenRouter wiring in `toolkit/llm_client` actually works — write
       a probe script (`tests/self_play/probe_providers.py` extension) that
       makes one trivial JSON request through OpenRouter.
-- [ ] Add OpenRouter as a provider option in `pipeline.yaml` and self-play
+- [x] Add OpenRouter as a provider option in `pipeline.yaml` and self-play
       runner.
-- [ ] Extend `--per-faction-providers` JSON schema to accept OpenRouter
+- [x] Extend `--per-faction-providers` JSON schema to accept OpenRouter
       sub-model spec (e.g. `{"model": "deepseek/deepseek-v3"}`).
 - [ ] Once routed, run a multi-provider tournament: rotate which provider
       plays which faction in Water Rights, mix native (OpenAI/Anthropic/Google)

@@ -252,3 +252,19 @@ Tests:
 
 Contract changes:
 - `toolkit/tests/llm_client/test_core.py` — added factory dispatch test
+
+### Step 30.7: Doc updates
+
+Mode: Execute
+Outcome: Updated docs to surface OpenRouter support:
+- `toolkit/API.md`: added `"openrouter"` to `LLMConfig.provider` type comment; added OpenRouter usage note with model format and pricing pointer.
+- `toolkit/ARCH_llm_client.md`: already had OpenRouter (added in earlier steps; verified correct).
+- `diplomat/CLI_REFERENCE.md`: added commented OpenRouter example to both `--per-faction-providers` and `probe_providers` sections.
+- `diplomat/TUNING.md`: already had OpenRouter row in provider table (verified correct).
+- `diplomat/NEXT_STEPS.md`: marked §1.6 status as CLOSED (Phase 30), checked TODOs for completed items, updated summary row in Tier 1 table.
+- `diplomat/.env.template`: already had `OPENROUTER_API_KEY=` from step 30.3 (verified).
+
+Contract changes:
+- `toolkit/API.md` — provider type + OpenRouter usage note
+- `diplomat/CLI_REFERENCE.md` — OpenRouter examples
+- `diplomat/NEXT_STEPS.md` — §1.6 closed

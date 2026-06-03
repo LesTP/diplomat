@@ -129,6 +129,9 @@ python -m tests.self_play.run_simulation \
     --rounds 4 --scenario tests/self_play/scenarios/water_rights.md \
     --analysis-json tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json \
     --per-faction-providers '{"alpha":{"provider":"openai","model":"gpt-4.1-mini"},"beta":{"provider":"anthropic","model":"claude-haiku-4-5"},"gamma":{"provider":"google","model":"gemini-2.5-flash-lite"}}' \
+# OpenRouter example — access 200+ models via one API key
+# python -m tests.self_play.run_simulation ... \
+#     --per-faction-providers '{"alpha":{"provider":"openrouter","model":"meta-llama/llama-3.3-70b-instruct"},"beta":{"provider":"openrouter","model":"deepseek/deepseek-v3"}}'
     --output tests/self_play/results/run9_multi.json
 ```
 
@@ -196,6 +199,9 @@ Pass-through flags from `run_simulation` are supported as-is: `--scenario-title`
 python -m tests.self_play.probe_providers \
     --providers '{"openai":{"provider":"openai","model":"gpt-4.1-mini"},"anthropic":{"provider":"anthropic","model":"claude-haiku-4-5"},"google":{"provider":"google","model":"gemini-2.5-flash-lite"}}' \
     --max-tokens 500
+# OpenRouter probe — set OPENROUTER_API_KEY first
+# python -m tests.self_play.probe_providers \
+#     --providers '{"test":{"provider":"openrouter","model":"meta-llama/llama-3.3-70b-instruct"}}'
 ```
 
 | Flag | Default | Notes |

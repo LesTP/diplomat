@@ -1,8 +1,8 @@
 ---
 phase: 30
 blocked: false
-state: execute
-steps_remaining: 5
+state: review
+steps_remaining: 4
 ---
 
 # Diplomat — Development Plan
@@ -126,7 +126,7 @@ Unlocks the "what % of outcome is model vs harness?" experiment matrix.
   ```
   Verify `verify_dryrun.py --expect-providers '{"alpha":"openrouter"}'` passes.
 
-- [ ] **30.7 Doc updates.**
+- [x] **30.7 Doc updates.**
   - `toolkit/ARCH_llm_client.md` / `API.md`: add OpenRouter to supported
     providers list with usage example.
   - `diplomat/CLI_REFERENCE.md`: add OpenRouter example to `--per-faction-providers`.
