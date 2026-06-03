@@ -193,3 +193,14 @@ Tests:
 Contract changes:
 - `toolkit/src/toolkit/llm_client/providers.py`
 - `toolkit/src/toolkit/llm_client/__init__.py`
+
+### Step 30.2: provider factory dispatch
+
+Mode: Execute
+Outcome: Added the `openrouter` branch to `create_provider()` in `toolkit.llm_client.providers` and expanded the unknown-provider error message so the factory advertises OpenRouter as a supported backend.
+
+Tests:
+- `./.venv/bin/python3 -m pytest ../toolkit/tests/llm_client/test_core.py -q`
+
+Contract changes:
+- `../toolkit/src/toolkit/llm_client/providers.py`

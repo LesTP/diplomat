@@ -2,7 +2,7 @@
 phase: 30
 blocked: false
 state: execute
-steps_remaining: 7
+steps_remaining: 2
 ---
 
 # Diplomat — Development Plan
@@ -96,7 +96,7 @@ Unlocks the "what % of outcome is model vs harness?" experiment matrix.
   Consider making `OpenRouterProvider` a subclass of `OpenAIProvider` with only
   `__init__` and `provider` name overridden, or a parameterized factory.
 
-- [ ] **30.2 Add `"openrouter"` branch to `create_provider()` factory.**
+- [x] **30.2 Add `"openrouter"` branch to `create_provider()` factory.**
   Read `config.api_key` from the config and construct `OpenRouterProvider`.
   Update the error message to list `openrouter` as a supported provider.
 
