@@ -238,3 +238,17 @@ Tests:
 
 Contract changes:
 - `toolkit/tests/llm_client/test_core.py` — TestOpenRouterProvider class + _make_mock_openai helper
+
+### Step 30.6: Integration verify — probe + dry-run with OpenRouter
+
+Mode: Execute
+Outcome: Confirmed OpenRouter integration path is complete without a live call:
+- `probe_providers.py` already had `"openrouter": "OPENROUTER_API_KEY"` (step 30.3) and routes through `ToolkitLLMAdapter` → `create_provider()` → `OpenRouterProvider` (step 30.2).
+- `verify_dryrun.py` `--expect-providers` invariant does generic string comparison on `config_provider` field — provider-agnostic, no code changes needed.
+- Added `TestCreateProvider::test_openrouter_factory_returns_openrouter_provider` to pin the factory dispatch. 6 openrouter-related tests pass total.
+
+Tests:
+- `python3 -m pytest tests/llm_client/test_core.py -k "openrouter or create_provider"` — 6 passed
+
+Contract changes:
+- `toolkit/tests/llm_client/test_core.py` — added factory dispatch test

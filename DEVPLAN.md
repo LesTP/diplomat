@@ -2,7 +2,7 @@
 phase: 30
 blocked: false
 state: execute
-steps_remaining: 6
+steps_remaining: 5
 ---
 
 # Diplomat — Development Plan
@@ -119,7 +119,7 @@ Unlocks the "what % of outcome is model vs harness?" experiment matrix.
   - Empty response raises `LLMResponseError`.
   Use the same mock pattern as existing `TestOpenAIProvider`.
 
-- [ ] **30.6 Integration: verify probe + dry-run with OpenRouter.**
+- [x] **30.6 Integration: verify probe + dry-run with OpenRouter.**
   Add a test or doc note confirming that `probe_providers.py` works with:
   ```json
   {"alpha":{"provider":"openrouter","model":"meta-llama/llama-3.3-70b-instruct"}}
