@@ -126,3 +126,8 @@ Docs updated during close: `DEVPLAN.md` Phase 28 reduced to history summary, Cur
 DEVLOG archival: Archived Phase 22-27 entries (bulk cleanup) to `DEVLOG_archive.md`; Phase 28 entries remain in `DEVLOG.md` for immediate audit.
 
 Tests: `.venv/bin/python -m pytest` — 346 passed (transient 1-failure rerun confirms clean suite; pre-existing async ordering issue unrelated to Phase 28).
+
+## 2026-06-03 — Phase 29 Plan
+
+Mode: Build
+Outcome: Planned the Phase 29 baseline-scorer work. The phase will add equal-split, BATNA-clearing, and Nash bargaining reference points to the self-play scoring pipeline, then wire them into report rendering, backfill support, and documentation. The work is scoped as diagnostic-only and does not alter negotiation behavior or provider routing.

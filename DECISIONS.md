@@ -230,3 +230,10 @@ Priority: Important
 Decision: Phase 27 will add baseline-normalized no-deal-aware scoring metrics, report rendering, a historical backfill tool, and documentation updates without changing scorer prompts, agent behavior, provider routing, or partial-consensus deal detection.
 Rationale: Run 9 showed the current `pareto_efficiency` metric ranks no-deal outcomes by BATNA height rather than negotiated improvement. Companion fields can correct post-game interpretation while preserving the existing all-faction convergence scorer and keeping partial-consensus scoring as a separate Phase 28 candidate.
 Revisit if: Later tuning work needs the normalized surplus metrics to influence prompts or runtime negotiation strategy rather than remain diagnostic outputs.
+
+D-33: Phase 29 baseline scorers stay diagnostic-only in Build regime
+Date: 2026-06-03 | Status: Proposed
+Priority: Important
+Decision: Phase 29 will add equal-split, BATNA-clearing, and Nash bargaining baseline scorers to the self-play scoring pipeline, plus report rendering, backfill support, and documentation updates, without changing negotiation behavior, scenario compilation, or provider routing.
+Rationale: The new metrics answer "did negotiation outperform naive strategies?" in a way that is comparable across scenarios while keeping the scoring layer purely observational. That preserves the existing runtime contract and keeps the phase inside the current self-play/test surface.
+Revisit if: A later tuning phase needs these baselines to influence prompts or live decision-making rather than remain post-game diagnostics.
