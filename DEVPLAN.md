@@ -2,7 +2,7 @@
 phase: 30
 blocked: false
 state: execute
-steps_remaining: 7
+steps_remaining: 6
 ---
 
 # Diplomat — Development Plan
@@ -111,7 +111,7 @@ Unlocks the "what % of outcome is model vs harness?" experiment matrix.
   `meta-llama/llama-3.3-70b-instruct` (free). Unknown models should fall
   through to a conservative default estimate.
 
-- [ ] **30.5 Unit tests for `OpenRouterProvider`.**
+- [x] **30.5 Unit tests for `OpenRouterProvider`.**
   Add `TestOpenRouterProvider` in toolkit's test suite. Test cases:
   - Constructor creates client with correct base_url.
   - `call()` returns `LLMResponse` with `provider="openrouter"`.

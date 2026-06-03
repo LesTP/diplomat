@@ -226,3 +226,15 @@ Tests:
 
 Contract changes:
 - `toolkit/src/toolkit/cost_accountant/types.py` — 5 new pricing entries
+
+### Step 30.5: Unit tests for OpenRouterProvider
+
+Mode: Execute
+Outcome: Added `TestOpenRouterProvider` in `toolkit/tests/llm_client/test_core.py` with 5 tests: constructor base_url, call() returns provider="openrouter", max_tokens used (not max_completion_tokens), rate limit → LLMAPIError with status_code+retry_after, empty response → LLMResponseError. Used sys.modules patching (`_make_mock_openai()`) since 'openai' package isn't installed in this environment; approach works with or without the real package installed. All 5 pass.
+
+Tests:
+- `python3 -m pytest tests/llm_client/test_core.py -k "openrouter"` — 5 passed
+- `python3 -m pytest tests/cost_accountant/` — 44 passed (no regression)
+
+Contract changes:
+- `toolkit/tests/llm_client/test_core.py` — TestOpenRouterProvider class + _make_mock_openai helper
