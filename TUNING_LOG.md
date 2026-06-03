@@ -799,15 +799,372 @@ this time with gamma (not beta) as the defector.
 
 ---
 
-### Open Items
+### Run 11 — All-Anthropic Baseline (Water Rights, 3 BATNA variants) — COMPLETE
 
-**Still open (post Run 10):**
+**Date:** 2026-06-03.
+**Hypothesis:** If Anthropic claude-haiku-4-5 is natively consistent (honors
+R3 contingent commitments at R4), it should reach the Pareto-optimal deal
+across the BATNA spectrum — not just when configuration favors it. Generalizes
+the Run 10 B' finding.
+
+**Config:**
+- Scenario: Water Rights (Clearwater River Basin)
+- Provider: all Anthropic claude-haiku-4-5 (Generator for all 3 factions)
+- Rounds: 4
+- Three BATNA variants:
+  - Symmetric (α=11, β=10, γ=11) — same as Run 9 symmetric
+  - α-squeezed (α=15, β=8, γ=11) — same as Run 9 α-squeezed
+  - β-squeezed (α=9, β=15, γ=11) — same as Run 9 β-squeezed
+- Cost: ~$1.20 total (~$0.40 per variant)
+
+**Results:**
+
+| Variant | Deal? | α pts (BATNA) | β pts (BATNA) | γ pts (BATNA) | Winner | pareto_eff | neg_surplus_share | vs_nash_eff |
+|---|---|---|---|---|---|---|---|---|
+| Symmetric | **YES** | 16 (11) +5 WIN | 18 (10) +8 WIN | 22 (11) +11 WIN | γ | 1.037 | 1.091 | 1.037 |
+| α-squeezed | NO | 15 (15) +0 DRAW | 8 (8) +0 DRAW | 11 (11) +0 DRAW | α | 0.630 | 0.000 | 0.667 |
+| β-squeezed | **YES** | 16 (9) +7 WIN | 14 (15) **-1 LOSE** | 22 (11) +11 WIN | γ | 0.963 | 0.895 | 0.963 |
+| γ-squeezed | NO | 11 (11) +0 DRAW | 10 (10) +0 DRAW | 15 (15) +0 DRAW | γ | — | 0.000 | — |
+
+**Comparison to Run 9 (all-OpenAI gpt-4.1-mini):**
+
+| Variant | Run 9 (OpenAI) | Run 11 (Anthropic) | Δ |
+|---|---|---|---|
+| Symmetric | No deal | **Deal (α=16, β=18, γ=22)** | Anthropic reaches Pareto from symmetric BATNAs |
+| α-squeezed | No deal (β defected R3→R4) | **No deal** (BATNA: α=15, β=8, γ=11) | Same outcome — high-BATNA faction doesn't negotiate |
+| β-squeezed | Deal (α=16, β=18, γ=22) | Deal (α=16, **β=14**, γ=22) | Both deal, but Anthropic β accepted Shared (below BATNA) |
+| γ-squeezed | — | **No deal** (BATNA: α=11, β=10, γ=15) | Mirror of α-squeezed — high-BATNA γ has no incentive to deal |
+
+**Observations:**
+
+1. **Symmetric: headline result.** Anthropic reached the Pareto-optimal deal
+   from symmetric BATNAs where OpenAI could not. Same scenario, same BATNAs,
+   no structural advantage for any faction. The deal (High Volume +
+   Heavy-Downstream + JFD, sum=56) exceeded the Nash deal sum (54) — hence
+   `pareto_efficiency=1.037` and `vs_nash_efficiency=1.037`. This confirms
+   provider consistency as a deal-enabling variable independent of BATNA
+   structure.
+
+2. **α-squeezed: no deal on both providers.** Alpha's BATNA of 15 is the
+   highest score in the game — alpha literally has no incentive to negotiate.
+   Neither provider's β+γ could extract concessions. This is a scenario-design
+   finding: α-squeezed is structurally unwinnable for the negotiation.
+   `vs_nash_efficiency=0.667` — the group achieved 67% of what Nash would
+   produce, all of it from BATNAs.
+
+3. **β-squeezed: deal but β scored below BATNA.** Anthropic's β accepted
+   Shared payment (14 pts) against a BATNA of 15 — a LOSE. The Run 9
+   β-squeezed deal used Heavy-Downstream payment (β=18, all WIN). Anthropic
+   was *too cooperative* on the squeezed faction: β acknowledged its own
+   position shifts in R3 ("Alpha is right. In Round 1, I committed to
+   Heavy-Downstream...") and accepted a worse deal to maintain trust. This is
+   the inverse of OpenAI's defection problem — Anthropic over-cooperates
+   rather than over-defects. `min_faction_delta=-1.0` flags this.
+
+4. **Gamma wins every deal-reaching variant** with 22 pts (γ=+11 in both).
+   Consistent with Runs 9-10 surplus-distribution pattern. The neutral-on-
+   bottleneck faction extracts majority surplus regardless of provider.
+   `skill_premium_vs_batna: gamma=1.000` in both deal variants (gamma
+   achieved its theoretical maximum).
+
+5. **Process signatures — symmetric variant:**
+   - `broken_promise_rate=0.172` — lower than β-squeezed (0.304); agents
+     maintained commitments better without BATNA pressure.
+   - `time_to_deal=4` — deal closed at final round (same as all prior deals).
+   - `opening_gap: gamma=0.364` — gamma moved farthest from opening position
+     to reach the deal (started on Token payment, moved to Heavy-Downstream).
+   - Defection log shows gamma shifted `payment_structure: Shared →
+     Heavy-Downstream` (contingent) between R1-R2, and alpha shifted
+     `water_release_volume: Medium → High` (contingent). Both acknowledged
+     the shifts in transcript — "I shifted from Heavy-Downstream to Token
+     payment between rounds, and that undermined trust."
+
+6. **Phase 29 baselines working correctly.** `equal_split_baseline=18.000`
+   (max_pareto_sum 54 / 3 factions). Symmetric deal: alpha got -2 vs equal
+   split, beta +0, gamma +4 — gamma beat fair share. Nash deal sum=54 with
+   `nash_product=360` (symmetric) vs 189 (β-squeezed) — the asymmetric
+   squeeze reduces Nash surplus as expected.
+
+**Learning:**
+
+1. **Provider consistency thesis confirmed across BATNA spectrum.** Anthropic
+   reaches Pareto on symmetric BATNAs where OpenAI could not. The combination
+   of "symmetric BATNAs + consistent provider" is sufficient for deal-making.
+   BATNA pressure (β-squeezed) is a *substitute* for consistency, not a
+   *requirement* — and on a consistent provider, over-squeezing can backfire
+   (β accepted a sub-BATNA deal to preserve trust).
+
+2. **α-squeezed is structurally unwinnable.** When one faction's BATNA equals
+   or exceeds its best negotiated outcome, no provider or prompt change can
+   force a deal. This is a scenario-design constraint, not an agent failure.
+
+3. **Over-cooperation is the Anthropic failure mode.** Where OpenAI defects
+   (breaks R3 commitments at R4), Anthropic over-cooperates (accepts
+   sub-BATNA deals to maintain relationship). For consistency-critical seats,
+   Anthropic is better; for hardball negotiation under squeeze, OpenAI's
+   "defect when it's cheap" behavior accidentally produces better outcomes
+   for the defecting faction.
+
+**Decisions:**
+
+- **D-33: Provider assignment rule.** For multi-round Water Rights-style
+  negotiations, default all Generator seats to Anthropic claude-haiku-4-5.
+  Exception: if a faction is being squeezed (BATNA > median deal score),
+  OpenAI gpt-4.1-mini may accidentally produce better outcomes for that
+  faction by defecting. This is not a recommendation — it's an observation
+  about failure modes.
+- **D-34: α-squeezed variant retired for future experiments.** The
+  configuration is structurally unwinnable — alpha has no incentive to
+  negotiate. Use symmetric and β-squeezed for provider/prompt comparison;
+  α-squeezed only if testing "can an agent extract value from an
+  un-incentivized opponent?"
+
+**Open items raised:**
+
+- [x] **All-Anthropic baseline across BATNA variants** — this run. Closed.
+- [ ] **Anthropic over-cooperation on squeezed factions.** β-squeezed β
+      accepted sub-BATNA deal (14 < 15). Worth investigating whether this is
+      a general Anthropic pattern or a Water Rights-specific quirk tied to
+      how β's persona acknowledges position shifts.
+- [ ] **Deal structure differs by provider on β-squeezed.** OpenAI produced
+      Heavy-Downstream (β=18); Anthropic produced Shared (β=14). Same
+      BATNAs, same scenario. The payment-structure outcome is provider-
+      dependent. Investigate which agent drove the Shared outcome.
+
+---
+
+### Run 12 — All-Gemini Baseline (Water Rights, 3 BATNA variants) — PARTIAL
+
+**Date:** 2026-06-03.
+**Hypothesis:** Does Gemini 2.5-flash-lite reach the Pareto deal on Water
+Rights? Completes the 3-provider matrix (OpenAI Run 9, Anthropic Run 11,
+Gemini Run 12). Also introduces a new γ-squeezed BATNA variant to test
+whether gamma's surplus-distribution advantage is structural position or
+just weak BATNA pressure.
+
+**Config:**
+- Scenario: Water Rights (Clearwater River Basin)
+- Provider: all Google gemini-2.5-flash-lite (Generator for all 3 factions)
+- Rounds: 4
+- Three BATNA variants:
+  - Symmetric (α=11, β=10, γ=11)
+  - β-squeezed (α=9, β=15, γ=11)
+  - γ-squeezed (α=11, β=10, γ=15) — **new variant**
+- Expected cost: ~$0 (flash-lite on paid plan, minimal per-token cost)
+
+**Results:**
+
+| Variant | Deal? | α pts (BATNA) | β pts (BATNA) | γ pts (BATNA) | Winner | Notes |
+|---|---|---|---|---|---|---|
+| Symmetric | **YES** | 16 (11) +5 WIN | 18 (10) +8 WIN | 20 (11) +9 WIN | γ | Pareto deal reached. Same Heavy-Downstream + High + JFD structure as Runs 9/10/11. |
+| β-squeezed | **HUNG** | — | — | — | — | Process hung after symmetric completed. No output produced. Two separate attempts. |
+| γ-squeezed | **HUNG** | — | — | — | — | Not attempted (blocked by β-squeezed hang). |
+
+**Operational issues:**
+
+1. **Probe latency was extreme.** Each probe call took ~86-97 seconds vs
+   <1s for Anthropic and ~5s for OpenAI. This is baseline latency for
+   gemini-2.5-flash-lite, not a throttle — the probes returned `OK` with
+   valid JSON.
+
+2. **Second variant hung reliably.** The symmetric variant completed
+   successfully (~20 min). The β-squeezed variant never produced any
+   console output and hung indefinitely (cancelled after 18 min of
+   inactivity). This happened on two separate attempts — the first batch
+   run (3 variants sequential) and a retry of just β-squeezed alone.
+
+3. **Likely cause: connection/session-level issue.** The first game (~18
+   Gemini calls) succeeds. The second game in the same process hangs. This
+   suggests either: (a) a session-level rate limit that blocks after N
+   calls without returning a 429, (b) a connection pool issue where the
+   second game reuses a stale connection, or (c) a quota-per-minute ceiling
+   invisible to the free-tier documentation. The hang produces no error,
+   no timeout, no output — the process simply stops producing stdout.
+
+4. **flash-lite vs flash.** Previous Gemini runs (Run 8) used
+   `gemini-2.5-flash` (thinking mode, paid). This run used
+   `gemini-2.5-flash-lite` (no thinking mode, cheaper). The hang may be
+   flash-lite-specific. Worth retrying with `gemini-2.5-flash` and
+   `--max-tokens 500` to avoid thinking-token budget burn.
+
+**Partial findings from symmetric variant:**
+
+The symmetric deal structure (α=16, β=18, γ=20) is the Heavy-Downstream +
+High Volume + JFD deal — the same Pareto-optimal outcome that Anthropic
+(Run 11) and OpenAI-β-squeezed (Run 9) reached. All three providers reach
+the same deal when not blocked by defection or over-cooperation:
+
+| Provider | Symmetric deal? | Structure | γ score |
+|---|---|---|---|
+| OpenAI gpt-4.1-mini (Run 9) | No | — | — |
+| Anthropic claude-haiku-4-5 (Run 11) | Yes | α=16, β=18, γ=22 | 22 |
+| Gemini flash-lite (Run 12) | Yes | α=16, β=18, γ=20 | 20 |
+
+Gemini's γ scored 20 vs Anthropic's 22 — Gemini produced the same deal on
+Water and Payment issues (High + Heavy-Downstream) but Gemini's γ got
+Joint-Funded Desalination at 10 pts while Anthropic's γ extracted 2 extra
+points through more aggressive infrastructure negotiation. Gemini finds
+the core logrolling deal but is slightly less effective at extracting
+maximum value on secondary axes.
+
+**Learning:**
+
+1. **Gemini flash-lite has a reliability problem for multi-game sessions.**
+   Single games work. Sequential games in the same process hang. This needs
+   investigation before Gemini can be used for batch experiments.
+
+2. **All three providers reach the Pareto deal on symmetric BATNAs.** The
+   provider-consistency thesis from Runs 9-10 was about *defection* (OpenAI
+   breaks commitments). On symmetric BATNAs without squeeze pressure, even
+   OpenAI might reach the deal if we retry — Run 9's single data point
+   that failed is stochastic, not deterministic.
+
+3. **OpenRouter is the fastest path to the multi-model experiment matrix.**
+   The "what % of outcome is model vs harness?" question requires running
+   the same scenario across 5+ models. Current approach (one API key per
+   provider) is friction-heavy. OpenRouter would let us test Groq Llama,
+   DeepSeek, Mistral alongside OpenAI/Anthropic/Gemini through a single
+   key and a single provider implementation in toolkit.
+
+**Decisions:**
+
+- **D-35: Investigate flash-lite hang before more Gemini experiments.**
+  Options: (a) retry with `gemini-2.5-flash` instead, (b) add per-call
+  timeout to toolkit `llm_client` so hangs surface as errors instead of
+  blocking indefinitely, (c) add inter-game delay or process isolation
+  (subprocess per variant).
+- **D-36: Elevate OpenRouter integration priority.** Move §1.6 from
+  "slot in on a cheap day" to active next-build candidate. The model-vs-
+  harness question is the most interesting open experimental question and
+  OpenRouter is the fastest path to answering it.
+
+**Open items raised:**
+
+- [ ] **Gemini flash-lite hang on sequential games.** Investigate: is it
+      flash-lite-specific or all Gemini models? Add per-call timeout to
+      toolkit llm_client. Consider process isolation for batch runs.
+- [x] **Retry β-squeezed and γ-squeezed on `gemini-2.5-flash`** (thinking
+      mode, paid). Closed by Run 12b — all 3 variants completed successfully.
+      Flash does not have the sequential-hang issue. Flash-lite-specific.
+- [ ] **OpenRouter integration (elevated priority).** Build the connector
+      to unlock the multi-model experiment matrix. See NEXT_STEPS §1.6.
+      Phase 30 queued.
+- [x] **γ-squeezed variant untested on any provider.** Closed: tested on
+      Anthropic (Run 11, no deal) and Gemini flash (Run 12b, deal reached).
+
+---
+
+### Run 12b — All-Gemini Flash Baseline (Water Rights, 3 BATNA variants) — COMPLETE
+
+**Date:** 2026-06-03.
+**Hypothesis:** Does `gemini-2.5-flash` (thinking mode, paid) avoid the
+sequential-hang issue that blocked `gemini-2.5-flash-lite` in Run 12? If so,
+does Gemini reach deals across the BATNA spectrum?
+
+**Config:**
+- Scenario: Water Rights (Clearwater River Basin)
+- Provider: all Google gemini-2.5-flash (Generator for all 3 factions)
+- Rounds: 4
+- Three BATNA variants:
+  - Symmetric (α=11, β=10, γ=11)
+  - β-squeezed (α=9, β=15, γ=11)
+  - γ-squeezed (α=11, β=10, γ=15)
+- 30-second cooldown between variants
+- Cost: minimal (paid tier, flash pricing)
+
+**Results:**
+
+| Variant | Deal? | α pts (BATNA) | β pts (BATNA) | γ pts (BATNA) | Winner |
+|---|---|---|---|---|---|
+| Symmetric | **YES** | 15 (11) +4 WIN | 18 (10) +8 WIN | 22 (11) +11 WIN | γ |
+| β-squeezed | **YES** | 15 (9) +6 WIN | 18 (15) +3 WIN | 20 (11) +9 WIN | γ |
+| γ-squeezed | **YES** | 16 (11) +5 WIN | 18 (10) +8 WIN | 20 (15) +5 WIN | γ |
+
+**All three variants reached a deal.** First provider to achieve this.
+
+**Cross-provider comparison (complete matrix):**
+
+| Variant | OpenAI gpt-4.1-mini (Run 9) | Anthropic haiku-4-5 (Run 11) | Gemini flash (Run 12b) |
+|---|---|---|---|
+| Symmetric | No deal | Deal (α=16, β=18, γ=22) | Deal (α=15, β=18, γ=22) |
+| β-squeezed | Deal (α=16, β=18, γ=22) | Deal (α=16, β=14 **LOSE**, γ=22) | Deal (α=15, β=18, γ=20) |
+| γ-squeezed | — | No deal | **Deal (α=16, β=18, γ=20)** |
+
+**Observations:**
+
+1. **Gemini flash is the only provider to deal on all three BATNA variants.**
+   OpenAI failed symmetric, Anthropic failed γ-squeezed. Gemini found deals
+   everywhere, including γ-squeezed where γ's BATNA of 15 left only 5 points
+   of headroom (γ scored 20).
+
+2. **β-squeezed: Gemini β beat its BATNA.** β scored 18 vs BATNA 15 (+3) —
+   unlike Anthropic's β which accepted a sub-BATNA deal (14 < 15). Gemini
+   negotiated harder under squeeze. The deal structure was Medium Volume +
+   Shared/Heavy-Downstream + JFD, not identical to Run 9's Heavy-Downstream
+   deal, but β still won.
+
+3. **γ-squeezed: first deal on this variant by any provider.** γ scored 20
+   vs BATNA 15 — comfortable +5 margin. Anthropic's γ-squeezed produced no
+   deal (everyone at BATNA). Gemini found the logrolling deal even with a
+   tightly squeezed γ.
+
+4. **Gamma wins every variant on every provider.** 22 or 20 pts across all
+   deal-reaching runs. The surplus-distribution advantage is confirmed as
+   structural (neutral-on-bottleneck position) not provider-dependent.
+
+5. **Flash-lite sequential hang is model-tier-specific.** Flash completed
+   all 3 variants in ~29 minutes total with no hang. Flash-lite hung reliably
+   on the second variant. The issue is in flash-lite's backend, not the
+   Google SDK or our toolkit code.
+
+6. **Alpha scores 15-16 across all providers.** Consistent — alpha's scoring
+   ceiling is lower due to the water-payment tradeoff. Alpha never wins but
+   always beats BATNA on deal-reaching runs.
+
+**Learning:**
+
+1. **Gemini flash is the most deal-capable provider tested.** It reaches
+   deals under all BATNA configurations, including the tight γ-squeezed
+   variant that stumped Anthropic. Whether this is better "negotiation skill"
+   or just stronger default-to-cooperative behavior needs further investigation.
+
+2. **Provider failure modes differ in character:**
+   - OpenAI: defects from R3 commitments at R4 (consistency failure)
+   - Anthropic: over-cooperates under squeeze (accepts sub-BATNA deals)
+   - Gemini: most reliable deal-maker, but may be under-anchoring (α scores
+     15 instead of 16 on some variants — leaving 1 point on the table)
+
+3. **The model-vs-harness question is ripe.** Three providers, three distinct
+   behavioral profiles, same harness. OpenRouter (Phase 30) will add 5+ more
+   models to this comparison. The key question: is "reaches deal 3/3 vs 2/3
+   vs 1/3" a meaningful quality metric, or does it just measure default
+   cooperativeness?
+
+**Decisions:**
+
+- **D-37: Use `gemini-2.5-flash` (not flash-lite) for future Gemini
+  experiments.** Flash-lite's sequential hang is a blocker for batch runs.
+  Flash works reliably and has acceptable latency (~10s per call vs ~90s
+  for flash-lite).
+- **D-38: α-squeezed retired for all providers (extends D-34).** Run 9
+  (OpenAI) showed no deal; not retested on Anthropic or Gemini because
+  α's BATNA of 15 equals the highest single-faction score in most
+  deals — structurally unwinnable regardless of provider.
+
+**Open items closed by this run:**
+
+- [x] Flash-lite hang → flash works. Model-tier issue confirmed.
+- [x] γ-squeezed untested → tested on Anthropic (no deal) and Gemini (deal).
+
+---
+
+**Still open (post Run 10):
 - [x] **Provider rotation control (original Run 9 scope).** Partially addressed by Run 10 B': switching beta to Anthropic on alpha-squeezed BATNAs unlocked the Pareto deal. Full rotation control (all-Anthropic baseline across all 3 BATNA variants) still pending — ~$3-4 spend.
 - [x] **No-deal `pareto_efficiency` confounded with BATNA height.** Closed by Phase 27: `score_game()` now emits `negotiated_surplus_share`, `delta_above_batna_sum`, `min_faction_delta`, and companion BATNA-normalized fields. Run 8 / Run 9 / Run 10 no-deal backfills all read `negotiated_surplus_share=0.000`.
 - [x] **Partial-consensus scoring (recurring across Run 7 / Run 8 / Run 9).** Replaced by `near_miss` diagnostic flag concept after operator pushback 2026-06-01: "if there's no agreement, it doesn't matter if we missed it by an inch or by a mile." Won't be a scoring change; small `analysis.py` diagnostic instead. Not Phase 28.
 - [x] **Commitment-following cost asymmetry.** Reclassified by Run 10. The dominant variable is provider, not BATNA height. OpenAI gpt-4.1-mini's R3→R4 defection observed in two separate runs (Run 9 α-squeezed beta, Run 10 C' gamma). Anthropic beta in Run 10 B' did not defect.
 - [ ] **OpenAI gpt-4.1-mini R3→R4 defection — scope.** Confirmed on Water Rights (twice). Unknown on Three-Party Coalition / Trade Summit. Either characterize cross-scenario, or accept "consistency-critical seats should not be OpenAI gpt-4.1-mini" as a tuning rule and move on.
-- [ ] **All-Anthropic baseline across BATNA variants.** Three runs (~$3-4): does Anthropic reach Pareto across symmetric / alpha-squeezed / beta-squeezed, or only when the configuration already favors it? Tells us whether Run 10 B' generalizes.
+- [x] **All-Anthropic baseline across BATNA variants.** Closed by Run 11. Anthropic reaches Pareto on symmetric (where OpenAI could not) and β-squeezed (but β accepted sub-BATNA deal). α-squeezed is structurally unwinnable on both providers.
 - [ ] **Persona payment rigidity.** Recurring across Run 7 and Run 8. Worth A/B test on the "don't accept the first reasonable framework" persona rule. Run 9 post-mortem suggested this rule isn't binding under squeeze; A/B would confirm.
 - [ ] **Surplus-distribution asymmetry favoring the un-squeezed neutral faction.** Across all three Pareto-reaching runs (Run 9 β-squeezed, Run 10 B'), gamma extracted 52-55% of negotiated surplus. The faction with moderate BATNA + neutral position on the bottleneck wins biggest. Worth understanding for scenario design.
 - [ ] **Google free-tier rate limiting.** Gemini 2.5-flash hit 429 on Run 8 R4. Either add retry-with-backoff to toolkit's `llm_client`, or switch to a paid Gemini tier for serious runs.

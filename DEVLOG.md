@@ -268,3 +268,8 @@ Contract changes:
 - `toolkit/API.md` — provider type + OpenRouter usage note
 - `diplomat/CLI_REFERENCE.md` — OpenRouter examples
 - `diplomat/NEXT_STEPS.md` — §1.6 closed
+
+### Phase 30 review
+
+Mode: Review
+Outcome: OpenRouter integration review passed. No correctness or contract issues found in the provider path; verified the openrouter-focused toolkit tests with `python3 -m pytest ../toolkit/tests/llm_client/test_core.py -k openrouter -q` (6 passed). Ready for phase close.

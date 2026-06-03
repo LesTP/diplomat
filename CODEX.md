@@ -161,6 +161,17 @@ LOOP:
   8. goto LOOP
 ```
 
+**CRITICAL — state-write command (step 7).** Copy-paste this **exactly**:
+
+```bash
+sed -i "s/^state:.*/state: execute/" DEVPLAN.md
+```
+
+Replace `execute` with the value from `NEXT:` in the state-machine output.
+Use **double quotes** around the full sed expression. Do NOT use single quotes
+with embedded double quotes — the pattern `'s/"'^state:...'` does not match
+and silently fails. This bug has wasted multiple iterations (iters 81, 86).
+
 ### PLAN
 Read `.claude/commands/phase-plan.md` and follow its instructions.
 

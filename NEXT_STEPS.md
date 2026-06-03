@@ -54,7 +54,8 @@ cross-references.
 
 | Item | Tags | Loop | Where | Notes |
 |---|---|---|---|---|
-| **Coaching test loop on Pi** | `[X]` | 👁 | §4 | Highest-leverage untested product path. Phase 28 built `coached_game.py`; the remaining work is the operator-driven Pi smoke and edit-log analysis. |
+| **Coached game UX fixes** | `[A][X]` | 🔨 | §4 | **Priority for next session.** First coached game (2026-06-03) surfaced 4 issues: (1) TG 4096 char limit breaks review gate in later rounds — split or truncate, (2) operator has no transcript visibility in coaching channel — add state/transcript summary before each draft, (3) generation responses are too verbose — add conciseness instruction to prompt, (4) generation prompt filler burns character budget. All 🔨 PURE BUILD. |
+| **Coaching test loop on Pi** | `[X]` | 👁 | §4 | First coached game completed 2026-06-03. Deal reached (β=18, +8 above BATNA) despite β being muted for R2-R4 by the char-limit bug. UX fixes above are prerequisites for a meaningful re-test. |
 | **Game-platform exploration** (Clankmates / Discord / fallback) | `[X]` | 👁 | §5 | Gated on operator + partner platform decision. Updated 2026-06-02 to consider Discord alongside Clankmates. |
 | **Pricing & accounting audit** | `[X][C]` | 👁 | §6 | Best done before Tier 3 §7 so per-role cost claims have a firm baseline. |
 | **OpenRouter integration** | `[X][B]` | ✓ | §1.6 | **CLOSED Phase 30 (2026-06-03).** `OpenRouterProvider` wired in toolkit; probe/dry-run verified; use `--per-faction-providers` with `provider:"openrouter"`. |
@@ -93,10 +94,9 @@ cross-references.
 
 If working down the tiers, the immediate decision is which Tier 1 item to do first. Recommended order:
 
-1. **Coaching test loop on Pi (§4)** — highest leverage; validates the original product hypothesis. Build slice done (Phase 28); remaining work is operator-driven Pi smoke + edit-log analysis.
+1. **Coached game UX fixes (§4)** — highest priority. TG char limit, transcript visibility, verbose responses. All pure build, blocks meaningful coached re-test.
 2. **Pricing audit (§6)** — best done before Tier 3 §7 so per-role decisions have a firm cost baseline.
-3. **OpenRouter (§1.6)** — slot in if there's a cheap day; not blocking anything.
-4. **Game-platform exploration (§5)** — gated on operator + partner alignment; explore Discord alongside Clankmates while the partner decision is pending.
+3. **Game-platform exploration (§5)** — gated on operator + partner alignment; explore Discord alongside Clankmates while the partner decision is pending.
 
 ### Cross-tier dependencies worth knowing
 
@@ -405,41 +405,52 @@ strategy library, A/B test per-faction.
 
 ## 4. `[X]` Coaching test loop on Pi
 
-**Highest-value test not yet run.** Validates the original use case end-to-end:
-operator coaches a self-play agent via Telegram while other agents run
-autonomously.
+**Status 2026-06-03:** First coached game completed. Deal reached (β=18,
++8 above BATNA) but the session surfaced 4 UX issues that must be fixed
+before a meaningful re-test.
 
-**Status.** Phase 28 completed the build slice (`tests/self_play/coached_game.py`
-and the near-miss diagnostics). The remaining work here is the operator-driven
-Pi smoke and edit-log analysis.
+**What happened:** Operator coached beta faction via Telegram on Water Rights
+symmetric (all-Anthropic). Beta spoke in Round 1, then R2-R4 drafts hit
+Telegram's 4096-char message limit and failed silently. Beta was muted for
+75% of the game. Alpha and Gamma negotiated around the silence and converged
+on a deal that happened to include beta. Operator rubber-stamped the R1 draft
+because they had no visibility into what other factions were saying.
 
-Most of the wiring already exists:
-- Self-play harness runs 3 agents
-- One agent's `transport` and `review_gate` swap to Telegram-backed coaching
-  routing (`TelegramReviewGate` + `TelegramBotTransport`)
-- Other 2 agents on `AutoApproveReviewGate`
-- Operator coaches via tagged messages (PRIORITY/CONSTRAINT/INTEL/TONE/WATCH)
-  and uses `/approve`, `/edit`, `/block` on drafts
+### UX fixes needed (priority order, all 🔨 PURE BUILD)
 
-### What this would reveal that self-play cannot
+- [ ] **4a. TG 4096 char limit.** Review-gate drafts exceed TG's message limit
+      in later rounds as transcript context grows. Fix: split long messages
+      into chunks, or truncate the review preview to essentials (draft +
+      adversarial summary, not full context). **Critical — broke the core
+      product loop.**
+- [ ] **4b. Transcript visibility in coaching channel.** In self-play, the
+      operator can't see what other factions said (no TG group to watch). Fix:
+      before sending each draft for review, send a brief state summary to the
+      coaching channel — last-round messages from all factions, key state
+      changes, unconsumed coaching. In a real game with a shared game channel,
+      this is less critical but still useful as a digest.
+- [ ] **4c. Verbose generation responses.** Diplomatic filler ("I have been
+      listening carefully...") wastes character budget and adds nothing. Fix:
+      add conciseness instruction to the generation prompt — "lead with your
+      proposal, max 2-3 paragraphs, no preamble." Block B prompt change.
+- [ ] **4d. Re-run coached game after UX fixes.** Same scenario, operator
+      actively coaches (not rubber-stamp). Classify edits per
+      `diplomat-testing-doc.md` §7.3 categories.
 
-- Whether review gate friction is low enough to use in real time
-- Whether coaching tags produce the *intended* persona shift visibly
-- Whether the edit log is rich enough to drive prompt tuning
-- Whether two-channel separation (public vs coaching) feels natural under load
+### What the first session confirmed
 
-### TODOs
+- Review gate wiring works end-to-end (bot DMs draft, operator approves, bot posts to group)
+- Coaching tags and `/approve`/`/edit`/`/block` commands are functional
+- The harness survives a muted faction gracefully (no crashes, deal still reached)
+- `coached_game.py` dry-run + live both work (after `sys.path` fix for `src/`)
 
-- [x] Build a `tests/self_play/coached_game.py` variant that takes
-      `--coach-faction <name>` and wires TelegramReviewGate for that faction
-      only. Phase 28 implemented a dry-run/live capable runner with a
-      Telegram-backed coached transport.
-- [ ] Test scenario: Trade Summit or Water Rights (~4 rounds, bounded
-      session, strong differentiation already proven).
-- [ ] Run on the Pi (start via tmux pattern per `CLI_REFERENCE.md`).
-- [ ] After session: inspect edit log, classify edits per `diplomat-testing-doc.md`
-      §7.3 categories (tone_softer, commitment_removed, constraint_enforcement,
-      etc.), feed recurring patterns back into faction_prompt.
+### Original TODOs (updated)
+
+- [x] Build `coached_game.py` (Phase 28)
+- [x] Test scenario: Water Rights symmetric, all-Anthropic (2026-06-03)
+- [x] Run on Pi (incus container, `.venv/bin/python3`)
+- [ ] After UX fixes: re-run, inspect edit log, classify edits, feed
+      patterns back into faction_prompt
 
 ---
 
