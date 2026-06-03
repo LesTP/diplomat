@@ -4,6 +4,21 @@
      Newest entries at the top. Each step or milestone gets a structured entry.
      This is the audit trail.
 
+## 2026-06-03 — Phase 29 Review
+
+Action: REVIEW
+Mode: Build
+Outcome: Clean pass. No must-fix or should-fix items found.
+
+Code reviewed:
+- `_compute_baselines()` in `tests/self_play/game_environment.py`: correct signature, edge cases handled (empty factions, zero denominator, no-deal case), all imported helpers verified present.
+- `TestBaselines` in `tests/test_self_play.py`: 7 new tests covering all spec cases including 3-faction Nash ≠ Pareto-sum scenario.
+- `BASELINE COMPARISONS` block in `tests/self_play/analysis.py`: None-safe rendering for all Nash fields.
+- `_METRIC_KEYS` extension in `tools/backfill_scoring_metrics.py`: 8 new keys added correctly.
+- Doc updates: ASSESSMENT.md §3.3, diplomat-testing-doc.md, NEXT_STEPS.md.
+
+Test results: 352 passing (1 pre-existing unrelated failure in test_orchestrator.py).
+
 ## 2026-06-02 — Phase 28 Plan
 
 Action: PLAN
