@@ -134,11 +134,11 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 
 | Layer | Status |
 |-------|--------|
-| Unit and regression tests | Complete — 346 tests across the regression suite |
+| Unit and regression tests | Complete — 353 tests across the regression suite; latest full run had 1 flaky WAL assertion in `tests/test_orchestrator.py::test_successful_instantiation_with_fakes` |
 | Pipeline integration | Complete — 23 fake-backed Orchestrator integration tests (Phase 18 path coverage added Phase 20) |
 | Transcript replay | Complete — 2 transcript fixtures, 5 replay tests |
 | Prompt regression | Complete — 6 starter scenarios (4 extraction free, 2 generation require live LLM) |
-| Multi-agent self-play | Phase 18 — GameEnvironment, scenario compiler, post-game scoring, state reconciliation, 41 infrastructure tests, 7 simulation runs across 4 scenario types. See `TUNING_LOG.md`. |
+| Multi-agent self-play | Phase 29 — GameEnvironment, scenario compiler, post-game scoring, state reconciliation, game-mode, baseline scorers, 41 infrastructure tests, 7 simulation runs across 4 scenario types. See `TUNING_LOG.md`. |
 
 ## Coupling Notes
 

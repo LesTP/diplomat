@@ -232,7 +232,7 @@ Rationale: Run 9 showed the current `pareto_efficiency` metric ranks no-deal out
 Revisit if: Later tuning work needs the normalized surplus metrics to influence prompts or runtime negotiation strategy rather than remain diagnostic outputs.
 
 D-33: Phase 29 baseline scorers stay diagnostic-only in Build regime
-Date: 2026-06-03 | Status: Proposed
+Date: 2026-06-03 | Status: Closed
 Priority: Important
 Decision: Phase 29 will add equal-split, BATNA-clearing, and Nash bargaining baseline scorers to the self-play scoring pipeline, plus report rendering, backfill support, and documentation updates, without changing negotiation behavior, scenario compilation, or provider routing.
 Rationale: The new metrics answer "did negotiation outperform naive strategies?" in a way that is comparable across scenarios while keeping the scoring layer purely observational. That preserves the existing runtime contract and keeps the phase inside the current self-play/test surface.

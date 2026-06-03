@@ -159,3 +159,20 @@ Tests:
 Notes:
 - The BATNA-clearing normalization returns `0.0` when the faction max equals BATNA, matching the existing metric style of avoiding division-by-zero noise.
 - The backfill script now prints the new baseline keys even when historical runs predate Phase 29, which keeps the CLI stable for older JSONs.
+
+## 2026-06-03 — Phase 29 close
+
+Action: CLOSE
+Mode: Build
+Outcome: Phase 29 governance cleanup complete. Phase-level baseline/Nash tests passed. Full-suite verification collected 353 tests and exposed one flaky `tests/test_orchestrator.py::test_successful_instantiation_with_fakes` WAL assertion; isolated rerun passed and the failure is unrelated to the Phase 29 scoring changes.
+
+Summary of what was built:
+- `_compute_baselines()` in `tests/self_play/game_environment.py` emits equal-split, BATNA-clearing, and Nash bargaining comparisons alongside Pareto metrics.
+- `tests/self_play/analysis.py` renders a `BASELINE COMPARISONS` subsection.
+- `tools/backfill_scoring_metrics.py` backfills the new baseline keys.
+- `tests/test_self_play.py` covers equal-split, BATNA-clearing, and Nash cases.
+
+Docs updated during close:
+- `DEVPLAN.md` Phase 29 reduced to a close summary and current status marked complete.
+- `DECISIONS.md` D-33 closed.
+- `ARCHITECTURE.md` testing status refreshed to the 353-test suite snapshot.
