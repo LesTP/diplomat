@@ -7,7 +7,6 @@ from inspect import isawaitable
 from typing import Any
 
 from modules.generation import GenerationResult
-from modules.review_gate.chunking import CONTINUATION_PREFIX, chunk_text
 from modules.transport import OutboundMessage
 
 
@@ -59,6 +58,7 @@ class OperatorReviewGate:
         if timeout_seconds is not None and timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be positive when set")
         self._transport = transport
+        # Retained for config compatibility; transport auto-chunks oversize text.
         self._max_message_chars = max_message_chars
         self._state_manager = state_manager
         self._timeout_seconds = timeout_seconds
@@ -180,40 +180,16 @@ class OperatorReviewGate:
         commands_hint = (
             "\n\nCommands: /approve | /edit: <text> | /block | /reasoning | /adversarial"
         )
-        raw_limit = (
-            self._max_message_chars
-            - len(commands_hint)
-            - max(len(header), len(CONTINUATION_PREFIX))
+        content = header + draft_text + commands_hint
+        await _maybe_await(
+            self._transport.send(OutboundMessage(content=content, channel="coaching"))
         )
-        if raw_limit <= 0:
-            raise ValueError("max_message_chars is too small for review messages")
-
-        chunks = chunk_text(draft_text, raw_limit)
-        for index, chunk in enumerate(chunks):
-            content = chunk
-            if index == 0:
-                content = header + content
-            if index == len(chunks) - 1:
-                content += commands_hint
-            await _maybe_await(
-                self._transport.send(
-                    OutboundMessage(content=content, channel="coaching")
-                )
-            )
 
     async def _send_section(self, title: str, body: str) -> None:
-        raw_limit = self._max_message_chars - max(len(title), len(CONTINUATION_PREFIX))
-        if raw_limit <= 0:
-            raise ValueError("max_message_chars is too small for review messages")
-
-        chunks = chunk_text(body, raw_limit)
-        for index, chunk in enumerate(chunks):
-            content = chunk if index > 0 else f"{title}{chunk}"
-            await _maybe_await(
-                self._transport.send(
-                    OutboundMessage(content=content, channel="coaching")
-                )
-            )
+        content = f"{title}{body}"
+        await _maybe_await(
+            self._transport.send(OutboundMessage(content=content, channel="coaching"))
+        )
 
     def _resolve_pending(
         self,

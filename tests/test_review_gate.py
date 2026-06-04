@@ -10,7 +10,6 @@ from modules.review_gate import (
     OperatorReviewGate,
     ReviewDecision,
 )
-from modules.review_gate.chunking import CONTINUATION_PREFIX
 
 
 def _draft(
@@ -250,18 +249,16 @@ async def test_operator_review_gate_reasoning_re_request_is_idempotent():
 @pytest.mark.asyncio
 async def test_operator_review_gate_chunks_large_reasoning_through_transport():
     transport = _FakeTransport()
-    gate = OperatorReviewGate(transport, max_message_chars=180)
-    draft = _draft(reasoning="Reasoning section. " * 12)
+    gate = OperatorReviewGate(transport)
+    draft = _draft(reasoning="Reasoning section. " * 300)
 
     task = asyncio.create_task(gate.submit(draft, adversarial=None, round_number=4))
     await asyncio.sleep(0)
 
     assert await gate.handle_command("/reasoning") is True
-    assert len(transport.sent) >= 2
+    assert len(transport.sent) == 2
     assert transport.sent[1].content.startswith("Reasoning:\n")
-    assert any(
-        message.content.startswith(CONTINUATION_PREFIX) for message in transport.sent[2:]
-    )
+    assert len(transport.sent[1].content) > 4096
 
     assert await gate.handle_command("/approve") is True
     await task
@@ -317,24 +314,18 @@ async def test_operator_review_gate_timeout_auto_blocks_and_logs():
 @pytest.mark.asyncio
 async def test_operator_review_gate_chunks_large_draft_through_transport():
     transport = _FakeTransport()
-    gate = OperatorReviewGate(transport, max_message_chars=180)
+    gate = OperatorReviewGate(transport)
     draft = _draft(
-        response_text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. " * 8,
+        response_text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. " * 100,
     )
 
     task = asyncio.create_task(gate.submit(draft, adversarial=None, round_number=4))
     await asyncio.sleep(0)
 
-    assert len(transport.sent) >= 2
+    assert len(transport.sent) == 1
     assert all(message.channel == "coaching" for message in transport.sent)
     assert transport.sent[0].content.startswith("Review Gate - Round 4\n\nDraft:\n")
-    assert all(
-        message.content.startswith(CONTINUATION_PREFIX)
-        for message in transport.sent[1:]
-    )
-    assert transport.sent[-1].content.endswith(
-        "\n\nCommands: /approve | /edit: <text> | /block | /reasoning | /adversarial"
-    )
+    assert len(transport.sent[0].content) > 4096
 
     assert await gate.handle_command("/approve") is True
     decision = await task

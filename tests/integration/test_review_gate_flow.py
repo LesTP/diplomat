@@ -22,7 +22,7 @@ INTELLIGENCE_FIXTURE = (
     PROJECT_ROOT / "tests" / "integration" / "fixtures" / "intelligence_stub.json"
 )
 SHORT_DRAFT = "England supports a balanced settlement."
-LONG_DRAFT = "England supports a balanced settlement. " * 18
+LONG_DRAFT = "England supports a balanced settlement. " * 120
 
 
 class FakeTransport(TestTransport):
@@ -200,23 +200,19 @@ async def test_review_gate_flow_chunks_large_draft_through_transport(tmp_path: P
             make_event("/preview", sender_faction="operator", channel="coaching")
         )
         await _wait_for(
-            lambda: len(
-                [m for m in harness.transport.sent if m.channel == "coaching"]
+            lambda: any(
+                message.channel == "coaching"
+                and message.content.startswith("Review Gate - Round")
+                for message in harness.transport.sent
             )
-            >= 2
         )
 
         coaching_messages = [
             message for message in harness.transport.sent if message.channel == "coaching"
         ]
+        assert len(coaching_messages) == 1
         assert coaching_messages[0].content.startswith("Review Gate - Round")
-        assert any(
-            message.content.startswith("[continued ...]")
-            for message in coaching_messages[1:]
-        )
-        assert coaching_messages[-1].content.endswith(
-            "\n\nCommands: /approve | /edit: <text> | /block | /reasoning | /adversarial"
-        )
+        assert len(coaching_messages[0].content) > 4096
 
         await harness.transport.inject(
             make_event("/approve", sender_faction="operator", channel="coaching")

@@ -372,3 +372,34 @@ Phase 31 shipped the full transport-routed review gate refactor in 8 steps acros
 **Test count:** 370 passing after final cleanup.
 
 **Remaining:** §4d (operator-driven Pi re-test) stays open in NEXT_STEPS.
+
+## 2026-06-04 — Phase 31a hotfix — Coached-mode operator-input bridge
+
+**Bug:** Phase 31's OperatorReviewGate is a passive handler that relies on Pipeline.dispatch_operator calling handle_command. EventDrivenFlow.process_event provides that routing in production. RoundSteppedFlow does not, and CoachedGameTransport does not consume the wrapped TelegramBotTransport's inbound queue. Live Run 13 setup hung at the first review prompt — operator typed /state, /status, /approve and nothing reached the gate.
+
+**Root cause:** the deleted TelegramReviewGate had its own private 	elegram_client.get_next_update() poller — a side channel that bypassed the dispatcher entirely. Phase 31 removed the polling but did not add a replacement path for the RoundSteppedFlow/coached case. The integration tests in step 31.6 used EventDrivenFlow (which routes operator events natively) and 	ests/test_coached_game.py only exercises dry-run with DryRunOperatorReviewGate.handle_command always returning False, so the gap was invisible.
+
+**Fix:** 	ests/self_play/coached_game.py:
+- Renamed CoachedGameTransport._telegram_transport → 	elegram_transport (public access for the bridge).
+- CoachedGameEnvironment.setup() now spawns _listen_for_operator(tg_transport, pipeline) when the coached faction has a real TG transport (skipped on --dry-run).
+- _listen_for_operator consumes 	g_transport.listen() and forwards operator-tagged events to pipeline.dispatch_operator. Dispatch failures are swallowed so the listener stays alive.
+- CoachedGameEnvironment.teardown() cancels the listener task before delegating to GameEnvironment.teardown.
+
+**Tests added:** 	ests/test_coached_game.py::test_operator_listener_forwards_to_dispatch_operator — focused regression guard with a fake TG transport scripted to yield operator + non-operator + empty events, asserts only the two operator commands reached dispatch_operator.
+
+**Decisions:** D-44 (coached-mode operator-input bridge).
+
+**Next:** Re-attempt Run 13 (coached Gemini flash on Water Rights symmetric, beta coached).
+
+## 2026-06-04 — Phase 32 Step 32.3 — Drop Diplomat's local chunking from OperatorReviewGate
+
+Mode: Execute
+Outcome: Removed review-gate-local chunking so `OperatorReviewGate` now composes one coaching message per draft or lazy section and relies on the shared transport for oversize splitting. Deleted the obsolete local chunking helper and retired the chunking-only test file. Reworked the remaining review-gate tests to verify that large draft and reasoning payloads now reach transport as single oversize messages.
+Contract changes:
+- `src/modules/review_gate/__init__.py` - `_send_draft()` and `_send_section()` now send one message each; `max_message_chars` is retained only for config compatibility
+- `tests/test_review_gate.py` - chunking-oriented assertions now check for single oversize sends
+- `tests/integration/test_review_gate_flow.py` - large-draft flow case now checks for one oversize coaching message
+- `src/modules/review_gate/chunking.py` - deleted
+- `tests/test_review_gate_chunking.py` - deleted
+
+Focused verification passed with `python3 -m pytest tests/test_review_gate.py tests/integration/test_review_gate_flow.py -v` (`23 passed`). `python` was not available on PATH in this environment, so the test command used `python3` instead.
