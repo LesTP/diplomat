@@ -834,6 +834,57 @@ async def test_preview_command_triggers_response_pipeline(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_intel_command_reports_latest_round_only(tmp_path):
+    orchestrator, _event_store, state_manager, _extractor, _transport = (
+        _pipeline_orchestrator(tmp_path)
+    )
+    state_manager.rows["intelligence"] = []
+
+    for round_number in range(1, 5):
+        created_at = datetime(
+            2026,
+            6,
+            round_number,
+            12,
+            0,
+            tzinfo=timezone.utc,
+        ).isoformat()
+        for provider in ("primary", "secondary"):
+            state_manager.rows["intelligence"].append(
+                {
+                    "round_number": round_number,
+                    "provider": provider,
+                    "created_at": created_at,
+                    "analysis_json": {
+                        "threat_level": round_number,
+                        "key_leverage_points": [
+                            f"{provider.title()} {round_number} leverage A",
+                            f"{provider.title()} {round_number} leverage B",
+                            f"{provider.title()} {round_number} leverage C",
+                            f"{provider.title()} {round_number} leverage D",
+                        ],
+                        "risks": [
+                            f"{provider.title()} {round_number} risk A",
+                            f"{provider.title()} {round_number} risk B",
+                            f"{provider.title()} {round_number} risk C",
+                            f"{provider.title()} {round_number} risk D",
+                        ],
+                        "coalition_stability": "fragile",
+                        "summary": f"{provider.title()} {round_number} summary",
+                    },
+                }
+            )
+
+    summary = await orchestrator._command_intel(None)
+
+    assert len(summary) < 2000
+    assert summary.startswith("Intelligence\nFaction: england\nRound: 4\nThreat: 4/5")
+    assert "Primary 4 leverage A" in summary
+    assert "Primary 4 risk A" in summary
+    assert "Secondary 4 leverage A" not in summary
+
+
+@pytest.mark.asyncio
 async def test_generation_failure_retries_once(tmp_path):
     generator = FakeGenerator(
         [_generation(success=False, error="provider down"), _generation(text="Retry")]

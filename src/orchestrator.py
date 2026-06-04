@@ -349,7 +349,34 @@ class _OrchestratorCore:
 
     async def _command_intel(self, _command: Command) -> str:
         rows = await self._query_state("intelligence", {})
-        return "Intelligence\n" + self._format_rows(rows)
+        if not rows:
+            return "Intelligence\n(none)"
+
+        latest = self._latest_intelligence_row(rows)
+        analysis = self._json_from_row(latest, "analysis_json")
+        report = self._intelligence_report(analysis)
+        leverage_points = self._intelligence_items(
+            report,
+            keys=("key_leverage_points",),
+            limit=3,
+        )
+        risks = self._intelligence_risks(analysis, report, limit=3)
+        threat_level = report.get("threat_level")
+        threat_text = f"{threat_level}/5" if isinstance(threat_level, int) else "unknown"
+        round_number = latest.get("round_number", "unknown")
+
+        return "\n".join(
+            [
+                "Intelligence",
+                f"Faction: {self.faction_id}",
+                f"Round: {round_number}",
+                f"Threat: {threat_text}",
+                "Leverage points:",
+                *self._bullet_lines(leverage_points),
+                "Risks:",
+                *self._bullet_lines(risks),
+            ]
+        )
 
     async def _command_divergences(self, _command: Command) -> str:
         rows = await self._query_state("intelligence", {})
@@ -865,6 +892,110 @@ class _OrchestratorCore:
                 return {}
             return parsed if isinstance(parsed, dict) else {}
         return {}
+
+    @staticmethod
+    def _latest_intelligence_row(rows: list[dict[str, Any]]) -> dict[str, Any]:
+        def sort_key(row: dict[str, Any]) -> tuple[int, datetime, int]:
+            round_number = row.get("round_number")
+            try:
+                round_score = int(round_number)
+            except (TypeError, ValueError):
+                round_score = -1
+            created_at = _OrchestratorCore._parse_timestamp(row.get("created_at"))
+            provider = str(row.get("provider", "")).strip().lower()
+            provider_score = 1 if provider == "primary" else 0
+            return (round_score, created_at, provider_score)
+
+        return max(rows, key=sort_key)
+
+    @staticmethod
+    def _parse_timestamp(value: Any) -> datetime:
+        if isinstance(value, datetime):
+            return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+        if not isinstance(value, str) or not value:
+            return datetime.min.replace(tzinfo=timezone.utc)
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return datetime.min.replace(tzinfo=timezone.utc)
+        if parsed.tzinfo is None:
+            return parsed.replace(tzinfo=timezone.utc)
+        return parsed
+
+    @staticmethod
+    def _intelligence_report(analysis: dict[str, Any]) -> dict[str, Any]:
+        for branch_name in ("primary", "secondary"):
+            branch = analysis.get(branch_name)
+            if not isinstance(branch, dict):
+                continue
+            report = branch.get("report")
+            if isinstance(report, dict):
+                return report
+        report = analysis.get("report")
+        if isinstance(report, dict):
+            return report
+        return analysis
+
+    @staticmethod
+    def _intelligence_items(
+        payload: dict[str, Any],
+        *,
+        keys: tuple[str, ...],
+        limit: int,
+    ) -> list[str]:
+        items: list[str] = []
+        for key in keys:
+            value = payload.get(key)
+            if isinstance(value, list):
+                items.extend(
+                    str(item).strip() for item in value if str(item).strip()
+                )
+            elif isinstance(value, str) and value.strip():
+                items.append(value.strip())
+        return _OrchestratorCore._unique_items(items)[:limit]
+
+    @staticmethod
+    def _intelligence_risks(
+        analysis: dict[str, Any],
+        report: dict[str, Any],
+        *,
+        limit: int,
+    ) -> list[str]:
+        items = _OrchestratorCore._intelligence_items(
+            analysis,
+            keys=("risks", "exploitable", "counter_moves"),
+            limit=limit * 4,
+        )
+        if isinstance(analysis.get("divergences"), list):
+            for divergence in analysis["divergences"]:
+                if isinstance(divergence, dict):
+                    note = divergence.get("note")
+                    if isinstance(note, str) and note.strip():
+                        items.append(note.strip())
+                elif isinstance(divergence, str) and divergence.strip():
+                    items.append(divergence.strip())
+        if not items:
+            summary = report.get("summary") or analysis.get("summary")
+            if isinstance(summary, str) and summary.strip():
+                items.append(summary.strip())
+        return _OrchestratorCore._unique_items(items)[:limit]
+
+    @staticmethod
+    def _unique_items(items: list[str]) -> list[str]:
+        unique: list[str] = []
+        seen: set[str] = set()
+        for item in items:
+            if item in seen:
+                continue
+            seen.add(item)
+            unique.append(item)
+        return unique
+
+    @staticmethod
+    def _bullet_lines(items: list[str]) -> list[str]:
+        if not items:
+            return ["- (none)"]
+        return [f"- {item}" for item in items]
 
     def _load_config(self, config_path: Path) -> dict[str, Any]:
         try:

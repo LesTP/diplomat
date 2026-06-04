@@ -413,3 +413,13 @@ Contract changes:
 - `tests/test_coached_game.py` - regression now asserts the initial event burst is dropped and only the post-drain command reaches the dispatcher
 
 Focused verification passed with `python3 -m pytest tests/test_coached_game.py -v` (`2 passed`).
+
+## 2026-06-04 — Phase 32 Step 32.5 — Trim `/intel` to the latest intelligence row
+
+Mode: Execute
+Outcome: Reworked `/intel` so the orchestrator now selects the newest intelligence row, prefers the primary report when multiple rows share a round, and emits a compact operator summary with faction, round, threat, top leverage points, and top risks instead of dumping every stored column. Added a focused test that seeds eight intelligence rows and proves the response stays short while still reflecting the latest primary report.
+Contract changes:
+- `src/orchestrator.py` - `_command_intel()` now selects the latest intelligence row and formats a compact summary; added row-selection and report extraction helpers
+- `tests/test_orchestrator.py` - added regression coverage for latest-round selection, primary preference, and compact output length
+
+Focused verification passed with `python3 -m pytest tests/test_orchestrator.py -v -k intel` (`3 passed, 52 deselected`).
