@@ -528,7 +528,7 @@ def test_advance_to_round_rejects_invalid_round(tmp_path):
         ("LLMGenerator", "LLMGenerator"),
         ("LLMAdversarialReader", "LLMAdversarialReader"),
         ("AutoApproveReviewGate", "AutoApproveReviewGate"),
-        ("TelegramReviewGate", "TelegramReviewGate"),
+        ("OperatorReviewGate", "OperatorReviewGate"),
         ("modules.analyst.divergence.compare", "compare"),
     ],
 )

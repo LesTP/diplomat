@@ -2,7 +2,7 @@
 phase: 31
 blocked: false
 state: execute
-steps_remaining: 4
+steps_remaining: 3
 ---
 
 # Diplomat — Development Plan
@@ -264,7 +264,7 @@ Pi re-test) is the natural follow-up after this phase ships.
 
   Verify with `python -m pytest tests/test_review_gate.py -v`.
 
-- [ ] **31.4 Wire `OperatorReviewGate` into the orchestrator factory + dispatcher routing.**
+- [x] **31.4 Wire `OperatorReviewGate` into the orchestrator factory + dispatcher routing.**
   Three coupled edits:
 
   (a) `src/registry.py:27` — add a new entry:

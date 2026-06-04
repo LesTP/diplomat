@@ -37,6 +37,7 @@ class FakeOrchestrator:
             "per_round_budget_usd": 1.0,
             "session_budget_usd": 10.0,
         }
+        self.review_gate = None
         self.calls = []
 
     async def start(self):
@@ -64,6 +65,16 @@ class FakeOrchestrator:
 
     async def _latest_intelligence(self):
         return {"primary": {"report": "ready"}}
+
+
+class FakeReviewGate:
+    def __init__(self, consumed: bool) -> None:
+        self.consumed = consumed
+        self.calls: list[str] = []
+
+    async def handle_command(self, command: str) -> bool:
+        self.calls.append(command)
+        return self.consumed
 
 
 def _event(content: str = "France proposes a split.") -> InboundEvent:
@@ -137,6 +148,42 @@ async def test_pipeline_operator_round_and_response_methods_delegate():
         ("round_boundary",),
         ("response", event),
     ]
+
+
+@pytest.mark.asyncio
+async def test_pipeline_dispatch_operator_consumed_review_command_skips_fallthrough():
+    orchestrator = FakeOrchestrator()
+    orchestrator.review_gate = FakeReviewGate(consumed=True)
+    pipeline = Pipeline(orchestrator)
+
+    await pipeline.dispatch_operator("/approve", "event-approve")
+
+    assert orchestrator.review_gate.calls == ["/approve"]
+    assert orchestrator.calls == []
+
+
+@pytest.mark.asyncio
+async def test_pipeline_dispatch_operator_unconsumed_review_command_falls_through():
+    orchestrator = FakeOrchestrator()
+    orchestrator.review_gate = FakeReviewGate(consumed=False)
+    pipeline = Pipeline(orchestrator)
+
+    await pipeline.dispatch_operator("/state", "event-state")
+
+    assert orchestrator.review_gate.calls == ["/state"]
+    assert orchestrator.calls == [("operator", "/state", "event-state")]
+
+
+@pytest.mark.asyncio
+async def test_pipeline_dispatch_operator_non_slash_content_skips_review_gate():
+    orchestrator = FakeOrchestrator()
+    orchestrator.review_gate = FakeReviewGate(consumed=True)
+    pipeline = Pipeline(orchestrator)
+
+    await pipeline.dispatch_operator("WATCH: Germany is quiet.", "event-watch")
+
+    assert orchestrator.review_gate.calls == []
+    assert orchestrator.calls == [("operator", "WATCH: Germany is quiet.", "event-watch")]
 
 
 @pytest.mark.asyncio

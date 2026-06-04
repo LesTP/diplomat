@@ -306,3 +306,17 @@ Contract changes:
 - `ARCH_review_gate.md` - lazy-fetch behavior is part of the review-gate contract and will be documented in the phase close update
 
 `/reasoning` and `/adversarial` now emit coaching-channel follow-up messages without clearing pending review state. The operator can request them multiple times before approving, and long reasoning text is chunked through the same transport path as the draft. No regressions surfaced in the existing approve/edit/block flow.
+
+### Step 31.4: Wire OperatorReviewGate into orchestrator and pipeline
+
+Mode: Execute
+Outcome: Wired `OperatorReviewGate` through the orchestrator factory, registry, and operator dispatcher, then verified the focused pipeline/orchestrator suite with `python -m pytest tests/test_pipeline.py tests/test_orchestrator.py -v` (62 passed).
+Contract changes:
+- `src/orchestrator.py` - `_build_modules()` now passes built modules into `_build_module()`, and the review-gate factory branch can construct `OperatorReviewGate` from the shared transport
+- `src/pipeline.py` - `dispatch_operator()` now offers slash commands to the review gate before falling through to the normal operator router
+- `src/registry.py` - `OperatorReviewGate` is now a registered class name
+- `tests/test_pipeline.py` - review-gate routing coverage for consumed, unconsumed, and non-slash operator input
+- `tests/test_orchestrator.py` - registry lookup now covers `OperatorReviewGate`
+- `ARCH_orchestrator.md` / `ARCH_review_gate.md` - wiring and dependency notes are now part of the pending architecture update
+
+The new gate is reachable through the normal module factory instead of requiring ad hoc injection. Slash commands can be intercepted by the gate when a review is pending, but ordinary operator text still falls through untouched.

@@ -57,6 +57,13 @@ class Pipeline:
     async def dispatch_operator(
         self, content: str, event_id: str = "operator-dispatch"
     ) -> None:
+        review_gate = getattr(self.orchestrator, "review_gate", None)
+        if review_gate is not None and content.strip().startswith("/"):
+            handle_command = getattr(review_gate, "handle_command", None)
+            if handle_command is not None:
+                consumed = await handle_command(content.strip())
+                if consumed:
+                    return
         event = SimpleNamespace(content=content)
         await self.orchestrator._route_operator_event(event, event_id)
 

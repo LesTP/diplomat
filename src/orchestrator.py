@@ -1039,6 +1039,7 @@ class _OrchestratorCore:
                 module_config[name],
                 llm_client=llm_client,
                 telegram_client=telegram_client,
+                built_modules=modules,
             )
         return modules
 
@@ -1049,6 +1050,7 @@ class _OrchestratorCore:
         *,
         llm_client: Any | None,
         telegram_client: Any | None,
+        built_modules: dict[str, Any],
     ) -> Any:
         class_name = config["class"]
         cls = resolve_class(class_name)
@@ -1126,6 +1128,16 @@ class _OrchestratorCore:
                 self.paths.adversarial_schema,
             )
         if name == "review_gate":
+            if class_name == "OperatorReviewGate":
+                transport = built_modules.get("transport")
+                if transport is None:
+                    raise PipelineConfigError(
+                        "OperatorReviewGate requires the transport module"
+                    )
+                return cls(
+                    transport,
+                    max_message_chars=int(config.get("max_message_chars", 4000)),
+                )
             if class_name == "TelegramReviewGate":
                 if telegram_client is None:
                     raise PipelineConfigError(
