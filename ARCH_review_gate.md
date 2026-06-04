@@ -36,7 +36,7 @@ class ReviewDecision:
 
 ## Implementations
 
-**OperatorReviewGate** — sends review messages through the pipeline's `Transport` instance (`channel="coaching"`). The draft section is pushed eagerly; reasoning and adversarial sections are lazy-fetched on operator request (D-40). Long messages are split into chunks capped at `max_message_chars` (default 4000, below TG's 4096 limit) with `[continued ...]` markers (D-43 rename from TelegramReviewGate).
+**OperatorReviewGate** — sends review messages through the pipeline's `Transport` instance (`channel="coaching"`). The draft section is pushed eagerly; reasoning and adversarial sections are lazy-fetched on operator request (D-40). Oversize messages are sent once and auto-chunked by the shared toolkit transport, so the review gate no longer owns message splitting. `max_message_chars` remains only as a config-compatibility knob (D-43 rename from TelegramReviewGate).
 
 Constructor:
 ```python
@@ -58,13 +58,6 @@ Message flow on `submit()`:
 
 **AutoApproveReviewGate** — used when `review_gate.enabled: false`. Immediately returns `ReviewDecision(action='approved', final_text=draft.response_text)`. No human interaction.
 
-## Chunking Contract
-
-`chunk_text(text, max_chars)` in `src/modules/review_gate/chunking.py`:
-- If `len(text) <= max_chars`, returns `[text]`.
-- Otherwise packs whole paragraphs (`\n\n` split), falling back to line split, then character split.
-- Every chunk after the first is prefixed with `CONTINUATION_PREFIX = "[continued ...]\n\n"`, which is reserved from the `max_chars` budget.
-
 ## Lazy Fetch Contract
 
 - Only the draft is sent eagerly on `submit()`.
@@ -76,9 +69,15 @@ Message flow on `submit()`:
 
 `Pipeline.dispatch_operator()` checks `review_gate.handle_command(content)` first on every slash command. If `handle_command` returns `True`, the command is consumed. If `False` (not a review command, or no pending review), the pipeline routes the command normally. The review gate never polls `get_next_update()` directly.
 
+## Flow Wiring Requirement (consumers other than EventDrivenFlow)
+
+`OperatorReviewGate` is a passive handler — it only resolves its pending future when *something else* calls `handle_command`. `EventDrivenFlow.process_event` provides that routing automatically by consuming `Transport.listen()` and dispatching `sender_faction == "operator"` events through `Pipeline.dispatch_operator`.
+
+**Any flow that does not run an inbound listen-loop (e.g. `RoundSteppedFlow`) MUST provide its own bridge** that funnels operator messages into `pipeline.dispatch_operator`. Without this, the gate hangs forever at the first review. The reference implementation is `CoachedGameEnvironment._listen_for_operator` (`tests/self_play/coached_game.py`) — it reuses the wrapped `TelegramBotTransport.listen()` iterator to pick up operator-tagged events and forwards them to the coached agent's pipeline. The bridge task is started in `setup()` and cancelled in `teardown()`. See D-44.
+
 ## Transport Dependency
 
-`OperatorReviewGate` takes a `transport` instance (the pipeline's already-built Transport module) and calls `transport.send(OutboundMessage(content=..., channel="coaching"))`. There is no direct `toolkit/telegram_client` import in the review gate. The orchestrator factory (`_build_module`) passes the already-built transport module when constructing `OperatorReviewGate` (requires `transport` to be built before `review_gate` in `REQUIRED_MODULES` — already the case).
+`OperatorReviewGate` takes a `transport` instance (the pipeline's already-built Transport module) and calls `transport.send(OutboundMessage(content=..., channel="coaching"))`. There is no direct `toolkit/telegram_client` import in the review gate. Oversize review text is now auto-chunked by the shared toolkit transport, so the gate only composes the full coaching message once. The orchestrator factory (`_build_module`) passes the already-built transport module when constructing `OperatorReviewGate` (requires `transport` to be built before `review_gate` in `REQUIRED_MODULES` — already the case).
 
 ## Inputs
 - GenerationResult from Generation module

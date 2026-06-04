@@ -286,3 +286,31 @@ Priority: Important
 Decision: All production code, tests, configs, and registry entries rename `TelegramReviewGate` to `OperatorReviewGate`. No back-compat shim or re-export.
 Rationale: There is only one in-tree consumer outside the production config (`coached_game.py`). Back-compat shims are anti-modular and would survive into future phases. The rename is the correct permanent signal that the gate is no longer Telegram-specific.
 Revisit if: An external consumer (outside this repo) depended on the old name — would need a shim there, not here.
+
+D-44: Coached-mode operator-input bridge
+Date: 2026-06-04 | Status: Closed
+Priority: Important
+Decision: `CoachedGameEnvironment` spawns a background `_listen_for_operator` task that consumes the wrapped `TelegramBotTransport.listen()` iterator and forwards operator-tagged events to the coached agent's `pipeline.dispatch_operator`. The task is cancelled in `teardown`.
+Rationale: Phase 31's `OperatorReviewGate` is a passive handler that relies on `Pipeline.dispatch_operator → review_gate.handle_command`. `EventDrivenFlow.process_event` provides that routing in production; `RoundSteppedFlow` does not, and `CoachedGameTransport` only consumes the local injected-event queue. Without a dedicated bridge, the coached game hangs at the first review prompt (observed live 2026-06-04 during Run 13 setup — operator typed /state, /status, /approve to no effect). Reusing `TelegramBotTransport.listen()` rather than re-implementing chat-id routing keeps the bridge minimal and consistent with the production path.
+Revisit if: A future `RoundSteppedFlow` consumer needs operator-input bridging too — promote `_listen_for_operator` to a flow-level helper or a generic `OperatorBridge` module rather than duplicating in each environment.
+
+D-45: No controlled re-test of Gemini coached-vs-uncoached defection
+Date: 2026-06-04 | Status: Closed
+Priority: Routine
+Decision: Do not run a second uncoached Gemini-flash Water Rights symmetric game to test whether Run 13's R3→R4 defection (γ pivoting from Heavy-Downstream to Shared) is reproducible vs Run 12b's clean Pareto deal on the same model + same BATNAs.
+Rationale: Operator 2026-06-04: `I do suspect that these differences are also stochastic and harness-related, not just a property of the model so don't want to pursue this right now.'' Two single-game data points cannot distinguish stochasticity from coached-pathway timing from generation.txt conciseness pressure. A meaningful answer would require N≥3 per condition (uncoached vs coached, with and without conciseness rewrite), which is an experiment, not a debug. Skip until a future Gemini run on this model shows a third defection or until coached-vs-uncoached deltas are themselves the experimental subject.
+Revisit if: A future Gemini run on Water Rights or similar shows another R3→R4 defection — at which point the pattern is worth characterizing systematically.
+
+D-46: Toolkit-level Telegram auto-chunking
+Date: 2026-06-04 | Status: Closed
+Priority: Important
+Decision: Move oversized Telegram message splitting out of Diplomat's review gate and into the shared toolkit transport. `TelegramClient.send_message` now auto-chunks oversize content, and `split_message` remains available for explicit chunking use cases.
+Rationale: Review-gate chunking duplicated transport concerns and encouraged callsites to own a Telegram-specific limit that belongs in the shared transport layer. Centralizing the behavior makes every consumer get the same 4096-char handling for free and removes a class of review-gate-only bugs.
+Revisit if: The shared toolkit transport changes its message-splitting contract or a downstream consumer needs custom chunk boundaries that differ from the toolkit default.
+
+D-47: Coached-game startup drain window
+Date: 2026-06-04 | Status: Closed
+Priority: Important
+Decision: `CoachedGameEnvironment._listen_for_operator` drains stale Telegram updates for one second on startup before it forwards operator-tagged commands into `pipeline.dispatch_operator`.
+Rationale: A previously killed coached session can leave stale `/approve`-style updates queued in Telegram. Draining the initial burst avoids poisoning the next round's first review prompt while preserving the normal forwarding path after the window expires.
+Revisit if: The Telegram update backlog behavior changes or a future flow needs a different drain duration / start-up policy.

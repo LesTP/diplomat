@@ -423,3 +423,7 @@ Contract changes:
 - `tests/test_orchestrator.py` - added regression coverage for latest-round selection, primary preference, and compact output length
 
 Focused verification passed with `python3 -m pytest tests/test_orchestrator.py -v -k intel` (`3 passed, 52 deselected`).
+
+## Phase 32 close (2026-06-04)
+
+Phase 32's worker slice is complete: shared toolkit now auto-chunks oversized Telegram sends, Diplomat's review gate sends one full coaching message per section, the coached-game listener drains stale startup updates before forwarding operator commands, and `/intel` reports only the latest round. Decisions D-46 and D-47 capture the two new cross-cutting behaviors. The remaining Phase 32 operator-only follow-up is the cross-project NEXT_STEPS notes in 32.7.
