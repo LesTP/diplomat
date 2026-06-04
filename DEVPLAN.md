@@ -2,7 +2,7 @@
 phase: 31
 blocked: false
 state: execute
-steps_remaining: 6
+steps_remaining: 5
 ---
 
 # Diplomat — Development Plan
@@ -166,7 +166,7 @@ Pi re-test) is the natural follow-up after this phase ships.
   preserves all original content (modulo continuation markers).
   Verify with `python -m pytest tests/test_review_gate_chunking.py -v`.
 
-- [ ] **31.2 Add `OperatorReviewGate` class (basic — approve/edit/block, no lazy fetch yet).**
+- [x] **31.2 Add `OperatorReviewGate` class (basic — approve/edit/block, no lazy fetch yet).**
   In `src/modules/review_gate/__init__.py`, add `OperatorReviewGate`
   alongside the existing `AutoApproveReviewGate` and `TelegramReviewGate`
   (do NOT delete `TelegramReviewGate` yet — it's removed in step 31.7

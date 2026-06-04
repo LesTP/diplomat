@@ -5,7 +5,13 @@ import asyncio
 import pytest
 
 from modules.generation import GenerationResult
-from modules.review_gate import AutoApproveReviewGate, ReviewDecision, TelegramReviewGate
+from modules.review_gate import (
+    AutoApproveReviewGate,
+    OperatorReviewGate,
+    ReviewDecision,
+    TelegramReviewGate,
+)
+from modules.review_gate.chunking import CONTINUATION_PREFIX
 
 
 def _draft(
@@ -69,6 +75,185 @@ async def test_auto_approve_blocks_blank_draft():
         final_text=None,
         edit_notes="Draft response was blank",
     )
+
+
+@pytest.mark.asyncio
+async def test_operator_review_gate_approve_decision():
+    transport = _FakeTransport()
+    gate = OperatorReviewGate(transport)
+
+    task = asyncio.create_task(gate.submit(_draft(), adversarial=None, round_number=4))
+    await asyncio.sleep(0)
+
+    assert len(transport.sent) == 1
+    assert transport.sent[0].channel == "coaching"
+    assert transport.sent[0].content.startswith("Review Gate - Round 4\n\nDraft:\n")
+    assert transport.sent[0].content.endswith(
+        "\n\nCommands: /approve | /edit: <text> | /block | /reasoning | /adversarial"
+    )
+
+    assert await gate.handle_command("/approve") is True
+    decision = await task
+
+    assert decision == ReviewDecision(
+        action="approved",
+        final_text="France, we can coordinate in Belgium.",
+        edit_notes=None,
+    )
+
+
+@pytest.mark.asyncio
+async def test_operator_review_gate_edit_legacy_decision():
+    transport = _FakeTransport()
+    gate = OperatorReviewGate(transport)
+
+    task = asyncio.create_task(gate.submit(_draft(), adversarial=None, round_number=4))
+    await asyncio.sleep(0)
+
+    assert await gate.handle_command("/edit Keep this softer.") is True
+    decision = await task
+
+    assert decision == ReviewDecision(
+        action="edited",
+        final_text="Keep this softer.",
+        edit_notes="Keep this softer.",
+    )
+
+
+@pytest.mark.asyncio
+async def test_operator_review_gate_block_decision():
+    transport = _FakeTransport()
+    gate = OperatorReviewGate(transport)
+
+    task = asyncio.create_task(gate.submit(_draft(), adversarial=None, round_number=4))
+    await asyncio.sleep(0)
+
+    assert await gate.handle_command("/block") is True
+    decision = await task
+
+    assert decision == ReviewDecision(
+        action="blocked",
+        final_text=None,
+        edit_notes=None,
+    )
+
+
+@pytest.mark.asyncio
+async def test_operator_review_gate_state_command_passthrough():
+    transport = _FakeTransport()
+    gate = OperatorReviewGate(transport)
+
+    task = asyncio.create_task(gate.submit(_draft(), adversarial=None, round_number=4))
+    await asyncio.sleep(0)
+
+    assert await gate.handle_command("/state") is False
+    assert not task.done()
+    assert len(transport.sent) == 1
+
+    assert await gate.handle_command("/approve") is True
+    decision = await task
+
+    assert decision.action == "approved"
+
+
+@pytest.mark.asyncio
+async def test_operator_review_gate_rejects_concurrent_submit():
+    transport = _FakeTransport()
+    gate = OperatorReviewGate(transport)
+
+    task = asyncio.create_task(gate.submit(_draft(), adversarial=None, round_number=4))
+    await asyncio.sleep(0)
+
+    with pytest.raises(RuntimeError, match="pending review"):
+        await gate.submit(_draft(), adversarial=None, round_number=4)
+
+    assert await gate.handle_command("/block") is True
+    await task
+
+
+@pytest.mark.asyncio
+async def test_operator_review_gate_handle_command_before_submit_returns_false():
+    gate = OperatorReviewGate(_FakeTransport())
+
+    assert await gate.handle_command("/approve") is False
+
+
+@pytest.mark.asyncio
+async def test_operator_review_gate_timeout_auto_blocks_and_logs():
+    state_manager = _FakeStateManager()
+    gate = OperatorReviewGate(
+        _NeverTransport(),
+        state_manager=state_manager,
+        timeout_seconds=0.05,
+    )
+
+    decision = await gate.submit(_draft(), adversarial=None, round_number=4)
+
+    assert decision == ReviewDecision(
+        action="blocked",
+        final_text=None,
+        edit_notes="Review timed out after 0.05 seconds",
+    )
+    assert state_manager.calls == [
+        {
+            "round_number": 4,
+            "decision": decision,
+            "draft_text": "  France, we can coordinate in Belgium.  ",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_operator_review_gate_chunks_large_draft_through_transport():
+    transport = _FakeTransport()
+    gate = OperatorReviewGate(transport, max_message_chars=180)
+    draft = _draft(
+        response_text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. " * 8,
+    )
+
+    task = asyncio.create_task(gate.submit(draft, adversarial=None, round_number=4))
+    await asyncio.sleep(0)
+
+    assert len(transport.sent) >= 2
+    assert all(message.channel == "coaching" for message in transport.sent)
+    assert transport.sent[0].content.startswith("Review Gate - Round 4\n\nDraft:\n")
+    assert all(
+        message.content.startswith(CONTINUATION_PREFIX)
+        for message in transport.sent[1:]
+    )
+    assert transport.sent[-1].content.endswith(
+        "\n\nCommands: /approve | /edit: <text> | /block | /reasoning | /adversarial"
+    )
+
+    assert await gate.handle_command("/approve") is True
+    decision = await task
+
+    assert decision.action == "approved"
+
+
+@pytest.mark.asyncio
+async def test_operator_review_gate_logs_decision_once():
+    state_manager = _FakeStateManager()
+    gate = OperatorReviewGate(_FakeTransport(), state_manager=state_manager)
+
+    task = asyncio.create_task(gate.submit(_draft(), adversarial=None, round_number=4))
+    await asyncio.sleep(0)
+
+    assert await gate.handle_command("/approve") is True
+    decision = await task
+
+    assert decision == ReviewDecision(
+        action="approved",
+        final_text="France, we can coordinate in Belgium.",
+        edit_notes=None,
+    )
+    assert state_manager.calls == [
+        {
+            "round_number": 4,
+            "decision": decision,
+            "draft_text": "  France, we can coordinate in Belgium.  ",
+        }
+    ]
 
 
 def test_review_decision_contract_fields():
@@ -312,3 +497,27 @@ class _FakeStateManager:
 
     async def log_review_decision(self, **kwargs) -> None:
         self.calls.append(kwargs)
+
+
+class _FakeTransport:
+    def __init__(self) -> None:
+        self.sent: list[object] = []
+
+    async def send(self, message) -> None:
+        self.sent.append(message)
+
+    async def listen(self):
+        if False:
+            yield None
+
+
+class _NeverTransport:
+    def __init__(self) -> None:
+        self.sent: list[object] = []
+
+    async def send(self, message) -> None:
+        self.sent.append(message)
+
+    async def listen(self):
+        if False:
+            yield None

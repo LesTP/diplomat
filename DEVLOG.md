@@ -284,3 +284,14 @@ Contract changes:
 - `ARCH_review_gate.md` - chunking behavior is now part of the review-gate contract and will be documented in the phase close update
 
 Added `chunk_text()` as a standalone helper so later review-gate work can chunk coaching-channel drafts without duplicating boundary logic. The helper preserves content while reserving room for continuation markers on follow-up chunks. No issues beyond tightening the initial test assertions to match the reserved-prefix budget.
+
+### Step 31.2: OperatorReviewGate basic lifecycle
+
+Mode: Execute
+Outcome: Added `OperatorReviewGate` with pending-review state, approve/edit/block command handling, transport-based coaching-channel sends, timeout support, and decision logging. Verified with `python -m pytest tests/test_review_gate.py -v` (24 passed).
+Contract changes:
+- `src/modules/review_gate/__init__.py` - new `OperatorReviewGate` public class alongside the existing Telegram gate
+- `tests/test_review_gate.py` - operator-gate lifecycle coverage, transport chunking, timeout, concurrent-submit guard, pass-through behavior, and logging
+- `ARCH_review_gate.md` - the public review-gate contract now includes a transport-routed operator path, to be documented in the phase close update
+
+The operator gate now routes review drafts through the shared `Transport` abstraction instead of reaching directly into `toolkit/telegram_client`. It preserves the existing approve/edit/block semantics and leaves `/reasoning` and `/adversarial` as pass-through placeholders for the next step. No blocking issues surfaced.
