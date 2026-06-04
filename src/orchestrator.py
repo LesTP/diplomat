@@ -1136,17 +1136,6 @@ class _OrchestratorCore:
                     transport,
                     max_message_chars=int(config.get("max_message_chars", 4000)),
                 )
-            if class_name == "TelegramReviewGate":
-                if telegram_client is None:
-                    raise PipelineConfigError(
-                        "Telegram review gate requires injected telegram_client"
-                    )
-                return cls(
-                    telegram_client,
-                    coaching_channel_id=self._env_value(
-                        self.config["transport"]["coaching_channel_id_env"]
-                    ),
-                )
             return cls()
         raise PipelineConfigError(f"Unsupported module name: {name}")
 

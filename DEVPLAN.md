@@ -2,7 +2,7 @@
 phase: 31
 blocked: false
 state: execute
-steps_remaining: 1
+steps_remaining: 3
 ---
 
 # Diplomat — Development Plan
@@ -397,7 +397,7 @@ Pi re-test) is the natural follow-up after this phase ships.
   and a full suite run `python -m pytest tests/ -v` to confirm no
   regressions.
 
-- [ ] **31.7 Remove `TelegramReviewGate` and clean up.**
+- [x] **31.7 Remove `TelegramReviewGate` and clean up.**
   - Delete the `TelegramReviewGate` class from
     `src/modules/review_gate/__init__.py`.
   - Remove `TelegramReviewGate` from `__all__`.

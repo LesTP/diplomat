@@ -25,7 +25,6 @@ REGISTRY: dict[str, str] = {
     "LLMAdversarialReader": "modules.adversarial:LLMAdversarialReader",
     "AutoApproveReviewGate": "modules.review_gate:AutoApproveReviewGate",
     "OperatorReviewGate": "modules.review_gate:OperatorReviewGate",
-    "TelegramReviewGate": "modules.review_gate:TelegramReviewGate",
     "modules.analyst.divergence.compare": "modules.analyst.divergence:compare",
 }
 

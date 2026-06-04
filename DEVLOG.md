@@ -346,3 +346,8 @@ Contract changes:
 - `ARCH_flow.md` / `ARCH_orchestrator.md` / `ARCH_review_gate.md` - flow scheduling and review-gate routing are part of the pending architecture update
 
 The integration file proved the new gate behaves correctly in the live event loop: the operator can approve, request state while a review is pending, chunked drafts stay within transport limits, and lazy adversarial fetches are delivered before approval closes the loop. The suite is clean after replacing the flaky WAL existence assertion with a journal-mode check.
+
+## 2026-06-04 — Phase 31 Step 31.7 — Remove TelegramReviewGate
+
+Mode: Execute
+Outcome: Deleted `TelegramReviewGate` from `src/modules/review_gate/__init__.py` (class body, `_get_update_value` private helper used only by it, and `__all__` entry). Removed registry entry from `src/registry.py`. Removed the `TelegramReviewGate` factory arm from `src/orchestrator.py`. Cleaned up `tests/test_review_gate.py` (removed import, 11 TelegramReviewGate test functions, and two test fakes `_FakeTelegramClient`/`_NeverUpdateTelegramClient` that were only used by those tests). All 370 tests pass. Remaining references in doc files (CLI_REFERENCE.md, diplomat-testing-doc.md, NEXT_STEPS.md, PROJECT.md, SMOKE_RUNBOOK.md) are handled in step 31.8.
