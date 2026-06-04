@@ -273,3 +273,14 @@ Contract changes:
 
 Mode: Review
 Outcome: OpenRouter integration review passed. No correctness or contract issues found in the provider path; verified the openrouter-focused toolkit tests with `python3 -m pytest ../toolkit/tests/llm_client/test_core.py -k openrouter -q` (6 passed). Ready for phase close.
+
+### Step 31.1: chunk_text helper + tests
+
+Mode: Execute
+Outcome: Completed the review-gate chunking helper and validated it with `python -m pytest tests/test_review_gate_chunking.py -v` (6 passed).
+Contract changes:
+- `src/modules/review_gate/chunking.py` - new `chunk_text()` helper with paragraph, line, and character fallback plus continuation-prefix handling
+- `tests/test_review_gate_chunking.py` - contract coverage for short text, paragraph splitting, line fallback, character fallback, continuation markers, and round-trip preservation
+- `ARCH_review_gate.md` - chunking behavior is now part of the review-gate contract and will be documented in the phase close update
+
+Added `chunk_text()` as a standalone helper so later review-gate work can chunk coaching-channel drafts without duplicating boundary logic. The helper preserves content while reserving room for continuation markers on follow-up chunks. No issues beyond tightening the initial test assertions to match the reserved-prefix budget.
