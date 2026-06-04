@@ -403,3 +403,13 @@ Contract changes:
 - `tests/test_review_gate_chunking.py` - deleted
 
 Focused verification passed with `python3 -m pytest tests/test_review_gate.py tests/integration/test_review_gate_flow.py -v` (`23 passed`). `python` was not available on PATH in this environment, so the test command used `python3` instead.
+
+## 2026-06-04 — Phase 32 Step 32.4 — Drain stale Telegram updates before operator forwarding
+
+Mode: Execute
+Outcome: Added a one-second startup drain window to `_listen_for_operator` so the coached-game listener discards stale Telegram updates before it starts forwarding operator commands into `pipeline.dispatch_operator`. The listener now logs how many stale events it absorbed once the window expires. Replaced the old forwarding regression with a startup-drain test that proves only the post-drain operator command is dispatched.
+Contract changes:
+- `tests/self_play/coached_game.py` - `_listen_for_operator()` now drains early events for one second and logs the stale-event count before forwarding resumes
+- `tests/test_coached_game.py` - regression now asserts the initial event burst is dropped and only the post-drain command reaches the dispatcher
+
+Focused verification passed with `python3 -m pytest tests/test_coached_game.py -v` (`2 passed`).

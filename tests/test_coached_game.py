@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 import pytest
@@ -107,3 +108,58 @@ async def test_coached_game_routes_one_faction_through_telegram_standin(tmp_path
         assert results["transcript"][-1]["content"] == "[ROUND END]"
     finally:
         await env.teardown()
+
+
+@pytest.mark.asyncio
+async def test_operator_listener_drains_pending_updates_on_startup(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+):
+    """Regression guard for the startup drain window in ``_listen_for_operator``.
+
+    The listener should discard the initial getUpdates burst from a stale
+    session, then forward only the post-drain operator command.
+    """
+
+    from types import SimpleNamespace
+
+    env = _build_environment(tmp_path)
+    caplog.set_level("INFO")
+
+    dispatched: list[str] = []
+
+    class _FakePipeline:
+        async def dispatch_operator(self, content: str) -> None:
+            dispatched.append(content)
+
+    class _FakeTGTransport:
+        def __init__(self) -> None:
+            self._events = [
+                SimpleNamespace(sender_faction="operator", content="/stale-1"),
+                SimpleNamespace(sender_faction="operator", content="/stale-2"),
+                SimpleNamespace(sender_faction="operator", content="/stale-3"),
+                SimpleNamespace(sender_faction="operator", content="/approve"),
+            ]
+
+        async def listen(self):
+            for event in self._events:
+                if event.content == "/approve":
+                    await asyncio.sleep(1.5)
+                yield event
+            # Then block forever so the listener stays alive until cancelled.
+            await asyncio.Event().wait()
+
+    tg_transport = _FakeTGTransport()
+    listener_task = asyncio.create_task(
+        env._listen_for_operator(tg_transport, _FakePipeline())
+    )
+    await asyncio.sleep(1.8)
+
+    listener_task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await listener_task
+
+    assert dispatched == ["/approve"]
+    assert any(
+        "listener drain window absorbed 3 stale events" in record.message
+        for record in caplog.records
+    )

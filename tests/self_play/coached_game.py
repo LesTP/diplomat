@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import contextlib
 import json
+import logging
 import os
 import sys
 import tempfile
@@ -35,21 +37,29 @@ _SELF_PLAY_PRIMARY: dict[str, Any] = {
 }
 
 
+logger = logging.getLogger(__name__)
+
+
 class CoachedGameTransport(TestTransport):
     """Self-play transport that forwards outbound messages to Telegram.
 
     The self-play harness still injects moderator and peer messages locally
     through ``inject()``. Outbound sends are mirrored to Telegram so the
     coached faction's public output is visible to the operator.
+
+    The wrapped ``telegram_transport`` is exposed publicly because
+    :class:`CoachedGameEnvironment` reuses it to drive a separate operator-input
+    listener task (operator slash commands typed into the coaching chat are
+    fed back into the coached pipeline via ``pipeline.dispatch_operator``).
     """
 
     def __init__(self, telegram_transport: TelegramBotTransport | None = None) -> None:
         super().__init__()
-        self._telegram_transport = telegram_transport
+        self.telegram_transport = telegram_transport
 
     async def send(self, message) -> None:
-        if self._telegram_transport is not None:
-            await self._telegram_transport.send(message)
+        if self.telegram_transport is not None:
+            await self.telegram_transport.send(message)
         await super().send(message)
 
 
@@ -120,6 +130,7 @@ class CoachedGameEnvironment(GameEnvironment):
         self.public_channel_id = public_channel_id
         self.coaching_channel_id = coaching_channel_id
         self.operator_user_ids = operator_user_ids
+        self._operator_listener_task: asyncio.Task[None] | None = None
 
     async def setup(self) -> None:
         for faction_id, persona_path in self.faction_personas.items():
@@ -171,6 +182,78 @@ class CoachedGameEnvironment(GameEnvironment):
             moderator=self,
             total_rounds=0,
         )
+
+        # Spawn an operator-input listener for the coached faction. Phase 31
+        # made ``OperatorReviewGate`` a passive handler that relies on the
+        # dispatcher to invoke ``handle_command``; production wiring routes
+        # operator events through ``EventDrivenFlow.process_event`` →
+        # ``Pipeline.dispatch_operator``. ``RoundSteppedFlow`` does not have
+        # that loop, and ``CoachedGameTransport`` does not consume the wrapped
+        # TG transport's inbound queue. Without this listener, the operator's
+        # ``/approve`` etc. would never reach the gate and the game would hang.
+        coached_handle = self.agents.get(self.coach_faction)
+        if coached_handle is not None and isinstance(
+            coached_handle.transport, CoachedGameTransport
+        ):
+            tg_transport = coached_handle.transport.telegram_transport
+            if tg_transport is not None:
+                self._operator_listener_task = asyncio.create_task(
+                    self._listen_for_operator(
+                        tg_transport,
+                        coached_handle.orchestrator.pipeline,
+                    )
+                )
+
+    async def _listen_for_operator(
+        self,
+        tg_transport: Any,
+        pipeline: Any,
+    ) -> None:
+        """Forward operator messages from Telegram into the coached pipeline.
+
+        Reuses the wrapped ``TelegramBotTransport.listen()`` iterator, which
+        already handles polling startup, chat-id → channel routing, and
+        operator-faction tagging. Only events tagged ``sender_faction='operator'``
+        are dispatched. Dispatch failures are swallowed so the listener stays
+        alive for subsequent commands.
+        """
+        loop = asyncio.get_running_loop()
+        drain_until = loop.time() + 1.0
+        draining = True
+        drained = 0
+        try:
+            async for event in tg_transport.listen():
+                if draining and loop.time() < drain_until:
+                    drained += 1
+                    continue
+                if draining:
+                    logger.info(
+                        "listener drain window absorbed %d stale events", drained
+                    )
+                    draining = False
+                if getattr(event, "sender_faction", None) != "operator":
+                    continue
+                content = getattr(event, "content", None)
+                if not content:
+                    continue
+                try:
+                    await pipeline.dispatch_operator(content)
+                except Exception:
+                    # don't let a bad command kill the listener
+                    pass
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            # listener cannot recover; let the game finish on its own terms
+            return
+
+    async def teardown(self) -> None:
+        if self._operator_listener_task is not None:
+            self._operator_listener_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._operator_listener_task
+            self._operator_listener_task = None
+        await super().teardown()
 
     def _build_coached_transport(self) -> CoachedGameTransport:
         if self.dry_run:
