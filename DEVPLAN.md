@@ -1,7 +1,7 @@
 ---
 phase: 32
-blocked: false
-state: review
+blocked: true
+state: close
 steps_remaining: 0
 ---
 
@@ -53,9 +53,9 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 32 all worker steps complete (32.3–32.6 committed). Awaiting phase review.
-- **Focus** — All 7 steps done: toolkit auto-chunking (32.1+32.2), review-gate single-send refactor (32.3), coached-game startup drain (32.4), `/intel` trim to latest round (32.5), doc updates + D-46/D-47 (32.6), cross-project notes skipped per operator (32.7).
-- **Blocked/Broken** — None. Ready for REVIEW.
+- **Phase** — Phase 32 closed 2026-06-04. See `DEVLOG.md` "Phase 32 close".
+- **Focus** — Awaiting operator dispatch for the next phase.
+- **Blocked/Broken** — `blocked: true` terminal close state; no open worker tasks.
 
 <!-- Phase ordering convention:
        - Open / queued phases first, in forward execution order (next-to-do first).
