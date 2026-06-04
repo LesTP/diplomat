@@ -1,7 +1,7 @@
 ---
-phase: 31
-blocked: true
-state: close
+phase: 32
+blocked: false
+state: review
 steps_remaining: 0
 ---
 
@@ -53,9 +53,9 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 31 complete (awaiting human audit). Phase 32 not yet planned.
-- **Focus** — Phase 31 shipped `OperatorReviewGate` (transport-routed, chunked, lazy-fetch, command pass-through). Closed NEXT_STEPS §4a/b/c. §4d (Pi re-test) remains open. See DEVLOG.md "Phase 31 Close".
-- **Blocked/Broken** — Awaiting human audit of Phase 31 before planning Phase 32.
+- **Phase** — Phase 32 all worker steps complete (32.3–32.6 committed). Awaiting phase review.
+- **Focus** — All 7 steps done: toolkit auto-chunking (32.1+32.2), review-gate single-send refactor (32.3), coached-game startup drain (32.4), `/intel` trim to latest round (32.5), doc updates + D-46/D-47 (32.6), cross-project notes skipped per operator (32.7).
+- **Blocked/Broken** — None. Ready for REVIEW.
 
 <!-- Phase ordering convention:
        - Open / queued phases first, in forward execution order (next-to-do first).
@@ -65,407 +65,106 @@ steps_remaining: 0
      This puts the active work at the top and the "recent past" right under it,
      with deep history at the bottom. -->
 
-## Phase 31: Transport-routed OperatorReviewGate (chunking + lazy fetch + command pass-through)
+## Phase 32: Toolkit-level TG chunking + Diplomat cleanup + queue-drain + /intel trim
 
-**Goal:** Replace `TelegramReviewGate` with a transport-agnostic
-`OperatorReviewGate` that (a) sends review messages through the existing
-`Transport` abstraction (no direct `toolkit/telegram_client` dependency),
-(b) splits messages over a configurable max-char limit with `[continued]`
-markers so TG's 4096-char limit no longer drops drafts in later rounds,
-(c) lazy-loads `Reasoning` and `Adversarial` sections via `/reasoning`
-and `/adversarial` commands instead of pushing them eagerly, and
-(d) forwards non-review slash commands to the normal operator dispatcher
-so `/state`, `/intel`, `/ledger`, `/status`, `/divergences` work during
-a pending review. The review gate stops polling `get_next_update()`
-directly — it becomes a passive handler invoked by the dispatcher.
-Closes NEXT_STEPS §4a/b/c. **Work regime:** Build.
+**Goal:** Push Telegram message chunking down to `toolkit/telegram_client.TelegramClient.send_message` so every TG send across every consumer auto-splits at the 4096-char limit with `[continued ...]` markers — eliminating the entire bug class where individual callsites forget to chunk. With that universal floor in place, drop Diplomat's local `chunk_text` helper from `OperatorReviewGate`, drain stale TG-queue updates on `_listen_for_operator` startup (R1 staleness fix from Run 13 post-mortem), and trim `/intel` output to the latest round so it isn't dumping 30 KB of analyst history every query. Sister projects (Phosphene, Codexbot) inherit the auto-chunking for free when/if they adopt the shared toolkit; today they do nothing. **Work regime:** Build.
 
-**Why now:** The 2026-06-03 first coached game on Pi confirmed the loop
-works end-to-end but surfaced 4 product-loop-breaking issues (TG char
-limit, no commands during review, verbose generation, transcript
-visibility). 4c (generation conciseness) shipped 2026-06-04 as a prompt
-change; 4a/b/c live here as a structural refactor. 4d (operator-driven
-Pi re-test) is the natural follow-up after this phase ships.
+**Why now:** Run 13 surfaced two related issues. (1) `/intel` was silently dropped because the response exceeded 4096 chars and `transport.send` doesn't chunk command responses — Phase 31 only fixed chunking for the review-gate path. The bug class is "any TG send anywhere that exceeds 4096 silently fails." (2) The first coached game's R1 was poisoned by a stale `/approve` from the previously-killed Phase-31-bug session — the listener consumed all backed-up updates on first poll. Operator-confirmed 2026-06-04. Both are small, both compound, both worth fixing in one phase.
+
+**Cross-project notes (read before starting):**
+- **Toolkit** lives at `p:\shared\toolkit` (Diplomat's vendored editable install per the `toolkit` rule). Steps 32.1 + 32.2 modify shared toolkit code — they are **OPERATOR-DRIVEN** and outside the autonomous worker's project-directory contract.
+- **Codexbot** has its **own vendored copy** of toolkit at `p:\shared\codexbot\toolkit\telegram_client.py` — independent of the shared one. Shared-toolkit changes do not propagate to Codexbot until it drops the vendored copy. Codexbot uses `send_message` return values for `working_message_id` / `edit_message` streaming (lines 991, 1193, 1469-1484 of `codexbot/main.py`), but those messages are short status indicators (~20 chars), never near the limit. When Codexbot eventually adopts shared toolkit, auto-chunking is a free win.
+- **Phosphene** has no current TG callsites in `src/` — nothing to break.
+- Step 32.7 adds tech-debt notes to Phosphene's and Codexbot's `NEXT_STEPS.md` — also operator-driven (cross-project).
+- D-46 (toolkit-level chunking) is the architectural decision behind 32.1 + 32.2.
 
 **Key infrastructure (read before starting):**
-- `src/modules/review_gate/__init__.py` — current `TelegramReviewGate`
-  (lines 47–216). Polls `telegram_client.get_next_update()` directly,
-  formats a single message with draft + reasoning + adversarial + commands.
-  This whole class is replaced; `AutoApproveReviewGate` and
-  `ReviewDecision` stay.
-- `src/modules/transport/__init__.py` — `Transport` interface and
-  `TelegramBotTransport` impl. `send(OutboundMessage(channel="coaching"))`
-  already routes to the coaching channel ID — the new gate uses this.
-- `src/pipeline.py:57–61` — `dispatch_operator(content, event_id)`. Phase
-  31 inserts a `review_gate.handle_command(content)` check before the
-  fallthrough to `_route_operator_event`. The dispatcher consults the gate
-  first; if the gate returns `True`, the command is consumed.
-- `src/orchestrator.py:407` — existing example of
-  `await self.transport.send(OutboundMessage(content=content, channel="coaching"))`
-  — the OperatorReviewGate uses the same pattern for sending sections.
-- `src/orchestrator.py:1024–1093` — `_build_modules` / `_build_module`.
-  Modules are built sequentially per `REQUIRED_MODULES`. Review gate is
-  built *after* transport, so the factory branch can pass the
-  already-built `transport` module — but `_build_module` does not
-  currently receive the in-progress modules dict. Step 31.4 adds that
-  plumbing.
-- `src/orchestrator.py:1128–1140` — current `review_gate` factory branch
-  (constructs `TelegramReviewGate(telegram_client, ...)`). Replaced by
-  `OperatorReviewGate(transport, ...)`.
-- `src/registry.py:27` — class-name → import path map. Replace
-  `TelegramReviewGate` entry with `OperatorReviewGate`.
-- `config/pipeline.yaml:64–66` and `config/pipeline_smoke.yaml` —
-  `modules.review_gate.class` config. Rename references.
-- `tests/self_play/coached_game.py:22, 56, 175–177` —
-  `TelegramReviewGate` import and `DryRunTelegramReviewGate` shim used
-  via `module_overrides`. Rename to `OperatorReviewGate` /
-  `DryRunOperatorReviewGate`.
-- `tests/test_review_gate.py`, `tests/test_coached_game.py`,
-  `tests/test_orchestrator.py:531` — references that move to the new
-  names + the new transport-based fakes.
-- `tests/integration/` — existing integration tests with fake transports;
-  pattern to follow for the new integration coverage in step 31.6.
-- `tools/state_machine.sh` — autonomous loop control. Do not modify.
-- `WORKER_SPEC.md` — loop discipline (single call per iteration, trust
-  the script). Follow strictly.
+- `p:\shared\toolkit\src\toolkit\telegram_client\client.py:259-277` — current `send_message` implementation. Single API call, no length check.
+- `p:\shared\toolkit\src\toolkit\telegram_client\client.py:300-321` — `send_with_keyboard` returns a `SendResult` with one message_id; the keyboard variant won't be chunked (chunking + keyboard is messy — only the last chunk would get the keyboard).
+- `p:\shared\diplomat\src\modules\review_gate\chunking.py` — current `chunk_text` helper to be relocated. Algorithm: paragraph → line → char fallback split with `[continued ...]` prefix on chunks ≥ 2.
+- `p:\shared\diplomat\src\modules\review_gate\__init__.py:173-216` — `OperatorReviewGate._send_draft` and `_send_section`. Currently chunk before sending; after 32.3 they just compose the message and call `transport.send` once.
+- `p:\shared\diplomat\tests\self_play\coached_game.py` — `_listen_for_operator` (added Phase 31a). Step 32.4 drains pending TG updates before forwarding.
+- `p:\shared\diplomat\src\orchestrator.py:350-352` — `_command_intel` dumps every intelligence row. Step 32.5 trims to latest round only.
 
-**Decisions baked into this phase (operator-confirmed 2026-06-04):**
-- D-39: Buttons are NOT in scope. Toolkit `telegram_client` does not
-  surface `callback_query` updates; building that is a separate project.
-  Text commands (`/approve`, `/edit:`, `/block`, `/reasoning`,
-  `/adversarial`) cover the same UX surface at far lower cost.
-- D-40: Lazy fetch for `Reasoning` and `Adversarial`. Only the draft is
-  pushed eagerly. Operator types `/reasoning` or `/adversarial` to
-  fetch deeper context. Reduces noise on routine approvals.
-- D-41: Concurrent `submit()` is rejected with `RuntimeError`. Current
-  pipeline never concurrent-submits per agent; if that changes later,
-  upgrade the single-slot pending state to a keyed dict.
-- D-42: Chunk-mid-send failure aborts the review with
-  `ReviewDecision(action="blocked", edit_notes="transport error: <e>")`
-  and re-raises after logging. Transport already handles retries on
-  individual sends; if it still fails, the review session collapses
-  cleanly rather than silently leaving partial messages.
-- D-43: Hard rename of `TelegramReviewGate` → `OperatorReviewGate`
-  everywhere. No back-compat shim — anti-modular and there's only one
-  in-tree consumer outside the production config (coached_game.py).
+**Operator dispatch protocol:**
+1. Operator manually completes 32.1 + 32.2 (shared toolkit changes + unit tests).
+2. Operator marks 32.1 + 32.2 as `[x]` in DEVPLAN.
+3. Operator sets `blocked: false` in frontmatter.
+4. Operator dispatches the autonomous worker. Worker picks up at 32.3.
+5. After worker closes 32.6, operator handles 32.7 (cross-project doc notes) and any optional Pi smoke.
 
 ### Steps
 
-- [x] **31.1 Add `chunk_text` helper + unit tests.**
-  Create a free function `chunk_text(text: str, max_chars: int) -> list[str]`
-  in `src/modules/review_gate/chunking.py` (new file). Algorithm:
-  if `len(text) <= max_chars`, return `[text]`. Otherwise greedily pack
-  paragraphs (split on `\n\n`); if a paragraph alone exceeds `max_chars`,
-  fall back to line split (`\n`); if a line alone still exceeds, fall
-  back to character chunks. Every chunk after the first is prefixed
-  with `"[continued ...]\n\n"`. Reserve room for the prefix in the
-  `max_chars` budget (e.g. `effective_max = max_chars - len(prefix)`).
-  Add `tests/test_review_gate_chunking.py` with cases: short text returns
-  single chunk; paragraph split; line-fallback split; character-fallback
-  split; continuation markers present on all chunks ≥ 2; reassembly
-  preserves all original content (modulo continuation markers).
-  Verify with `python -m pytest tests/test_review_gate_chunking.py -v`.
+- [x] **32.1 OPERATOR — Move `chunk_text` to toolkit as `split_message` and add unit tests.**
+  **Shipped 2026-06-04.** Spec deviation flagged at start: `split_message` + `TELEGRAM_MESSAGE_LIMIT` already existed in `toolkit/telegram_client/formatting.py` (Codexbot-style line-only algorithm, **zero callers in toolkit/diplomat/phosphene**, zero tests). Upgraded in place rather than creating a parallel helper — preserves the public API (`from toolkit.telegram_client import split_message, CONTINUATION_PREFIX, TELEGRAM_MESSAGE_LIMIT`). Algorithm replaced with Diplomat's paragraph-first + line + char fallback; `CONTINUATION_PREFIX = "[continued ...]\n\n"` added and exported from package; 17 unit tests in `tests/telegram_client/test_chunking.py` covering short/exact/empty/defaults/paragraph-pref/line-fallback/char-fallback/marker-placement/reassembly/validation. Codexbot's eventual migration is a drop-in import swap with two upgrades inherited automatically (paragraph-first, markers).
 
-- [x] **31.2 Add `OperatorReviewGate` class (basic — approve/edit/block, no lazy fetch yet).**
-  In `src/modules/review_gate/__init__.py`, add `OperatorReviewGate`
-  alongside the existing `AutoApproveReviewGate` and `TelegramReviewGate`
-  (do NOT delete `TelegramReviewGate` yet — it's removed in step 31.7
-  once the migration is verified). Signature:
-  ```python
-  class OperatorReviewGate:
-      def __init__(
-          self,
-          transport: Any,                       # has .send(OutboundMessage)
-          *,
-          max_message_chars: int = 4000,       # reserve below TG's 4096 limit
-          state_manager: Any | None = None,
-          timeout_seconds: float | None = None,
-      ) -> None: ...
+- [x] **32.2 OPERATOR — Add auto-chunking to `TelegramClient.send_message` (using `split_message`).**
+  **Shipped 2026-06-04.** `client.py:send_message` now branches on `len(text) <= TELEGRAM_MESSAGE_LIMIT`: ≤ limit → single API call (unchanged behavior); > limit → `split_message(text)` + N serial `sendMessage` calls, `reply_to` applied only to chunk 1 (continuations are not replies), `parse_mode` applied to every chunk, INFO log records chunk count + total chars, returns the LAST message_id (preserves `int` return type for backward compatibility). Added internal `_validate_text_type` (type-only) used by `send_message` while `_validate_message_text` (strict 4096) is retained for `edit_message` and `send_with_keyboard` (those don't auto-chunk — chunking + keyboard is messy, editing is single-message-at-a-time). 12 unit tests in `tests/telegram_client/test_send_message_chunking.py`. Docs updated: `ARCH_telegram_client.md` (auto-chunking subsection + send_message + split_message + CONTINUATION_PREFIX entries), `README.md` (quick-start + public API table), `TOOLKIT_REFERENCE.md` (helper description + example).
 
-      async def submit(
-          self,
-          draft: GenerationResult,
-          adversarial: Any,
-          round_number: int,
-      ) -> ReviewDecision: ...
+- [x] **32.3 LOOP — Drop Diplomat's local chunking from `OperatorReviewGate`.**
+  Delete `src/modules/review_gate/chunking.py`. In `src/modules/review_gate/__init__.py`:
+  - Remove the `chunk_text` / `CONTINUATION_PREFIX` import.
+  - Rewrite `_send_draft` to compose the single message: `header + draft_text + commands_hint`, then ONE `transport.send(OutboundMessage(content=full, channel="coaching"))` call. Toolkit handles the split automatically. No `max_message_chars` param needed (it becomes vestigial — leave it for now with a deprecation note in the docstring, or remove it; removal is cleaner).
+  - Rewrite `_send_section` similarly: single `f"{title}{body}"` send.
+  - Delete `tests/test_review_gate_chunking.py` (chunking now lives in toolkit's test suite).
+  - Update existing `tests/test_review_gate.py` chunking-related cases:
+    - `test_operator_review_gate_chunks_large_draft_through_transport` → either retire OR rewrite to assert that the fake transport saw `len(content) > 4096` in the single send (responsibility moved to toolkit).
+    - `test_operator_review_gate_chunks_large_reasoning_through_transport` → same treatment.
+  - Verify with `python -m pytest tests/test_review_gate.py tests/integration/test_review_gate_flow.py -v`.
 
-      async def handle_command(self, command: str) -> bool: ...
-  ```
-  `submit()`:
-  - raises `RuntimeError("OperatorReviewGate has a pending review")` if
-    `self._pending` is not None (D-41).
-  - stores `self._pending = (draft, adversarial, round_number,
-    asyncio.get_event_loop().create_future())`.
-  - sends the draft section via transport (chunked through `chunk_text`).
-    Format the first chunk's header as `"Review Gate - Round {N}\n\nDraft:\n{text}"`.
-    Append the commands hint as a trailing line on the **last** draft
-    chunk: `"\n\nCommands: /approve | /edit: <text> | /block | /reasoning | /adversarial"`.
-  - awaits the future (with `asyncio.wait_for` if `timeout_seconds` is set;
-    on timeout return `ReviewDecision("blocked", None, f"Review timed out after {N} seconds")`).
-  - on any transport error during the eager send, abort with
-    `ReviewDecision("blocked", None, f"transport error: {exc}")` (D-42),
-    clear `_pending`, log via `state_manager.log_review_decision` if
-    present, then re-raise after logging — caller must surface the failure.
-  - logs the decision via `state_manager.log_review_decision` mirroring
-    `TelegramReviewGate._log_decision`.
-  - clears `_pending` in a `finally` block.
+- [x] **32.4 LOOP — Queue-drain on `_listen_for_operator` startup.**
+  In `tests/self_play/coached_game.py`, modify `_listen_for_operator`:
+  - Before entering the forward loop, capture a `drain_until = loop.time() + 1.0` (one-second drain window — empirically enough to absorb the initial `getUpdates` dump from an abnormally-terminated previous session).
+  - While `loop.time() < drain_until`, consume events from `tg_transport.listen()` but discard them silently (don't forward to `dispatch_operator`). Log `logger.info("listener drain window absorbed %d stale events", count)`.
+  - After the drain window, switch to normal forwarding behavior.
+  - Add a regression test: scripted fake TG transport that yields 3 events immediately + 1 event after a `await asyncio.sleep(1.5)`. Assert that only the post-drain event reaches `dispatch_operator`.
+  - Verify with `python -m pytest tests/test_coached_game.py -v`.
 
-  `handle_command(command)`:
-  - returns `False` immediately if `self._pending is None` (caller falls
-    through to the normal dispatcher).
-  - returns `True` (consumed) for `/approve`, `/edit:`, `/edit ` (legacy),
-    `/block` — resolves the pending future with the appropriate
-    `ReviewDecision`. Mirrors the existing `_parse_command` logic.
-  - returns `True` for `/reasoning` and `/adversarial` but only after
-    sending the section through transport (chunked). Lazy fetch added in
-    step 31.3 — for this step, stub these as `return False` with a
-    `# TODO 31.3` comment.
-  - returns `False` for any other text (the dispatcher then routes it).
+- [x] **32.5 LOOP — Trim `/intel` output to latest round.**
+  In `src/orchestrator.py` `_command_intel`:
+  - Keep only the latest intelligence row (by `created_at` or `round_number`, whichever the schema uses). If multiple rows for the same round (primary + secondary), prefer primary unless asked otherwise.
+  - Format as a compact summary: faction, round, threat level, top 3 leverage points, top 3 risks (read from `analysis_json`), not the raw `json.dumps(rows)` of every column.
+  - The pre-trim full-history behavior can be exposed as `/intel-history` if desired (defer — wait for operator demand).
+  - Add a unit test: `_command_intel` returns a string < 2000 chars when there are 8 intelligence rows in the DB.
+  - Verify with `python -m pytest tests/test_orchestrator.py -v -k intel`.
 
-  Add a `FakeTransport` helper in `tests/test_review_gate.py` that records
-  `OutboundMessage`s. Add `OperatorReviewGate` tests:
-  - submit + handle_command("/approve") → `approved` with stripped draft.
-  - submit + handle_command("/edit: foo") → `edited` with "foo".
-  - submit + handle_command("/edit foo") (legacy form) works.
-  - submit + handle_command("/block") → `blocked`.
-  - submit + handle_command("/state") → returns `False`, review stays pending.
-  - submit twice without resolving the first → `RuntimeError`.
-  - handle_command before any submit → returns `False`.
-  - submit with `timeout_seconds=0.05` and no command → `blocked`/timeout.
-  - submit with a draft > `max_message_chars` → `transport.sent` contains
-    multiple OutboundMessages, all to coaching channel, last one ends
-    with the commands hint.
-  - State manager log path: a fake `state_manager` with
-    `log_review_decision` is called once per decision.
+- [x] **32.6 LOOP — Diplomat doc updates.**
+  - `ARCH_review_gate.md`: remove the "Chunking Contract" section (now owned by toolkit). Add a one-line note pointing readers to toolkit's `send_message` auto-chunk contract for the underlying behavior.
+  - `ARCHITECTURE.md` coupling notes: update Review Gate ↔ Transport bullet to reflect that chunking is no longer a review-gate concern.
+  - `DECISIONS.md`: add D-46 (toolkit-level chunking) and D-47 (queue-drain on listener startup) entries.
+  - `NEXT_STEPS.md`: close the `/intel silent` open item with reference to Phase 32.5; close the R1-startup-race open item with reference to Phase 32.4.
+  - `DEVLOG.md`: append a `## Phase 32 close (YYYY-MM-DD)` entry.
+  - No `README.md` or `PROJECT.md` changes expected.
 
-  Verify with `python -m pytest tests/test_review_gate.py -v`.
-
-- [x] **31.3 Add lazy fetch (`/reasoning`, `/adversarial`) to `OperatorReviewGate`.**
-  Replace the `# TODO 31.3` stubs from step 31.2 with real handlers:
-  - `/reasoning` → if `draft.reasoning` is set, send
-    `"Reasoning:\n{draft.reasoning}"` chunked through transport; if not
-    set, send `"Reasoning: [not available]"`. Return `True`. `_pending`
-    stays.
-  - `/adversarial` → format adversarial via a helper mirroring the
-    existing `_format_adversarial` (handle dict, object, str, None,
-    success=False cases). Send chunked. Return `True`.
-
-  Add tests in `tests/test_review_gate.py`:
-  - submit + /reasoning + /approve → two messages sent (draft + reasoning),
-    then `approved`.
-  - submit + /adversarial + /approve → two messages sent (draft +
-    adversarial), then `approved`.
-  - submit + /reasoning when reasoning is None → sends `[not available]`.
-  - submit + /adversarial when adversarial is None → sends a
-    `"Skipped or unavailable."` line.
-  - submit + /reasoning + /reasoning → two extra messages (idempotent
-    fetch — operator can re-request).
-  - submit with a large reasoning string → reasoning message is chunked.
-
-  Verify with `python -m pytest tests/test_review_gate.py -v`.
-
-- [x] **31.4 Wire `OperatorReviewGate` into the orchestrator factory + dispatcher routing.**
-  Three coupled edits:
-
-  (a) `src/registry.py:27` — add a new entry:
-  `"OperatorReviewGate": "modules.review_gate:OperatorReviewGate"`.
-  Leave the `TelegramReviewGate` entry in place until step 31.7.
-
-  (b) `src/orchestrator.py:1024–1141` — make the previously-built
-  `transport` accessible in the `review_gate` factory branch. Easiest
-  surgical change: change `_build_modules` to pass the in-progress
-  `modules` dict into `_build_module`, and have the `review_gate` branch
-  read `modules.get("transport")`. Concretely:
-  ```python
-  def _build_modules(self, *, module_overrides, llm_client, telegram_client):
-      modules: dict[str, Any] = {}
-      module_config = self.config["modules"]
-      for name in REQUIRED_MODULES:
-          if name in module_overrides:
-              modules[name] = module_overrides[name]
-              continue
-          modules[name] = self._build_module(
-              name,
-              module_config[name],
-              llm_client=llm_client,
-              telegram_client=telegram_client,
-              built_modules=modules,        # NEW
-          )
-      return modules
-  ```
-  Update `_build_module` to accept `built_modules: dict[str, Any]`. In
-  the `review_gate` branch, add an `OperatorReviewGate` arm:
-  ```python
-  if name == "review_gate":
-      if class_name == "OperatorReviewGate":
-          transport = built_modules.get("transport")
-          if transport is None:
-              raise PipelineConfigError(
-                  "OperatorReviewGate requires the transport module"
-              )
-          return cls(
-              transport,
-              max_message_chars=int(config.get("max_message_chars", 4000)),
-          )
-      if class_name == "TelegramReviewGate":
-          # legacy path — preserved through step 31.6
-          ...
-      return cls()
-  ```
-  Ensure `REQUIRED_MODULES` orders `transport` before `review_gate`
-  (it already does — verify but no change expected).
-
-  (c) `src/pipeline.py:57–61` — insert review-gate command dispatch:
-  ```python
-  async def dispatch_operator(self, content, event_id="operator-dispatch"):
-      review_gate = getattr(self.orchestrator, "review_gate", None)
-      if review_gate is not None and content.strip().startswith("/"):
-          handle = getattr(review_gate, "handle_command", None)
-          if handle is not None:
-              consumed = await handle(content.strip())
-              if consumed:
-                  return
-      event = SimpleNamespace(content=content)
-      await self.orchestrator._route_operator_event(event, event_id)
-  ```
-  This routes /approve, /edit, /block, /reasoning, /adversarial to the
-  gate while it has pending state; everything else (including the same
-  slash commands when no review is pending) falls through. The dispatcher
-  is the single entry point — no second consumer of telegram updates.
-
-  Add a small unit test in `tests/test_pipeline.py` that exercises:
-  - Pipeline.dispatch_operator with a fake orchestrator + fake review gate
-    where handle_command returns True → underlying `_route_operator_event`
-    is NOT called.
-  - Same with handle_command returning False → `_route_operator_event`
-    IS called.
-  - Pipeline.dispatch_operator with non-slash content → review gate NOT
-    consulted; `_route_operator_event` called.
-
-  Verify with `python -m pytest tests/test_pipeline.py tests/test_orchestrator.py -v`.
-
-- [x] **31.5 Flip configs and harness to `OperatorReviewGate`.**
-  Five files:
-  - `config/pipeline.yaml:65–66` — update the comment from
-    `"For Telegram human review, change to: TelegramReviewGate"` to
-    `"For human review via the operator coaching channel, change to: OperatorReviewGate"`.
-  - `config/pipeline_smoke.yaml` — if it references `TelegramReviewGate`,
-    flip to `OperatorReviewGate`.
-  - `tests/self_play/coached_game.py:22, 56, 175–177` —
-    `TelegramReviewGate` import → `OperatorReviewGate`;
-    `DryRunTelegramReviewGate` → `DryRunOperatorReviewGate` (the dry-run
-    shim only needs to satisfy `submit()` and now also `handle_command()`
-    returning `False` for everything). Update the live-mode constructor:
-    instead of `TelegramReviewGate(client, coaching_channel_id=...)`,
-    construct `OperatorReviewGate(transport, max_message_chars=4000)` —
-    grab the transport from the agent's pipeline.
-  - `tests/test_coached_game.py:13, 95` — rename references.
-  - `tests/test_orchestrator.py:531` — update the parametrize case from
-    `("TelegramReviewGate", "TelegramReviewGate")` to
-    `("OperatorReviewGate", "OperatorReviewGate")`.
-
-  Verify with `python -m pytest tests/ -v` — all tests pass; no module
-  raises an import error. Existing `TelegramReviewGate` class still
-  exists in `review_gate/__init__.py` but is no longer referenced by any
-  config or test.
-
-- [x] **31.6 End-to-end integration tests through `EventDrivenFlow`.**
-  Add `tests/integration/test_review_gate_flow.py` exercising the full
-  loop with a `FakeTransport` that supports both `send()` (records
-  OutboundMessages) and `listen()` (yields scripted InboundEvents).
-  Four tests:
-  1. **Happy path:** scripted events include an operator `/approve`
-     after the response pipeline submits a draft. Assert the public
-     channel receives the approved text and the review gate's pending
-     state is cleared.
-  2. **`/state` during pending review (4b validated end-to-end):**
-     scripted events include `/state` (which goes to the state handler
-     and produces a coaching-channel response) followed by `/approve`.
-     Assert the state-handler response was sent AND the approval closed
-     the review AND the public post happened.
-  3. **Chunked draft through transport:** force a draft text >
-     `max_message_chars` (use a fake generator that produces a long
-     string). Assert `FakeTransport.sent` contains ≥ 2 messages on the
-     coaching channel before the operator's `/approve`, all bearing the
-     continuation marker on chunks ≥ 2.
-  4. **Lazy fetch through transport:** scripted events include
-     `/adversarial` then `/approve`. Assert the adversarial message
-     reached coaching before the approval, and the approval still
-     closes the loop normally.
-
-  Verify with `python -m pytest tests/integration/test_review_gate_flow.py -v`
-  and a full suite run `python -m pytest tests/ -v` to confirm no
-  regressions.
-
-- [x] **31.7 Remove `TelegramReviewGate` and clean up.**
-  - Delete the `TelegramReviewGate` class from
-    `src/modules/review_gate/__init__.py`.
-  - Remove `TelegramReviewGate` from `__all__`.
-  - Remove the `TelegramReviewGate` entry from `src/registry.py:27`.
-  - Remove the `if class_name == "TelegramReviewGate":` arm from
-    `src/orchestrator.py:1128`.
-  - Search the tree for any remaining `TelegramReviewGate` references
-    (`Select-String -Path p:\shared\diplomat -Pattern "TelegramReviewGate" -Recurse | Where-Object { $_.Path -notlike "*DEVLOG*" -and $_.Path -notlike "*DEVPLAN.md" }`)
-    — only mentions in DEVLOG_archive.md, DEVPLAN.md history, and
-    DECISIONS.md historical entries are allowed.
-  - Re-run `python -m pytest tests/ -v` and confirm everything still
-    passes.
-
-- [x] **31.8 Doc updates + close §4a/b/c + DEVLOG/DECISIONS entries.**
-  - **`ARCH_review_gate.md`** — full rewrite. New public API spec
-    (`submit` + `handle_command`), `Transport` dependency, chunking
-    contract, lazy fetch contract, command pass-through behavior.
-    Replace the `TelegramReviewGate` section with `OperatorReviewGate`.
-  - **`ARCHITECTURE.md`** — update coupling notes. Replace the
-    "Review Gate ↔ Transport: moderate — Review Gate uses
-    toolkit/telegram_client for its own UI" bullet with
-    "Review Gate ↔ Transport: tight — `OperatorReviewGate` consumes the
-    pipeline's `Transport` for coaching-channel I/O. No direct
-    `toolkit/telegram_client` dependency." Add a "Review Gate ↔
-    Pipeline.dispatch_operator" bullet noting the handle_command
-    routing.
-  - **`NEXT_STEPS.md`** — close §4a, §4b, §4c. Mark each item resolved
-    with a one-line reference to Phase 31. §4d (Pi re-test) stays open.
-    Move §4 from the Tier 1 sequencing recommendation now that 4a/b/c
-    are gone.
-  - **`DEVLOG.md`** — append a `## Phase 31 close (YYYY-MM-DD)` entry
-    summarizing: what shipped, files touched, tests added, decisions
-    D-39 through D-43 (linked to DECISIONS.md).
-  - **`DECISIONS.md`** — add D-39 through D-43 entries with rationale
-    (no buttons, lazy fetch, single-pending guard, chunk-mid-fail
-    behavior, hard rename).
-  - **`README.md`** — update the doc-inventory table if the
-    `ARCH_review_gate.md` row needs a status bump.
-  - **`PROJECT.md` "Review Gate" line under MVP Definition** — no edit
-    expected (still `TelegramReviewGate` in the historical sense is
-    fine to reword to `OperatorReviewGate` if it's mentioned explicitly).
-  - Bump the test count in `ARCHITECTURE.md` Testing Status row if it's
-    tracked.
-
-  Verify by reading each updated doc; no test run needed for this step.
+- [x] **32.7 OPERATOR — Cross-project NEXT_STEPS notes + optional Pi smoke.**
+  **Closed 2026-06-04, cross-project notes skipped.** Operator clarified: "NEXT_STEPS.md was an ad-hoc place to hold notes from my discussions; it was meant for things that are not proper SWD but rather experiments and directions, other projects may or may not have this and we don't need to formalize it." Neither Phosphene nor Codexbot uses a NEXT_STEPS.md convention — both have only DEVPLAN/DEVLOG/DECISIONS/ARCH_*. The Codexbot migration knowledge is preserved in (a) Diplomat's DEVLOG Phase 32 close entry, (b) DECISIONS D-46, (c) toolkit's own ARCH_telegram_client.md auto-chunking section + README + TOOLKIT_REFERENCE.md (which Codexbot's owner naturally consults when migrating). Pi smoke is optional and operator-driven — they'll exercise it if/when they want a fresh coached re-test. Worker may proceed to REVIEW + CLOSE on next dispatch.
 
 ### Verification
 
-After all 8 steps:
+After all 7 steps:
 
 ```
 python -m pytest tests/ -v
 ```
 
-All tests pass. New tests:
-- `tests/test_review_gate_chunking.py` — `chunk_text` unit coverage.
-- `tests/test_review_gate.py` — `OperatorReviewGate` covers happy
-  paths, lazy fetch, chunking, timeout, concurrent-submit guard,
-  non-review command pass-through.
-- `tests/test_pipeline.py` — `dispatch_operator` review-gate routing.
-- `tests/integration/test_review_gate_flow.py` — end-to-end
-  through `EventDrivenFlow` with `FakeTransport`.
+Diplomat suite passes. New tests:
+- toolkit `chunking.py` unit tests (32.1)
+- toolkit `send_message` auto-chunk integration tests (32.2)
+- `tests/test_coached_game.py::test_operator_listener_drains_pending_updates_on_startup` (32.4)
+- `tests/test_orchestrator.py::test_command_intel_trimmed_output` (32.5)
 
-Manual Pi smoke is **not** part of this phase — it lives as NEXT_STEPS
-§4d (operator-driven re-run of the coached game with the new gate).
-That's the next session's work.
+Cross-project NEXT_STEPS notes (32.7) confirmed by visual inspection of each project's file.
 
 <!-- history -->
+
+## Phase 31: Transport-routed OperatorReviewGate — Complete
+
+Closed 2026-06-04. Shipped `OperatorReviewGate` (transport-based, chunked, lazy `/reasoning` + `/adversarial` fetch, command pass-through via `Pipeline.dispatch_operator` → `handle_command`). Hard rename from `TelegramReviewGate`. `chunk_text` helper added to `src/modules/review_gate/chunking.py`. Decisions D-39 through D-43. 370 tests passing on Linux Pi.
+
+**Phase 31a hotfix (same session):** `CoachedGameEnvironment` operator-input bridge — `RoundSteppedFlow` lacked the `EventDrivenFlow.process_event` routing that the new passive gate relies on, so coached games hung at the first review prompt. Added `_listen_for_operator(tg_transport, pipeline)` that consumes the wrapped `TelegramBotTransport.listen()` and forwards operator-tagged events to `dispatch_operator`. Decision D-44.
+
+Validated end-to-end via Run 13 (first coached game with new gate, all-Gemini-flash on Water Rights symmetric). Run 13 surfaced two follow-up items now queued as Phase 32: (a) operator command responses also need chunking (`/intel` silently dropped at oversize), and (b) the listener should drain stale TG-queue updates on startup so a previously-killed session can't poison R1 of the next session. See `DEVLOG.md` "Phase 31 Close" + "Phase 31a hotfix" + `TUNING_LOG.md` Run 13 for details.
+
 
 ## Phase 30: OpenRouter provider connector — Complete
 
