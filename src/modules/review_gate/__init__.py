@@ -142,11 +142,17 @@ class OperatorReviewGate:
         elif normalized.startswith("/edit "):
             edited_text = command[6:].strip()
         elif normalized == "/reasoning":
-            # TODO 31.3: lazy-fetch the reasoning section through transport.
-            return False
+            await self._send_section(
+                "Reasoning:\n",
+                (draft.reasoning or "").strip() or "[not available]",
+            )
+            return True
         elif normalized == "/adversarial":
-            # TODO 31.3: lazy-fetch the adversarial section through transport.
-            return False
+            await self._send_section(
+                "Adversarial:\n",
+                _format_adversarial(adversarial),
+            )
+            return True
         else:
             return False
 
@@ -188,6 +194,20 @@ class OperatorReviewGate:
                 content = header + content
             if index == len(chunks) - 1:
                 content += commands_hint
+            await _maybe_await(
+                self._transport.send(
+                    OutboundMessage(content=content, channel="coaching")
+                )
+            )
+
+    async def _send_section(self, title: str, body: str) -> None:
+        raw_limit = self._max_message_chars - max(len(title), len(CONTINUATION_PREFIX))
+        if raw_limit <= 0:
+            raise ValueError("max_message_chars is too small for review messages")
+
+        chunks = chunk_text(body, raw_limit)
+        for index, chunk in enumerate(chunks):
+            content = chunk if index > 0 else f"{title}{chunk}"
             await _maybe_await(
                 self._transport.send(
                     OutboundMessage(content=content, channel="coaching")
@@ -361,18 +381,7 @@ class TelegramReviewGate:
         return "\n".join(sections)
 
     def _format_adversarial(self, adversarial: Any) -> str:
-        if adversarial is None:
-            return "Skipped or unavailable."
-        success = _get_any(adversarial, "success", default=None)
-        error = _get_any(adversarial, "error", default=None)
-        analysis = _get_any(adversarial, "analysis", default=None)
-        if success is False:
-            return f"Failed: {error or 'no analysis available'}"
-        if isinstance(analysis, str) and analysis.strip():
-            return analysis.strip()
-        if isinstance(adversarial, str) and adversarial.strip():
-            return adversarial.strip()
-        return "Skipped or unavailable."
+        return _format_adversarial(adversarial)
 
     async def _log_decision(
         self,
@@ -400,6 +409,21 @@ def _get_any(value: Any, key: str, *, default: Any = None) -> Any:
     if isinstance(value, dict):
         return value.get(key, default)
     return getattr(value, key, default)
+
+
+def _format_adversarial(adversarial: Any) -> str:
+    if adversarial is None:
+        return "Skipped or unavailable."
+    success = _get_any(adversarial, "success", default=None)
+    error = _get_any(adversarial, "error", default=None)
+    analysis = _get_any(adversarial, "analysis", default=None)
+    if success is False:
+        return f"Failed: {error or 'no analysis available'}"
+    if isinstance(analysis, str) and analysis.strip():
+        return analysis.strip()
+    if isinstance(adversarial, str) and adversarial.strip():
+        return adversarial.strip()
+    return "Skipped or unavailable."
 
 
 def _get_update_value(update: Any, *keys: str, default: Any = ...):

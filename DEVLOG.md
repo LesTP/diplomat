@@ -295,3 +295,14 @@ Contract changes:
 - `ARCH_review_gate.md` - the public review-gate contract now includes a transport-routed operator path, to be documented in the phase close update
 
 The operator gate now routes review drafts through the shared `Transport` abstraction instead of reaching directly into `toolkit/telegram_client`. It preserves the existing approve/edit/block semantics and leaves `/reasoning` and `/adversarial` as pass-through placeholders for the next step. No blocking issues surfaced.
+
+### Step 31.3: OperatorReviewGate lazy fetch
+
+Mode: Execute
+Outcome: Added lazy fetch for `/reasoning` and `/adversarial`, including repeated fetches, missing-section fallbacks, and chunked reasoning output. Verified with `python -m pytest tests/test_review_gate.py -v` (30 passed).
+Contract changes:
+- `src/modules/review_gate/__init__.py` - `OperatorReviewGate.handle_command()` now fetches reasoning/adversarial sections through transport
+- `tests/test_review_gate.py` - lazy-fetch coverage for reasoning/adversarial requests, placeholders, idempotent re-request, and chunked reasoning
+- `ARCH_review_gate.md` - lazy-fetch behavior is part of the review-gate contract and will be documented in the phase close update
+
+`/reasoning` and `/adversarial` now emit coaching-channel follow-up messages without clearing pending review state. The operator can request them multiple times before approving, and long reasoning text is chunked through the same transport path as the draft. No regressions surfaced in the existing approve/edit/block flow.

@@ -157,6 +157,118 @@ async def test_operator_review_gate_state_command_passthrough():
 
 
 @pytest.mark.asyncio
+async def test_operator_review_gate_reasoning_fetch_then_approve():
+    transport = _FakeTransport()
+    gate = OperatorReviewGate(transport)
+
+    task = asyncio.create_task(gate.submit(_draft(), adversarial=None, round_number=4))
+    await asyncio.sleep(0)
+
+    assert await gate.handle_command("/reasoning") is True
+    assert len(transport.sent) == 2
+    assert transport.sent[1].content == "Reasoning:\nKeeps the promise limited."
+
+    assert await gate.handle_command("/approve") is True
+    decision = await task
+
+    assert decision.action == "approved"
+
+
+@pytest.mark.asyncio
+async def test_operator_review_gate_adversarial_fetch_then_approve():
+    transport = _FakeTransport()
+    gate = OperatorReviewGate(transport)
+
+    task = asyncio.create_task(
+        gate.submit(
+            _draft(),
+            adversarial={"success": True, "analysis": "Promise is limited."},
+            round_number=4,
+        )
+    )
+    await asyncio.sleep(0)
+
+    assert await gate.handle_command("/adversarial") is True
+    assert len(transport.sent) == 2
+    assert transport.sent[1].content == "Adversarial:\nPromise is limited."
+
+    assert await gate.handle_command("/approve") is True
+    decision = await task
+
+    assert decision.action == "approved"
+
+
+@pytest.mark.asyncio
+async def test_operator_review_gate_reasoning_missing_sends_placeholder():
+    transport = _FakeTransport()
+    gate = OperatorReviewGate(transport)
+
+    task = asyncio.create_task(
+        gate.submit(_draft(reasoning=None), adversarial=None, round_number=4)
+    )
+    await asyncio.sleep(0)
+
+    assert await gate.handle_command("/reasoning") is True
+    assert transport.sent[1].content == "Reasoning:\n[not available]"
+
+    assert await gate.handle_command("/approve") is True
+    await task
+
+
+@pytest.mark.asyncio
+async def test_operator_review_gate_adversarial_missing_sends_placeholder():
+    transport = _FakeTransport()
+    gate = OperatorReviewGate(transport)
+
+    task = asyncio.create_task(gate.submit(_draft(), adversarial=None, round_number=4))
+    await asyncio.sleep(0)
+
+    assert await gate.handle_command("/adversarial") is True
+    assert transport.sent[1].content == "Adversarial:\nSkipped or unavailable."
+
+    assert await gate.handle_command("/approve") is True
+    await task
+
+
+@pytest.mark.asyncio
+async def test_operator_review_gate_reasoning_re_request_is_idempotent():
+    transport = _FakeTransport()
+    gate = OperatorReviewGate(transport)
+
+    task = asyncio.create_task(gate.submit(_draft(), adversarial=None, round_number=4))
+    await asyncio.sleep(0)
+
+    assert await gate.handle_command("/reasoning") is True
+    assert len(transport.sent) == 2
+    assert await gate.handle_command("/reasoning") is True
+    assert len(transport.sent) == 3
+    assert transport.sent[2].content == "Reasoning:\nKeeps the promise limited."
+
+    assert await gate.handle_command("/approve") is True
+    await task
+
+
+@pytest.mark.asyncio
+async def test_operator_review_gate_chunks_large_reasoning_through_transport():
+    transport = _FakeTransport()
+    gate = OperatorReviewGate(transport, max_message_chars=180)
+    draft = _draft(reasoning="Reasoning section. " * 12)
+
+    task = asyncio.create_task(gate.submit(draft, adversarial=None, round_number=4))
+    await asyncio.sleep(0)
+
+    assert await gate.handle_command("/reasoning") is True
+    assert len(transport.sent) >= 2
+    assert transport.sent[1].content.startswith("Reasoning:\n")
+    assert any(
+        message.content.startswith(CONTINUATION_PREFIX) for message in transport.sent[2:]
+    )
+
+    assert await gate.handle_command("/approve") is True
+    await task
+
+
+@pytest.mark.asyncio
 async def test_operator_review_gate_rejects_concurrent_submit():
     transport = _FakeTransport()
     gate = OperatorReviewGate(transport)

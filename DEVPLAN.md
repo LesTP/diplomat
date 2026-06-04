@@ -2,7 +2,7 @@
 phase: 31
 blocked: false
 state: execute
-steps_remaining: 5
+steps_remaining: 4
 ---
 
 # Diplomat — Development Plan
@@ -240,7 +240,7 @@ Pi re-test) is the natural follow-up after this phase ships.
 
   Verify with `python -m pytest tests/test_review_gate.py -v`.
 
-- [ ] **31.3 Add lazy fetch (`/reasoning`, `/adversarial`) to `OperatorReviewGate`.**
+- [x] **31.3 Add lazy fetch (`/reasoning`, `/adversarial`) to `OperatorReviewGate`.**
   Replace the `# TODO 31.3` stubs from step 31.2 with real handlers:
   - `/reasoning` → if `draft.reasoning` is set, send
     `"Reasoning:\n{draft.reasoning}"` chunked through transport; if not
