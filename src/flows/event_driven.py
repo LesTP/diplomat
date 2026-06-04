@@ -125,11 +125,10 @@ class EventDrivenFlow:
                 event_id,
                 event.sender_faction,
             )
-            result = await self.pipeline.run_response(trigger_event=event)
+            asyncio.create_task(self.pipeline.run_response(trigger_event=event))
             logger.info(
-                "pipeline.complete event_id=%s success=%s trigger=direct_address",
+                "pipeline.complete event_id=%s success=scheduled trigger=direct_address",
                 event_id,
-                result,
             )
         return event_id
 

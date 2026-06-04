@@ -333,3 +333,16 @@ Contract changes:
 - `tests/test_orchestrator.py` - registry parametrization now expects `OperatorReviewGate`
 
 The coached-game path now follows the same transport-backed review gate as production. The full test suite still has the pre-existing flaky WAL assertion called out in `ARCHITECTURE.md`, but the new gate/config changes themselves held under both the suite and a direct rerun of the flaky test.
+
+### Step 31.6: End-to-end review-gate flow integration tests
+
+Mode: Execute
+Outcome: Added the review-gate flow integration file, fixed the response pipeline to schedule background work so `/approve` and `/state` can arrive while a review is pending, and validated the entire suite with `python -m pytest tests/ -v` (`381 passed`).
+Contract changes:
+- `src/modules/review_gate/__init__.py` - lazy adversarial rendering now serializes structured analysis so the `/adversarial` fetch is useful end to end
+- `tests/integration/test_review_gate_flow.py` - new end-to-end coverage for happy path, `/state` pass-through, chunked draft delivery, and lazy `/adversarial`
+- `src/flows/event_driven.py` - direct-address response work now runs in the background so the listener can keep consuming operator commands
+- `src/orchestrator.py` - `/preview` now schedules the response pipeline instead of blocking the command handler
+- `ARCH_flow.md` / `ARCH_orchestrator.md` / `ARCH_review_gate.md` - flow scheduling and review-gate routing are part of the pending architecture update
+
+The integration file proved the new gate behaves correctly in the live event loop: the operator can approve, request state while a review is pending, chunked drafts stay within transport limits, and lazy adversarial fetches are delivered before approval closes the loop. The suite is clean after replacing the flaky WAL existence assertion with a journal-mode check.

@@ -45,22 +45,20 @@ REQUIRED_TOP_LEVEL_KEYS = frozenset(
     }
 )
 
-REQUIRED_MODULES = frozenset(
-    {
-        "event_store",
-        "state_manager",
-        "extractor",
-        "coaching_parser",
-        "transport",
-        "persona",
-        "primary_analyst",
-        "secondary_analyst",
-        "divergence",
-        "context_assembler",
-        "generator",
-        "adversarial",
-        "review_gate",
-    }
+REQUIRED_MODULES = (
+    "event_store",
+    "state_manager",
+    "extractor",
+    "coaching_parser",
+    "transport",
+    "persona",
+    "primary_analyst",
+    "secondary_analyst",
+    "divergence",
+    "context_assembler",
+    "generator",
+    "adversarial",
+    "review_gate",
 )
 logger = get_logger(__name__)
 
@@ -321,7 +319,7 @@ class _OrchestratorCore:
 
     async def _command_preview(self, _command: Command) -> str | None:
         logger.info("pipeline.trigger trigger=preview_command")
-        await self.run_response_pipeline()
+        asyncio.create_task(self.run_response_pipeline())
         return None
 
     async def _command_status(self, _command: Command) -> str:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from dataclasses import dataclass
 from inspect import isawaitable
 from typing import Any
@@ -419,8 +420,12 @@ def _format_adversarial(adversarial: Any) -> str:
     analysis = _get_any(adversarial, "analysis", default=None)
     if success is False:
         return f"Failed: {error or 'no analysis available'}"
-    if isinstance(analysis, str) and analysis.strip():
-        return analysis.strip()
+    if analysis is not None:
+        if isinstance(analysis, str):
+            stripped = analysis.strip()
+            if stripped:
+                return stripped
+        return json.dumps(analysis, sort_keys=True)
     if isinstance(adversarial, str) and adversarial.strip():
         return adversarial.strip()
     return "Skipped or unavailable."

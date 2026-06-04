@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import shutil
+import sqlite3
 from pathlib import Path
 from datetime import datetime, timezone
 from types import SimpleNamespace
@@ -397,7 +398,9 @@ def test_successful_instantiation_with_fakes(tmp_path, monkeypatch):
     assert orchestrator.review_gate.__class__ is AutoApproveReviewGate
     assert "generation" in orchestrator.prompts
     assert (tmp_path / "data/test.db").exists()
-    assert (tmp_path / "data/test.db-wal").exists()
+    with sqlite3.connect(tmp_path / "data/test.db") as conn:
+        journal_mode = conn.execute("PRAGMA journal_mode").fetchone()[0]
+    assert journal_mode.lower() == "wal"
 
 
 def test_bad_config_path_raises():
@@ -813,6 +816,7 @@ async def test_direct_address_triggers_response_pipeline(tmp_path):
     await orchestrator.process_event(
         _event(sender_faction="france", content="England, can we talk?")
     )
+    await asyncio.sleep(0.05)
 
     assert transport.sent[-1].channel == "public"
 
@@ -824,6 +828,7 @@ async def test_preview_command_triggers_response_pipeline(tmp_path):
     )
 
     await orchestrator.process_event(_event(content="/preview"))
+    await asyncio.sleep(0.05)
 
     assert transport.sent[-1].channel == "public"
 

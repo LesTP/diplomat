@@ -2,7 +2,7 @@
 phase: 31
 blocked: false
 state: execute
-steps_remaining: 2
+steps_remaining: 1
 ---
 
 # Diplomat — Development Plan
@@ -369,7 +369,7 @@ Pi re-test) is the natural follow-up after this phase ships.
   exists in `review_gate/__init__.py` but is no longer referenced by any
   config or test.
 
-- [ ] **31.6 End-to-end integration tests through `EventDrivenFlow`.**
+- [x] **31.6 End-to-end integration tests through `EventDrivenFlow`.**
   Add `tests/integration/test_review_gate_flow.py` exercising the full
   loop with a `FakeTransport` that supports both `send()` (records
   OutboundMessages) and `listen()` (yields scripted InboundEvents).
