@@ -50,11 +50,10 @@ OperatorReviewGate(
 ```
 
 Message flow on `submit()`:
-1. Formats and chunks the draft with header `"Review Gate - Round N\n\nDraft:\n..."`.
-2. Appends `"\n\nCommands: /approve | /edit: <text> | /block | /reasoning | /adversarial"` to the last draft chunk.
-3. Sends each chunk via `transport.send(OutboundMessage(content=..., channel="coaching"))`.
-4. Awaits operator command(s) via the `handle_command()` callback loop.
-5. Logs decision via `state_manager.log_review_decision` if state_manager is injected.
+1. Composes a single message: `"Review Gate - Round N\n\nDraft:\n{draft_text}\n\nCommands: /approve | ..."`.
+2. Sends it via one `transport.send(OutboundMessage(content=..., channel="coaching"))` call — auto-chunking at 4096 chars is handled transparently by the toolkit transport layer (D-46).
+3. Awaits operator command(s) via the `handle_command()` callback loop.
+4. Logs decision via `state_manager.log_review_decision` if state_manager is injected.
 
 **AutoApproveReviewGate** — used when `review_gate.enabled: false`. Immediately returns `ReviewDecision(action='approved', final_text=draft.response_text)`. No human interaction.
 
