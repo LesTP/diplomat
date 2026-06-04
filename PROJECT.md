@@ -89,7 +89,7 @@ MVP is the configuration that closes the core loop: messages arrive → state up
 | Persona | FileBasedPersona with hot-reload |
 | Context Assembler | DefaultContextAssembler |
 | Generation | LLM-based generation (via toolkit/llm_client) |
-| Review Gate | TelegramReviewGate — approve/edit/block |
+| Review Gate | OperatorReviewGate — approve/edit/block via Transport |
 | Coaching | TaggedCoachingParser with routing |
 | Orchestrator | Full event loop, round management, cost accountant wiring |
 

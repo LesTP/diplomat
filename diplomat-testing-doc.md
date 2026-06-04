@@ -37,7 +37,7 @@ The modular architecture in the main spec was partly designed with testability i
 | AutoApproveReviewGate | `src/modules/review_gate/__init__.py` | Approves all drafts |
 | RuleBasedExtractor | `src/modules/extraction/__init__.py` | Regex-based promise/coalition/inconsistency detection |
 | Pipeline config | `config/pipeline.yaml` | Production configuration |
-| Smoke pipeline config | `config/pipeline_smoke.yaml` | TelegramReviewGate-backed smoke configuration |
+| Smoke pipeline config | `config/pipeline_smoke.yaml` | OperatorReviewGate-backed smoke configuration |
 | Test pipeline config | `config/pipeline_test.yaml` | Fake-backed integration configuration |
 | Fake LLM clients | `tests/self_play/fake_llm_client.py`, `tests/helpers/factories.py`, `tests/integration/test_phase18_paths.py` | Shared and per-test fakes for dependency injection |
 | Prompt regression runner | `tests/prompt_regression/runner.py` | Scenario loader, structural checks, LLM-as-judge checks, CLI |
@@ -231,7 +231,7 @@ diplomat/
 │       └── results/                   # Run JSON + log output
 ├── config/
 │   ├── pipeline.yaml                  # Production config
-│   ├── pipeline_smoke.yaml            # Smoke config (TelegramReviewGate)
+│   ├── pipeline_smoke.yaml            # Smoke config (OperatorReviewGate)
 │   ├── pipeline_test.yaml             # Integration test config
 │   ├── coaching_routes.yaml           # Tag → routing rules
 │   ├── faction_prompt.txt             # Production persona
@@ -1252,7 +1252,7 @@ Self-play runs multiple agent instances against each other in a simulated enviro
 | FakeLLMClient | `tests/self_play/fake_llm_client.py` | Deterministic LLM client for unit tests (no API calls) |
 | Scenario Compiler | `src/tools/scenario_compiler.py` | Converts narrative scenario descriptions into scored persona files via LLM |
 | Simulation Runner | `tests/self_play/run_simulation.py` | CLI entry point with `--scenario` flag for auto-compiled personas |
-| Coached Game Runner | `tests/self_play/coached_game.py` | Self-play runner that routes one faction through TelegramReviewGate/TelegramBotTransport; `--dry-run` uses a local stand-in (Phase 28) |
+| Coached Game Runner | `tests/self_play/coached_game.py` | Self-play runner that routes one faction through OperatorReviewGate/TelegramBotTransport; `--dry-run` uses a local stand-in (Phase 28) |
 | Analysis | `tests/self_play/analysis.py` | Post-game report: promises, coalitions, communication patterns, process signatures, near-miss diagnostic, promise cross-reference |
 | Scenario Verifier | `tests/self_play/verify_scenario_optimum.py` | Enumerates all deals, reports Pareto frontier, BATNA-clearing count, logrolling quality |
 | Dry-Run Verifier | `tests/self_play/verify_dryrun.py` | Validates dry-run plumbing (provider routing, DryRunLLMClient classification) |

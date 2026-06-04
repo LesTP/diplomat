@@ -1,8 +1,8 @@
 ---
 phase: 31
 blocked: false
-state: execute
-steps_remaining: 3
+state: review
+steps_remaining: 2
 ---
 
 # Diplomat — Development Plan
@@ -411,7 +411,7 @@ Pi re-test) is the natural follow-up after this phase ships.
   - Re-run `python -m pytest tests/ -v` and confirm everything still
     passes.
 
-- [ ] **31.8 Doc updates + close §4a/b/c + DEVLOG/DECISIONS entries.**
+- [x] **31.8 Doc updates + close §4a/b/c + DEVLOG/DECISIONS entries.**
   - **`ARCH_review_gate.md`** — full rewrite. New public API spec
     (`submit` + `handle_command`), `Transport` dependency, chunking
     contract, lazy fetch contract, command pass-through behavior.

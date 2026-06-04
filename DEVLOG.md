@@ -351,3 +351,24 @@ The integration file proved the new gate behaves correctly in the live event loo
 
 Mode: Execute
 Outcome: Deleted `TelegramReviewGate` from `src/modules/review_gate/__init__.py` (class body, `_get_update_value` private helper used only by it, and `__all__` entry). Removed registry entry from `src/registry.py`. Removed the `TelegramReviewGate` factory arm from `src/orchestrator.py`. Cleaned up `tests/test_review_gate.py` (removed import, 11 TelegramReviewGate test functions, and two test fakes `_FakeTelegramClient`/`_NeverUpdateTelegramClient` that were only used by those tests). All 370 tests pass. Remaining references in doc files (CLI_REFERENCE.md, diplomat-testing-doc.md, NEXT_STEPS.md, PROJECT.md, SMOKE_RUNBOOK.md) are handled in step 31.8.
+
+## 2026-06-04 — Phase 31 Close — Transport-routed OperatorReviewGate
+
+Phase 31 shipped the full transport-routed review gate refactor in 8 steps across multiple iterations.
+
+**What shipped:**
+- `src/modules/review_gate/chunking.py` — `chunk_text()` helper with paragraph/line/char fallback split and `[continued ...]` continuation markers.
+- `src/modules/review_gate/__init__.py` — `OperatorReviewGate` (transport-based, chunked send, lazy reasoning/adversarial fetch, `handle_command()` pass-through for non-review commands). `TelegramReviewGate` deleted entirely.
+- `src/pipeline.py` — `dispatch_operator()` routes through `review_gate.handle_command()` before falling through to the normal operator dispatcher.
+- `src/orchestrator.py` — `_build_module` now receives in-progress `built_modules` dict; `OperatorReviewGate` factory branch passes already-built transport. `TelegramReviewGate` factory arm removed.
+- `src/registry.py` — `TelegramReviewGate` entry removed; `OperatorReviewGate` registered.
+- `config/pipeline.yaml`, `config/pipeline_smoke.yaml` — class updated to `OperatorReviewGate`.
+- `tests/self_play/coached_game.py` — `DryRunOperatorReviewGate` shim.
+- New tests: `tests/test_review_gate_chunking.py`, `tests/test_review_gate.py` (OperatorReviewGate coverage), `tests/test_pipeline.py` (dispatch_operator routing), `tests/integration/test_review_gate_flow.py` (end-to-end through EventDrivenFlow).
+- Docs updated: `ARCH_review_gate.md` (rewritten), `ARCHITECTURE.md`, `NEXT_STEPS.md` (§4a/b/c closed), `CLI_REFERENCE.md`, `SMOKE_RUNBOOK.md`, `diplomat-testing-doc.md`, `PROJECT.md`, `DECISIONS.md` (D-39–D-43).
+
+**Decisions:** D-39 (no buttons), D-40 (lazy fetch), D-41 (single-pending guard), D-42 (chunk-mid-fail abort), D-43 (hard rename).
+
+**Test count:** 370 passing after final cleanup.
+
+**Remaining:** §4d (operator-driven Pi re-test) stays open in NEXT_STEPS.

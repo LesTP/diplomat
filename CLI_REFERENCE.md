@@ -165,7 +165,7 @@ python -m tests.self_play.coached_game --dry-run \
     --factions alpha,beta,gamma \
     --output tests/self_play/results/coached_dryrun.json
 
-# Live coached run: one faction uses TelegramReviewGate + TelegramBotTransport
+# Live coached run: one faction uses OperatorReviewGate + TelegramBotTransport
 python -m tests.self_play.coached_game \
     --coach-faction beta --rounds 4 \
     --scenario tests/self_play/scenarios/water_rights.md \
@@ -182,16 +182,16 @@ python -m tests.self_play.coached_game \
 | `--scenario` | — | Same as `run_simulation`; required for `--analysis-json` because the seed message still comes from the scenario text. |
 | `--analysis-json` | — | Same as `run_simulation`; preserves hand-edited scenario analysis. |
 | `--output` | auto-timestamped | Same as `run_simulation`. |
-| `--dry-run` | `false` | Uses `DryRunLLMClient` plus a local `DryRunTelegramReviewGate` stand-in. |
+| `--dry-run` | `false` | Uses `DryRunLLMClient` plus a local `DryRunOperatorReviewGate` stand-in. |
 | `TELEGRAM_BOT_TOKEN` | yes (live) | Telegram bot token used by the coached faction transport/review gate. |
 | `DIPLOMAT_PUBLIC_CHANNEL_ID` | yes (live) | Public game channel for the coached faction's outbound messages. |
-| `DIPLOMAT_COACHING_CHANNEL_ID` | yes (live) | Operator coaching channel for `TelegramReviewGate`. |
+| `DIPLOMAT_COACHING_CHANNEL_ID` | yes (live) | Operator coaching channel for `OperatorReviewGate`. |
 | `DIPLOMAT_OPERATOR_USER_IDS` | yes (live) | Comma-separated operator Telegram user IDs; same tagging semantics as the production bot. |
 
 Pass-through flags from `run_simulation` are supported as-is: `--scenario-title`,
 `--batna-fraction`, `--batna-fractions`, `--game-mode`, and
 `--per-faction-providers`. The coached faction's pipeline uses
-`TelegramReviewGate`; other factions stay on `AutoApproveReviewGate`.
+`OperatorReviewGate`; other factions stay on `AutoApproveReviewGate`.
 
 ### `tests.self_play.probe_providers` — live provider auth + parse check
 

@@ -54,7 +54,7 @@ cross-references.
 
 | Item | Tags | Loop | Where | Notes |
 |---|---|---|---|---|
-| **Coached game UX fixes** | `[A][X]` | 🔨 | §4 | **Priority for next session.** First coached game (2026-06-03) surfaced 4 issues: (1) TG 4096 char limit breaks review gate in later rounds — split or truncate, (2) operator has no transcript visibility in coaching channel — add state/transcript summary before each draft, (3) generation responses are too verbose — add conciseness instruction to prompt, (4) generation prompt filler burns character budget. All 🔨 PURE BUILD. |
+| **Coached game UX fixes** | `[A][X]` | 🔨 | §4 | **Partially closed (Phase 31 + prompt change 2026-06-04).** §4a (TG char limit → chunking), §4b (operator commands during review → `handle_command` pass-through), §4c (verbose generation → prompt change) closed. §4d (Pi re-test) remains open. |
 | **Coaching test loop on Pi** | `[X]` | 👁 | §4 | First coached game completed 2026-06-03. Deal reached (β=18, +8 above BATNA) despite β being muted for R2-R4 by the char-limit bug. UX fixes above are prerequisites for a meaningful re-test. |
 | **Game-platform exploration** (Clankmates / Discord / fallback) | `[X]` | 👁 | §5 | Gated on operator + partner platform decision. Updated 2026-06-02 to consider Discord alongside Clankmates. |
 | **Pricing & accounting audit** | `[X][C]` | 👁 | §6 | Best done before Tier 3 §7 so per-role cost claims have a firm baseline. |
@@ -82,7 +82,6 @@ cross-references.
 | **Provider consistency tests** (all-Anthropic baseline + cross-scenario) | `[B][X]` | 👁 | §1.7 / §1.8 | Run 11 candidates. Generalize Run 10 finding. ~$3-4 + ~$0.30. Cheap and operator-driven, can run independently of other tiers. |
 | **Strategy routing** (hardball / integrative / tit-for-tat / etc.) | `[B]` | 👁 | §2.5 | Prompt library + operator-pickable strategy. Real-game value: pick a strategy mid-game and the prompt machinery executes it. |
 | **Persona payment rigidity / drift / endgame over-anchoring** | `[B]` | 👁 | Carry-forward | Recurring across Runs 7-10. Run 10 showed provider consistency matters more than persona rule. A/B in a future run. |
-| **Voice / style templates** (Kissinger, Gen Alpha, etc.) | `[B]` | 👁 | §9 | Genuinely low priority. Slot in when other backlogs are empty. |
 
 ### Deferred — `[A]` conversation model evolution
 
@@ -418,21 +417,9 @@ because they had no visibility into what other factions were saying.
 
 ### UX fixes needed (priority order, all 🔨 PURE BUILD)
 
-- [ ] **4a. TG 4096 char limit.** Review-gate drafts exceed TG's message limit
-      in later rounds as transcript context grows. Fix: split long messages
-      into chunks, or truncate the review preview to essentials (draft +
-      adversarial summary, not full context). **Critical — broke the core
-      product loop.**
-- [ ] **4b. Transcript visibility in coaching channel.** In self-play, the
-      operator can't see what other factions said (no TG group to watch). Fix:
-      before sending each draft for review, send a brief state summary to the
-      coaching channel — last-round messages from all factions, key state
-      changes, unconsumed coaching. In a real game with a shared game channel,
-      this is less critical but still useful as a digest.
-- [ ] **4c. Verbose generation responses.** Diplomatic filler ("I have been
-      listening carefully...") wastes character budget and adds nothing. Fix:
-      add conciseness instruction to the generation prompt — "lead with your
-      proposal, max 2-3 paragraphs, no preamble." Block B prompt change.
+- [x] **4a. TG 4096 char limit.** Closed Phase 31 (2026-06-04). `OperatorReviewGate` chunks messages at `max_message_chars=4000` via `chunk_text()` with `[continued ...]` markers.
+- [x] **4b. Transcript visibility / operator commands during review.** Closed Phase 31 (2026-06-04). `Pipeline.dispatch_operator()` routes commands through `review_gate.handle_command()` first; `/state`, `/intel`, etc. work during pending review. `/reasoning` and `/adversarial` lazy-fetch deeper context on demand.
+- [x] **4c. Verbose generation responses.** Closed 2026-06-04 (prompt change). Conciseness instruction added to `config/prompts/generation.txt`.
 - [ ] **4d. Re-run coached game after UX fixes.** Same scenario, operator
       actively coaches (not rubber-stamp). Classify edits per
       `diplomat-testing-doc.md` §7.3 categories.
@@ -658,31 +645,14 @@ hand-authoring one such scenario surfaces the constraint vocabulary.
 
 ---
 
-## 9. `[B]` Voice / style templates (for fun)
+## 9. `[B]` Voice / style templates — **WON'T DO** (2026-06-04)
 
-**Scope:** Layer a voice/style overlay on top of the strategic persona,
-independent of scoring / BATNA / strategy.
-
-**Candidate voice templates** (operator's brainstorm):
-- Henry Kissinger speeches — weighty, hedged, geopolitical
-- Gen Alpha speak — "this opp's brain rot fr fr no cap"
-- The Iliad — epic invocation, kennings, hexameter cadence
-- воровская феня (Russian thieves' cant) — menacing argot
-
-**Why this matters (beyond fun):**
-- Stress-test for prompt overrides: does the strategic core hold when voice changes dramatically?
-- Edge cases for extraction: does the Extractor still parse promises when wrapped in epic verse or Gen Alpha slang?
-- Reveals which providers handle voice instructions well vs which flatten them (provider-comparison signal for free).
-
-**Approach (rough):**
-1. Create `config/personas/voices/` with one file per voice. Each contains
-   a 5–10 line VOICE block: tone descriptors + 2–3 example sentences.
-2. Extend persona template to accept an optional `voice_overlay` field.
-3. Add `--voice` CLI flag to `run_simulation.py`; or `--per-faction-voices` for asymmetric.
-4. Run one tournament with mixed voices.
-
-**Why not now:** Genuinely low priority. Slot into a slow afternoon when
-the primary backlog is empty.
+Folded into `generation.txt`. Stylistic considerations (length, voice, tone)
+all live in the generation prompt as one axis; per operator: "what is the
+use that we get for added complexity? if it's little use, then no... these
+are stylistic considerations and they can be kept together for simplicity's
+sake." If a future need for swappable voice profiles arises, revisit by
+extending the persona template; until then, edit `generation.txt` directly.
 
 ---
 

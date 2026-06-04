@@ -155,7 +155,7 @@ Stop the smoke and investigate (don't push through) if:
 
 - Bot fails to start with config or import error → fix locally before continuing
 - Cost ledger entries show $0.01+ per `/preview` call on gpt-5.4-mini → dated-pricing fix isn't active; reinstall toolkit editable
-- Review gate doesn't respond to `/approve` → `TelegramReviewGate` may have stale state; restart bot via §2
+- Review gate doesn't respond to `/approve` → `OperatorReviewGate` may have stale state; restart bot via §2
 - Toolkit `complete_with_retry` / `normalize_model_name` raise `ImportError` → toolkit in container is pre-Phase-19; reinstall editable
 - Operator commands respond on the **public** channel (should be coaching-only) → channel-routing regression; check `transport._channel_for_chat`
 

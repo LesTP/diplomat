@@ -251,3 +251,38 @@ Priority: Important
 Decision: Phase 31 will replace `TelegramReviewGate` with a transport-routed `OperatorReviewGate`, add message chunking, lazy fetch for reasoning/adversarial sections, and dispatcher pass-through for non-review slash commands. Buttons and callback-query UX remain out of scope.
 Rationale: The current product issue is not "more UI", it is that the review gate is too tightly coupled to Telegram polling and a single oversized message. Keeping the phase limited to transport reuse and command routing fixes the actual failure modes while preserving the existing operator text-command workflow.
 Revisit if: A later operator UX pass explicitly adds callback-query support or another review-channel interaction model.
+
+D-39: No inline buttons in Phase 31 OperatorReviewGate
+Date: 2026-06-04 | Status: Closed
+Priority: Important
+Decision: Telegram inline buttons are out of scope for Phase 31. Text commands (`/approve`, `/edit:`, `/block`, `/reasoning`, `/adversarial`) cover the same UX surface.
+Rationale: `toolkit/telegram_client` does not surface `callback_query` updates. Building that pipeline is a separate project. Text commands have the same result with no new platform surface.
+Revisit if: A later operator UX pass adds callback_query support to the toolkit transport.
+
+D-40: Lazy fetch for Reasoning and Adversarial sections
+Date: 2026-06-04 | Status: Closed
+Priority: Important
+Decision: Only the draft is pushed eagerly on `submit()`. Operator types `/reasoning` or `/adversarial` to fetch deeper context on demand.
+Rationale: Reduces noise on routine approvals where the operator only needs the draft. Avoids bloating every review message with sections that may not be needed.
+Revisit if: Operator feedback shows they always want reasoning/adversarial inline — at that point, make eager push the default and remove lazy-fetch path.
+
+D-41: Concurrent submit raises RuntimeError
+Date: 2026-06-04 | Status: Closed
+Priority: Important
+Decision: `OperatorReviewGate` holds a single `_pending` slot. Concurrent `submit()` while a review is in progress raises `RuntimeError("OperatorReviewGate has a pending review")`.
+Rationale: The current pipeline never concurrent-submits per agent. Raising hard is the correct contract signal if that invariant ever breaks, rather than silently queuing or overwriting.
+Revisit if: The pipeline architecture changes to support concurrent per-agent response pipelines — upgrade the single slot to a keyed dict at that point.
+
+D-42: Chunk-mid-send failure aborts review with blocked decision
+Date: 2026-06-04 | Status: Closed
+Priority: Important
+Decision: If transport.send() raises during the eager draft send, `submit()` returns `ReviewDecision(action="blocked", edit_notes="transport error: <e>")`, clears `_pending`, logs via state_manager, then re-raises after logging.
+Rationale: Transport already handles retries on individual sends. If it still fails, the review session collapses cleanly rather than leaving partial messages that confuse the operator. The caller sees the exception and can surface it.
+Revisit if: A future transport layer adds its own idempotent retry and the abort-on-partial-send behavior becomes wrong.
+
+D-43: Hard rename TelegramReviewGate → OperatorReviewGate
+Date: 2026-06-04 | Status: Closed
+Priority: Important
+Decision: All production code, tests, configs, and registry entries rename `TelegramReviewGate` to `OperatorReviewGate`. No back-compat shim or re-export.
+Rationale: There is only one in-tree consumer outside the production config (`coached_game.py`). Back-compat shims are anti-modular and would survive into future phases. The rename is the correct permanent signal that the gate is no longer Telegram-specific.
+Revisit if: An external consumer (outside this repo) depended on the old name — would need a shim there, not here.
