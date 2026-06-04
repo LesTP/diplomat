@@ -1,8 +1,8 @@
 ---
 phase: 31
-blocked: false
+blocked: true
 state: close
-steps_remaining: 1
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -53,9 +53,9 @@ steps_remaining: 1
 
 ## Current Status
 
-- **Phase** — Phase 31 queued (Transport-routed OperatorReviewGate + chunking + lazy-fetch sections + command pass-through). Phase 30 closed.
-- **Focus** — Refactor the review gate to (a) use the existing `Transport` abstraction instead of bypassing into `toolkit/telegram_client` directly, (b) chunk review messages so TG's 4096 char limit no longer breaks the loop, (c) lazy-load reasoning/adversarial sections via `/reasoning` and `/adversarial` commands, and (d) forward non-review slash commands (`/state`, `/intel`, etc.) to the normal dispatcher so they work during pending review. Pure build. Closes NEXT_STEPS §4a/b/c. §4d (operator-driven Pi re-test) remains open as the validation hook post-phase.
-- **Blocked/Broken** — None.
+- **Phase** — Phase 31 complete (awaiting human audit). Phase 32 not yet planned.
+- **Focus** — Phase 31 shipped `OperatorReviewGate` (transport-routed, chunked, lazy-fetch, command pass-through). Closed NEXT_STEPS §4a/b/c. §4d (Pi re-test) remains open. See DEVLOG.md "Phase 31 Close".
+- **Blocked/Broken** — Awaiting human audit of Phase 31 before planning Phase 32.
 
 <!-- Phase ordering convention:
        - Open / queued phases first, in forward execution order (next-to-do first).

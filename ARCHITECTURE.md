@@ -16,7 +16,7 @@
 | Generation | Context → response text via LLM (structured_call for JSON mode) | toolkit/structured_llm |
 | Adversarial | Draft → adversarial analysis via LLM (skippable) | toolkit/structured_llm |
 | Coaching | Parse and route operator input by tag | none (pure parsing) |
-| Review Gate | Human approval workflow: approve/edit/block | toolkit/telegram_client |
+| Review Gate | Human approval workflow: approve/edit/block (lazy-fetch reasoning/adversarial) | Transport (coaching channel) |
 | Scenario Compiler | Narrative scenario → scored persona files with point tables, BATNAs, deception tactics, game-mode | toolkit/structured_llm |
 | Pipeline | Per-agent capability surface: event storage, extraction, operator dispatch, round advancement, reconciliation/analysis, response generation, and query APIs | All runtime modules, toolkit/cost_accountant |
 | Flow | Scheduling strategies that drive one or more Pipelines; current implementations are EventDrivenFlow and RoundSteppedFlow | Pipeline, Transport or moderator/application driver |
@@ -122,7 +122,7 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 | 7 | Analyst + Divergence | Two LLM calls + pure comparison. High value — intelligence drives decision quality. | Phase 6 complete |
 | 8 | Context Assembler | Pure composition. Wires persona + intelligence + coaching + events into DecisionContext. | Phase 7 complete |
 | 9 | Generation | LLM call with assembled context. Core output path. | Phase 8 complete |
-| 10 | Review Gate | Human approval workflow via Telegram. Needed before any posting. | Phase 9 complete |
+| 10 | Review Gate | Human approval workflow via Telegram. Needed before any posting. | Phase 9 complete; Phase 31 refactored to OperatorReviewGate (transport-routed, chunked, lazy-fetch) |
 | 11 | Adversarial | Optional LLM call. Valuable but skippable — Review Gate catches issues manually. | Phase 10 complete |
 | 12 | Orchestrator | Wires everything. Event loop, round management, cost accountant, failure handling. Last because it requires all modules. | Complete |
 | 13 | Reconciliation | Post-round state cleanup via LLM. Merges duplicate promises, detects fulfillments and broken commitments, flags inconsistencies. | Phase 18 complete |
@@ -134,7 +134,7 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 
 | Layer | Status |
 |-------|--------|
-| Unit and regression tests | Complete — 353 tests across the regression suite; latest full run had 1 flaky WAL assertion in `tests/test_orchestrator.py::test_successful_instantiation_with_fakes` |
+| Unit and regression tests | Complete — 370 tests after Phase 31 (added chunking, OperatorReviewGate, pipeline dispatch routing, review gate flow integration tests) |
 | Pipeline integration | Complete — 23 fake-backed Orchestrator integration tests (Phase 18 path coverage added Phase 20) |
 | Transcript replay | Complete — 2 transcript fixtures, 5 replay tests |
 | Prompt regression | Complete — 6 starter scenarios (4 extraction free, 2 generation require live LLM) |

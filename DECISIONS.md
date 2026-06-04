@@ -246,7 +246,7 @@ Rationale: OpenRouter is a provider concern, not a new runtime behavior. Keeping
 Revisit if: OpenRouter needs provider-specific behavior beyond OpenAI-compatible request/response handling or a later provider abstraction refactor is warranted.
 
 D-35: Phase 31 stays scoped to transport-routed operator review handling
-Date: 2026-06-04 | Status: Open
+Date: 2026-06-04 | Status: Closed
 Priority: Important
 Decision: Phase 31 will replace `TelegramReviewGate` with a transport-routed `OperatorReviewGate`, add message chunking, lazy fetch for reasoning/adversarial sections, and dispatcher pass-through for non-review slash commands. Buttons and callback-query UX remain out of scope.
 Rationale: The current product issue is not "more UI", it is that the review gate is too tightly coupled to Telegram polling and a single oversized message. Keeping the phase limited to transport reuse and command routing fixes the actual failure modes while preserving the existing operator text-command workflow.
