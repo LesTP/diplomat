@@ -62,7 +62,7 @@ modules:
     provider: secondary
     tier: quality
   review_gate:
-    # For Telegram human review, change to: TelegramReviewGate
+    # For human review via the operator coaching channel, change to: OperatorReviewGate
     class: AutoApproveReviewGate
 
 cost:

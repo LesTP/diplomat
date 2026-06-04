@@ -19,7 +19,7 @@ from typing import Any
 _project_root = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(_project_root / "src"))
 
-from modules.review_gate import ReviewDecision, TelegramReviewGate
+from modules.review_gate import OperatorReviewGate, ReviewDecision
 from modules.transport import TelegramBotTransport
 from flows.round_stepped import RoundSteppedFlow
 from orchestrator import OrchestrationOptions, Orchestrator
@@ -53,7 +53,7 @@ class CoachedGameTransport(TestTransport):
         await super().send(message)
 
 
-class DryRunTelegramReviewGate:
+class DryRunOperatorReviewGate:
     """Telegram-flavored stand-in used by ``--dry-run``."""
 
     def __init__(self) -> None:
@@ -95,6 +95,9 @@ class DryRunTelegramReviewGate:
             edit_notes=None,
         )
 
+    async def handle_command(self, command: str) -> bool:
+        return False
+
 
 class CoachedGameEnvironment(GameEnvironment):
     """GameEnvironment variant that gives one faction live Telegram wiring."""
@@ -127,8 +130,11 @@ class CoachedGameEnvironment(GameEnvironment):
 
             overrides = dict(self.extra_module_overrides)
             if faction_id == self.coach_faction:
-                overrides["transport"] = self._build_coached_transport()
-                overrides["review_gate"] = self._build_coached_review_gate()
+                coached_transport = self._build_coached_transport()
+                overrides["transport"] = coached_transport
+                overrides["review_gate"] = self._build_coached_review_gate(
+                    coached_transport
+                )
             else:
                 overrides.setdefault("transport", TestTransport())
 
@@ -171,12 +177,12 @@ class CoachedGameEnvironment(GameEnvironment):
             return CoachedGameTransport()
         return CoachedGameTransport(self._build_telegram_transport())
 
-    def _build_coached_review_gate(self) -> Any:
+    def _build_coached_review_gate(self, transport: Any) -> Any:
         if self.dry_run:
-            return DryRunTelegramReviewGate()
-        return TelegramReviewGate(
-            self._telegram_client(),
-            coaching_channel_id=self._coaching_channel_id(),
+            return DryRunOperatorReviewGate()
+        return OperatorReviewGate(
+            transport,
+            max_message_chars=4000,
         )
 
     def _build_telegram_transport(self) -> TelegramBotTransport:

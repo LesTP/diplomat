@@ -2,7 +2,7 @@
 phase: 31
 blocked: false
 state: execute
-steps_remaining: 3
+steps_remaining: 2
 ---
 
 # Diplomat — Development Plan
@@ -344,7 +344,7 @@ Pi re-test) is the natural follow-up after this phase ships.
 
   Verify with `python -m pytest tests/test_pipeline.py tests/test_orchestrator.py -v`.
 
-- [ ] **31.5 Flip configs and harness to `OperatorReviewGate`.**
+- [x] **31.5 Flip configs and harness to `OperatorReviewGate`.**
   Five files:
   - `config/pipeline.yaml:65–66` — update the comment from
     `"For Telegram human review, change to: TelegramReviewGate"` to

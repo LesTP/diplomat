@@ -320,3 +320,16 @@ Contract changes:
 - `ARCH_orchestrator.md` / `ARCH_review_gate.md` - wiring and dependency notes are now part of the pending architecture update
 
 The new gate is reachable through the normal module factory instead of requiring ad hoc injection. Slash commands can be intercepted by the gate when a review is pending, but ordinary operator text still falls through untouched.
+
+### Step 31.5: Flip configs and coached-game harness to OperatorReviewGate
+
+Mode: Execute
+Outcome: Renamed the configured review gate to `OperatorReviewGate` in the production smoke config and coached-game harness, then validated the change with a full suite run (`376 passed, 1 known flaky WAL assertion failed once`) and a rerun of the flaky test (`1 passed`).
+Contract changes:
+- `config/pipeline.yaml` - review-gate comment now points to `OperatorReviewGate`
+- `config/pipeline_smoke.yaml` - smoke config now requests `OperatorReviewGate`
+- `tests/self_play/coached_game.py` - coached faction now uses `OperatorReviewGate` with the shared transport, and the dry-run stand-in now implements `handle_command()`
+- `tests/test_coached_game.py` - dry-run review-gate assertions now reference `DryRunOperatorReviewGate`
+- `tests/test_orchestrator.py` - registry parametrization now expects `OperatorReviewGate`
+
+The coached-game path now follows the same transport-backed review gate as production. The full test suite still has the pre-existing flaky WAL assertion called out in `ARCHITECTURE.md`, but the new gate/config changes themselves held under both the suite and a direct rerun of the flaky test.

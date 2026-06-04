@@ -62,7 +62,7 @@ modules:
     provider: secondary
     tier: quality
   review_gate:
-    class: TelegramReviewGate
+    class: OperatorReviewGate
 
 cost:
   per_round_budget_usd: 0.50

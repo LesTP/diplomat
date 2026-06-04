@@ -10,7 +10,7 @@ from tests.helpers.stub_analyst import StubAnalyst
 from tests.self_play.coached_game import (
     CoachedGameEnvironment,
     CoachedGameTransport,
-    DryRunTelegramReviewGate,
+    DryRunOperatorReviewGate,
 )
 from tests.self_play.fake_llm_client import DryRunLLMClient
 from tests.self_play.game_environment import LoggingLLMClient
@@ -92,7 +92,7 @@ async def test_coached_game_routes_one_faction_through_telegram_standin(tmp_path
         gamma = env.agents["gamma"]
 
         assert isinstance(beta.transport, CoachedGameTransport)
-        assert isinstance(beta.orchestrator.pipeline.orchestrator.review_gate, DryRunTelegramReviewGate)
+        assert isinstance(beta.orchestrator.pipeline.orchestrator.review_gate, DryRunOperatorReviewGate)
         assert isinstance(alpha.orchestrator.pipeline.orchestrator.review_gate, AutoApproveReviewGate)
         assert isinstance(gamma.orchestrator.pipeline.orchestrator.review_gate, AutoApproveReviewGate)
 
