@@ -18,7 +18,7 @@ from modules.types import AnalysisResult, Divergence, InboundEvent, StatePatch
 from modules.transport import OutboundMessage
 from modules.analyst import LLMAnalyst
 from modules.context_assembler import DefaultContextAssembler
-from modules.coaching import TaggedCoachingParser
+from toolkit.coaching import TaggedCoachingParser
 from modules.event_store import SQLiteEventStore
 from modules.extraction import RuleBasedExtractor
 from modules.generation import LLMGenerator

@@ -1,114 +1,44 @@
-# ARCH: Coaching
+# ARCH: Coaching (Diplomat-specific operational notes)
 
-## Purpose
-Parse and route operator input. Operator messages arrive as free text with optional tag prefixes (PRIORITY:, CONSTRAINT:, INTEL:, etc.) or slash commands (/preview, /approve, /status, etc.). The parser classifies each input and returns either a CoachingEvent (routed to the coaching queue or state updater) or a Command (dispatched by the Orchestrator). Routing rules are loaded from `config/coaching_routes.yaml` — no routing logic is hardcoded.
+> The **module specification** (parser API, types, config format, usage) is
+> in `toolkit/ARCH_coaching.md`. This doc holds only the Diplomat-specific
+> operational guidance for how coaching is used in a multi-round diplomacy
+> game: philosophy, cadence, edit-log feedback loop, and forward-only
+> behavior. Wiring in Diplomat is in `src/orchestrator.py` (consumes
+> `toolkit.coaching.TaggedCoachingParser`) and the routes config is in
+> `config/coaching_routes.yaml`.
 
-## Public API
+## Diplomat routing
 
-### parse
-- **Signature:** `def parse(self, raw_input: str) -> CoachingEvent | Command`
-- **Parameters:**
-  - raw_input: str — the operator's message text
-- **Returns:** CoachingEvent or Command
-- **Errors:** none — unrecognised input returns CoachingEvent with coaching_type='FREE'
+Tags used (see `config/coaching_routes.yaml`):
 
-## Types
+| Tag | Route | Notes |
+|---|---|---|
+| `PRIORITY` | `coaching_queue` | Compass for next round; consumed by next Generation |
+| `CONSTRAINT` | `coaching_queue` | Hard boundary or trap detected |
+| `INTEL` | `state_updater` | Factual correction; routed through Extraction to State Manager |
+| `TONE` | `coaching_queue` | Behavioral adjustment |
+| `WATCH` | `coaching_queue` | Attention direction |
+| `default` (untagged) | `coaching_queue` | Free coaching |
 
-```python
-@dataclass
-class CoachingEvent:
-    coaching_type: str    # 'PRIORITY' | 'CONSTRAINT' | 'INTEL' | 'TONE' | 'WATCH' | 'FREE'
-    content: str          # the text after the tag prefix (or full text if untagged)
-    route: str            # 'state_updater' | 'coaching_queue'
+Slash commands handled by the Orchestrator: `/preview`, `/approve`, `/edit`,
+`/block`, `/status`, `/state`, `/ledger`, `/intel`, `/divergences`,
+`/edits`, `/commands`.
 
-@dataclass
-class Command:
-    name: str             # 'preview' | 'approve' | 'edit' | 'block' | 'status' | etc.
-    args: dict            # parsed arguments (e.g., edit text for /edit: ...)
-```
+## Outputs in Diplomat
 
-## Configuration
-
-`config/coaching_routes.yaml`:
-
-```yaml
-tags:
-  PRIORITY:
-    route: coaching_queue
-    coaching_type: PRIORITY
-  CONSTRAINT:
-    route: coaching_queue
-    coaching_type: CONSTRAINT
-  INTEL:
-    route: state_updater
-    coaching_type: INTEL
-  TONE:
-    route: coaching_queue
-    coaching_type: TONE
-  WATCH:
-    route: coaching_queue
-    coaching_type: WATCH
-  default:
-    route: coaching_queue
-    coaching_type: FREE
-
-commands:
-  - /preview
-  - /approve
-  - /edit
-  - /block
-  - /status
-  - /state
-  - /ledger
-  - /intel
-  - /divergences
-  - /edits
-```
-
-## Inputs
-- Raw operator message text (str)
-- Routing rules from config/coaching_routes.yaml (loaded at startup)
-
-## Outputs
-- CoachingEvent — consumed by Orchestrator:
-  - route='state_updater' → forwarded to Extraction with trigger_type='intel_correction'
-  - route='coaching_queue' → stored in coaching table, consumed by next Generation call
-- Command — dispatched by Orchestrator to the appropriate command handler
-
-## State
-None. Pure parsing function. Routing rules loaded once at startup from config file.
-
-## Usage Example
-
-```python
-from modules.coaching import TaggedCoachingParser
-
-parser = TaggedCoachingParser(routes_path="config/coaching_routes.yaml")
-
-# Tagged coaching
-result = parser.parse("PRIORITY: Secure alliance with Beta before round 5")
-# → CoachingEvent(coaching_type='PRIORITY', content='Secure alliance...', route='coaching_queue')
-
-# INTEL coaching (routes to state updater)
-result = parser.parse("INTEL: Alpha broke promise to Gamma in round 3")
-# → CoachingEvent(coaching_type='INTEL', content='Alpha broke...', route='state_updater')
-
-# Command
-result = parser.parse("/preview")
-# → Command(name='preview', args={})
-
-# Edit command with args
-result = parser.parse("/edit: Soften the tone in the second paragraph")
-# → Command(name='edit', args={'text': 'Soften the tone...'})
-
-# Untagged (free coaching)
-result = parser.parse("Be careful with Delta, their coach seems aggressive")
-# → CoachingEvent(coaching_type='FREE', content='Be careful...', route='coaching_queue')
-```
+- `CoachingEvent` with `route='state_updater'` → forwarded to Extraction
+  with `trigger_type='intel_correction'`.
+- `CoachingEvent` with `route='coaching_queue'` → stored in the `coaching`
+  table, consumed by the next Generation call.
+- `Command` → dispatched by the Orchestrator to the appropriate handler.
 
 ## Philosophy & Operational Notes
 
-> Originally diplomat-system-spec.md §7. Migrated here 2026-06-02 when the spec was retired.
+> Originally diplomat-system-spec.md §7. Migrated here 2026-06-02 when the
+> spec was retired. Kept here (rather than in toolkit) because operational
+> cadence is domain-specific — toolkit defines the mechanism, Diplomat
+> defines the practice.
 
 ### Philosophy
 

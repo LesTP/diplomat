@@ -13,7 +13,7 @@ REGISTRY: dict[str, str] = {
     "SQLiteStateManager": "modules.state_manager:SQLiteStateManager",
     "RuleBasedExtractor": "modules.extraction:RuleBasedExtractor",
     "OpenAIStructuredExtractor": "modules.extraction:OpenAIStructuredExtractor",
-    "TaggedCoachingParser": "modules.coaching:TaggedCoachingParser",
+    "TaggedCoachingParser": "toolkit.coaching:TaggedCoachingParser",
     "CLITransport": "modules.transport:CLITransport",
     "TelegramBotTransport": "modules.transport:TelegramBotTransport",
     "FileBasedPersona": "modules.persona:FileBasedPersona",

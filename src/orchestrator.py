@@ -16,7 +16,7 @@ from typing import Any
 import yaml
 
 from logging_config import get_logger
-from modules.coaching import CoachingEvent, Command
+from toolkit.coaching import CoachingEvent, Command
 from modules.context_assembler import CoachingEntry
 from modules.generation import GenerationResult
 from modules.persona import CoachingContext

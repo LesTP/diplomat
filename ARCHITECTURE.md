@@ -15,7 +15,7 @@
 | Context Assembler | Assemble all inputs into a Decision Engine context window | none (pure composition) |
 | Generation | Context → response text via LLM (structured_call for JSON mode) | toolkit/structured_llm |
 | Adversarial | Draft → adversarial analysis via LLM (skippable) | toolkit/structured_llm |
-| Coaching | Parse and route operator input by tag | none (pure parsing) |
+| Coaching | Parse and route operator input by tag | toolkit/coaching |
 | Review Gate | Human approval workflow: approve/edit/block (lazy-fetch reasoning/adversarial) | Transport (coaching channel) |
 | Scenario Compiler | Narrative scenario → scored persona files with point tables, BATNAs, deception tactics, game-mode | toolkit/structured_llm |
 | Pipeline | Per-agent capability surface: event storage, extraction, operator dispatch, round advancement, reconciliation/analysis, response generation, and query APIs | All runtime modules, toolkit/cost_accountant |
@@ -116,7 +116,7 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 | 1 | Event Store | Leaf dependency. Append-only SQLite, simplest module. Everything downstream needs stored events. | Complete |
 | 2 | State Manager | Leaf dependency. Domain tables, schema validation, audit log. Extraction and Analyst depend on it. | Complete |
 | 3 | Extraction | First LLM-consuming module. Validates toolkit/llm_client integration. Feeds State Manager. | Phase 2 complete |
-| 4 | Coaching | Pure parsing, no external deps. Needed before operator input can be processed. | Phase 3 complete |
+| 4 | Coaching | Pure parsing, no external deps. Needed before operator input can be processed. | Phase 3 complete; extracted to `toolkit.coaching` 2026-06-05 (Diplomat consumes the toolkit module unchanged) |
 | 5 | Transport | Platform I/O. Validates toolkit/telegram_client integration. Needed for end-to-end. | Phase 4 complete |
 | 6 | Persona | File-based, simple. Needed before Generation. | Phase 5 complete |
 | 7 | Analyst + Divergence | Two LLM calls + pure comparison. High value — intelligence drives decision quality. | Phase 6 complete |

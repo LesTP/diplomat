@@ -4,6 +4,28 @@
      Newest entries at the top. Each step or milestone gets a structured entry.
      This is the audit trail.
 
+## 2026-06-05 — Coaching module extracted to toolkit
+
+Action: REFACTOR
+Mode: Cross-project (Diplomat + toolkit)
+Outcome: `modules.coaching` removed from Diplomat. Diplomat now consumes `toolkit.coaching` unchanged.
+
+Motivation: Clanker Courts (sibling project under design) needs the same tagged-coaching parser. Second-consumer rule for toolkit promotion satisfied (Diplomat + CC). Coaching module is config-driven and was the cleanest extraction candidate per the cross-project survey.
+
+Changes:
+- **toolkit:** new module `toolkit.coaching` (`src/toolkit/coaching/__init__.py`, `core.py`). Ports the 139-line Diplomat module unchanged except for one design refinement: PyYAML is lazy-imported inside `load_routes_config`, so toolkit core stays dependency-free. New `TaggedCoachingParser.from_config(dict)` constructor for callers that don't want a YAML dependency.
+- **toolkit:** new tests at `tests/coaching/test_core.py` (12 tests — the 11 ported from Diplomat plus 1 new for the `from_config()` no-YAML path). All pass.
+- **toolkit docs:** TOOLKIT_REFERENCE.md, API.md, PROJECT.md, README.md updated. Module count 11 → 12 (10 leaf + 2 composing). Diplomat consumer list adds `coaching`.
+- **diplomat:** `src/modules/coaching/` deleted. `src/orchestrator.py`, `src/registry.py`, `tests/test_orchestrator.py` updated to import from `toolkit.coaching` instead of `modules.coaching`. `tests/test_coaching.py` deleted (canonical tests now in toolkit).
+- **diplomat docs:** ARCH_coaching.md and ARCHITECTURE.md updated to note the module's new home.
+
+Test results post-extraction:
+- toolkit: 12/12 coaching tests pass
+- diplomat: 352 passed, 1 skipped, 1 deselected (pre-existing `test_round_boundary_time_mode` timing flake), 1 pre-existing async flake on `test_round_end_populates_intelligence` (passes in isolation; reproducible only when run with the rest of `test_pipeline_flow.py`; unrelated to coaching — flagged for future investigation).
+- Both coaching integration paths in `test_pipeline_flow.py` pass (`test_operator_priority_coaching_stored_unconsumed`, `test_operator_intel_coaching_creates_intel_state_change`), confirming end-to-end behavior is preserved.
+
+Run requirements: tests need `PYTHONPATH=src` set when Diplomat isn't installed via `pip install -e .` (no change from prior baseline).
+
 ## 2026-06-03 — Phase 29 Review
 
 Action: REVIEW
@@ -427,3 +449,9 @@ Focused verification passed with `python3 -m pytest tests/test_orchestrator.py -
 ## Phase 32 close (2026-06-04)
 
 Phase 32's worker slice is complete: shared toolkit now auto-chunks oversized Telegram sends, Diplomat's review gate sends one full coaching message per section, the coached-game listener drains stale startup updates before forwarding operator commands, and `/intel` reports only the latest round. Decisions D-46 and D-47 capture the two new cross-cutting behaviors. The remaining Phase 32 operator-only follow-up is the cross-project NEXT_STEPS notes in 32.7.
+
+## 2026-06-04 - Phase 32 fully sealed (32.7 closure follow-up)
+
+Phase 32's 32.7 operator-only step (cross-project NEXT_STEPS notes for Phosphene + Codexbot) was closed without action. Operator clarified: `NEXT_STEPS.md was an ad-hoc place to hold notes from my discussions; it was meant for things that are not proper SWD but rather experiments and directions, other projects may or may not have this and we don't need to formalize it.'' Neither Phosphene nor Codexbot uses a NEXT_STEPS.md convention. The Codexbot migration recipe + paragraph-first algorithm upgrade story is preserved in toolkit's own ARCH_telegram_client.md + README + TOOLKIT_REFERENCE.md (which Codexbot's owner naturally consults when migrating), plus Diplomat's DECISIONS D-46 + the Phase 32 DEVPLAN history entry. Optional Pi smoke for /intel chunked-delivery confirmation remains operator-driven, no urgency.
+
+Phase 32 entry collapsed to a one-line Complete summary in DEVPLAN history; Current Status updated to reflect project at a stopping point with no queued phase; frontmatter locked: true per WORKER_SPEC phase-close convention. Cold-start state ready for next session.
