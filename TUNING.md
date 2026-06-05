@@ -26,17 +26,58 @@ Configuration file: `config/pipeline.yaml` (production) or `config/pipeline_smok
 | **Adversarial** | secondary (Anthropic) | quality | claude-sonnet-4-6 | Different provider from generator to catch blind spots |
 | **Extractor** | — | — | RuleBasedExtractor | Regex-based, no LLM cost. Switch to OpenAIStructuredExtractor for better quality |
 
-### Self-play actuals (Runs 8–10)
+### Self-play actuals (Runs 8–12)
 
 | Module | Provider / Model | Notes |
 |---|---|---|
 | **Generator** | OpenAI `gpt-4.1-mini` (Runs 1-9 default) | Run 8 used per-faction routing (alpha=OpenAI, beta=Anthropic claude-haiku-4-5, gamma=Google gemini-2.5-flash). Run 10 B' showed Anthropic on beta unlocks the Pareto deal that all-OpenAI Run 9 α-squeezed missed — see Run 10 entry in `TUNING_LOG.md`. |
+| **Generator** | Anthropic `claude-haiku-4-5` (Run 11) | All-Anthropic baseline across 3 BATNA variants. Reached Pareto on symmetric + β-squeezed. Over-cooperated on β-squeezed (β accepted sub-BATNA deal). |
+| **Generator** | Google `gemini-2.5-flash-lite` (Run 12) | Symmetric only — flash-lite hangs on sequential games (503 errors from Google backend). Use `gemini-2.5-flash` instead. |
+| **Generator** | Google `gemini-2.5-flash` (Run 12b) | All 3 variants reached deals (only provider to achieve this). Reliable, no hang. Use this for future Gemini experiments (D-37). |
 | **Primary Analyst** | OpenAI `gpt-4.1-mini` | Shared with other modules; per-faction routing only affects Generator. |
 | **Secondary Analyst** | Same as primary on commodity runs | Divergence pair not exercised for cost reasons on most self-play. |
 | **Adversarial** | OpenAI `gpt-4.1-mini` | Same constraint. |
 | **Extractor** | OpenAI `gpt-4.1-mini` (`OpenAIStructuredExtractor`) | RuleBasedExtractor was used Run 1; LLM-based since Run 2. |
 | **Reconciler** | OpenAI `gpt-4.1-mini` (`build_reconciler` factory) | Phase 18+. Fires at every round boundary before analysts. |
 | **Scorer** | OpenAI `gpt-4.1-mini` (`structured_call`) | Computes `agreed_outcomes` + per-faction scores at game end. |
+
+### OpenRouter models (verified 2026-06-03)
+
+Phase 30 added OpenRouter as a provider. Use `"provider":"openrouter"` in
+`--per-faction-providers` JSON. Single API key (`OPENROUTER_API_KEY` in `.env`)
+routes to ~200 models. Verified working:
+
+| Model | OpenRouter ID | Latency | Cost (in/out per MTok) | Notes |
+|---|---|---|---|---|
+| **DeepSeek V3** | `deepseek/deepseek-chat` | ~3s | $0.27 / $1.10 | Strong reasoning, very cheap. Good candidate for Generator experiments. |
+| **Gemma 3 27B** | `google/gemma-3-27b-it` | ~1.3s | Free / minimal | Google's open model. Fast. |
+| **Llama 4 Maverick** | `meta-llama/llama-4-maverick` | ~1.0s | $0.20 / $0.60 | Meta's latest. Very fast and cheap. |
+| **Qwen 2.5 72B** | `qwen/qwen-2.5-72b-instruct` | ~2.6s | $0.27 / $1.10 | Chinese lab, strong multilingual. |
+
+**Usage:**
+```bash
+--per-faction-providers '{"alpha":{"provider":"openrouter","model":"deepseek/deepseek-chat"},"beta":{"provider":"openrouter","model":"meta-llama/llama-4-maverick"},"gamma":{"provider":"anthropic","model":"claude-haiku-4-5"}}'
+```
+
+Mixing OpenRouter with native providers works — each faction gets its own
+provider independently. Browse available models at openrouter.ai/models.
+
+**Note:** Free-tier models (`:free` suffix) may be slow or unavailable.
+Paid models through OpenRouter are reliable and fast. DeepSeek at $0.27/MTok
+is roughly $0.05-0.10 per 4-round game — cheaper than any native provider.
+
+### Cross-provider comparison matrix (Runs 9-12b, Water Rights symmetric)
+
+| Provider | Model | Symmetric deal? | Score (α/β/γ) | Failure mode |
+|---|---|---|---|---|
+| OpenAI | gpt-4.1-mini | No | — | R3→R4 defection |
+| Anthropic | claude-haiku-4-5 | Yes | 16/18/22 | Over-cooperation under squeeze |
+| Gemini | flash-lite | Yes | 16/18/20 | Sequential-game hang (503s) |
+| Gemini | flash | Yes | 15/18/22 | R3→R4 defection observed once on coached symmetric (Run 13) — first Gemini defection, single instance, may be stochastic |
+| DeepSeek | deepseek-chat | Untested | — | — |
+| Llama 4 | llama-4-maverick | Untested | — | — |
+| Gemma 3 | gemma-3-27b-it | Untested | — | — |
+| Qwen 2.5 | qwen-2.5-72b-instruct | Untested | — | — |
 
 ### Run 10 finding — provider consistency on commodity tier
 

@@ -761,8 +761,9 @@ this time with gamma (not beta) as the defector.
 | 8 | Water Rights (3-provider) | a=8, b=15, c=5 | 0 | ~$1 | **Provider differentiation visible qualitatively** but raw scores deadlock at BATNA. Volume and Infrastructure converge cleanly; Payment deadlocks (Alpha=Heavy-Downstream vs Beta+Gamma=Token). Pareto-optimal Shared compromise existed but no agent proposed it. Two silent-failure infra bugs surfaced and fixed (`.env` not loaded; toolkit `parse_json_response` didn't strip Markdown fences from Anthropic/Google JSON). New CLI flags: `--per-faction-providers`, `--analysis-json`, `--expect-providers`. New verifier: `verify_scenario_optimum.py`. Retro-pareto (2026-06-01): **efficiency = 0.537** (29/54). |
 | 9 | Water Rights (3 asymmetric BATNA variants) | sym=29 / α-sq=22 / β-sq=13 | 0 | ~$1.20 | **Complete 2026-06-01.** Single-provider gpt-4.1-mini. β-squeezed variant **reached Pareto deal**: alpha=15 (+6), beta=18 (+3), gamma=22 (+11), pareto_efficiency=1.02. Symmetric (0.593) and α-squeezed (0.630) reproduced no-deal deadlock. Asymmetric pressure on the deadlock-holder unlocks the optimum; on the wrong faction it entrenches them. `time_to_deal=4` registered for first time. |
 | 10 | Water Rights (B' Anthropic-on-beta + C' dual-squeeze) | B'=39 / C'=24 | 0 | ~$0.85 | **Complete 2026-06-01.** B' (alpha-squeezed BATNAs, beta on Anthropic claude-haiku-4-5, alpha+gamma OpenAI gpt-4.1-mini): **reached Pareto deal** alpha=15 (+0), beta=18 (+10), gamma=22 (+11), `negotiated_surplus_share=1.050`. Same configuration that produced no-deal in Run 9 α-squeezed (all OpenAI). Confirms OpenAI gpt-4.1-mini R3→R4 defection is provider-specific. C' (alpha+beta dual-squeeze, all OpenAI): no-deal — gamma defected from R3 Heavy-Downstream commitment to R4 Shared (same defection pattern as Run 9 α-squeezed beta, different faction, same model). |
+| 13 | Water Rights symmetric (β coached, new gate, all Gemini flash) | sum=32 | 0 | ~$0.05–0.15 | **Complete 2026-06-04.** First coached game with the Phase 31 `OperatorReviewGate`. All factions at BATNA — γ defected R3→R4 from Heavy-Downstream to Shared (first observed Gemini R3→R4 defection on Water Rights). Contradicts Run 12b's uncoached deal-reaching result on same model + same BATNAs. Phase 31 gate validated end-to-end: chunking surface present, lazy `/reasoning` + `/adversarial` work, `/state`/`/status`/`/divergences`/`/ledger` work during pending review. Two gaps surfaced: R1 startup auto-resolved by stale `/approve` from previously-killed Phase-31-bug session (Phase 31b candidate — drain TG queue on listener startup), and `/intel` silent during pending review (separate latent bug). Also surfaced 31a hotfix: `RoundSteppedFlow` needs its own operator-input bridge since `OperatorReviewGate` no longer self-polls. |
 
-**Total spend across completed runs (1-10): ~$7-8**
+**Total spend across completed runs (1-13): ~$7-8**
 **Pre-flight already incurred: $0 (dry-runs free, OpenAI probe ~$0.001)**
 
 ---
@@ -1155,6 +1156,176 @@ does Gemini reach deals across the BATNA spectrum?
 
 - [x] Flash-lite hang → flash works. Model-tier issue confirmed.
 - [x] γ-squeezed untested → tested on Anthropic (no deal) and Gemini (deal).
+
+---
+
+### Run 13 — First Coached Game with new OperatorReviewGate (all-Gemini-flash, Water Rights symmetric, β coached) — COMPLETE
+
+**Date:** 2026-06-04.
+**Hypothesis (dual):** (a) The Phase 31 `OperatorReviewGate` survives a real
+4-round coached game on Pi (chunking, lazy fetch, command pass-through, no
+hangs). (b) Gemini-2.5-flash on Water Rights symmetric still reaches a deal
+when the coached pathway adds review-gate delays and the operator approves
+without edits (functionally equivalent to uncoached negotiation modulo timing).
+
+**Variables changed vs Run 12b baseline:** coached pipeline (`coached_game.py`
++ `OperatorReviewGate` + Phase 31a operator-input bridge), `generation.txt`
+conciseness rewrite (2026-06-04). Operator chose approve-only — no `/edit` or
+`/block` exercised.
+
+**Pre-flight history:**
+- Original plan was all-Gemma (`google/gemma-3-27b-it`) via OpenRouter. Pivoted
+  to free-tier Llama 3.3 70B (`meta-llama/llama-3.3-70b-instruct:free`) when
+  the operator confirmed no OpenRouter credit — probe failed (0/3, upstream
+  rate-limited). Pivoted again to Gemini flash via Google direct (paid tier
+  the operator already has).
+- First live-run attempt hung at R1's first review prompt. **Phase 31 bug**:
+  `OperatorReviewGate` is a passive handler that relies on
+  `Pipeline.dispatch_operator → handle_command`. `EventDrivenFlow` provides
+  that routing in production but `RoundSteppedFlow` (used by coached_game) does
+  not, and `CoachedGameTransport` doesn't consume the wrapped TG transport's
+  inbound queue. Operator's `/state` / `/approve` reached TG but never reached
+  the gate. The deleted `TelegramReviewGate` worked because it polled
+  `telegram_client.get_next_update()` directly — that side channel was
+  removed without a replacement on the coached path. **Phase 31a hotfix
+  shipped same session:** `CoachedGameEnvironment.setup()` now spawns
+  `_listen_for_operator(tg_transport, pipeline)` that consumes
+  `tg_transport.listen()` and forwards `sender_faction == "operator"` events
+  to `dispatch_operator`. Regression test added.
+
+**Config:**
+- Scenario: Water Rights (`water_rights_symmetric_050/scenario_analysis.json`)
+- Provider: `gemini-2.5-flash` via Google direct (all 3 factions)
+- BATNAs: α=11, β=10, γ=11 (symmetric, same as Run 9 sym / Run 11 sym / Run 12b sym)
+- Rounds: 4
+- Coached: β via Telegram on Pi
+- Reconciliation, post-game scoring enabled
+- Cost: ~$0.05–0.15
+
+**Results:**
+
+| Faction | Provider | Points | BATNA | Δ | Winner |
+|---|---|---|---|---|---|
+| α | Gemini flash | 11 | 11 | 0 | — |
+| β | Gemini flash (coached) | 10 | 10 | 0 | — |
+| γ | Gemini flash | 11 | 11 | 0 | — |
+
+- `deal_reached=false`
+- `pareto_efficiency=0.593` (29/49 — same as Run 9 symmetric)
+- `negotiated_surplus_share=0.000` (all at BATNA floor)
+- `broken_promise_rate=0.115`
+- `coalition_stability=0.000`
+- `opening_gap: α=0.50, β=0.38, γ=0.45` (every faction moved substantially from R1 opening)
+- `time_to_deal=null`
+
+**The R3→R4 defection trace (smoking gun):**
+
+α's R4 message explicitly references γ's R3 commitment:
+> *"We acknowledge **Gamma's significant and commendable concession in Round 3 to accept a Heavy-Downstream Payment Structure**. This demonstrates a true understanding of the need for fair compensation..."*
+
+α+β converged on Heavy-Downstream in R4. γ pivoted to Shared, breaking
+consensus. Volume=High and Infrastructure=JFD reached unanimous agreement on
+both R3 and R4. **Classic R3→R4 defection pattern on the payment axis.**
+
+This is the **first observed R3→R4 defection on Gemini-flash** in this
+scenario family. Prior instances:
+- Run 9 α-squeezed β (OpenAI gpt-4.1-mini)
+- Run 10 C' γ (OpenAI gpt-4.1-mini)
+- Run 11 β-squeezed β (Anthropic claude-haiku-4-5 — but that was over-cooperation
+  to sub-BATNA, different failure mode)
+
+Compare to **Run 12b symmetric (same model, same BATNAs, *uncoached*)** which
+reached the Pareto deal (α=15, β=18, γ=22) cleanly.
+
+**Phase 31 + 31a gate validation (the primary purpose of this run):**
+
+| Surface | Status |
+|---|---|
+| End-to-end 4-round coached game completes after 31a hotfix | ✓ |
+| `/reasoning` lazy fetch | ✓ R2+ (poisoned R1 — see below) |
+| `/adversarial` lazy fetch | ✓ R2+ |
+| `/state`, `/status`, `/divergences`, `/ledger` during pending review | ✓ |
+| `/intel` during pending review | ✗ silent — separate bug |
+| Group post only after operator approval | ✓ R2+ (alpha+gamma's `AutoApproveReviewGate` posts immediately, only β's posts gate on operator) |
+| Chunking | unexercised (drafts ~1800–2400 chars, under the 4000 limit) |
+| `/edit`, `/block` | unexercised (operator chose approve-only) |
+
+**R1 startup race (operator-confirmed):** the previously-killed Phase-31-bug
+session left operator's `/approve` typed during the hang sitting in
+Telegram's pending-update queue. When the new session's listener started
+polling, the very first `getUpdates` call returned all backed-up updates,
+including that stale `/approve`. The listener dispatched it; once β's R1
+review submitted, the queued `/approve` was already in flight and the future
+resolved without operator R1 interaction. Operator confirmed they did not
+type `/approve` in R1. **Phase 31b candidate**: drain the TG queue on
+`_listen_for_operator` startup so stale updates from prior killed sessions
+cannot poison the first round.
+
+**Operator workflow finding (`/edit` UX):** `/edit:` is literal text
+replacement — operator must paste the entire revised message. A natural
+extension is `/revise: <directive>` that re-generates with the directive as
+extra coaching context. Tracked as NEXT_STEPS §4e.
+
+**Learning:**
+
+1. *Gemini-flash is not immune to R3→R4 defection.* Single-instance
+   contradiction of Run 12b. Could be stochastic; could be coached-pathway
+   timing affecting cross-agent dynamics; could be `generation.txt`
+   conciseness pressure pushing γ to over-compress and shed the Heavy-Downstream
+   anchor. With N=2 we cannot separate these. Operator's read 2026-06-04:
+   *"I do suspect that these differences are also stochastic and
+   harness-related, not just a property of the model."*
+
+2. *Phase 31 architecture validated end-to-end* modulo the two known gaps
+   (R1 queue staleness, `/intel` handler). The new gate is a real product
+   surface — coached games work; operator commands work mid-review; lazy
+   fetch works.
+
+3. *The Phase 31 review-gate refactor has a known cost on coached path
+   bring-up.* The first attempt hung because the listener bridge wasn't
+   there; the second attempt was poisoned by stale queue state from the
+   first. Both are now in the rear-view, but the lesson is that "swap the
+   gate's I/O surface" has cross-flow ripples — `EventDrivenFlow` and
+   `RoundSteppedFlow` must each provide their own operator-input path now
+   that the gate no longer polls.
+
+**Decisions:**
+
+- **D-45: No controlled re-test of Gemini's defection behavior.** Operator
+  declined a second uncoached Gemini-flash run. The downside risk (a few
+  dollars and a session) doesn't justify chasing N=2. Revisit if a future
+  Gemini run on this model shows a third defection or if we're specifically
+  studying coached-vs-uncoached deltas.
+
+**Open items raised:**
+
+- [ ] **Phase 31b: drain TG queue on `_listen_for_operator` startup.** Small
+      fix. Without it, any abnormally-terminated session leaves a poisoned
+      queue that auto-resolves the next session's first round.
+- [ ] **Investigate `/intel` silent response during pending review.** Likely
+      `_latest_intelligence()` returns None/empty when no analyst report has
+      been formatted yet, or the response gets dropped before reaching the
+      coaching channel. Latent pre-Phase-31 bug — not caused by the gate
+      refactor, just surfaced by the new commands-during-review surface.
+- [ ] **§4e `/revise: <directive>` LLM-rewrite edit mode.** Operator gives a
+      free-form directive ("change High water to Medium and soften the
+      walkaway threat"), the gate re-generates with the directive as
+      coaching context, the new draft comes back for review. Cost: one
+      extra generation call per revise. Defer to a future phase.
+
+**Open items closed by this run:**
+
+- NEXT_STEPS §4d (Pi re-test of coached game with new gate) — **closed**.
+  Gate validated end-to-end. Two minor gaps (R1 queue staleness, `/intel`)
+  tracked as Phase 31b and a separate bug.
+- NEXT_STEPS §4a (TG 4096 char limit) — closed in Phase 31; confirmed
+  in this run by the absence of any truncation (chunking surface present,
+  not exercised due to draft size).
+- NEXT_STEPS §4b (commands during review + transcript visibility) —
+  closed in Phase 31; confirmed for all tested commands except `/intel`.
+- NEXT_STEPS §4c (verbose generation) — closed 2026-06-04 by
+  `generation.txt` rewrite; in-game messages were ~1800-2400 chars,
+  still long but no obvious filler ("I have been listening carefully...").
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 phase: 32
 blocked: true
-state: close
+state: plan
 steps_remaining: 0
 ---
 
@@ -53,9 +53,9 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 32 closed 2026-06-04. See `DEVLOG.md` "Phase 32 close".
-- **Focus** — Awaiting operator dispatch for the next phase.
-- **Blocked/Broken** — `blocked: true` terminal close state; no open worker tasks.
+- **Phase** — Phase 32 closed 2026-06-04 (worker loop + operator follow-up both fully sealed). No phase queued. Next session: review backlog in `NEXT_STEPS.md` and pick the next tier item to plan.
+- **Focus** — Project at a stopping point. Live coached game (Run 13) validated the new gate end-to-end; toolkit-level chunking + queue-drain + `/intel` trim all shipped. Open backlog tracked in `NEXT_STEPS.md`; canonical sequencing notes still apply.
+- **Blocked/Broken** — `blocked: true` per WORKER_SPEC phase-close convention (human audit before next phase begins). Set `blocked: false` after planning Phase 33.
 
 <!-- Phase ordering convention:
        - Open / queued phases first, in forward execution order (next-to-do first).
@@ -65,97 +65,11 @@ steps_remaining: 0
      This puts the active work at the top and the "recent past" right under it,
      with deep history at the bottom. -->
 
-## Phase 32: Toolkit-level TG chunking + Diplomat cleanup + queue-drain + /intel trim
-
-**Goal:** Push Telegram message chunking down to `toolkit/telegram_client.TelegramClient.send_message` so every TG send across every consumer auto-splits at the 4096-char limit with `[continued ...]` markers — eliminating the entire bug class where individual callsites forget to chunk. With that universal floor in place, drop Diplomat's local `chunk_text` helper from `OperatorReviewGate`, drain stale TG-queue updates on `_listen_for_operator` startup (R1 staleness fix from Run 13 post-mortem), and trim `/intel` output to the latest round so it isn't dumping 30 KB of analyst history every query. Sister projects (Phosphene, Codexbot) inherit the auto-chunking for free when/if they adopt the shared toolkit; today they do nothing. **Work regime:** Build.
-
-**Why now:** Run 13 surfaced two related issues. (1) `/intel` was silently dropped because the response exceeded 4096 chars and `transport.send` doesn't chunk command responses — Phase 31 only fixed chunking for the review-gate path. The bug class is "any TG send anywhere that exceeds 4096 silently fails." (2) The first coached game's R1 was poisoned by a stale `/approve` from the previously-killed Phase-31-bug session — the listener consumed all backed-up updates on first poll. Operator-confirmed 2026-06-04. Both are small, both compound, both worth fixing in one phase.
-
-**Cross-project notes (read before starting):**
-- **Toolkit** lives at `p:\shared\toolkit` (Diplomat's vendored editable install per the `toolkit` rule). Steps 32.1 + 32.2 modify shared toolkit code — they are **OPERATOR-DRIVEN** and outside the autonomous worker's project-directory contract.
-- **Codexbot** has its **own vendored copy** of toolkit at `p:\shared\codexbot\toolkit\telegram_client.py` — independent of the shared one. Shared-toolkit changes do not propagate to Codexbot until it drops the vendored copy. Codexbot uses `send_message` return values for `working_message_id` / `edit_message` streaming (lines 991, 1193, 1469-1484 of `codexbot/main.py`), but those messages are short status indicators (~20 chars), never near the limit. When Codexbot eventually adopts shared toolkit, auto-chunking is a free win.
-- **Phosphene** has no current TG callsites in `src/` — nothing to break.
-- Step 32.7 adds tech-debt notes to Phosphene's and Codexbot's `NEXT_STEPS.md` — also operator-driven (cross-project).
-- D-46 (toolkit-level chunking) is the architectural decision behind 32.1 + 32.2.
-
-**Key infrastructure (read before starting):**
-- `p:\shared\toolkit\src\toolkit\telegram_client\client.py:259-277` — current `send_message` implementation. Single API call, no length check.
-- `p:\shared\toolkit\src\toolkit\telegram_client\client.py:300-321` — `send_with_keyboard` returns a `SendResult` with one message_id; the keyboard variant won't be chunked (chunking + keyboard is messy — only the last chunk would get the keyboard).
-- `p:\shared\diplomat\src\modules\review_gate\chunking.py` — current `chunk_text` helper to be relocated. Algorithm: paragraph → line → char fallback split with `[continued ...]` prefix on chunks ≥ 2.
-- `p:\shared\diplomat\src\modules\review_gate\__init__.py:173-216` — `OperatorReviewGate._send_draft` and `_send_section`. Currently chunk before sending; after 32.3 they just compose the message and call `transport.send` once.
-- `p:\shared\diplomat\tests\self_play\coached_game.py` — `_listen_for_operator` (added Phase 31a). Step 32.4 drains pending TG updates before forwarding.
-- `p:\shared\diplomat\src\orchestrator.py:350-352` — `_command_intel` dumps every intelligence row. Step 32.5 trims to latest round only.
-
-**Operator dispatch protocol:**
-1. Operator manually completes 32.1 + 32.2 (shared toolkit changes + unit tests).
-2. Operator marks 32.1 + 32.2 as `[x]` in DEVPLAN.
-3. Operator sets `blocked: false` in frontmatter.
-4. Operator dispatches the autonomous worker. Worker picks up at 32.3.
-5. After worker closes 32.6, operator handles 32.7 (cross-project doc notes) and any optional Pi smoke.
-
-### Steps
-
-- [x] **32.1 OPERATOR — Move `chunk_text` to toolkit as `split_message` and add unit tests.**
-  **Shipped 2026-06-04.** Spec deviation flagged at start: `split_message` + `TELEGRAM_MESSAGE_LIMIT` already existed in `toolkit/telegram_client/formatting.py` (Codexbot-style line-only algorithm, **zero callers in toolkit/diplomat/phosphene**, zero tests). Upgraded in place rather than creating a parallel helper — preserves the public API (`from toolkit.telegram_client import split_message, CONTINUATION_PREFIX, TELEGRAM_MESSAGE_LIMIT`). Algorithm replaced with Diplomat's paragraph-first + line + char fallback; `CONTINUATION_PREFIX = "[continued ...]\n\n"` added and exported from package; 17 unit tests in `tests/telegram_client/test_chunking.py` covering short/exact/empty/defaults/paragraph-pref/line-fallback/char-fallback/marker-placement/reassembly/validation. Codexbot's eventual migration is a drop-in import swap with two upgrades inherited automatically (paragraph-first, markers).
-
-- [x] **32.2 OPERATOR — Add auto-chunking to `TelegramClient.send_message` (using `split_message`).**
-  **Shipped 2026-06-04.** `client.py:send_message` now branches on `len(text) <= TELEGRAM_MESSAGE_LIMIT`: ≤ limit → single API call (unchanged behavior); > limit → `split_message(text)` + N serial `sendMessage` calls, `reply_to` applied only to chunk 1 (continuations are not replies), `parse_mode` applied to every chunk, INFO log records chunk count + total chars, returns the LAST message_id (preserves `int` return type for backward compatibility). Added internal `_validate_text_type` (type-only) used by `send_message` while `_validate_message_text` (strict 4096) is retained for `edit_message` and `send_with_keyboard` (those don't auto-chunk — chunking + keyboard is messy, editing is single-message-at-a-time). 12 unit tests in `tests/telegram_client/test_send_message_chunking.py`. Docs updated: `ARCH_telegram_client.md` (auto-chunking subsection + send_message + split_message + CONTINUATION_PREFIX entries), `README.md` (quick-start + public API table), `TOOLKIT_REFERENCE.md` (helper description + example).
-
-- [x] **32.3 LOOP — Drop Diplomat's local chunking from `OperatorReviewGate`.**
-  Delete `src/modules/review_gate/chunking.py`. In `src/modules/review_gate/__init__.py`:
-  - Remove the `chunk_text` / `CONTINUATION_PREFIX` import.
-  - Rewrite `_send_draft` to compose the single message: `header + draft_text + commands_hint`, then ONE `transport.send(OutboundMessage(content=full, channel="coaching"))` call. Toolkit handles the split automatically. No `max_message_chars` param needed (it becomes vestigial — leave it for now with a deprecation note in the docstring, or remove it; removal is cleaner).
-  - Rewrite `_send_section` similarly: single `f"{title}{body}"` send.
-  - Delete `tests/test_review_gate_chunking.py` (chunking now lives in toolkit's test suite).
-  - Update existing `tests/test_review_gate.py` chunking-related cases:
-    - `test_operator_review_gate_chunks_large_draft_through_transport` → either retire OR rewrite to assert that the fake transport saw `len(content) > 4096` in the single send (responsibility moved to toolkit).
-    - `test_operator_review_gate_chunks_large_reasoning_through_transport` → same treatment.
-  - Verify with `python -m pytest tests/test_review_gate.py tests/integration/test_review_gate_flow.py -v`.
-
-- [x] **32.4 LOOP — Queue-drain on `_listen_for_operator` startup.**
-  In `tests/self_play/coached_game.py`, modify `_listen_for_operator`:
-  - Before entering the forward loop, capture a `drain_until = loop.time() + 1.0` (one-second drain window — empirically enough to absorb the initial `getUpdates` dump from an abnormally-terminated previous session).
-  - While `loop.time() < drain_until`, consume events from `tg_transport.listen()` but discard them silently (don't forward to `dispatch_operator`). Log `logger.info("listener drain window absorbed %d stale events", count)`.
-  - After the drain window, switch to normal forwarding behavior.
-  - Add a regression test: scripted fake TG transport that yields 3 events immediately + 1 event after a `await asyncio.sleep(1.5)`. Assert that only the post-drain event reaches `dispatch_operator`.
-  - Verify with `python -m pytest tests/test_coached_game.py -v`.
-
-- [x] **32.5 LOOP — Trim `/intel` output to latest round.**
-  In `src/orchestrator.py` `_command_intel`:
-  - Keep only the latest intelligence row (by `created_at` or `round_number`, whichever the schema uses). If multiple rows for the same round (primary + secondary), prefer primary unless asked otherwise.
-  - Format as a compact summary: faction, round, threat level, top 3 leverage points, top 3 risks (read from `analysis_json`), not the raw `json.dumps(rows)` of every column.
-  - The pre-trim full-history behavior can be exposed as `/intel-history` if desired (defer — wait for operator demand).
-  - Add a unit test: `_command_intel` returns a string < 2000 chars when there are 8 intelligence rows in the DB.
-  - Verify with `python -m pytest tests/test_orchestrator.py -v -k intel`.
-
-- [x] **32.6 LOOP — Diplomat doc updates.**
-  - `ARCH_review_gate.md`: remove the "Chunking Contract" section (now owned by toolkit). Add a one-line note pointing readers to toolkit's `send_message` auto-chunk contract for the underlying behavior.
-  - `ARCHITECTURE.md` coupling notes: update Review Gate ↔ Transport bullet to reflect that chunking is no longer a review-gate concern.
-  - `DECISIONS.md`: add D-46 (toolkit-level chunking) and D-47 (queue-drain on listener startup) entries.
-  - `NEXT_STEPS.md`: close the `/intel silent` open item with reference to Phase 32.5; close the R1-startup-race open item with reference to Phase 32.4.
-  - `DEVLOG.md`: append a `## Phase 32 close (YYYY-MM-DD)` entry.
-  - No `README.md` or `PROJECT.md` changes expected.
-
-- [x] **32.7 OPERATOR — Cross-project NEXT_STEPS notes + optional Pi smoke.**
-  **Closed 2026-06-04, cross-project notes skipped.** Operator clarified: "NEXT_STEPS.md was an ad-hoc place to hold notes from my discussions; it was meant for things that are not proper SWD but rather experiments and directions, other projects may or may not have this and we don't need to formalize it." Neither Phosphene nor Codexbot uses a NEXT_STEPS.md convention — both have only DEVPLAN/DEVLOG/DECISIONS/ARCH_*. The Codexbot migration knowledge is preserved in (a) Diplomat's DEVLOG Phase 32 close entry, (b) DECISIONS D-46, (c) toolkit's own ARCH_telegram_client.md auto-chunking section + README + TOOLKIT_REFERENCE.md (which Codexbot's owner naturally consults when migrating). Pi smoke is optional and operator-driven — they'll exercise it if/when they want a fresh coached re-test. Worker may proceed to REVIEW + CLOSE on next dispatch.
-
-### Verification
-
-After all 7 steps:
-
-```
-python -m pytest tests/ -v
-```
-
-Diplomat suite passes. New tests:
-- toolkit `chunking.py` unit tests (32.1)
-- toolkit `send_message` auto-chunk integration tests (32.2)
-- `tests/test_coached_game.py::test_operator_listener_drains_pending_updates_on_startup` (32.4)
-- `tests/test_orchestrator.py::test_command_intel_trimmed_output` (32.5)
-
-Cross-project NEXT_STEPS notes (32.7) confirmed by visual inspection of each project's file.
-
 <!-- history -->
+
+## Phase 32: Toolkit-level TG chunking + Diplomat cleanup + queue-drain + /intel trim — Complete
+
+Closed 2026-06-04. Pushed Telegram message chunking down to `toolkit/telegram_client` — `TelegramClient.send_message` auto-chunks oversized text via the upgraded paragraph-first `split_message` (with `[continued ...]` markers); `CONTINUATION_PREFIX` constant exported. Diplomat's local `chunk_text` helper removed; `OperatorReviewGate._send_draft` / `_send_section` simplified to single-send compose. `CoachedGameEnvironment._listen_for_operator` now drains pending TG updates on startup (1s window) so stale `/approve`-style commands from previously-killed sessions can't auto-resolve R1. `/intel` operator command trimmed to the latest intelligence row (compact summary: faction, round, threat level, leverage, risks) instead of dumping every row's full JSON. Decisions D-46 (toolkit-level auto-chunking) and D-47 (coached-game startup drain window). Steps 32.1 + 32.2 (operator-driven shared toolkit changes) + 32.3-32.6 (autonomous loop, Diplomat cleanup + tests + docs) + 32.7 (cross-project NEXT_STEPS notes skipped — operator clarified NEXT_STEPS.md is a Diplomat-specific convention, knowledge preserved in toolkit docs + Diplomat DEVLOG/DECISIONS). See `DEVLOG.md` "Phase 32 close" + `TUNING_LOG.md` Run 13 (the run that surfaced the queue-staleness + /intel issues).
 
 ## Phase 31: Transport-routed OperatorReviewGate — Complete
 
