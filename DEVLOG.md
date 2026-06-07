@@ -473,3 +473,14 @@ Contract changes:
 - `tests/test_orchestrator.py` - updated generator fakes to accept metadata kwargs
 
 Focused verification passed with `python3 -m pytest tests/test_generation.py tests/test_pipeline.py tests/test_orchestrator.py -q` (`76 passed`).
+
+## 2026-06-07 — Phase 33 Step 33.2: /revise: command in OperatorReviewGate
+
+Added `/revise: <directive>` (and legacy `/revise <directive>`) to `OperatorReviewGate.handle_command`. The command is recognized before the `_pending is None` guard so the operator gets an error message rather than silent passthrough when no review is active. When a pending review exists and a pipeline is wired, calls `pipeline.regenerate_with_directive(directive, draft.response_text)`, atomically replaces `_pending` with the revised draft (preserving the same future so the existing `submit()` await continues to work), increments `_revise_count`, and sends the revised draft with the `Round N — Revised Draft (revise N/3)` header. The revise count resets to 0 at the start of each `submit()`. Commands hint updated in both the initial draft message and the revised draft message to include `/revise: <directive>`. Fixed a pre-existing regression from step 33.1: `fail_generation` mock in `test_failure_handling.py` lacked `**kwargs`, breaking when orchestrator's `generator.generate()` now passes `purpose=`.
+
+Contract changes:
+- `src/modules/review_gate/__init__.py` — added `pipeline` parameter to `__init__`, added `_revise_count` instance variable, added `/revise:` detection before pending guard, added `_handle_revise_command()`, updated `_COMMANDS_HINT` constant used by both draft and revision messages
+- `tests/test_review_gate.py` — 7 new tests covering no-pending error, no-pipeline error, happy path slot replacement, legacy syntax, chain counter increment, empty directive, and revise-count reset between submits; updated hint assertion
+- `tests/integration/test_failure_handling.py` — one-line fix to `fail_generation` mock signature
+
+364 tests passing.
