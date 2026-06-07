@@ -1,6 +1,6 @@
 # Diplomat — Next Steps
 
-> Working document. Updated 2026-06-03.
+> Working document. Updated 2026-06-07.
 >
 > Related: `DEVPLAN.md` (canonical phase plan), `TUNING_LOG.md` (run-by-run record),
 > `ARCH_conversation_model.md` (Stage 1/2/3 migration), `RUN_PROTOCOL.md` (pre-flight),
@@ -28,10 +28,12 @@
 > order; the per-section detail (§1.6 through §9) keeps the historical
 > numbering for stable cross-references.
 
-> **State as of 2026-06-02:** Phases 20–28 closed. Runs 9 + 10 closed. Next
-> recommended move: **Coaching test loop on Pi (§4)** — highest-leverage
-> untested product path; Phase 28 built `coached_game.py` + near-miss
-> diagnostic; remaining work is operator-driven Pi smoke + edit-log analysis.
+> **State as of 2026-06-07:** Phases 20–32 closed. Runs 9 + 10 closed; Run 13
+> validated the coached gate end-to-end (approve-only). **Phase 33 queued
+> (Coaching v2: `/revise:` LLM-rewrite edit mode + auto-classifier for the
+> edit log)** — closes §4e and unblocks the §4 feedback loop. Worker may
+> begin execution; see `DEVPLAN.md`. Run 14 (live re-run exercising the new
+> edit modes) queued in Carry-Forward for after phase close.
 
 ---
 
@@ -54,8 +56,8 @@ cross-references.
 
 | Item | Tags | Loop | Where | Notes |
 |---|---|---|---|---|
-| **Coached game UX fixes** | `[A][X]` | 🔨 | §4 | **Partially closed (Phase 31 + prompt change 2026-06-04).** §4a (TG char limit → chunking), §4b (operator commands during review → `handle_command` pass-through), §4c (verbose generation → prompt change) closed. §4d (Pi re-test) remains open. |
-| **Coaching test loop on Pi** | `[X]` | 👁 | §4 | First coached game completed 2026-06-03. Deal reached (β=18, +8 above BATNA) despite β being muted for R2-R4 by the char-limit bug. UX fixes above are prerequisites for a meaningful re-test. |
+| **Coached game UX fixes** | `[A][X]` | 🔨 | §4 | **Closed.** §4a/§4b/§4c shipped Phase 31 + Phase 32 + prompt change. §4d satisfied by Run 13 (2026-06-04). §4e (`/revise:` LLM-rewrite edit mode) + auto-classifier queued as **Phase 33** in `DEVPLAN.md` (2026-06-07). §4f stays open (lower priority UX polish). |
+| **Coaching test loop on Pi** | `[X]` | 👁 | §4 | First coached game completed 2026-06-03 (β=18, +8 above BATNA, β muted for R2-R4 by char-limit bug). Run 13 (2026-06-04) validated new gate end-to-end but operator chose approve-only — edit path untested. Re-runs (Run 14+) gated on Phase 33 close. |
 | **Game-platform exploration** (Clankmates / Discord / fallback) | `[X]` | 👁 | §5 | Gated on operator + partner platform decision. Updated 2026-06-02 to consider Discord alongside Clankmates. |
 | **Pricing & accounting audit** | `[X][C]` | 👁 | §6 | Best done before Tier 3 §7 so per-role cost claims have a firm baseline. |
 | **OpenRouter integration** | `[X][B]` | ✓ | §1.6 | **CLOSED Phase 30 (2026-06-03).** `OpenRouterProvider` wired in toolkit; probe/dry-run verified; use `--per-faction-providers` with `provider:"openrouter"`. |
@@ -404,16 +406,9 @@ strategy library, A/B test per-faction.
 
 ## 4. `[X]` Coaching test loop on Pi
 
-**Status 2026-06-03:** First coached game completed. Deal reached (β=18,
-+8 above BATNA) but the session surfaced 4 UX issues that must be fixed
-before a meaningful re-test.
+**Status 2026-06-07:** Three iterations done. First coached game (2026-06-03) surfaced 4 UX bugs (§4a-§4d), all closed via Phase 31 + Phase 32 + a prompt change. Run 13 (2026-06-04) validated the new gate end-to-end on all-Gemini-flash Water Rights symmetric — gate, transport, chunking, lazy-fetch, commands-during-review all worked. **But operator chose approve-only across all 4 rounds, so the edit path is still untested in a live run** and the feedback loop (classify edits → feed patterns into faction_prompt) has zero data. Phase 33 (queued 2026-06-07, see `DEVPLAN.md`) addresses both — `/revise: <directive>` LLM-rewrite edit mode plus auto-classifier for the edit log. Run 14 (live re-run exercising the new edit modes) is the immediate post-phase test.
 
-**What happened:** Operator coached beta faction via Telegram on Water Rights
-symmetric (all-Anthropic). Beta spoke in Round 1, then R2-R4 drafts hit
-Telegram's 4096-char message limit and failed silently. Beta was muted for
-75% of the game. Alpha and Gamma negotiated around the silence and converged
-on a deal that happened to include beta. Operator rubber-stamped the R1 draft
-because they had no visibility into what other factions were saying.
+**What happened on the first coached game (2026-06-03, pre-Phase 31):** Operator coached beta faction via Telegram on Water Rights symmetric (all-Anthropic). Beta spoke in Round 1, then R2-R4 drafts hit Telegram's 4096-char message limit and failed silently. Beta was muted for 75% of the game. Alpha and Gamma negotiated around the silence and converged on a deal that happened to include beta. Operator rubber-stamped the R1 draft because they had no visibility into what other factions were saying.
 
 ### UX fixes needed (priority order, all 🔨 PURE BUILD)
 
@@ -421,8 +416,8 @@ because they had no visibility into what other factions were saying.
 - [x] **4b. Transcript visibility / operator commands during review.** Closed Phase 31 (2026-06-04). `Pipeline.dispatch_operator()` routes commands through `review_gate.handle_command()` first; `/state`, `/status`, `/divergences`, `/ledger` work during pending review. `/reasoning` and `/adversarial` lazy-fetch deeper context on demand. `/intel` was silently dropped due to the chunking-bug-class (fixed by Phase 32.1–32.3), and Phase 32.5 now trims `/intel` to the latest round only.
 - [x] **4c. Verbose generation responses.** Closed 2026-06-04 (prompt change). Conciseness instruction added to `config/prompts/generation.txt`.
 - [x] **4d. Re-run coached game after UX fixes.** Satisfied by Run 13 (2026-06-04) — all-Gemini-flash Water Rights symmetric, β coached. Game completed 4 rounds; gate validated end-to-end (chunking surface present, lazy fetch works, commands-during-review works for everything except `/intel` which was the chunking-bug-class). The narrower follow-ups shipped in Phase 32: queue-drain on listener startup (R1 staleness, 32.4) and `/intel` trim to latest round only (32.5). Operator chose approve-only — edit-classification per `diplomat-testing-doc.md` §7.3 was therefore not exercised; revisit if a future coached run involves real edits.
-- [ ] **4e. `/revise: <directive>` LLM-rewrite edit mode.** Today `/edit:` does literal text replacement — operator must paste the entire revised message. A natural extension: `/revise: <directive>` (e.g. `/revise: change High water to Medium and soften the walkaway threat`) triggers a re-generation with the directive as additional coaching context. The new draft comes back through the same review-gate flow for approve / edit / revise-again / block. Cost: one extra generation call per revise. Operator notes 2026-06-04 (during Run 13): `/edit` UX is "annoying for long drafts but precise"; `/revise` would be the natural UX for "I have an intent, you write it." Defer to a dedicated phase — needs prompt design for the revise call (does it see the original draft? does it see the operator's intent verbatim? what's the rewrite signature?) and review-gate state-machine work (a revise round needs its own pending future, not the same one). Lower priority than Phase 32 items; queue after Phase 32 closes.
-- [ ] **4f. Operator command response UX (`/ledger` info-density, `/intel-history` for full history).** Operator notes 2026-06-04 (Run 13): `/ledger` "works but it's not very informative" — currently returns only `{per_round_budget, session_budget, available_budget, current_round}`. Improvement ideas: add per-call counts since last query, current-round spend, top 3 most expensive calls, cost-per-faction breakdown. Related: after Phase 32 trims `/intel` to latest round only, may want an `/intel-history` companion command for the full archive (defer until operator asks for it — most-recent-only is the more useful default). Both are pure-UX polish; no urgency.
+- [ ] **4e. `/revise: <directive>` LLM-rewrite edit mode + auto-classifier for the edit log.** **Queued as Phase 33 in `DEVPLAN.md` (2026-06-07).** Two related additions: (a) `/revise: <directive>` lets the operator give intent and have the model regenerate in-place (capped at 3 iterations per pending review), closing the composition-cost problem that made Run 13 approve-only; (b) `LLMEditClassifier` + `tools/classify_edit_log.py` + `/edits-summary` command auto-categorize every `action='edited'` row into the six `diplomat-testing-doc.md` §7.3 categories, closing the original §4 "classify edits → feed patterns into faction_prompt" TODO. Design decisions pinned 2026-06-07: full `DecisionContext` for the revise call, 3-iteration cap, JSON-array directive chain on `review_gate_edits`, separate `edit_classifications` table, on-demand classification (no in-game auto-classify), `gemini-2.5-flash-lite` default. All 10 steps 🔨 pure build, loop-ready. Single live-LLM step (33.9 classifier discrimination fixtures, ~$0.30). See `DEVPLAN.md` Phase 33 for the full plan.
+- [ ] **4f. Operator command response UX (`/ledger` info-density, `/intel-history` for full history).** Operator notes 2026-06-04 (Run 13): `/ledger` "works but it's not very informative" — currently returns only `{per_round_budget, session_budget, available_budget, current_round}`. Improvement ideas: add per-call counts since last query, current-round spend, top 3 most expensive calls, cost-per-faction breakdown. Related: after Phase 32 trims `/intel` to latest round only, may want an `/intel-history` companion command for the full archive (defer until operator asks for it — most-recent-only is the more useful default). Both are pure-UX polish; no urgency. Out of scope for Phase 33.
 
 ### What the first session confirmed
 
@@ -436,8 +431,8 @@ because they had no visibility into what other factions were saying.
 - [x] Build `coached_game.py` (Phase 28)
 - [x] Test scenario: Water Rights symmetric, all-Anthropic (2026-06-03)
 - [x] Run on Pi (incus container, `.venv/bin/python3`)
-- [ ] After UX fixes: re-run, inspect edit log, classify edits, feed
-      patterns back into faction_prompt
+- [ ] **After Phase 33 ships: Run 14 — coached game exercising `/revise:` and `/edits-summary`.** Goal is to validate the new edit modes end-to-end in a live game and produce the first non-trivial `review_gate_edits` log with `revise_directives` populated and `edit_classifications` populated. Suggested config: Water Rights symmetric (matches Run 13 baseline so edit signal isn't confounded by other variables), all-Gemini-flash or mixed providers per latest tuning. Cost: ~$0.50-1.00 for the game + ~$0.05 for classification. Per `RUN_PROTOCOL.md`.
+- [ ] **After Run 14: inspect edit log, classify edits, feed patterns back into `config/faction_prompt.txt`.** This is the actual feedback loop closing — recurring `constraint_enforcement` or `persona_correction` patterns become prompt edits per `ARCH_coaching.md` §"Review Gate Edit Log → Prompt Refinement". Phase 33 surfaces the patterns; this step does the prompt work.
 
 ---
 
@@ -766,6 +761,11 @@ Closed items have been moved to **Appendix A**.
 - [ ] **Run 11 alternate / Run 12 — OpenAI defection cross-scenario test**
       (§1.8). Cheap (~$0.30). Tells us whether the gpt-4.1-mini R3→R4
       defection is Water-Rights-specific or general.
+- [ ] **Run 14 — coached game exercising `/revise:` and `/edits-summary`**
+      (§4 Original TODOs). Gated on Phase 33 close. Water Rights symmetric
+      matches Run 13 baseline so edit signal isn't confounded; expected
+      cost ~$0.50-1.00 + ~$0.05 classification. Produces the first
+      non-trivial edit log with auto-classification data.
 - [ ] **Persona payment rigidity** — recurring across Runs 7-10. Run 9
       post-mortem partially deflated this: under squeeze, the rule isn't
       binding. Still worth an A/B in a future run (Tier 3 `[B]`).
@@ -882,3 +882,4 @@ corresponding phase or Phase 19 ad-hoc entries, and `TUNING_LOG.md` /
 | 2026-06-02 | **Tier-priority restructure.** Replaced "Suggested Sequencing" with "Open items by workstream tier" (A/X foundational → C game-design → B prompt-tuning) per operator: "these are tiers that support the next one so we should move in that sequence." Updated §1.6 (drop stale "Run 9" planning), §5 (expanded with Discord + fallback platforms — Clankmates blocked on partners, Discord as hedge). Backlog "Why no Pareto-optimal Shared deal (Run 8)" → marked partially answered by Runs 9-10. Closed items moved to Appendix A (organized: Build phases / Phase 19 ad-hoc / Experiments / Re-scoped / Tooling debt). Carry-forward + tooling-debt sections trimmed of closed items. Header dropped "post-Phase 24" framing; date bumped to 2026-06-02. | Operator: "review next_steps.md: check if there are stale/obsolete items and update; closed items should probably be moved to appendix... discuss open items in terms of workstream blocks... it's unclear if clankmates are happening, maybe we should also look into discord" |
 | 2026-06-02 | **Phase 28 cleanup.** State summary updated (Phases 20–28 closed). Near-miss §1.9 marked closed in Tier 1 table (all TODOs done). Coached self-play harness + near-miss rows removed from pure-build extensions table (shipped). Sequencing list trimmed (near-miss removed; coaching test updated to reflect build-done status). Stage 2a → "Phase 29 candidate." §3 TODO removed stale "Phase 25 candidate" note. §6 audit scope updated to Runs 1–10. Appendix A expanded with Phase 28 items. | Sync with Phase 28 completion |
 | 2026-06-02 | **Conversation model deprioritized.** Stage 2a removed from Tier 1 (sealed-bid rounds produce real dynamics; pressure mechanisms work with extra rounds). §3 rewritten as standalone deferred section with deprioritization rationale. §2 pressure mechanisms decoupled from §3 dependency ("Connects directly to §3" → uses existing `round_updates` mechanism). Conversation model moved to new "Deferred" tier below Tier 3. §2 Tier 2 row updated. Cross-tier deps trimmed. Pure-build table dropped Stage 2a row. Sequencing list shortened. | Operator: "unclear how this is different from having twice as many rounds... I don't see the value" |
+| 2026-06-07 | **Coaching v2 → Phase 33.** §4e rewritten as a pointer to the queued phase plan (full design pinned in `DEVPLAN.md` Phase 33: `/revise:` directive mode + `LLMEditClassifier` + `tools/classify_edit_log.py` + `/edits-summary` command + storage schema). §4 status block updated to note Run 13 was approve-only and edit path remains untested in a live run. Original §4 TODOs split: "After UX fixes" item replaced with two explicit follow-ups (Run 14 + prompt-refinement step). §4f marked out-of-scope for Phase 33. Tier 1 table row "Coached game UX fixes" reclassified as **closed** (§4a-§4d shipped); residual coaching items now queued in Phase 33. "Coaching test loop on Pi" row updated with Run 13 status + gating on Phase 33. Carry-Forward Items table adds Run 14 as a queued experimental run with cost estimate. | Operator: "let's discuss and plan coaching v2; once done, let's write it into devplan and I'll run it, no point in moving it to next steps and back" |
