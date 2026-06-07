@@ -81,11 +81,17 @@ async def test_edit_classifier_regression_suite_meets_thresholds():
 
     for scenario in scenarios:
         input_data = scenario["input"]
-        classification = await classifier.classify(
-            input_data["original"],
-            input_data["edited"],
-            input_data.get("edit_notes"),
-        )
+        try:
+            classification = await classifier.classify(
+                input_data["original"],
+                input_data["edited"],
+                input_data.get("edit_notes"),
+            )
+        except RuntimeError as exc:
+            err = str(exc)
+            if "package is required" in err or "Install it with" in err:
+                pytest.skip(err)
+            raise
 
         expected_category = scenario["expected_category"]
         minimum_confidence = float(scenario.get("minimum_confidence", MIN_CONFIDENCE))

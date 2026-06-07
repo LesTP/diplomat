@@ -264,7 +264,7 @@ class OperatorReviewGate:
         )
 
         draft_text = (new_draft.response_text or "").strip() or "[no draft text]"
-        header = f"Round {round_number} — Revised Draft (revise {self._revise_count}/3)"
+        header = f"Round {round_number} — Revised Draft (revise {self._revise_count}/{self._max_revises})"
         content = header + "\n\nDraft:\n" + draft_text + _COMMANDS_HINT
         try:
             await _maybe_await(
