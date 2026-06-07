@@ -46,10 +46,10 @@ STEP_BUDGET="${STEP_BUDGET:-1}"
 STOP_BEFORE_REVIEW="${STOP_BEFORE_REVIEW:-false}"
 
 # --- Read frontmatter ---
-blocked=$(grep '^blocked:' "$DEVPLAN" | head -1 | awk '{print $2}')
-state=$(grep '^state:' "$DEVPLAN" | head -1 | awk '{print $2}')
-steps_remaining=$(grep '^steps_remaining:' "$DEVPLAN" | head -1 | awk '{print $2}')
-phase=$(grep '^phase:' "$DEVPLAN" | head -1 | awk '{print $2}')
+blocked=$(grep '^blocked:' "$DEVPLAN" | head -1 | awk '{print $2}' | tr -d '\r')
+state=$(grep '^state:' "$DEVPLAN" | head -1 | awk '{print $2}' | tr -d '\r')
+steps_remaining=$(grep '^steps_remaining:' "$DEVPLAN" | head -1 | awk '{print $2}' | tr -d '\r')
+phase=$(grep '^phase:' "$DEVPLAN" | head -1 | awk '{print $2}' | tr -d '\r')
 
 # --- Blocked check (before any writes) ---
 if [ "$blocked" = "true" ] || [ "$blocked" = "awaiting-human-audit" ]; then
