@@ -564,3 +564,17 @@ Contract changes:
 - `DEVPLAN.md` - marked Step 33.9 complete.
 
 Focused verification: `python3 -m pytest tests/test_edit_classifier.py tests/test_edit_classifier_regression.py -q` --- `7 passed, 1 skipped`.
+
+## 2026-06-07 — Phase 33 close: Coaching v2 — `/revise: <directive>` + Auto-classifier
+
+Phase 33 closed 10 steps. All 🔨 pure build, no live LLM spend during build (DryRun + fixtures throughout); single live-LLM step was 33.9 classifier discrimination (~$0.30 for 24 fixtures). No scope expansion; no ARCHITECTURE implementation-sequence status changes (Edit Classifier is a support tool, not a new pipeline module requiring an ordering entry).
+
+**What was built:**
+
+- **Steps 33.1–33.4 (Part A — `/revise:`):** `Pipeline.regenerate_with_directive()` API; `/revise: <directive>` command in `OperatorReviewGate`; 3-iteration revise cap with cap-rejection message; `revise_directives TEXT` column (JSON array) on `review_gate_edits`; five end-to-end integration test scenarios via `DryRunTelegramReviewGate` covering revise→approve, chained revise, cap exhaustion→block, revise→block, and transport-error handling. `StateManager.log_review_decision` extended with optional `revise_directives` parameter.
+
+- **Steps 33.5–33.9 (Part B — Auto-classifier):** `src/modules/edit_classifier/` package with `EditClassification` dataclass, `LLMEditClassifier` wrapper, `build_edit_classifier()` factory, and `config/prompts/edit_classifier.txt` prompt encoding the six §7.3 categories with examples. `edit_classifications` table with FK to `review_gate_edits`; `StateManager.store_edit_classification()` and `get_edit_classifications()` joined-read API. `tools/classify_edit_log.py` post-game bulk classifier CLI. `/edits-summary` operator command with lazy-classification on first call. 24-fixture classifier discrimination regression suite (`≥ 85%` accuracy threshold).
+
+- **Step 33.10 (Part C — Docs):** `ARCH_review_gate.md`, `ARCH_coaching.md`, `ARCHITECTURE.md`, `CLI_REFERENCE.md`, `diplomat-testing-doc.md` §7.3, `NEXT_STEPS.md` §4e marked closed + Run 14 queued, `DEVLOG.md` (this entry).
+
+**Closes:** `NEXT_STEPS.md` §4e. **Queues:** Run 14 (live coached game exercising `/revise:` and `/edits-summary`) as the immediate post-phase validation step.

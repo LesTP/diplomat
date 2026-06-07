@@ -1437,6 +1437,13 @@ Edit types to classify:
 
 Recurring patterns in `constraint_enforcement` or `persona_correction` indicate the faction prompt is not enforcing its own rules. Those patterns should be written into the prompt directly.
 
+**Auto-classification (Phase 33):** Classification no longer needs to be done manually. Two automated surfaces:
+
+- **`tools/classify_edit_log.py`** — post-game bulk classifier. Queries `review_gate_edits` for `action='edited'` rows, skips already-classified rows (unless `--force`), writes to `edit_classifications` table, prints a markdown summary. See `CLI_REFERENCE.md` for full flag reference.
+- **`/edits-summary` operator command** — mid-game. Lazy-classifies unclassified edits on demand and renders the same six-category markdown table without leaving the coaching chat.
+
+Manual classification (this section's original workflow) remains valid as a verification path or fallback when auto-classification isn't available, but it's no longer the primary route.
+
 ### 7.4 Build Order for Testing
 
 | Phase | What to build | Depends on |

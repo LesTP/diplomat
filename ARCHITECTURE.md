@@ -16,7 +16,8 @@
 | Generation | Context → response text via LLM (structured_call for JSON mode) | toolkit/structured_llm |
 | Adversarial | Draft → adversarial analysis via LLM (skippable) | toolkit/structured_llm |
 | Coaching | Parse and route operator input by tag | toolkit/coaching |
-| Review Gate | Human approval workflow: approve/edit/block (lazy-fetch reasoning/adversarial) | Transport (coaching channel) |
+| Review Gate | Human approval workflow: approve/edit/revise/block (lazy-fetch reasoning/adversarial; `/revise:` LLM-rewrite with cap) | Transport (coaching channel), Pipeline (regenerate_with_directive) |
+| Edit Classifier | Classify review-gate edits into six categories via LLM for prompt-tuning signal | toolkit/structured_llm |
 | Scenario Compiler | Narrative scenario → scored persona files with point tables, BATNAs, deception tactics, game-mode | toolkit/structured_llm |
 | Pipeline | Per-agent capability surface: event storage, extraction, operator dispatch, round advancement, reconciliation/analysis, response generation, and query APIs | All runtime modules, toolkit/cost_accountant |
 | Flow | Scheduling strategies that drive one or more Pipelines; current implementations are EventDrivenFlow and RoundSteppedFlow | Pipeline, Transport or moderator/application driver |
@@ -37,6 +38,7 @@
 - **GenerationResult** — {success, response_text, reasoning, error} from Generation
 - **AdversarialResult** — {success, analysis, error} from Adversarial
 - **ReviewDecision** — {action, final_text, edit_notes} from Review Gate
+- **EditClassification** — {category, confidence, rationale, classifier_model, classified_at} from Edit Classifier; category ∈ {tone_softer, tone_harder, commitment_removed, ambiguity_added, constraint_enforcement, persona_correction}
 - **OutboundMessage** — {content, channel, recipient} sent via Transport
 
 ### Flow
@@ -98,6 +100,8 @@ Persona (base_prompt + round_context)
 - `/intel` — latest intelligence report
 - `/divergences` — analyst disagreements
 - `/edits` — review gate edit log
+- `/revise: <directive>` — regenerate pending draft with operator directive (capped at 3 per review)
+- `/edits-summary` — lazy-classify unclassified edits and render markdown summary table mid-game
 
 ### UI States
 - **Listening** — Transport receiving events, Extraction processing, no active response
@@ -134,7 +138,7 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 
 | Layer | Status |
 |-------|--------|
-| Unit and regression tests | Complete — 370 tests after Phase 31 (added chunking, OperatorReviewGate, pipeline dispatch routing, review gate flow integration tests) |
+| Unit and regression tests | Complete — ~400 tests after Phase 33 (added `/revise:` flow tests, LLMEditClassifier unit tests, `edit_classifications` storage, classify_edit_log CLI tests, `/edits-summary` orchestrator tests, and classifier discrimination fixtures) |
 | Pipeline integration | Complete — 23 fake-backed Orchestrator integration tests (Phase 18 path coverage added Phase 20) |
 | Transcript replay | Complete — 2 transcript fixtures, 5 replay tests |
 | Prompt regression | Complete — 6 starter scenarios (4 extraction free, 2 generation require live LLM) |
@@ -155,6 +159,8 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 - **All LLM modules ↔ toolkit:** two-layer via adapter — All four modules (Extraction, Analyst, Generation, Adversarial) call `toolkit.structured_llm.structured_call()` for schema-enforced JSON output with retry. This goes through the injected `llm_client.complete(messages, config, tier)` interface. In production, `ToolkitLLMAdapter` (in `src/adapters.py`) wraps toolkit's real `complete()` and optionally routes through `CostAccountant.complete()` for budget enforcement and ledger tracking. In tests, fakes implement the same dict/str interface. Modules never import from toolkit directly.
 - **ToolkitLLMAdapter ↔ CostAccountant:** optional coupling — when a `cost_accountant` is injected, the adapter routes every LLM call through `accountant.complete()` which estimates cost, checks budgets, calls the underlying LLM, and writes a ledger entry. Without an accountant, the adapter calls `llm_client.complete()` directly (test/offline mode). The `DiplomatCostGate` provides the Orchestrator's check-before-call budget pattern using the same accountant instance.
 - **Orchestrator ↔ State Manager:** write path — Orchestrator calls the 5 persistence methods (`store_coaching`, `store_intelligence`, `set_game_state`, `store_adversarial_read`, `mark_coaching_consumed`) added in Phase 12.
+- **Edit Classifier ↔ State Manager:** write path — `LLMEditClassifier.classify()` results are stored via `StateManager.store_edit_classification(review_gate_edit_id, classification)`. `get_edit_classifications()` returns a joined view with `review_gate_edits` metadata. FK constraint: `edit_classifications.review_gate_edit_id → review_gate_edits.id`.
+- **Edit Classifier ↔ toolkit/structured_llm:** `LLMEditClassifier` calls `toolkit.structured_llm.structured_call(tier="commodity", purpose="edit_classification")` with a six-category JSON schema enforced at the toolkit layer. Same integration pattern as Extraction, Generation, Adversarial.
 - **Scenario Compiler ↔ structured_call:** the compiler (`src/tools/scenario_compiler.py`) uses `structured_call` to parse narrative scenarios into scoring tables. It generates persona files consumed by `FileBasedPersona`. No runtime dependency — it's a pre-game preparation tool.
 - **Reconciliation factory:** `build_reconciler(llm_client, llm_providers_config, tier, attribution)` in `src/modules/reconciliation/__init__.py` is the canonical way to construct a `StateReconciler`. Both `src/main.py` (`_attach_reconciler`) and self-play (`game_environment.py`) use it. `subsystem_llm_config(primary, tier)` converts a pipeline.yaml provider config dict to the `{provider, models, api_key}` format used by `structured_call`.
 - **Extension: new Transport implementation** → additive (new class, config change). No other modules affected.

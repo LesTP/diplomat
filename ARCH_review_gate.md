@@ -20,9 +20,33 @@ The review gate is a passive handler — it does not poll for updates itself. Th
 ### handle_command
 - **Signature:** `async def handle_command(self, command: str) -> bool`
 - **Returns:** `True` if the command was consumed by the gate (review still pending or just resolved), `False` if no review is pending or the command is not a review command.
-- **Review commands:** `/approve`, `/edit: <text>`, `/edit <text>` (legacy), `/block` — resolve the pending review.
+- **Resolve commands:** `/approve`, `/edit: <text>`, `/edit <text>` (legacy), `/block` — resolve the pending review.
+- **Revise command:** `/revise: <directive>`, `/revise <directive>` (legacy) — regenerate the pending draft in-place using the operator's directive as the highest-priority coaching note. Replaces the `_pending` slot with the new draft and sends it with a `Round N — Revised Draft (revise N/3)` header. Increments the revise counter. At cap (default 3), responds with `[revise limit reached — /approve, /edit:, or /block to resolve]` and leaves the review pending. Returns `True` (consumed) whether or not the cap was hit.
 - **Lazy-fetch commands:** `/reasoning`, `/adversarial` — send the corresponding section through transport; review stays pending. Can be repeated.
 - **Everything else** (e.g. `/state`, `/intel`) — returns `False`; pipeline routes normally.
+
+### Revise state machine
+
+```
+pending review slot: (draft, adversarial, round_number, future, revise_count=0, revise_directives=[])
+
+/revise: <directive> received:
+  if revise_count >= max_revises (default 3):
+    send "[revise limit reached — /approve, /edit:, or /block to resolve]"
+    return True (consumed, review still pending)
+  else:
+    call pipeline.regenerate_with_directive(directive, pending.draft.response_text)
+    replace _pending slot with new draft, adversarial=None, same round_number, new future
+    append directive to revise_directives list
+    increment revise_count
+    send new draft with "Round N — Revised Draft (revise N/3)" header
+    return True
+
+/approve | /edit: | /block:
+  resolve future with ReviewDecision
+  store row in review_gate_edits with revise_directives as JSON array
+  clear _pending slot
+```
 
 ## Types
 
@@ -32,6 +56,9 @@ class ReviewDecision:
     action: str                   # 'approved' | 'edited' | 'blocked'
     final_text: str | None        # None if blocked
     edit_notes: str | None        # operator's edit text if action='edited'
+
+# Stored in review_gate_edits.revise_directives (JSON array):
+revise_directives: list[str]     # each /revise: directive in order; empty list if no revises
 ```
 
 ## Implementations
@@ -46,6 +73,7 @@ OperatorReviewGate(
     max_message_chars=4000,
     state_manager=None,
     timeout_seconds=None,
+    max_revises=3,           # max /revise: iterations per pending review (default 3)
 )
 ```
 
@@ -88,8 +116,8 @@ Message flow on `submit()`:
 - Side effect: writes to review_gate_edits table via State Manager (when injected)
 
 ## State
-- `_pending: (draft, adversarial, round_number, Future) | None` — in-memory single-slot pending state (D-41: concurrent submit raises RuntimeError)
-- No persistent state beyond the review_gate_edits table (owned by State Manager)
+- `_pending: (draft, adversarial, round_number, Future, revise_count, revise_directives) | None` — in-memory single-slot pending state (D-41: concurrent submit raises RuntimeError). `revise_count` increments on each `/revise:` that doesn't hit the cap; `revise_directives` is the ordered list of directives.
+- No persistent state beyond the `review_gate_edits` table (owned by State Manager). `revise_directives` stored as JSON array in the `revise_directives TEXT` column added in Phase 33 Step 33.3.
 
 ## Usage Example
 
@@ -97,7 +125,7 @@ Message flow on `submit()`:
 from modules.review_gate import OperatorReviewGate, AutoApproveReviewGate
 
 # With human review (wired by orchestrator factory)
-gate = OperatorReviewGate(transport, max_message_chars=4000)
+gate = OperatorReviewGate(transport, max_message_chars=4000, max_revises=3)
 
 # In pipeline.dispatch_operator():
 if content.startswith("/"):
@@ -115,3 +143,17 @@ gate = AutoApproveReviewGate()
 decision = await gate.submit(generation_result, adversarial_result, round_number=4)
 # decision.action == 'approved', decision.final_text == draft.response_text
 ```
+
+### Test scenarios (Phase 33 Step 33.4)
+
+Integration tests in `tests/integration/test_review_gate_flow.py` via `DryRunTelegramReviewGate`:
+
+| Scenario | Command sequence | Expected outcome |
+|----------|-----------------|-----------------|
+| (a) Revise → approve happy path | `/revise: soften opening` → `/approve` | decision.action='approved', 1 directive stored |
+| (b) Chained revise → approve | `/revise: ...` → `/revise: ...` → `/approve` | decision.action='approved', 2 directives stored |
+| (c) Cap exhaustion → block | `/revise:` × 3 → `/revise:` (4th, cap response) → `/block` | 4th revise ignored, decision.action='blocked', 3 directives stored |
+| (d) Revise → block | `/revise: ...` → `/block` | decision.action='blocked', 1 directive stored |
+| (e) Revise with transport error | `/revise: ...` fails to send new draft | `ReviewDecision(action='blocked', edit_notes='transport error: ...')` |
+
+All cases verify: no orphan futures, correct directive chain in storage, correct `submit()` resolution.

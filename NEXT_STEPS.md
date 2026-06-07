@@ -56,8 +56,8 @@ cross-references.
 
 | Item | Tags | Loop | Where | Notes |
 |---|---|---|---|---|
-| **Coached game UX fixes** | `[A][X]` | 🔨 | §4 | **Closed.** §4a/§4b/§4c shipped Phase 31 + Phase 32 + prompt change. §4d satisfied by Run 13 (2026-06-04). §4e (`/revise:` LLM-rewrite edit mode) + auto-classifier queued as **Phase 33** in `DEVPLAN.md` (2026-06-07). §4f stays open (lower priority UX polish). |
-| **Coaching test loop on Pi** | `[X]` | 👁 | §4 | First coached game completed 2026-06-03 (β=18, +8 above BATNA, β muted for R2-R4 by char-limit bug). Run 13 (2026-06-04) validated new gate end-to-end but operator chose approve-only — edit path untested. Re-runs (Run 14+) gated on Phase 33 close. |
+| **Coached game UX fixes** | `[A][X]` | 🔨 | §4 | **Closed.** §4a/§4b/§4c shipped Phase 31 + Phase 32 + prompt change. §4d satisfied by Run 13 (2026-06-04). §4e (`/revise:` LLM-rewrite edit mode + auto-classifier) closed Phase 33 (2026-06-07). §4f stays open (lower priority UX polish). |
+| **Coaching test loop on Pi** | `[X]` | 👁 | §4 | First coached game completed 2026-06-03 (β=18, +8 above BATNA, β muted for R2-R4 by char-limit bug). Run 13 (2026-06-04) validated new gate end-to-end but operator chose approve-only — edit path untested. Phase 33 closed 2026-06-07 (ships `/revise:` + auto-classifier). Run 14 queued to exercise edit modes live. |
 | **Game-platform exploration** (Clankmates / Discord / fallback) | `[X]` | 👁 | §5 | Gated on operator + partner platform decision. Updated 2026-06-02 to consider Discord alongside Clankmates. |
 | **Pricing & accounting audit** | `[X][C]` | 👁 | §6 | Best done before Tier 3 §7 so per-role cost claims have a firm baseline. |
 | **OpenRouter integration** | `[X][B]` | ✓ | §1.6 | **CLOSED Phase 30 (2026-06-03).** `OpenRouterProvider` wired in toolkit; probe/dry-run verified; use `--per-faction-providers` with `provider:"openrouter"`. |
@@ -416,7 +416,7 @@ strategy library, A/B test per-faction.
 - [x] **4b. Transcript visibility / operator commands during review.** Closed Phase 31 (2026-06-04). `Pipeline.dispatch_operator()` routes commands through `review_gate.handle_command()` first; `/state`, `/status`, `/divergences`, `/ledger` work during pending review. `/reasoning` and `/adversarial` lazy-fetch deeper context on demand. `/intel` was silently dropped due to the chunking-bug-class (fixed by Phase 32.1–32.3), and Phase 32.5 now trims `/intel` to the latest round only.
 - [x] **4c. Verbose generation responses.** Closed 2026-06-04 (prompt change). Conciseness instruction added to `config/prompts/generation.txt`.
 - [x] **4d. Re-run coached game after UX fixes.** Satisfied by Run 13 (2026-06-04) — all-Gemini-flash Water Rights symmetric, β coached. Game completed 4 rounds; gate validated end-to-end (chunking surface present, lazy fetch works, commands-during-review works for everything except `/intel` which was the chunking-bug-class). The narrower follow-ups shipped in Phase 32: queue-drain on listener startup (R1 staleness, 32.4) and `/intel` trim to latest round only (32.5). Operator chose approve-only — edit-classification per `diplomat-testing-doc.md` §7.3 was therefore not exercised; revisit if a future coached run involves real edits.
-- [ ] **4e. `/revise: <directive>` LLM-rewrite edit mode + auto-classifier for the edit log.** **Queued as Phase 33 in `DEVPLAN.md` (2026-06-07).** Two related additions: (a) `/revise: <directive>` lets the operator give intent and have the model regenerate in-place (capped at 3 iterations per pending review), closing the composition-cost problem that made Run 13 approve-only; (b) `LLMEditClassifier` + `tools/classify_edit_log.py` + `/edits-summary` command auto-categorize every `action='edited'` row into the six `diplomat-testing-doc.md` §7.3 categories, closing the original §4 "classify edits → feed patterns into faction_prompt" TODO. Design decisions pinned 2026-06-07: full `DecisionContext` for the revise call, 3-iteration cap, JSON-array directive chain on `review_gate_edits`, separate `edit_classifications` table, on-demand classification (no in-game auto-classify), `gemini-2.5-flash-lite` default. All 10 steps 🔨 pure build, loop-ready. Single live-LLM step (33.9 classifier discrimination fixtures, ~$0.30). See `DEVPLAN.md` Phase 33 for the full plan.
+- [x] **4e. `/revise: <directive>` LLM-rewrite edit mode + auto-classifier for the edit log.** **Closed Phase 33 (2026-06-07).** (a) `/revise: <directive>` added to `OperatorReviewGate` — operator gives intent, model regenerates draft in-place using full `DecisionContext`, capped at 3 iterations per pending review, directive chain stored as JSON array in `review_gate_edits.revise_directives`. (b) `LLMEditClassifier` + `edit_classifications` table + `tools/classify_edit_log.py` CLI + `/edits-summary` operator command auto-categorize every `action='edited'` row into the six §7.3 categories. See `DEVPLAN.md` Phase 33 plan (collapsed at close) for full design decisions.
 - [ ] **4f. Operator command response UX (`/ledger` info-density, `/intel-history` for full history).** Operator notes 2026-06-04 (Run 13): `/ledger` "works but it's not very informative" — currently returns only `{per_round_budget, session_budget, available_budget, current_round}`. Improvement ideas: add per-call counts since last query, current-round spend, top 3 most expensive calls, cost-per-faction breakdown. Related: after Phase 32 trims `/intel` to latest round only, may want an `/intel-history` companion command for the full archive (defer until operator asks for it — most-recent-only is the more useful default). Both are pure-UX polish; no urgency. Out of scope for Phase 33.
 
 ### What the first session confirmed
@@ -431,7 +431,7 @@ strategy library, A/B test per-faction.
 - [x] Build `coached_game.py` (Phase 28)
 - [x] Test scenario: Water Rights symmetric, all-Anthropic (2026-06-03)
 - [x] Run on Pi (incus container, `.venv/bin/python3`)
-- [ ] **After Phase 33 ships: Run 14 — coached game exercising `/revise:` and `/edits-summary`.** Goal is to validate the new edit modes end-to-end in a live game and produce the first non-trivial `review_gate_edits` log with `revise_directives` populated and `edit_classifications` populated. Suggested config: Water Rights symmetric (matches Run 13 baseline so edit signal isn't confounded by other variables), all-Gemini-flash or mixed providers per latest tuning. Cost: ~$0.50-1.00 for the game + ~$0.05 for classification. Per `RUN_PROTOCOL.md`.
+- [ ] **Run 14 — coached game exercising `/revise:` and `/edits-summary`.** (Queued — Phase 33 closed.) Goal is to validate the new edit modes end-to-end in a live game and produce the first non-trivial `review_gate_edits` log with `revise_directives` populated and `edit_classifications` populated. Suggested config: Water Rights symmetric (matches Run 13 baseline so edit signal isn't confounded by other variables), all-Gemini-flash or mixed providers per latest tuning. Cost: ~$0.50-1.00 for the game + ~$0.05 for classification. Per `RUN_PROTOCOL.md`.
 - [ ] **After Run 14: inspect edit log, classify edits, feed patterns back into `config/faction_prompt.txt`.** This is the actual feedback loop closing — recurring `constraint_enforcement` or `persona_correction` patterns become prompt edits per `ARCH_coaching.md` §"Review Gate Edit Log → Prompt Refinement". Phase 33 surfaces the patterns; this step does the prompt work.
 
 ---
@@ -762,10 +762,11 @@ Closed items have been moved to **Appendix A**.
       (§1.8). Cheap (~$0.30). Tells us whether the gpt-4.1-mini R3→R4
       defection is Water-Rights-specific or general.
 - [ ] **Run 14 — coached game exercising `/revise:` and `/edits-summary`**
-      (§4 Original TODOs). Gated on Phase 33 close. Water Rights symmetric
-      matches Run 13 baseline so edit signal isn't confounded; expected
-      cost ~$0.50-1.00 + ~$0.05 classification. Produces the first
-      non-trivial edit log with auto-classification data.
+      (§4 Original TODOs). Phase 33 closed 2026-06-07 — queued for operator-driven
+      execution. Water Rights symmetric matches Run 13 baseline so edit signal
+      isn't confounded; expected cost ~$0.50-1.00 + ~$0.05 classification.
+      Produces the first non-trivial edit log with `revise_directives` populated
+      and `edit_classifications` populated.
 - [ ] **Persona payment rigidity** — recurring across Runs 7-10. Run 9
       post-mortem partially deflated this: under squeeze, the rule isn't
       binding. Still worth an A/B in a future run (Tier 3 `[B]`).

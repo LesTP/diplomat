@@ -22,8 +22,8 @@ Tags used (see `config/coaching_routes.yaml`):
 | `default` (untagged) | `coaching_queue` | Free coaching |
 
 Slash commands handled by the Orchestrator: `/preview`, `/approve`, `/edit`,
-`/block`, `/status`, `/state`, `/ledger`, `/intel`, `/divergences`,
-`/edits`, `/commands`.
+`/revise`, `/block`, `/status`, `/state`, `/ledger`, `/intel`, `/divergences`,
+`/edits`, `/edits-summary`, `/commands`.
 
 ## Outputs in Diplomat
 
@@ -70,10 +70,25 @@ coaching an agent.
 ### Review Gate Edit Log → Prompt Refinement
 
 Every review gate decision is written to `review_gate_edits`. At each round
-boundary, `/edits` returns this log. Recurring edit patterns — consistently
-softening tone, consistently removing a specific type of commitment —
-should be written into `config/faction_prompt.txt` directly. The coaching
-note correcting for a recurring pattern should eventually become unnecessary.
+boundary, `/edits` returns this log.
+
+**Auto-classification (Phase 33):** Every `action='edited'` row in `review_gate_edits`
+can now be classified into one of six categories (`tone_softer`, `tone_harder`,
+`commitment_removed`, `ambiguity_added`, `constraint_enforcement`, `persona_correction`)
+by `LLMEditClassifier` (see `src/modules/edit_classifier/`). Two surfaces:
+
+- **`/edits-summary`** — operator command available mid-game. Lazy-classifies any
+  unclassified edits on the fly and renders a markdown summary table: category, count,
+  most-recent example pair (original + edited, truncated to 80 chars). Use during a
+  game to detect emerging patterns without leaving the chat.
+- **`tools/classify_edit_log.py`** — post-game bulk classifier. Query the DB, skip
+  already-classified rows (unless `--force`), write results to `edit_classifications`
+  table, print a summary table. Use after a full run when you want the complete picture.
+
+Recurring patterns — consistently `constraint_enforcement` or `persona_correction` edits —
+indicate the faction prompt is not enforcing its own rules. Those patterns should be
+written into `config/faction_prompt.txt` directly. The coaching correction should
+eventually become unnecessary.
 
 **Target state:** by mid-game, the review gate is mostly approving without edit.
 

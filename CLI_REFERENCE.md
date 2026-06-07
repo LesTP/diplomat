@@ -27,6 +27,7 @@ Cross-references point at fuller discussion in `TUNING.md`, `DEVPLAN.md`,
 | Check a scenario has a non-trivial optimum before running | [`tests.self_play.verify_scenario_optimum`](#testsself_playverify_scenario_optimum--enumerate-scenario-outcomes) |
 | Get a post-game report | [`tests.self_play.analysis`](#testsself_playanalysis--post-game-report) |
 | Run prompt-quality regression scenarios | [`tests.prompt_regression.runner`](#testsprompt_regressionrunner--scenario-based-prompt-eval) |
+| Classify the review-gate edit log (post-game) | [`tools/classify_edit_log.py`](#toolsclassify_edit_logpy--bulk-edit-log-classifier) |
 | Inspect the cost ledger | [`tools/inspect_ledger.py`](#toolsinspect_ledgerpy) |
 | Dig into a dry-run result | [`tools/inspect_dryrun.py`](#toolsinspect_dryrunpy) |
 | Process iteration logs | [`tools/digest_logs.py`](#toolsdigest_logspy) |
@@ -335,6 +336,43 @@ See `diplomat-testing-doc.md` §4.
 
 ## Inspection tools (mostly fixed-input scripts)
 
+### `tools/classify_edit_log.py` — bulk edit-log classifier
+
+Classify all `review_gate_edits` rows with `action='edited'` into one of six
+categories. Reads the existing DB, skips already-classified rows, writes results
+to the `edit_classifications` table, and prints a markdown summary.
+
+```bash
+# Classify unclassified edits (production DB)
+python tools/classify_edit_log.py --db data/game.db
+
+# Classify a self-play game DB
+python tools/classify_edit_log.py --db /tmp/diplomat_selfplay/game.db --game-id some-game-id
+
+# Reclassify everything (including already-classified rows)
+python tools/classify_edit_log.py --db data/game.db --force
+
+# Override provider/model
+python tools/classify_edit_log.py --db data/game.db \
+    --provider google --model gemini-2.5-flash-lite
+```
+
+| Flag | Default | Notes |
+|---|---|---|
+| `--db` * | — | Path to the SQLite game DB |
+| `--game-id` | (all games) | Filter to a specific game ID |
+| `--force` | off | Reclassify rows that already have a classification |
+| `--provider` | pipeline.yaml primary | LLM provider for the classifier |
+| `--model` | pipeline.yaml primary model | LLM model for the classifier |
+
+**Output format:** markdown table with `category | count | most_recent_example_id` columns,
+one row per category that has at least one classified row.
+
+**Cost:** ~$0.01 per edit at `gemini-2.5-flash-lite` defaults (~$0.05 for a full coached game).
+
+**Alternative (mid-game):** use the `/edits-summary` operator command instead. It lazy-classifies
+unclassified rows on demand and renders the same summary table without leaving the coaching chat.
+
 ### `tools/inspect_dryrun.py`
 
 ```bash
@@ -512,3 +550,4 @@ procedure to validate the Diplomat bot on the Raspberry Pi after code changes.
 | 2026-05-30 | Initial draft — covers production entry, self-play, scenario_compiler, prompt regression. |
 | 2026-05-30 | Expanded: added inspection-tools section, env-var table for `main.py`, workflow examples, by-purpose quick index, toolkit cross-reference, examples for every command. |
 | 2026-05-30 | Documented `tools/service.sh` (the actual bot-lifecycle mechanism — nohup-based wrapper around `src/main.py`). Updated `tools/inspect_ledger.py` entry to match the new flag-driven version (`--selfplay`, `--path`, `--show`). Updated by-purpose quick index to route "run the bot" at `service.sh`. |
+| 2026-06-07 | Phase 33: added `tools/classify_edit_log.py` entry (bulk edit-log classifier); added "classify the review-gate edit log" row to quick index. |

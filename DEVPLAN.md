@@ -121,7 +121,7 @@ All 10 steps are 🔨 pure build, loop-ready. No live LLM spend during build (Dr
 
 ### Part C — Docs
 
-- [ ] **Step 33.10 — Documentation update.** Files to update before phase-review:
+- [x] **Step 33.10 — Documentation update.** Files to update before phase-review:
   - `ARCH_review_gate.md` — add `/revise:` to the review commands list under `handle_command`; document the revise state machine (slot replacement, counter, cap); add `revise_directives` to the storage contract; add Step 33.4 test scenarios to the Usage Example section if appropriate.
   - `ARCH_coaching.md` — update the "Review Gate Edit Log → Prompt Refinement" section: auto-classification now exists; recurring patterns are surfaceable via `/edits-summary` mid-game or `tools/classify_edit_log.py` post-game; the "write into `config/faction_prompt.txt` directly" step remains manual.
   - `ARCHITECTURE.md` — add `/revise: <directive>` and `/edits-summary` to the User Actions list; add new "Edit Classifier" row to the Component Map; add coupling note for Edit Classifier ↔ State Manager and Edit Classifier ↔ toolkit/structured_llm; add `EditClassification` to the Core Objects list.
