@@ -6,6 +6,7 @@ import sqlite3
 import pytest
 from jsonschema import ValidationError
 
+from modules.review_gate import ReviewDecision
 from modules.state_manager import SQLiteStateManager
 from modules.types import PatchSource, StatePatch
 
@@ -193,6 +194,30 @@ async def test_mark_coaching_consumed_marks_only_unconsumed_rows(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_log_review_decision_persists_revise_directives(tmp_path):
+    sm = manager(tmp_path)
+
+    await sm.log_review_decision(
+        round_number=4,
+        decision=ReviewDecision(
+            action="approved",
+            final_text="Draft v4",
+            edit_notes=None,
+        ),
+        draft_text="Draft v4",
+        revise_directives=["first revision", "second revision"],
+    )
+
+    rows = await sm.query("review_gate_edits", {})
+
+    assert len(rows) == 1
+    assert rows[0]["event_id"] == "round-4"
+    assert rows[0]["decision"] == "approved"
+    assert rows[0]["edit_text"] == "Draft v4"
+    assert rows[0]["revise_directives"] == ["first revision", "second revision"]
+
+
+@pytest.mark.asyncio
 async def test_apply_patch_rejects_invalid_patch_without_audit_row(tmp_path):
     sm = manager(tmp_path)
 
@@ -243,3 +268,39 @@ def test_initialization_creates_owned_tables_and_enables_wal(tmp_path):
         "review_gate_edits",
         "game_state",
     }.issubset(tables)
+
+
+@pytest.mark.asyncio
+async def test_review_gate_edits_migration_keeps_existing_rows_null(tmp_path):
+    db_path = tmp_path / "game.db"
+    with sqlite3.connect(db_path) as conn:
+        conn.executescript(
+            """
+            CREATE TABLE review_gate_edits (
+                id        INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id  TEXT NOT NULL,
+                decision  TEXT NOT NULL,
+                edit_text TEXT,
+                created_at TEXT NOT NULL
+            );
+            INSERT INTO review_gate_edits (
+                event_id,
+                decision,
+                edit_text,
+                created_at
+            )
+            VALUES ('round-1', 'edited', 'Softer.', '2026-06-07T00:00:00Z');
+            """
+        )
+
+    sm = SQLiteStateManager(db_path, SCHEMA_PATH)
+    rows = await sm.query("review_gate_edits", {})
+
+    with sqlite3.connect(db_path) as conn:
+        columns = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(review_gate_edits)").fetchall()
+        }
+
+    assert "revise_directives" in columns
+    assert rows[0]["revise_directives"] is None

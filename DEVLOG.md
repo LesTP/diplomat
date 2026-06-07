@@ -484,3 +484,17 @@ Contract changes:
 - `tests/integration/test_failure_handling.py` — one-line fix to `fail_generation` mock signature
 
 364 tests passing.
+
+## 2026-06-07 - Phase 33 Step 33.3: Revise cap + chain logging + schema migration
+
+Cap on `OperatorReviewGate._revise_count` at `max_revises=3` (constructor-configurable, validated non-negative). On the 4th `/revise:` while a pending review is active, the gate sends `[revise limit reached --- /approve, /edit:, or /block to resolve]` to the coaching channel and ignores the directive without touching `_pending` or the revise counter. The pending tuple grew a 5th slot - an ordered list of directives appended verbatim each successful revise; the slot is preserved when `_pending` is replaced atomically by `/revise:`. `OperatorReviewGate._log_decision` now only forwards `revise_directives` when non-`None`, so existing fakes that pattern-match the historical kwargs dict (e.g. the `test_operator_review_gate_timeout_auto_blocks_and_logs` and `test_operator_review_gate_logs_decision_once` fakes) stay compatible.
+
+Schema migration: `SQLiteStateManager.__init__` now ALTERs `review_gate_edits` to add `revise_directives TEXT` if the column is missing - safe on existing DBs (existing rows get NULL). New `log_review_decision()` API on `SQLiteStateManager` writes a single row with serialized directive JSON when present; the read path in `_row_to_dict` JSON-decodes the column back to a list. `_OWNED_COLUMNS["review_gate_edits"]` updated so the new column is included in `query()` projections.
+
+Contract changes:
+- `src/modules/review_gate/__init__.py` - `max_revises` constructor arg with non-negative validation; `_pending` is now a 5-tuple `(draft, adversarial, round_number, future, revise_directives: list[str])`; cap branch in `_handle_revise_command`; snapshot-based logging in `submit()` finally so logs always reflect the final draft state; `_log_decision` builds kwargs conditionally so `revise_directives` is only sent when non-`None`.
+- `src/modules/state_manager/__init__.py` - `_migrate_review_gate_edits()` helper called from `__init__`; new `log_review_decision()` method; `_row_to_dict` JSON-decodes `revise_directives` when present; `review_gate_edits` column set extended.
+- `tests/test_review_gate.py` - `test_revise_cap_rejects_fourth_directive_without_changing_pending_draft` and `test_revise_cap_logs_directive_chain_in_state_manager` (the latter uses a real `SQLiteStateManager`).
+- `tests/test_state_manager.py` - `test_log_review_decision_persists_revise_directives` and `test_review_gate_edits_migration_keeps_existing_rows_null`.
+
+Focused verification: `python3 -m pytest tests/test_review_gate.py tests/test_state_manager.py -q` --- `40 passed`. Broader slice `tests/test_generation.py tests/test_pipeline.py tests/test_orchestrator.py` --- 115 passed, 1 pre-existing Windows-only timing flake in `test_round_boundary_time_mode` (confirmed unrelated by stashing the WIP and reproducing on the clean tree).

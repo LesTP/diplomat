@@ -59,15 +59,19 @@ class OperatorReviewGate:
         *,
         pipeline: Any | None = None,
         max_message_chars: int = 4000,
+        max_revises: int = 3,
         state_manager: Any | None = None,
         timeout_seconds: float | None = None,
     ) -> None:
         if timeout_seconds is not None and timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be positive when set")
+        if max_revises < 0:
+            raise ValueError("max_revises must be non-negative")
         self._transport = transport
         self._pipeline = pipeline
         # Retained for config compatibility; transport auto-chunks oversize text.
         self._max_message_chars = max_message_chars
+        self._max_revises = max_revises
         self._state_manager = state_manager
         self._timeout_seconds = timeout_seconds
         self._pending: tuple[
@@ -75,6 +79,7 @@ class OperatorReviewGate:
             Any,
             int,
             asyncio.Future[ReviewDecision],
+            list[str],
         ] | None = None
         self._revise_count: int = 0
 
@@ -90,8 +95,15 @@ class OperatorReviewGate:
         loop = asyncio.get_running_loop()
         future: asyncio.Future[ReviewDecision] = loop.create_future()
         self._revise_count = 0
-        self._pending = (draft, adversarial, round_number, future)
+        self._pending = (draft, adversarial, round_number, future, [])
         decision: ReviewDecision | None = None
+        pending_snapshot: tuple[
+            GenerationResult,
+            Any,
+            int,
+            asyncio.Future[ReviewDecision],
+            list[str],
+        ] | None = self._pending
         try:
             await self._send_draft(draft, round_number)
         except Exception as exc:
@@ -120,10 +132,20 @@ class OperatorReviewGate:
             if not future.done():
                 future.cancel()
         finally:
+            pending_snapshot = self._pending
             self._pending = None
 
         assert decision is not None
-        await self._log_decision(decision, draft, round_number)
+        draft_to_log = pending_snapshot[0] if pending_snapshot is not None else draft
+        revise_directives = (
+            pending_snapshot[4] if pending_snapshot is not None else []
+        )
+        await self._log_decision(
+            decision,
+            draft_to_log,
+            round_number,
+            revise_directives=revise_directives or None,
+        )
         return decision
 
     async def handle_command(self, command: str) -> bool:
@@ -140,7 +162,7 @@ class OperatorReviewGate:
         if self._pending is None:
             return False
 
-        draft, adversarial, round_number, future = self._pending
+        draft, adversarial, round_number, future, revise_directives = self._pending
         if normalized == "/approve":
             self._resolve_pending(
                 future,
@@ -215,12 +237,31 @@ class OperatorReviewGate:
             )
             return True
 
-        draft, adversarial, round_number, future = self._pending
+        draft, adversarial, round_number, future, revise_directives = self._pending
+        if self._revise_count >= self._max_revises:
+            await _maybe_await(
+                self._transport.send(
+                    OutboundMessage(
+                        content=(
+                            "[revise limit reached — /approve, /edit:, or /block to resolve]"
+                        ),
+                        channel="coaching",
+                    )
+                )
+            )
+            return True
+
         new_draft = await self._pipeline.regenerate_with_directive(
             directive, draft.response_text or ""
         )
         self._revise_count += 1
-        self._pending = (new_draft, None, round_number, future)
+        self._pending = (
+            new_draft,
+            None,
+            round_number,
+            future,
+            [*revise_directives, directive],
+        )
 
         draft_text = (new_draft.response_text or "").strip() or "[no draft text]"
         header = f"Round {round_number} — Revised Draft (revise {self._revise_count}/3)"
@@ -261,6 +302,8 @@ class OperatorReviewGate:
         decision: ReviewDecision,
         draft: GenerationResult,
         round_number: int,
+        *,
+        revise_directives: list[str] | None = None,
     ) -> None:
         if self._state_manager is None:
             return
@@ -269,13 +312,14 @@ class OperatorReviewGate:
         )
         if log_review_decision is None:
             return
-        await _maybe_await(
-            log_review_decision(
-                round_number=round_number,
-                decision=decision,
-                draft_text=draft.response_text,
-            )
-        )
+        log_kwargs: dict[str, Any] = {
+            "round_number": round_number,
+            "decision": decision,
+            "draft_text": draft.response_text,
+        }
+        if revise_directives is not None:
+            log_kwargs["revise_directives"] = revise_directives
+        await _maybe_await(log_review_decision(**log_kwargs))
 
 
 def _get_any(value: Any, key: str, *, default: Any = None) -> Any:

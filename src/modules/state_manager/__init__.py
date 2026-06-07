@@ -68,7 +68,14 @@ class SQLiteStateManager:
         "intelligence": {"id", "round_number", "provider", "analysis_json", "created_at"},
         "adversarial_reads": {"id", "round_number", "analysis_json", "created_at"},
         "coaching": {"coaching_id", "tag", "content", "consumed", "created_at"},
-        "review_gate_edits": {"id", "event_id", "decision", "edit_text", "created_at"},
+        "review_gate_edits": {
+            "id",
+            "event_id",
+            "decision",
+            "edit_text",
+            "revise_directives",
+            "created_at",
+        },
         "game_state": {"key", "value"},
     }
 
@@ -164,6 +171,7 @@ class SQLiteStateManager:
                     event_id  TEXT NOT NULL,
                     decision  TEXT NOT NULL,
                     edit_text TEXT,
+                    revise_directives TEXT,
                     created_at TEXT NOT NULL
                 );
 
@@ -173,6 +181,7 @@ class SQLiteStateManager:
                 );
                 """
             )
+            self._migrate_review_gate_edits(conn)
 
     async def get(self, entity_type: str, entity_id: str) -> dict[str, Any] | None:
         table = self._table(entity_type)
@@ -308,6 +317,40 @@ class SQLiteStateManager:
     async def mark_coaching_consumed(self) -> None:
         with self._connect() as conn:
             conn.execute("UPDATE coaching SET consumed = 1 WHERE consumed = 0")
+            conn.commit()
+
+    async def log_review_decision(
+        self,
+        *,
+        round_number: int,
+        decision: Any,
+        draft_text: str | None,
+        revise_directives: list[str] | None = None,
+    ) -> None:
+        event_id = f"round-{round_number}"
+        edit_text = getattr(decision, "final_text", None)
+        if edit_text is None:
+            edit_text = draft_text
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO review_gate_edits (
+                    event_id,
+                    decision,
+                    edit_text,
+                    revise_directives,
+                    created_at
+                )
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    event_id,
+                    getattr(decision, "action", "unknown"),
+                    edit_text,
+                    json.dumps(revise_directives) if revise_directives is not None else None,
+                    self._now(),
+                ),
+            )
             conn.commit()
 
     async def delete_entity(self, entity_type: str, entity_id: str) -> None:
@@ -516,11 +559,27 @@ class SQLiteStateManager:
         if table == "faction_state":
             data["goals"] = json.loads(data["goals"])
             data["behavioral_notes"] = json.loads(data["behavioral_notes"])
+        if table == "review_gate_edits" and data.get("revise_directives") is not None:
+            try:
+                data["revise_directives"] = json.loads(data["revise_directives"])
+            except json.JSONDecodeError:
+                pass
         if table in {"inconsistencies", "coaching"} and "spent" in data:
             data["spent"] = bool(data["spent"])
         if table == "coaching" and "consumed" in data:
             data["consumed"] = bool(data["consumed"])
         return data
+
+    def _migrate_review_gate_edits(self, conn: sqlite3.Connection) -> None:
+        columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(review_gate_edits)").fetchall()
+        }
+        if "revise_directives" not in columns:
+            conn.execute(
+                "ALTER TABLE review_gate_edits ADD COLUMN revise_directives TEXT"
+            )
+            conn.commit()
 
     @staticmethod
     def _now() -> str:

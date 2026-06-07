@@ -10,6 +10,7 @@ from modules.review_gate import (
     OperatorReviewGate,
     ReviewDecision,
 )
+from modules.state_manager import SQLiteStateManager
 
 
 def _draft(
@@ -511,6 +512,87 @@ async def test_revise_resets_count_on_new_submit():
 
     await gate.handle_command("/approve")
     await task2
+
+
+@pytest.mark.asyncio
+async def test_revise_cap_rejects_fourth_directive_without_changing_pending_draft():
+    transport = _FakeTransport()
+    pipeline = _FakePipeline("Draft v2")
+    gate = OperatorReviewGate(transport, pipeline=pipeline, max_revises=3)
+
+    task = asyncio.create_task(gate.submit(_draft(), adversarial=None, round_number=5))
+    await asyncio.sleep(0)
+
+    pipeline.next_response = "Draft v2"
+    await gate.handle_command("/revise: first revision")
+    pipeline.next_response = "Draft v3"
+    await gate.handle_command("/revise: second revision")
+    pipeline.next_response = "Draft v4"
+    await gate.handle_command("/revise: third revision")
+
+    assert gate._revise_count == 3
+    assert len(pipeline.calls) == 3
+
+    result = await gate.handle_command("/revise: fourth revision")
+
+    assert result is True
+    assert transport.sent[-1].content == (
+        "[revise limit reached — /approve, /edit:, or /block to resolve]"
+    )
+    assert gate._revise_count == 3
+    assert len(pipeline.calls) == 3
+
+    await gate.handle_command("/approve")
+    decision = await task
+
+    assert decision.action == "approved"
+    assert decision.final_text == "Draft v4"
+
+
+@pytest.mark.asyncio
+async def test_revise_cap_logs_directive_chain_in_state_manager(tmp_path):
+    transport = _FakeTransport()
+    pipeline = _FakePipeline("Draft v2")
+    state_manager = SQLiteStateManager(
+        tmp_path / "review_gate.db",
+        "config/schemas/state_patch.json",
+    )
+    gate = OperatorReviewGate(
+        transport,
+        pipeline=pipeline,
+        state_manager=state_manager,
+        max_revises=3,
+    )
+
+    task = asyncio.create_task(gate.submit(_draft(), adversarial=None, round_number=7))
+    await asyncio.sleep(0)
+
+    pipeline.next_response = "Draft v2"
+    await gate.handle_command("/revise: first revision")
+    pipeline.next_response = "Draft v3"
+    await gate.handle_command("/revise: second revision")
+    pipeline.next_response = "Draft v4"
+    await gate.handle_command("/revise: third revision")
+
+    assert await gate.handle_command("/revise: fourth revision") is True
+    assert transport.sent[-1].content == (
+        "[revise limit reached — /approve, /edit:, or /block to resolve]"
+    )
+
+    await gate.handle_command("/approve")
+    decision = await task
+
+    rows = await state_manager.query("review_gate_edits", {})
+
+    assert decision.action == "approved"
+    assert len(rows) == 1
+    assert rows[0]["decision"] == "approved"
+    assert rows[0]["edit_text"] == "Draft v4"
+    assert rows[0]["revise_directives"] == [
+        "first revision",
+        "second revision",
+        "third revision",
+    ]
 
 
 class _FakePipeline:
