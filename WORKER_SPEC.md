@@ -63,9 +63,16 @@ conditions — it reads ACTION/NEXT and does the work.
 
 Two contracts you must NOT break. Both have already cost work in production loops.
 
-**1. Single call per iteration.** Call `state_machine.sh` exactly ONCE per loop iteration — at the top, before the action. Never re-call inside or after the action. The script decrements budget on every call. "Defensive" re-calls ("let me check the controller before touching files") drop a step.
+**1. Distinguish DISPATCH from PEEK.**
 
-If your context feels fuzzy mid-action — long file read, session resume, internal recovery moment — assume the action the script dispatched is **still in flight** and complete it. Re-read your own previous tool output to reorient if needed. Only call `state_machine.sh` again after you have completed steps 4–7 of the LOOP (commit + DEVLOG + state-write).
+`state_machine.sh` has two modes:
+
+- `bash tools/state_machine.sh` — **DISPATCH.** Decrements budget. May write to DEVPLAN (cold-start init, execute→review transition, CLOSE→blocked). Call this exactly ONCE per loop iteration, at the top, **immediately before you do the action it returns.**
+- `bash tools/state_machine.sh --peek` — **READ-ONLY.** Returns the same `ACTION:`/`NEXT:` lines but does not decrement and does not write to DEVPLAN. Call this freely any time you want to re-orient mid-action ("did I miss a step?", "what would the controller say right now?") without burning budget.
+
+If your context feels fuzzy mid-action — long file read, session resume, internal recovery moment — and you have an itch to re-validate the controller, **always use `--peek`**. The dispatch call belongs at the top of the loop, paired with the work it dispatched. After you complete steps 4–7 of the LOOP (commit + DEVLOG + state-write), call dispatch again to start the next iteration cycle.
+
+**Rule of thumb:** every `bash tools/state_machine.sh` (without `--peek`) must be followed in the same loop iteration by a commit. If you find yourself wanting to call the script and you haven't done any work to commit yet, you wanted `--peek`.
 
 **2. Trust the script's verdict; never self-judge.** The script decides EXIT, REVIEW, EXECUTE, etc. — based on `STEP_BUDGET`, `STOP_BEFORE_REVIEW`, unchecked-steps count, and the `blocked` flag. Your job is to do what it returns and then call it again. Do NOT:
 
@@ -77,7 +84,8 @@ If the script keeps returning EXECUTE and you have completed all named steps in 
 
 **Documented incidents these rules address (real production failures):**
 
-- *Codex iter:* re-called `state_machine.sh` after a 105k-char `cat` read; lost the final budgeted action (budget=8, only 7 actions performed).
+- *Codex iter:* re-called `state_machine.sh` (dispatch mode) after a 105k-char `cat` read; lost the final budgeted action (budget=8, only 7 actions performed). With `--peek`, the recall would have been free.
+- *Codex iter 102 (diplomat):* burned all 6 budgeted steps on defensive dispatch recalls while loading context; shipped zero work. `--peek` introduced specifically to give the recall instinct a non-budget-burning outlet.
 - *Claude iter:* self-judged "STEP_BUDGET of 5 exhausted (used 3 actions)" and exited with 2 actions still available.
 
 ### Turn health check (Codex only)

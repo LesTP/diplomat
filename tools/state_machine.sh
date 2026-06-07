@@ -19,12 +19,27 @@
 # For CLOSE, the script sets blocked=true in DEVPLAN itself. The worker
 # does not need to handle blocked writes.
 #
+# Modes:
+#   bash tools/state_machine.sh           # DISPATCH — decrements budget,
+#                                         # may write to DEVPLAN. Call this
+#                                         # only when about to do the work.
+#   bash tools/state_machine.sh --peek    # READ-ONLY — same output, but no
+#                                         # decrement, no DEVPLAN writes. Use
+#                                         # this for mid-action sanity checks
+#                                         # ("what would the controller say?")
+#                                         # without burning budget.
+#
 # Usage:
 #   output=$(bash tools/state_machine.sh)
 #   action=$(echo "$output" | grep '^ACTION:' | awk '{print $2}')
 #   next=$(echo "$output" | grep '^NEXT:' | awk '{print $2}')
 
 set -euo pipefail
+
+PEEK=false
+if [ "${1:-}" = "--peek" ]; then
+  PEEK=true
+fi
 
 DEVPLAN="${DEVPLAN_PATH:-DEVPLAN.md}"
 STEP_BUDGET="${STEP_BUDGET:-1}"
@@ -46,9 +61,13 @@ fi
 # --- Cold start: initialize budget on first call only ---
 # Empty steps_remaining means "not yet initialized this invocation."
 # 0 means "budget exhausted" — do NOT reinitialize.
+# Peek does not persist the initialization — it just uses STEP_BUDGET for
+# the in-memory computation so the reported ACTION reflects a fresh start.
 if [ -z "$steps_remaining" ]; then
   steps_remaining=$STEP_BUDGET
-  sed -i "s/^steps_remaining:.*/steps_remaining: $steps_remaining/" "$DEVPLAN"
+  if [ "$PEEK" != "true" ]; then
+    sed -i "s/^steps_remaining:.*/steps_remaining: $steps_remaining/" "$DEVPLAN"
+  fi
 fi
 
 # --- Budget check ---
@@ -68,11 +87,14 @@ count_unchecked() {
 }
 
 # --- Handle execute with no remaining steps → transition to review ---
+# Peek computes the transition in-memory but does not persist it.
 if [ "$state" = "execute" ]; then
   unchecked=$(count_unchecked)
   if [ "$unchecked" -eq 0 ]; then
     state="review"
-    sed -i "s/^state:.*/state: review/" "$DEVPLAN"
+    if [ "$PEEK" != "true" ]; then
+      sed -i "s/^state:.*/state: review/" "$DEVPLAN"
+    fi
   fi
 fi
 
@@ -105,8 +127,10 @@ case "$state" in
   close)
     action="CLOSE"
     next="close"
-    # Close sets blocked — script owns this write
-    sed -i "s/^blocked:.*/blocked: true/" "$DEVPLAN"
+    # Close sets blocked — script owns this write (skipped in peek mode)
+    if [ "$PEEK" != "true" ]; then
+      sed -i "s/^blocked:.*/blocked: true/" "$DEVPLAN"
+    fi
     ;;
   *)
     echo "ACTION: EXIT"
@@ -116,9 +140,11 @@ case "$state" in
     ;;
 esac
 
-# --- Decrement budget ---
-steps_remaining=$((steps_remaining - 1))
-sed -i "s/^steps_remaining:.*/steps_remaining: $steps_remaining/" "$DEVPLAN"
+# --- Decrement budget (skipped in peek mode) ---
+if [ "$PEEK" != "true" ]; then
+  steps_remaining=$((steps_remaining - 1))
+  sed -i "s/^steps_remaining:.*/steps_remaining: $steps_remaining/" "$DEVPLAN"
+fi
 
 # --- Output ---
 echo "ACTION: $action"

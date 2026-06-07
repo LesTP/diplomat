@@ -45,7 +45,7 @@ cat ARCH_module.md && echo '---SPLIT---' && cat src/modules/module/impl.py
 - **Never read one file per tool call** when you need multiple files
 - **Combine source + test reads**: `cat src/foo.py && echo '---' && cat tests/test_foo.py`
 - **Fresh reads before edits** — re-read immediately before editing, not at iteration start
-- **Megareads can fragment context.** Single `cat`/`sed` commands producing >40k chars of output sometimes trigger an internal "let me reorient" moment where the temptation is to re-call `state_machine.sh`. **Do not.** Once you have an `ACTION` from the script, complete that action — committing, writing DEVLOG, updating state — before calling the script again. If a large read genuinely confuses you, re-read your own previous tool output rather than re-querying the controller. Re-calling the script decrements budget and will drop a step. See `WORKER_SPEC.md` §3 "Loop discipline" — iter 53 (this project) lost its final step exactly this way.
+- **Megareads can fragment context.** Single `cat`/`sed` commands producing >40k chars of output sometimes trigger an internal "let me reorient" moment where the temptation is to re-call `state_machine.sh`. **Don't dispatch — peek.** Use `bash tools/state_machine.sh --peek` to re-validate state mid-action without burning budget. Reserve the bare `bash tools/state_machine.sh` (dispatch) for the top of each LOOP iteration, paired with the action it returns. See `WORKER_SPEC.md` §3 "Loop discipline" — iter 53 lost its final step before `--peek` existed; iter 102 burned a full 6-step budget on defensive dispatches and is the reason `--peek` was added.
 
 ## Reference Docs to Keep in Sync
 
