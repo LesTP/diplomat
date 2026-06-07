@@ -1,0 +1,25 @@
+{
+  "scenario_id": "edit_classification.ambiguity_added_01",
+  "description": "A precise unit commitment becomes a vague possibility.",
+  "module": "edit_classifier",
+  "input": {
+    "original": "We will send three units to Munich.",
+    "edited": "We may be able to send some units to Munich.",
+    "edit_notes": "Make the commitment vaguer."
+  },
+  "expected_category": "ambiguity_added",
+  "minimum_confidence": 0.7,
+  "expected_properties": [
+    {
+      "type": "json_path_equals",
+      "description": "The classifier should label this as ambiguity_added.",
+      "path": "category",
+      "value": "ambiguity_added"
+    },
+    {
+      "type": "json_path_exists",
+      "description": "The classifier should return a confidence value.",
+      "path": "confidence"
+    }
+  ]
+}

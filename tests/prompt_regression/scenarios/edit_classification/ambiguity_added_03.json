@@ -1,0 +1,25 @@
+{
+  "scenario_id": "edit_classification.ambiguity_added_03",
+  "description": "A definite support promise is softened with hedging.",
+  "module": "edit_classifier",
+  "input": {
+    "original": "We will support you this turn.",
+    "edited": "We might be able to support you this turn.",
+    "edit_notes": "Add hedging to the promise."
+  },
+  "expected_category": "ambiguity_added",
+  "minimum_confidence": 0.7,
+  "expected_properties": [
+    {
+      "type": "json_path_equals",
+      "description": "The classifier should label this as ambiguity_added.",
+      "path": "category",
+      "value": "ambiguity_added"
+    },
+    {
+      "type": "json_path_exists",
+      "description": "The classifier should return a confidence value.",
+      "path": "confidence"
+    }
+  ]
+}

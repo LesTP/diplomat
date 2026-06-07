@@ -1,0 +1,25 @@
+{
+  "scenario_id": "edit_classification.tone_softer_03",
+  "description": "A punishment threat is reframed as a firm response.",
+  "module": "edit_classifier",
+  "input": {
+    "original": "We are ready to punish any refusal.",
+    "edited": "We are ready to respond firmly to any refusal.",
+    "edit_notes": "Replace overt threat with diplomatic firmness."
+  },
+  "expected_category": "tone_softer",
+  "minimum_confidence": 0.7,
+  "expected_properties": [
+    {
+      "type": "json_path_equals",
+      "description": "The classifier should label this as tone_softer.",
+      "path": "category",
+      "value": "tone_softer"
+    },
+    {
+      "type": "json_path_exists",
+      "description": "The classifier should return a confidence value.",
+      "path": "confidence"
+    }
+  ]
+}

@@ -553,3 +553,14 @@ Contract changes:
 - `tests/test_orchestrator.py` - added reply-format coverage for `/edits-summary`, plus a lazy-classification regression that verifies the classifier is invoked and persisted.
 
 Focused verification: `./.venv/bin/python -m pytest tests/test_orchestrator.py tests/test_pipeline.py tests/test_review_gate.py tests/test_state_manager.py -q` --- `109 passed`.
+
+## 2026-06-07 - Phase 33 Step 33.9: classifier discrimination tests
+
+Added the Phase 33 edit-classification regression fixture suite under `tests/prompt_regression/scenarios/edit_classification/` with 24 hand-curated cases across the six supported categories. Added `tests/test_edit_classifier_regression.py` to load the prompt-regression fixtures, build the live `LLMEditClassifier` from `config/pipeline.yaml`, and assert each fixture classifies to the expected category at confidence `>= 0.7`, with an overall accuracy floor of `85%`. The live path is gated on the primary provider API key and skipped cleanly when credentials are absent; the fixture-shape test still validates the scenario set in normal local runs.
+
+Contract changes:
+- `tests/test_edit_classifier_regression.py` - live regression harness plus fixture-shape validation.
+- `tests/prompt_regression/scenarios/edit_classification/*.json` - 24 discrimination fixtures covering all six categories.
+- `DEVPLAN.md` - marked Step 33.9 complete.
+
+Focused verification: `python3 -m pytest tests/test_edit_classifier.py tests/test_edit_classifier_regression.py -q` --- `7 passed, 1 skipped`.

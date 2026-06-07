@@ -1,0 +1,25 @@
+{
+  "scenario_id": "edit_classification.persona_correction_03",
+  "description": "A surrendering first-person line is rewritten as firm negotiation.",
+  "module": "edit_classifier",
+  "input": {
+    "original": "I'm sorry, I think we should just give in.",
+    "edited": "We should stand firm and negotiate from strength.",
+    "edit_notes": "Bring the response back into character."
+  },
+  "expected_category": "persona_correction",
+  "minimum_confidence": 0.7,
+  "expected_properties": [
+    {
+      "type": "json_path_equals",
+      "description": "The classifier should label this as persona_correction.",
+      "path": "category",
+      "value": "persona_correction"
+    },
+    {
+      "type": "json_path_exists",
+      "description": "The classifier should return a confidence value.",
+      "path": "confidence"
+    }
+  ]
+}

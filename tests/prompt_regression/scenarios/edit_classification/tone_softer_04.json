@@ -1,0 +1,25 @@
+{
+  "scenario_id": "edit_classification.tone_softer_04",
+  "description": "A blunt dismissal is turned into a guarded refusal.",
+  "module": "edit_classifier",
+  "input": {
+    "original": "Your offer is ridiculous and we will not hear more.",
+    "edited": "Your offer is difficult for us to accept right now.",
+    "edit_notes": "Temper the dismissal without changing the refusal."
+  },
+  "expected_category": "tone_softer",
+  "minimum_confidence": 0.7,
+  "expected_properties": [
+    {
+      "type": "json_path_equals",
+      "description": "The classifier should label this as tone_softer.",
+      "path": "category",
+      "value": "tone_softer"
+    },
+    {
+      "type": "json_path_exists",
+      "description": "The classifier should return a confidence value.",
+      "path": "confidence"
+    }
+  ]
+}

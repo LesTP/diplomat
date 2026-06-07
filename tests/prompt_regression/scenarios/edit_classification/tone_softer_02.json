@@ -1,0 +1,25 @@
+{
+  "scenario_id": "edit_classification.tone_softer_02",
+  "description": "A hostile phrase is converted into a straightforward opposition.",
+  "module": "edit_classifier",
+  "input": {
+    "original": "If you insist, we'll grind your position down.",
+    "edited": "If you insist, we'll oppose your position.",
+    "edit_notes": "Keep the disagreement but remove the hostility."
+  },
+  "expected_category": "tone_softer",
+  "minimum_confidence": 0.7,
+  "expected_properties": [
+    {
+      "type": "json_path_equals",
+      "description": "The classifier should label this as tone_softer.",
+      "path": "category",
+      "value": "tone_softer"
+    },
+    {
+      "type": "json_path_exists",
+      "description": "The classifier should return a confidence value.",
+      "path": "confidence"
+    }
+  ]
+}

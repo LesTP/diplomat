@@ -1,0 +1,25 @@
+{
+  "scenario_id": "edit_classification.constraint_enforcement_01",
+  "description": "A ceasefire violation is removed entirely.",
+  "module": "edit_classifier",
+  "input": {
+    "original": "We will attack our ally in violation of the ceasefire.",
+    "edited": "We will not violate the ceasefire.",
+    "edit_notes": "Remove the rule-breaking commitment."
+  },
+  "expected_category": "constraint_enforcement",
+  "minimum_confidence": 0.7,
+  "expected_properties": [
+    {
+      "type": "json_path_equals",
+      "description": "The classifier should label this as constraint_enforcement.",
+      "path": "category",
+      "value": "constraint_enforcement"
+    },
+    {
+      "type": "json_path_exists",
+      "description": "The classifier should return a confidence value.",
+      "path": "confidence"
+    }
+  ]
+}

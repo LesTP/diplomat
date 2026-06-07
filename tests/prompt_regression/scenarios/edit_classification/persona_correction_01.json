@@ -1,0 +1,25 @@
+{
+  "scenario_id": "edit_classification.persona_correction_01",
+  "description": "A personal promise is rewritten into factional voice.",
+  "module": "edit_classifier",
+  "input": {
+    "original": "I will do whatever you want; just tell me.",
+    "edited": "We will defend our national interests.",
+    "edit_notes": "Restore faction voice and remove personal subservience."
+  },
+  "expected_category": "persona_correction",
+  "minimum_confidence": 0.7,
+  "expected_properties": [
+    {
+      "type": "json_path_equals",
+      "description": "The classifier should label this as persona_correction.",
+      "path": "category",
+      "value": "persona_correction"
+    },
+    {
+      "type": "json_path_exists",
+      "description": "The classifier should return a confidence value.",
+      "path": "confidence"
+    }
+  ]
+}

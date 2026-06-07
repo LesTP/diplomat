@@ -1,0 +1,25 @@
+{
+  "scenario_id": "edit_classification.constraint_enforcement_02",
+  "description": "A factual overreach is rewritten in safer language.",
+  "module": "edit_classifier",
+  "input": {
+    "original": "We own the capital and can move the fleet anywhere.",
+    "edited": "We have leverage around the capital and can reposition the fleet.",
+    "edit_notes": "Remove the factual overreach."
+  },
+  "expected_category": "constraint_enforcement",
+  "minimum_confidence": 0.7,
+  "expected_properties": [
+    {
+      "type": "json_path_equals",
+      "description": "The classifier should label this as constraint_enforcement.",
+      "path": "category",
+      "value": "constraint_enforcement"
+    },
+    {
+      "type": "json_path_exists",
+      "description": "The classifier should return a confidence value.",
+      "path": "confidence"
+    }
+  ]
+}

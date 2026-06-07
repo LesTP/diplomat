@@ -1,0 +1,25 @@
+{
+  "scenario_id": "edit_classification.commitment_removed_03",
+  "description": "A commitment to join an attack is removed.",
+  "module": "edit_classifier",
+  "input": {
+    "original": "We are committed to joining your attack on Turkey.",
+    "edited": "We are willing to discuss your attack on Turkey.",
+    "edit_notes": "Keep the topic but remove the commitment to join."
+  },
+  "expected_category": "commitment_removed",
+  "minimum_confidence": 0.7,
+  "expected_properties": [
+    {
+      "type": "json_path_equals",
+      "description": "The classifier should label this as commitment_removed.",
+      "path": "category",
+      "value": "commitment_removed"
+    },
+    {
+      "type": "json_path_exists",
+      "description": "The classifier should return a confidence value.",
+      "path": "confidence"
+    }
+  ]
+}

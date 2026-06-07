@@ -1,0 +1,25 @@
+{
+  "scenario_id": "edit_classification.constraint_enforcement_04",
+  "description": "A confidentiality breach is rewritten as a general summary.",
+  "module": "edit_classifier",
+  "input": {
+    "original": "We promise to share the private plan with everyone.",
+    "edited": "We can share a general summary with everyone.",
+    "edit_notes": "Remove the private-plan disclosure."
+  },
+  "expected_category": "constraint_enforcement",
+  "minimum_confidence": 0.7,
+  "expected_properties": [
+    {
+      "type": "json_path_equals",
+      "description": "The classifier should label this as constraint_enforcement.",
+      "path": "category",
+      "value": "constraint_enforcement"
+    },
+    {
+      "type": "json_path_exists",
+      "description": "The classifier should return a confidence value.",
+      "path": "confidence"
+    }
+  ]
+}

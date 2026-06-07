@@ -1,0 +1,25 @@
+{
+  "scenario_id": "edit_classification.tone_harder_03",
+  "description": "An open discussion becomes an insistence on concrete options.",
+  "module": "edit_classifier",
+  "input": {
+    "original": "We are open to discussing options.",
+    "edited": "We insist on discussing concrete options.",
+    "edit_notes": "Add pressure while keeping the same subject."
+  },
+  "expected_category": "tone_harder",
+  "minimum_confidence": 0.7,
+  "expected_properties": [
+    {
+      "type": "json_path_equals",
+      "description": "The classifier should label this as tone_harder.",
+      "path": "category",
+      "value": "tone_harder"
+    },
+    {
+      "type": "json_path_exists",
+      "description": "The classifier should return a confidence value.",
+      "path": "confidence"
+    }
+  ]
+}

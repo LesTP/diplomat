@@ -1,0 +1,25 @@
+{
+  "scenario_id": "edit_classification.persona_correction_04",
+  "description": "A too-compliant draft is rewritten to reflect faction judgment.",
+  "module": "edit_classifier",
+  "input": {
+    "original": "Sure thing, my friend, I will follow your plan exactly.",
+    "edited": "We will consider your plan, but we will choose what serves our position.",
+    "edit_notes": "Replace casual compliance with independent factional language."
+  },
+  "expected_category": "persona_correction",
+  "minimum_confidence": 0.7,
+  "expected_properties": [
+    {
+      "type": "json_path_equals",
+      "description": "The classifier should label this as persona_correction.",
+      "path": "category",
+      "value": "persona_correction"
+    },
+    {
+      "type": "json_path_exists",
+      "description": "The classifier should return a confidence value.",
+      "path": "confidence"
+    }
+  ]
+}

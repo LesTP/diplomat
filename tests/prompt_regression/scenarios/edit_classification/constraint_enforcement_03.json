@@ -1,0 +1,25 @@
+{
+  "scenario_id": "edit_classification.constraint_enforcement_03",
+  "description": "A forbidden alliance acceptance is removed.",
+  "module": "edit_classifier",
+  "input": {
+    "original": "We accept any alliance with France this round.",
+    "edited": "We can explore cooperation without committing to an alliance.",
+    "edit_notes": "Remove the explicit alliance acceptance."
+  },
+  "expected_category": "constraint_enforcement",
+  "minimum_confidence": 0.7,
+  "expected_properties": [
+    {
+      "type": "json_path_equals",
+      "description": "The classifier should label this as constraint_enforcement.",
+      "path": "category",
+      "value": "constraint_enforcement"
+    },
+    {
+      "type": "json_path_exists",
+      "description": "The classifier should return a confidence value.",
+      "path": "confidence"
+    }
+  ]
+}

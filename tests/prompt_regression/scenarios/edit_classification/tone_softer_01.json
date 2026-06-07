@@ -1,0 +1,25 @@
+{
+  "scenario_id": "edit_classification.tone_softer_01",
+  "description": "A direct threat is softened into pushback.",
+  "module": "edit_classifier",
+  "input": {
+    "original": "We will crush your proposal and force a retreat.",
+    "edited": "We can push back on your proposal.",
+    "edit_notes": "Soften the attack and remove intimidation."
+  },
+  "expected_category": "tone_softer",
+  "minimum_confidence": 0.7,
+  "expected_properties": [
+    {
+      "type": "json_path_equals",
+      "description": "The classifier should label this as tone_softer.",
+      "path": "category",
+      "value": "tone_softer"
+    },
+    {
+      "type": "json_path_exists",
+      "description": "The classifier should return a confidence value.",
+      "path": "confidence"
+    }
+  ]
+}

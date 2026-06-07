@@ -1,0 +1,25 @@
+{
+  "scenario_id": "edit_classification.commitment_removed_04",
+  "description": "A vote commitment is replaced with a review.",
+  "module": "edit_classifier",
+  "input": {
+    "original": "We will vote for your proposal and coordinate the press.",
+    "edited": "We can review your proposal and coordinate the press.",
+    "edit_notes": "Remove the vote commitment while keeping the rest intact."
+  },
+  "expected_category": "commitment_removed",
+  "minimum_confidence": 0.7,
+  "expected_properties": [
+    {
+      "type": "json_path_equals",
+      "description": "The classifier should label this as commitment_removed.",
+      "path": "category",
+      "value": "commitment_removed"
+    },
+    {
+      "type": "json_path_exists",
+      "description": "The classifier should return a confidence value.",
+      "path": "confidence"
+    }
+  ]
+}

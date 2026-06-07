@@ -1,0 +1,25 @@
+{
+  "scenario_id": "edit_classification.ambiguity_added_04",
+  "description": "A concrete support order is rewritten as a possibility.",
+  "module": "edit_classifier",
+  "input": {
+    "original": "We are sending support to Burgundy.",
+    "edited": "We may send support to Burgundy.",
+    "edit_notes": "Replace certainty with ambiguity."
+  },
+  "expected_category": "ambiguity_added",
+  "minimum_confidence": 0.7,
+  "expected_properties": [
+    {
+      "type": "json_path_equals",
+      "description": "The classifier should label this as ambiguity_added.",
+      "path": "category",
+      "value": "ambiguity_added"
+    },
+    {
+      "type": "json_path_exists",
+      "description": "The classifier should return a confidence value.",
+      "path": "confidence"
+    }
+  ]
+}
