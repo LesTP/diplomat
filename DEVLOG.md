@@ -509,3 +509,16 @@ Contract changes:
 - `DEVPLAN.md` - marked Phase 33 Step 33.4 complete.
 
 Focused verification: `python3 -m pytest tests/test_review_gate.py tests/integration/test_review_gate_flow.py -q` --- `37 passed`.
+
+## 2026-06-07 — Phase 33 Step 33.5: LLMEditClassifier module
+
+Added the edit-classification module under `src/modules/edit_classifier/` with a typed `EditClassification` dataclass, an `LLMEditClassifier` wrapper around `toolkit.structured_llm.structured_call()`, and a `build_edit_classifier()` factory that mirrors the reconciler wiring pattern. The classifier prompt lives at `config/prompts/edit_classifier.txt` and encodes the six review-edit categories from `diplomat-testing-doc.md` §7.3 plus short examples. The classifier builds a structured prompt from the original text, edited text, and optional edit notes, returns the resolved classifier model plus a UTC timestamp, and uses the `edit_classification` structured-call purpose for ledger clarity.
+
+Contract changes:
+- `src/modules/edit_classifier/__init__.py` - package exports for the new module.
+- `src/modules/edit_classifier/types.py` - `EditClassification` dataclass with timezone normalization.
+- `src/modules/edit_classifier/classifier.py` - schema, prompt loading, classifier wrapper, and factory.
+- `config/prompts/edit_classifier.txt` - classifier prompt with the six categories and examples.
+- `tests/test_edit_classifier.py` - unit coverage for schema, prompt forwarding, attribution/purpose forwarding, blank-input rejection, and factory wiring.
+
+Focused verification: `python3 -m pytest tests/test_edit_classifier.py tests/test_generation.py tests/test_reconciliation.py -q` --- `25 passed`.

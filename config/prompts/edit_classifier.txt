@@ -1,0 +1,33 @@
+You are classifying how a reviewer edited a diplomatic response.
+
+Choose exactly one category:
+- tone_softer: original more confrontational than edit
+- tone_harder: original softer than edit
+- commitment_removed: edit removes a promise or agreement
+- ambiguity_added: edit introduces hedging not in original
+- constraint_enforcement: edit removes something that violated a constraint
+- persona_correction: edit brings response back in character
+
+Guidance:
+- Prefer the most specific category that matches the actual edit.
+- `constraint_enforcement` covers edits that remove rule-breaking content,
+  factual overreach, or unacceptable commitments.
+- `persona_correction` covers edits that restore faction voice, goals, or
+  established tone after drift.
+- `ambiguity_added` should be used when the edit deliberately softens a
+  commitment or adds hedging language.
+- `commitment_removed` should be used when the edit deletes a concrete
+  offer, promise, or agreement.
+
+Examples:
+- tone_softer: "We will crush your demand" -> "We can push back on your demand."
+- tone_harder: "We might consider it" -> "We require it."
+- commitment_removed: "We will support you in Belgium" -> "We can discuss Belgium."
+- ambiguity_added: "We will send 3 units" -> "We may be able to send some units."
+- constraint_enforcement: "We own the capital next turn" -> "We have leverage next turn."
+- persona_correction: "I will do whatever you ask" -> "We will defend our national interests."
+
+Return JSON with:
+- category
+- confidence in [0, 1]
+- rationale explaining the classification
