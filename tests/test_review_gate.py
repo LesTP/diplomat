@@ -87,7 +87,8 @@ async def test_operator_review_gate_approve_decision():
     assert transport.sent[0].channel == "coaching"
     assert transport.sent[0].content.startswith("Review Gate - Round 4\n\nDraft:\n")
     assert transport.sent[0].content.endswith(
-        "\n\nCommands: /approve | /edit: <text> | /block | /reasoning | /adversarial"
+        "\n\nCommands: /approve | /edit: <text> | /block | /revise: <directive>"
+        " | /reasoning | /adversarial"
     )
 
     assert await gate.handle_command("/approve") is True
@@ -369,6 +370,169 @@ def test_review_decision_contract_fields():
     assert decision.final_text == "Edited message."
     assert decision.edit_notes == "Trimmed promise."
 
+
+# --- /revise: command tests ---
+
+
+@pytest.mark.asyncio
+async def test_revise_no_pending_returns_true_with_error():
+    transport = _FakeTransport()
+    gate = OperatorReviewGate(transport)
+
+    result = await gate.handle_command("/revise: make it softer")
+
+    assert result is True
+    assert len(transport.sent) == 1
+    assert "no pending review" in transport.sent[0].content
+
+
+@pytest.mark.asyncio
+async def test_revise_no_pipeline_returns_true_with_error():
+    transport = _FakeTransport()
+    gate = OperatorReviewGate(transport, pipeline=None)
+
+    task = asyncio.create_task(gate.submit(_draft(), adversarial=None, round_number=2))
+    await asyncio.sleep(0)
+
+    result = await gate.handle_command("/revise: be more assertive")
+
+    assert result is True
+    assert any("not available" in m.content for m in transport.sent)
+
+    await gate.handle_command("/block")
+    await task
+
+
+@pytest.mark.asyncio
+async def test_revise_happy_path_replaces_slot_and_submit_returns_revised():
+    transport = _FakeTransport()
+    revised_text = "England insists on an equitable arrangement."
+    pipeline = _FakePipeline(revised_text)
+    gate = OperatorReviewGate(transport, pipeline=pipeline)
+
+    task = asyncio.create_task(gate.submit(_draft(), adversarial=None, round_number=3))
+    await asyncio.sleep(0)
+    assert len(transport.sent) == 1
+
+    result = await gate.handle_command("/revise: be more assertive")
+
+    assert result is True
+    assert len(transport.sent) == 2
+    revised_msg = transport.sent[1]
+    assert revised_msg.channel == "coaching"
+    assert "Round 3 — Revised Draft (revise 1/3)" in revised_msg.content
+    assert revised_text in revised_msg.content
+    assert gate._revise_count == 1
+
+    await gate.handle_command("/approve")
+    decision = await task
+
+    assert decision.action == "approved"
+    assert decision.final_text == revised_text
+
+
+@pytest.mark.asyncio
+async def test_revise_legacy_syntax_no_colon():
+    transport = _FakeTransport()
+    revised_text = "England proposes mutual restraint."
+    pipeline = _FakePipeline(revised_text)
+    gate = OperatorReviewGate(transport, pipeline=pipeline)
+
+    task = asyncio.create_task(gate.submit(_draft(), adversarial=None, round_number=1))
+    await asyncio.sleep(0)
+
+    result = await gate.handle_command("/revise soften the tone")
+
+    assert result is True
+    assert gate._revise_count == 1
+    assert pipeline.last_directive == "soften the tone"
+
+    await gate.handle_command("/approve")
+    decision = await task
+    assert decision.action == "approved"
+    assert decision.final_text == revised_text
+
+
+@pytest.mark.asyncio
+async def test_revise_chain_increments_counter():
+    transport = _FakeTransport()
+    pipeline = _FakePipeline("Draft v2")
+    gate = OperatorReviewGate(transport, pipeline=pipeline)
+
+    task = asyncio.create_task(gate.submit(_draft(), adversarial=None, round_number=5))
+    await asyncio.sleep(0)
+
+    await gate.handle_command("/revise: first revision")
+    pipeline.next_response = "Draft v3"
+    await gate.handle_command("/revise: second revision")
+
+    assert gate._revise_count == 2
+    assert "revise 2/3" in transport.sent[-1].content
+
+    await gate.handle_command("/approve")
+    decision = await task
+    assert decision.action == "approved"
+    assert decision.final_text == "Draft v3"
+
+
+@pytest.mark.asyncio
+async def test_revise_empty_directive_returns_false():
+    transport = _FakeTransport()
+    pipeline = _FakePipeline("Draft v2")
+    gate = OperatorReviewGate(transport, pipeline=pipeline)
+
+    task = asyncio.create_task(gate.submit(_draft(), adversarial=None, round_number=1))
+    await asyncio.sleep(0)
+
+    result = await gate.handle_command("/revise: ")
+    assert result is False
+
+    await gate.handle_command("/block")
+    await task
+
+
+@pytest.mark.asyncio
+async def test_revise_resets_count_on_new_submit():
+    transport = _FakeTransport()
+    pipeline = _FakePipeline("Draft v2")
+    gate = OperatorReviewGate(transport, pipeline=pipeline)
+
+    task = asyncio.create_task(gate.submit(_draft(), adversarial=None, round_number=1))
+    await asyncio.sleep(0)
+    await gate.handle_command("/revise: first")
+    await gate.handle_command("/approve")
+    await task
+
+    assert gate._revise_count == 1
+
+    task2 = asyncio.create_task(gate.submit(_draft(), adversarial=None, round_number=2))
+    await asyncio.sleep(0)
+    assert gate._revise_count == 0
+
+    await gate.handle_command("/approve")
+    await task2
+
+
+class _FakePipeline:
+    def __init__(self, response: str) -> None:
+        self.next_response = response
+        self.last_directive: str | None = None
+        self.calls: list[dict] = []
+
+    async def regenerate_with_directive(
+        self, directive: str, previous_draft: str
+    ) -> Any:
+        self.last_directive = directive
+        self.calls.append({"directive": directive, "previous_draft": previous_draft})
+        from modules.generation import GenerationResult
+
+        return GenerationResult(
+            success=True,
+            response_text=self.next_response,
+            reasoning="Revised per directive.",
+            raw_response=None,
+            error=None,
+        )
 
 
 class _FakeStateManager:

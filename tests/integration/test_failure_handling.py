@@ -98,7 +98,7 @@ async def test_adversarial_failure_posts_response_with_warning(pipeline, monkeyp
 
 
 async def test_double_generation_failure_alerts_operator(pipeline, monkeypatch):
-    async def fail_generation(context):
+    async def fail_generation(context, **kwargs):
         return GenerationResult(
             success=False,
             response_text=None,

@@ -46,11 +46,18 @@ class AutoApproveReviewGate:
         )
 
 
+_COMMANDS_HINT = (
+    "\n\nCommands: /approve | /edit: <text> | /block | /revise: <directive>"
+    " | /reasoning | /adversarial"
+)
+
+
 class OperatorReviewGate:
     def __init__(
         self,
         transport: Any,
         *,
+        pipeline: Any | None = None,
         max_message_chars: int = 4000,
         state_manager: Any | None = None,
         timeout_seconds: float | None = None,
@@ -58,6 +65,7 @@ class OperatorReviewGate:
         if timeout_seconds is not None and timeout_seconds <= 0:
             raise ValueError("timeout_seconds must be positive when set")
         self._transport = transport
+        self._pipeline = pipeline
         # Retained for config compatibility; transport auto-chunks oversize text.
         self._max_message_chars = max_message_chars
         self._state_manager = state_manager
@@ -68,6 +76,7 @@ class OperatorReviewGate:
             int,
             asyncio.Future[ReviewDecision],
         ] | None = None
+        self._revise_count: int = 0
 
     async def submit(
         self,
@@ -80,6 +89,7 @@ class OperatorReviewGate:
 
         loop = asyncio.get_running_loop()
         future: asyncio.Future[ReviewDecision] = loop.create_future()
+        self._revise_count = 0
         self._pending = (draft, adversarial, round_number, future)
         decision: ReviewDecision | None = None
         try:
@@ -117,11 +127,20 @@ class OperatorReviewGate:
         return decision
 
     async def handle_command(self, command: str) -> bool:
+        normalized = command.strip().lower()
+
+        # /revise: is recognized even when no pending review (returns error to operator)
+        if normalized.startswith("/revise:"):
+            directive = command.split(":", 1)[1].strip()
+            return await self._handle_revise_command(directive)
+        if normalized.startswith("/revise "):
+            directive = command[8:].strip()
+            return await self._handle_revise_command(directive)
+
         if self._pending is None:
             return False
 
         draft, adversarial, round_number, future = self._pending
-        normalized = command.strip().lower()
         if normalized == "/approve":
             self._resolve_pending(
                 future,
@@ -170,6 +189,47 @@ class OperatorReviewGate:
         )
         return True
 
+    async def _handle_revise_command(self, directive: str) -> bool:
+        if not directive:
+            return False
+
+        if self._pending is None:
+            await _maybe_await(
+                self._transport.send(
+                    OutboundMessage(
+                        content="[no pending review — /revise: requires a draft in the queue]",
+                        channel="coaching",
+                    )
+                )
+            )
+            return True
+
+        if self._pipeline is None:
+            await _maybe_await(
+                self._transport.send(
+                    OutboundMessage(
+                        content="[/revise: not available — no pipeline configured]",
+                        channel="coaching",
+                    )
+                )
+            )
+            return True
+
+        draft, adversarial, round_number, future = self._pending
+        new_draft = await self._pipeline.regenerate_with_directive(
+            directive, draft.response_text or ""
+        )
+        self._revise_count += 1
+        self._pending = (new_draft, None, round_number, future)
+
+        draft_text = (new_draft.response_text or "").strip() or "[no draft text]"
+        header = f"Round {round_number} — Revised Draft (revise {self._revise_count}/3)"
+        content = header + "\n\nDraft:\n" + draft_text + _COMMANDS_HINT
+        await _maybe_await(
+            self._transport.send(OutboundMessage(content=content, channel="coaching"))
+        )
+        return True
+
     async def _send_draft(
         self,
         draft: GenerationResult,
@@ -177,10 +237,7 @@ class OperatorReviewGate:
     ) -> None:
         draft_text = (draft.response_text or "").strip() or "[no draft text]"
         header = f"Review Gate - Round {round_number}\n\nDraft:\n"
-        commands_hint = (
-            "\n\nCommands: /approve | /edit: <text> | /block | /reasoning | /adversarial"
-        )
-        content = header + draft_text + commands_hint
+        content = header + draft_text + _COMMANDS_HINT
         await _maybe_await(
             self._transport.send(OutboundMessage(content=content, channel="coaching"))
         )
