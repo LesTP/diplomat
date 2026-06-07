@@ -46,6 +46,12 @@ cat ARCH_module.md && echo '---SPLIT---' && cat src/modules/module/impl.py
 - **Combine source + test reads**: `cat src/foo.py && echo '---' && cat tests/test_foo.py`
 - **Fresh reads before edits** — re-read immediately before editing, not at iteration start
 - **Megareads can fragment context.** Single `cat`/`sed` commands producing >40k chars of output sometimes trigger an internal "let me reorient" moment where the temptation is to re-call `state_machine.sh`. **Don't dispatch — peek.** Use `bash tools/state_machine.sh --peek` to re-validate state mid-action without burning budget. Reserve the bare `bash tools/state_machine.sh` (dispatch) for the top of each LOOP iteration, paired with the action it returns. See `WORKER_SPEC.md` §3 "Loop discipline" — iter 53 lost its final step before `--peek` existed; iter 102 burned a full 6-step budget on defensive dispatches and is the reason `--peek` was added.
+- **Scope recursive greps narrowly — never include `.` at the repo root.** The repo contains very large files that will blow the context window if matched: `DEVLOG_archive.md` (~194KB), `TUNING_LOG.md` (~107KB), `diplomat-testing-doc.md` (~67KB), `NEXT_STEPS.md` (~62KB), `DEVLOG.md` (~46KB), plus multi-MB self-play result JSONs in `tests/self_play/results/` (some >3MB) and multi-MB iteration logs in `logs/loop/`. A single `grep -RIn 'foo' .` can stream 30+MB into the codex process and trigger a SIGKILL (OOM / response-size limit) — this killed iter 103 mid-action.
+  - **Default:** `grep -RIn 'foo' src tests` (source + tests only).
+  - **Need ARCH docs:** `grep -n 'foo' ARCH_*.md` (glob, not recursive).
+  - **Need DEVPLAN/PROJECT:** name them explicitly.
+  - **Always pipe broad results through `head -n 100` or `wc -l`** before reading the full match list.
+  - **Never** include any of: `DEVLOG*.md`, `TUNING_LOG*.md`, `NEXT_STEPS.md`, `tests/self_play/results/`, `logs/`. If you need to search history, read the specific file directly with `grep -n` (no `-R`) and a bounded line range.
 
 ## Reference Docs to Keep in Sync
 
