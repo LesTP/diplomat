@@ -498,3 +498,14 @@ Contract changes:
 - `tests/test_state_manager.py` - `test_log_review_decision_persists_revise_directives` and `test_review_gate_edits_migration_keeps_existing_rows_null`.
 
 Focused verification: `python3 -m pytest tests/test_review_gate.py tests/test_state_manager.py -q` --- `40 passed`. Broader slice `tests/test_generation.py tests/test_pipeline.py tests/test_orchestrator.py` --- 115 passed, 1 pre-existing Windows-only timing flake in `test_round_boundary_time_mode` (confirmed unrelated by stashing the WIP and reproducing on the clean tree).
+
+## 2026-06-07 - Phase 33 Step 33.4: `/revise:` flow tests
+
+Added the end-to-end revise-flow coverage the phase called for. `OperatorReviewGate._handle_revise_command()` now treats a revised-draft transport failure as a blocked decision (`ReviewDecision(action="blocked", edit_notes="transport error: ...")`) instead of leaving the pending submit hung. The new test-only `DryRunTelegramReviewGate` helper in `tests/integration/test_review_gate_flow.py` scripts revise/approve/block command sequences against the real gate and a scripted fake pipeline, so the suite exercises slot replacement, revise chaining, cap rejection, storage logging, and the transport-error path without needing a live Telegram run.
+
+Contract changes:
+- `src/modules/review_gate/__init__.py` - revise resend failures now resolve the pending future with a blocked decision and transport-error note.
+- `tests/integration/test_review_gate_flow.py` - added scripted dry-run helper plus five revise-flow integration cases covering approve, chained revise, cap rejection, block, and transport-error handling.
+- `DEVPLAN.md` - marked Phase 33 Step 33.4 complete.
+
+Focused verification: `python3 -m pytest tests/test_review_gate.py tests/integration/test_review_gate_flow.py -q` --- `37 passed`.

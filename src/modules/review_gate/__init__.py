@@ -266,9 +266,21 @@ class OperatorReviewGate:
         draft_text = (new_draft.response_text or "").strip() or "[no draft text]"
         header = f"Round {round_number} — Revised Draft (revise {self._revise_count}/3)"
         content = header + "\n\nDraft:\n" + draft_text + _COMMANDS_HINT
-        await _maybe_await(
-            self._transport.send(OutboundMessage(content=content, channel="coaching"))
-        )
+        try:
+            await _maybe_await(
+                self._transport.send(
+                    OutboundMessage(content=content, channel="coaching")
+                )
+            )
+        except Exception as exc:
+            self._resolve_pending(
+                future,
+                ReviewDecision(
+                    action="blocked",
+                    final_text=None,
+                    edit_notes=f"transport error: {exc}",
+                ),
+            )
         return True
 
     async def _send_draft(

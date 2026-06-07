@@ -10,6 +10,9 @@ from typing import Any, Callable
 import pytest
 import yaml
 
+from modules.generation import GenerationResult
+from modules.review_gate import OperatorReviewGate, ReviewDecision
+from modules.state_manager import SQLiteStateManager
 from modules.transport import OutboundMessage
 from orchestrator import Orchestrator
 from tests.helpers.factories import FakeCostAccountant, FakeLLMClient, make_event
@@ -54,6 +57,16 @@ class ScriptedLLMClient(FakeLLMClient):
                 },
             ]
         )
+
+
+def _draft(response_text: str) -> GenerationResult:
+    return GenerationResult(
+        success=True,
+        response_text=response_text,
+        reasoning="Keeps the proposal concise.",
+        raw_response=None,
+        error=None,
+    )
 
 
 @dataclass(frozen=True)
@@ -116,6 +129,237 @@ async def _shutdown_flow(harness: FlowHarness) -> None:
     harness.task.cancel()
     with contextlib.suppress(asyncio.CancelledError):
         await harness.task
+
+
+class _ScriptedPipeline:
+    def __init__(self, responses: list[str]) -> None:
+        self.responses = list(responses)
+        self.calls: list[dict[str, str]] = []
+
+    async def regenerate_with_directive(
+        self, directive: str, previous_draft: str
+    ) -> GenerationResult:
+        self.calls.append(
+            {
+                "directive": directive,
+                "previous_draft": previous_draft,
+            }
+        )
+        response_text = self.responses.pop(0) if self.responses else previous_draft
+        return _draft(response_text)
+
+
+class DryRunTelegramReviewGate:
+    """Scripted dry-run wrapper around the real OperatorReviewGate."""
+
+    def __init__(
+        self,
+        *,
+        transport: TestTransport,
+        pipeline: Any,
+        state_manager: Any | None = None,
+        max_revises: int = 3,
+    ) -> None:
+        self.transport = transport
+        self.gate = OperatorReviewGate(
+            transport,
+            pipeline=pipeline,
+            state_manager=state_manager,
+            max_revises=max_revises,
+        )
+
+    async def run(
+        self,
+        *,
+        draft: GenerationResult,
+        commands: list[str],
+        round_number: int,
+        adversarial: Any = None,
+    ) -> ReviewDecision:
+        task = asyncio.create_task(
+            self.gate.submit(draft, adversarial=adversarial, round_number=round_number)
+        )
+        await asyncio.sleep(0)
+
+        for command in commands:
+            assert await self.gate.handle_command(command) is True
+
+        decision = await task
+        return decision
+
+
+class _FailingTransport(FakeTransport):
+    def __init__(self, *, fail_on_send: int) -> None:
+        super().__init__()
+        self._fail_on_send = fail_on_send
+        self._send_calls = 0
+
+    async def send(self, message: OutboundMessage) -> None:
+        self._send_calls += 1
+        if self._send_calls == self._fail_on_send:
+            raise RuntimeError("coaching channel offline")
+        await super().send(message)
+
+
+@pytest.mark.asyncio
+async def test_review_gate_flow_revise_then_approve():
+    transport = FakeTransport()
+    gate = DryRunTelegramReviewGate(
+        transport=transport,
+        pipeline=_ScriptedPipeline(["England insists on an equitable arrangement."]),
+    )
+
+    decision = await gate.run(
+        draft=_draft(SHORT_DRAFT),
+        commands=["/revise: be more assertive", "/approve"],
+        round_number=4,
+    )
+
+    assert decision == ReviewDecision(
+        action="approved",
+        final_text="England insists on an equitable arrangement.",
+        edit_notes=None,
+    )
+    assert len(transport.sent) == 2
+    assert transport.sent[1].content.startswith("Round 4 — Revised Draft (revise 1/3)")
+    assert "England insists on an equitable arrangement." in transport.sent[1].content
+    assert gate.gate._pending is None
+    assert gate.gate._revise_count == 1
+
+
+@pytest.mark.asyncio
+async def test_review_gate_flow_revise_chain_then_approve():
+    transport = FakeTransport()
+    gate = DryRunTelegramReviewGate(
+        transport=transport,
+        pipeline=_ScriptedPipeline(
+            [
+                "England proposes mutual restraint.",
+                "England proposes mutual restraint with tighter guarantees.",
+            ]
+        ),
+    )
+
+    decision = await gate.run(
+        draft=_draft(SHORT_DRAFT),
+        commands=[
+            "/revise: first revision",
+            "/revise: second revision",
+            "/approve",
+        ],
+        round_number=4,
+    )
+
+    assert decision == ReviewDecision(
+        action="approved",
+        final_text="England proposes mutual restraint with tighter guarantees.",
+        edit_notes=None,
+    )
+    assert len(transport.sent) == 3
+    assert "revise 2/3" in transport.sent[-1].content
+    assert gate.gate._pending is None
+    assert gate.gate._revise_count == 2
+
+
+@pytest.mark.asyncio
+async def test_review_gate_flow_revise_cap_rejects_fourth_then_block(tmp_path: Path):
+    transport = FakeTransport()
+    state_manager = SQLiteStateManager(
+        tmp_path / "review_gate_flow.db",
+        "config/schemas/state_patch.json",
+    )
+    gate = DryRunTelegramReviewGate(
+        transport=transport,
+        pipeline=_ScriptedPipeline(
+            [
+                "Draft v2",
+                "Draft v3",
+                "Draft v4",
+            ]
+        ),
+        state_manager=state_manager,
+    )
+
+    decision = await gate.run(
+        draft=_draft(SHORT_DRAFT),
+        commands=[
+            "/revise: first revision",
+            "/revise: second revision",
+            "/revise: third revision",
+            "/revise: fourth revision",
+            "/block",
+        ],
+        round_number=7,
+    )
+
+    rows = await state_manager.query("review_gate_edits", {})
+
+    assert decision == ReviewDecision(
+        action="blocked",
+        final_text=None,
+        edit_notes=None,
+    )
+    assert len(transport.sent) == 5
+    assert transport.sent[-1].content == (
+        "[revise limit reached — /approve, /edit:, or /block to resolve]"
+    )
+    assert gate.gate._pending is None
+    assert gate.gate._revise_count == 3
+    assert rows[0]["decision"] == "blocked"
+    assert rows[0]["edit_text"] == "Draft v4"
+    assert rows[0]["revise_directives"] == [
+        "first revision",
+        "second revision",
+        "third revision",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_review_gate_flow_revise_then_block():
+    transport = FakeTransport()
+    gate = DryRunTelegramReviewGate(
+        transport=transport,
+        pipeline=_ScriptedPipeline(["England proposes mutual restraint."]),
+    )
+
+    decision = await gate.run(
+        draft=_draft(SHORT_DRAFT),
+        commands=["/revise: soften the tone", "/block"],
+        round_number=4,
+    )
+
+    assert decision == ReviewDecision(
+        action="blocked",
+        final_text=None,
+        edit_notes=None,
+    )
+    assert len(transport.sent) == 2
+    assert gate.gate._pending is None
+    assert gate.gate._revise_count == 1
+
+
+@pytest.mark.asyncio
+async def test_review_gate_flow_revise_transport_error_blocks():
+    transport = _FailingTransport(fail_on_send=2)
+    gate = DryRunTelegramReviewGate(
+        transport=transport,
+        pipeline=_ScriptedPipeline(["England insists on an equitable arrangement."]),
+    )
+
+    decision = await gate.run(
+        draft=_draft(SHORT_DRAFT),
+        commands=["/revise: be more assertive"],
+        round_number=4,
+    )
+
+    assert decision == ReviewDecision(
+        action="blocked",
+        final_text=None,
+        edit_notes="transport error: coaching channel offline",
+    )
+    assert len(transport.sent) == 1
+    assert gate.gate._pending is None
+    assert gate.gate._revise_count == 1
 
 
 @pytest.mark.asyncio
