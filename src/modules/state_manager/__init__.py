@@ -8,7 +8,7 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
-from modules.edit_classifier.types import EditClassification
+from modules.edit_classifier import EditClassification
 from modules.types import PatchSource, StatePatch
 
 

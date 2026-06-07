@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 import pytest
 from jsonschema import ValidationError
 
-from modules.edit_classifier.types import EditClassification
+from modules.edit_classifier import EditClassification
 from modules.review_gate import ReviewDecision
 from modules.state_manager import SQLiteStateManager
 from modules.types import PatchSource, StatePatch

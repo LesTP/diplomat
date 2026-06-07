@@ -75,7 +75,12 @@ boundary, `/edits` returns this log.
 **Auto-classification (Phase 33):** Every `action='edited'` row in `review_gate_edits`
 can now be classified into one of six categories (`tone_softer`, `tone_harder`,
 `commitment_removed`, `ambiguity_added`, `constraint_enforcement`, `persona_correction`)
-by `LLMEditClassifier` (see `src/modules/edit_classifier/`). Two surfaces:
+by `LLMEditClassifier`. The classifier primitive lives in `toolkit.edit_classifier`
+(extracted 2026-06-07; see `toolkit/ARCH_edit_classifier.md`); Diplomat's
+`src/modules/edit_classifier/` keeps the project-side `build_edit_classifier(...)`
+factory that translates `pipeline.yaml`'s `{"primary": {...}}` provider shape into
+the toolkit constructor's kwargs, plus the prompt file at
+`config/prompts/edit_classifier.txt`. Two surfaces:
 
 - **`/edits-summary`** — operator command available mid-game. Lazy-classifies any
   unclassified edits on the fly and renders a markdown summary table: category, count,
