@@ -17,7 +17,7 @@ import yaml
 
 from logging_config import get_logger
 from toolkit.coaching import CoachingEvent, Command
-from modules.context_assembler import CoachingEntry
+from modules.context_assembler import CoachingEntry, DecisionContext
 from modules.generation import GenerationResult
 from modules.persona import CoachingContext
 from modules.transport import OutboundMessage
@@ -521,22 +521,7 @@ class _OrchestratorCore:
             self.current_round,
             getattr(trigger_event, "sender_faction", None),
         )
-        persona_prompt = await self.persona.get_base_prompt()
-        round_context = await self.persona.build_round_context(
-            self.current_round,
-            None,
-            await self._coaching_context(),
-            total_rounds=self.options.total_rounds,
-        )
-        context = await self.context_assembler.assemble(
-            persona_prompt=persona_prompt,
-            round_context=round_context,
-            intelligence=await self._latest_intelligence(),
-            divergences=await self._latest_divergences(),
-            recent_events=await self._recent_events(),
-            free_coaching=await self._free_coaching_entries(),
-            review_gate_enabled=self.feature_flags["review_gate"]["enabled"],
-        )
+        context = await self._build_decision_context()
 
         if not await self._budget_available("generation"):
             logger.info(
@@ -544,7 +529,11 @@ class _OrchestratorCore:
                 trigger,
             )
             return False
-        draft = await self.generator.generate(context)
+        draft = await self.generator.generate(
+            context,
+            purpose="generation",
+            attribution=self.faction_id,
+        )
         if not draft.success:
             await asyncio.sleep(0)
             if not await self._budget_available("generation:retry"):
@@ -553,7 +542,11 @@ class _OrchestratorCore:
                     trigger,
                 )
                 return False
-            draft = await self.generator.generate(context)
+            draft = await self.generator.generate(
+                context,
+                purpose="generation",
+                attribution=self.faction_id,
+            )
         if not draft.success:
             logger.warning(
                 "pipeline.complete trigger=%s success=False reason=generation_failed error=%s",
@@ -622,6 +615,24 @@ class _OrchestratorCore:
                     return False
                 await asyncio.sleep(0)
         return False
+
+    async def _build_decision_context(self) -> DecisionContext:
+        persona_prompt = await self.persona.get_base_prompt()
+        round_context = await self.persona.build_round_context(
+            self.current_round,
+            None,
+            await self._coaching_context(),
+            total_rounds=self.options.total_rounds,
+        )
+        return await self.context_assembler.assemble(
+            persona_prompt=persona_prompt,
+            round_context=round_context,
+            intelligence=await self._latest_intelligence(),
+            divergences=await self._latest_divergences(),
+            recent_events=await self._recent_events(),
+            free_coaching=await self._free_coaching_entries(),
+            review_gate_enabled=self.feature_flags["review_gate"]["enabled"],
+        )
 
     def _is_direct_address(self, event: Any) -> bool:
         return (

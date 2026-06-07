@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 
 import pytest
 
+from modules.context_assembler import DecisionContext
+from modules.generation import GenerationResult
 from modules.types import InboundEvent
 from pipeline import Pipeline
 
@@ -65,6 +67,36 @@ class FakeOrchestrator:
 
     async def _latest_intelligence(self):
         return {"primary": {"report": "ready"}}
+
+
+class FakeRevisionGenerator:
+    def __init__(self) -> None:
+        self.calls = []
+
+    async def generate(self, context, **kwargs):
+        return await self.generate_with_metadata(context, **kwargs)
+
+    async def generate_with_metadata(
+        self,
+        context,
+        *,
+        purpose="generation",
+        attribution=None,
+    ):
+        self.calls.append(
+            {
+                "context": context,
+                "purpose": purpose,
+                "attribution": attribution,
+            }
+        )
+        return GenerationResult(
+            success=True,
+            response_text="Revised response.",
+            reasoning="Because the directive asked for it.",
+            raw_response=None,
+            error=None,
+        )
 
 
 class FakeReviewGate:
@@ -199,3 +231,45 @@ async def test_pipeline_query_methods_delegate():
         "session_budget_usd": 10.0,
         "available_budget_usd": 0.75,
     }
+
+
+@pytest.mark.asyncio
+async def test_pipeline_regenerate_with_directive_appends_revision_sections():
+    class RevisionOrchestrator:
+        def __init__(self) -> None:
+            self.faction_id = "england"
+            self.generator = FakeRevisionGenerator()
+
+        async def _build_decision_context(self):
+            return DecisionContext(
+                system_prompt="Persona prompt",
+                user_prompt="Base prompt",
+                metadata={"round_number": 3, "event_count": 12},
+            )
+
+    orchestrator = RevisionOrchestrator()
+    pipeline = Pipeline(orchestrator)
+
+    result = await pipeline.regenerate_with_directive(
+        "Be more direct about Belgium.",
+        "Original draft text.",
+    )
+
+    assert result == GenerationResult(
+        success=True,
+        response_text="Revised response.",
+        reasoning="Because the directive asked for it.",
+        raw_response=None,
+        error=None,
+    )
+    assert len(orchestrator.generator.calls) == 1
+    call = orchestrator.generator.calls[0]
+    assert call["purpose"] == "generation_revision"
+    assert call["attribution"] == "england"
+    assert call["context"].system_prompt == "Persona prompt"
+    assert call["context"].metadata == {"round_number": 3, "event_count": 12}
+    assert call["context"].user_prompt == (
+        "Base prompt\n\n"
+        "[OPERATOR REVISION DIRECTIVE]: Be more direct about Belgium.\n\n"
+        "[PREVIOUS DRAFT — REVISE PER DIRECTIVE]: Original draft text."
+    )

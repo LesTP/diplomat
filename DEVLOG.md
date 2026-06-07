@@ -459,3 +459,17 @@ Phase 32 entry collapsed to a one-line Complete summary in DEVPLAN history; Curr
 ## 2026-06-07 — Phase 33 planning — scope lock
 
 Phase 33 is scoped as a pure build phase inside the existing review-gate, pipeline, state-manager, prompt-regression, and CLI surfaces. The new `/revise:` flow and edit-log classifier do not introduce a new runtime module or require an ARCHITECTURE implementation-sequence status change. See `DECISIONS.md` D-48 and the Phase 33 notes in `DEVPLAN.md` for the locked scope.
+
+### Step 33.1: Pipeline regeneration API
+
+Mode: Execute
+Outcome: Added `Pipeline.regenerate_with_directive()` and wired the shared response-generation path to accept explicit metadata. The pipeline now reuses the orchestrator's assembled `DecisionContext`, appends the revision directive and previous draft as ordered prompt sections, and calls the generator with `purpose="generation_revision"` and the faction attribution. The orchestrator's normal response path now shares the same context-builder helper and passes `purpose="generation"` with attribution so both generation paths use the same ledger shape.
+Contract changes:
+- `src/pipeline.py` - added `regenerate_with_directive()` and the revision prompt assembly
+- `src/orchestrator.py` - extracted `_build_decision_context()` and routed normal generation through metadata-aware generation calls
+- `src/modules/generation/__init__.py` - `LLMGenerator.generate()` now accepts `purpose` and `attribution`, with a metadata-aware internal path
+- `tests/test_pipeline.py` - added revision-path coverage for prompt assembly and metadata forwarding
+- `tests/test_generation.py` - added metadata forwarding coverage for the generation adapter
+- `tests/test_orchestrator.py` - updated generator fakes to accept metadata kwargs
+
+Focused verification passed with `python3 -m pytest tests/test_generation.py tests/test_pipeline.py tests/test_orchestrator.py -q` (`76 passed`).

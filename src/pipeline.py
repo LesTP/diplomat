@@ -5,6 +5,8 @@ from types import SimpleNamespace
 from typing import Any
 
 from logging_config import get_logger
+from modules.context_assembler import DecisionContext
+from modules.generation import GenerationResult
 from modules.types import InboundEvent
 
 
@@ -66,6 +68,30 @@ class Pipeline:
                     return
         event = SimpleNamespace(content=content)
         await self.orchestrator._route_operator_event(event, event_id)
+
+    async def regenerate_with_directive(
+        self, directive: str, previous_draft: str
+    ) -> GenerationResult:
+        context = await self.orchestrator._build_decision_context()
+        revised_context = DecisionContext(
+            system_prompt=context.system_prompt,
+            user_prompt="\n\n".join(
+                [
+                    context.user_prompt,
+                    f"[OPERATOR REVISION DIRECTIVE]: {directive.strip()}",
+                    (
+                        "[PREVIOUS DRAFT — REVISE PER DIRECTIVE]: "
+                        f"{previous_draft.strip()}"
+                    ),
+                ]
+            ),
+            metadata=dict(context.metadata),
+        )
+        return await self.orchestrator.generator.generate(
+            revised_context,
+            purpose="generation_revision",
+            attribution=self.orchestrator.faction_id,
+        )
 
     def advance_to_round(self, round_number: int) -> None:
         self.orchestrator.advance_to_round(round_number)

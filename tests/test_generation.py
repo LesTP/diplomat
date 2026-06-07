@@ -107,6 +107,23 @@ async def test_prompt_forwarding_to_llm_client():
         "role": "user",
         "content": "Generate the next message.",
     }
+    assert client.calls[0]["purpose"] == "generation"
+    assert client.calls[0]["attribution"] is None
+
+
+@pytest.mark.asyncio
+async def test_generation_metadata_forwarding_to_llm_client():
+    client = FakeLLMClient("Message")
+    generator = LLMGenerator(client, llm_config={}, tier="QUALITY")
+
+    await generator.generate_with_metadata(
+        _context(),
+        purpose="generation_revision",
+        attribution="england",
+    )
+
+    assert client.calls[0]["purpose"] == "generation_revision"
+    assert client.calls[0]["attribution"] == "england"
 
 
 @pytest.mark.asyncio

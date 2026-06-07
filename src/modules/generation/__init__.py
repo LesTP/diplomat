@@ -46,12 +46,45 @@ class LLMGenerator:
         self.max_tokens = max_tokens
         self.review_gate_enabled = review_gate_enabled
 
-    async def generate(self, context: DecisionContext) -> GenerationResult:
-        if self.review_gate_enabled:
-            return await self._generate_json(context)
-        return await self._generate_plain(context)
+    async def generate(
+        self,
+        context: DecisionContext,
+        *,
+        purpose: str = "generation",
+        attribution: str | None = None,
+    ) -> GenerationResult:
+        return await self.generate_with_metadata(
+            context,
+            purpose=purpose,
+            attribution=attribution,
+        )
 
-    async def _generate_json(self, context: DecisionContext) -> GenerationResult:
+    async def generate_with_metadata(
+        self,
+        context: DecisionContext,
+        *,
+        purpose: str = "generation",
+        attribution: str | None = None,
+    ) -> GenerationResult:
+        if self.review_gate_enabled:
+            return await self._generate_json(
+                context,
+                purpose=purpose,
+                attribution=attribution,
+            )
+        return await self._generate_plain(
+            context,
+            purpose=purpose,
+            attribution=attribution,
+        )
+
+    async def _generate_json(
+        self,
+        context: DecisionContext,
+        *,
+        purpose: str,
+        attribution: str | None,
+    ) -> GenerationResult:
         result = await structured_call(
             self.llm_client,
             self.llm_config,
@@ -60,7 +93,8 @@ class LLMGenerator:
             system_prompt=context.system_prompt,
             user_prompt=context.user_prompt,
             max_retries=1,
-            purpose="generation",
+            purpose=purpose,
+            attribution=attribution,
         )
 
         if not result.success:
@@ -93,7 +127,13 @@ class LLMGenerator:
             error=None,
         )
 
-    async def _generate_plain(self, context: DecisionContext) -> GenerationResult:
+    async def _generate_plain(
+        self,
+        context: DecisionContext,
+        *,
+        purpose: str,
+        attribution: str | None,
+    ) -> GenerationResult:
         from inspect import isawaitable
 
         try:
@@ -105,7 +145,8 @@ class LLMGenerator:
                 config=self.llm_config,
                 tier=self.tier,
                 max_tokens=self.max_tokens,
-                purpose="generation",
+                purpose=purpose,
+                attribution=attribution,
             )
             if isawaitable(response):
                 response = await response

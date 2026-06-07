@@ -199,8 +199,23 @@ class FakeGenerator:
         self.results = list(results)
         self.calls = []
 
-    async def generate(self, context):
-        self.calls.append(context)
+    async def generate(self, context, **kwargs):
+        return await self.generate_with_metadata(context, **kwargs)
+
+    async def generate_with_metadata(
+        self,
+        context,
+        *,
+        purpose="generation",
+        attribution=None,
+    ):
+        self.calls.append(
+            {
+                "context": context,
+                "purpose": purpose,
+                "attribution": attribution,
+            }
+        )
         return self.results.pop(0)
 
 
