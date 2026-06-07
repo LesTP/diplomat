@@ -316,14 +316,14 @@ Rationale: A previously killed coached session can leave stale `/approve`-style 
 Revisit if: The Telegram update backlog behavior changes or a future flow needs a different drain duration / start-up policy.
 
 D-48: Phase 33 stays inside existing review-gate and state-manager surfaces
-Date: 2026-06-07 | Status: Open
+Date: 2026-06-07 | Status: Closed
 Priority: Important
 Decision: Phase 33 will add `/revise:` and edit-log classification without introducing a new runtime module or changing the ARCHITECTURE implementation-sequence status. The work stays within the existing Pipeline, Review Gate, State Manager, prompt-regression, and CLI surfaces.
 Rationale: The requested behavior is a refinement of the current coached review loop, not a platform or transport expansion. Keeping the phase scoped to existing module boundaries avoids unnecessary architecture churn and keeps the build phase testable in place.
 Revisit if: The revise/classification work requires a new cross-cutting runtime boundary or module ownership split.
 
 D-49: Raw `/edits-summary` fast-path before coaching parse
-Date: 2026-06-07 | Status: Open
+Date: 2026-06-07 | Status: Closed
 Priority: Important
 Decision: Treat `/edits-summary` as an operator command in the orchestrator before passing the message into `TaggedCoachingParser`.
 Rationale: The shared coaching parser classifies hyphenated slash commands as free coaching, which would bypass the operator dispatcher. Intercepting the exact raw command preserves the intended slash-command UX without changing the parser contract for other inputs.
