@@ -1,8 +1,8 @@
 ---
-phase: 32
-blocked: true
+phase: 33
+blocked: false
 state: plan
-steps_remaining: 0
+steps_remaining: 7
 ---
 
 # Diplomat — Development Plan
@@ -53,9 +53,9 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 32 closed 2026-06-04 (worker loop + operator follow-up both fully sealed). No phase queued. Next session: review backlog in `NEXT_STEPS.md` and pick the next tier item to plan.
-- **Focus** — Project at a stopping point. Live coached game (Run 13) validated the new gate end-to-end; toolkit-level chunking + queue-drain + `/intel` trim all shipped. Open backlog tracked in `NEXT_STEPS.md`; canonical sequencing notes still apply.
-- **Blocked/Broken** — `blocked: true` per WORKER_SPEC phase-close convention (human audit before next phase begins). Set `blocked: false` after planning Phase 33.
+- **Phase** — Phase 33 queued 2026-06-07. Coaching v2: `/revise: <directive>` LLM-rewrite edit mode + auto-classifier for the review-gate edit log. Closes `NEXT_STEPS.md` §4e and unblocks the §4 feedback loop (re-run, inspect edit log, classify edits, feed patterns into faction_prompt) by giving the operator a cheap edit path and giving the system a way to surface recurring edit patterns.
+- **Focus** — 10 steps, all 🔨 pure build, loop-ready. No live LLM spend during build (DryRun + fixtures throughout). Step 33.9 fixture validation is the only live-LLM step (~$0.30, classifier discrimination on hand-curated edit pairs). Live re-run (Run 14) queued separately in `NEXT_STEPS.md` for after phase close.
+- **Blocked/Broken** — `blocked: false`. Worker may begin execution.
 
 <!-- Phase ordering convention:
        - Open / queued phases first, in forward execution order (next-to-do first).
@@ -64,6 +64,72 @@ steps_remaining: 0
          (most recently closed first; same-day closes sorted by phase number descending).
      This puts the active work at the top and the "recent past" right under it,
      with deep history at the bottom. -->
+
+<!-- history -->
+
+## Phase 33: Coaching v2 — `/revise: <directive>` LLM-rewrite edit mode + auto-classifier — Plan
+
+**Goal.** Close the coaching feedback loop. Run 13 (2026-06-04) validated the gate end-to-end but the operator chose approve-only; `/edit:` requires retyping the whole draft, which is more expensive than approving a marginal draft. Two related additions:
+
+1. **`/revise: <directive>`** — operator gives intent, model regenerates the draft in-place, gate replaces the pending slot with the new draft. Capped at 3 iterations per pending review. Closes `NEXT_STEPS.md` §4e.
+2. **Auto-classifier for `review_gate_edits`** — every `action='edited'` row gets one of six `diplomat-testing-doc.md` §7.3 categories via LLM-judge (`tone_softer`, `tone_harder`, `commitment_removed`, `ambiguity_added`, `constraint_enforcement`, `persona_correction`). New `/edits-summary` command surfaces recurring patterns mid-game. Closes the original §4 "classify edits" TODO and gives Block B (prompt tuning) a real evaluation signal.
+
+All 10 steps are 🔨 pure build, loop-ready. No live LLM spend during build (DryRun + fixtures throughout). The only live-LLM step is 33.9 fixture validation (~$0.30 to confirm classifier discriminates on hand-curated edit pairs). Run 14 (live re-run on Pi exercising `/revise:`) queued in `NEXT_STEPS.md` for after phase close, not part of this phase.
+
+**Design decisions pinned 2026-06-07:**
+- `/revise:` regenerate call sees **full `DecisionContext`** (persona + intel + coaching + transcript) plus two appended high-priority sections: `[OPERATOR REVISION DIRECTIVE]: <directive>` and `[PREVIOUS DRAFT — REVISE PER DIRECTIVE]: <draft>`. Preserves voice and persona; treats directive as the highest-priority coaching note. See Step 33.1.
+- Revise chain capped at **3 iterations** per pending review. After the 3rd, gate responds `[revise limit reached — /approve, /edit:, or /block to resolve]` and ignores further `/revise:` until the slot resolves. See Step 33.3.
+- Revise directives stored as **JSON array in a new `revise_directives TEXT` column on `review_gate_edits`** (no separate `revise_log` table — directives only matter as context for the final `ReviewDecision`). See Step 33.3.
+- Classifier results stored in a **separate `edit_classifications` table** with FK to `review_gate_edits.id` — preserves re-classification history when the classifier prompt changes. See Step 33.6.
+- Classifier runs **on demand** via `tools/classify_edit_log.py` (post-game bulk) or lazily via `/edits-summary` (in-game). **Never** auto-classifies on every `/edit:` — zero added latency during coached games, zero cost surprise if never invoked.
+- Default classifier model: **`gemini-2.5-flash-lite`** (commodity tier, already integrated, ~$0.01-0.05 per game's worth of edits).
+- Scope lock: Phase 33 stays inside existing Review Gate, Pipeline, State Manager, and prompt-regression surfaces. No new module is introduced and no ARCHITECTURE implementation-sequence status changes are needed.
+
+**Out of scope (deliberate):**
+- `NEXT_STEPS.md` §4f UX polish (`/ledger` info-density, `/intel-history`) — stays in NEXT_STEPS.
+- Auto-rewriting `config/faction_prompt.txt` from classification patterns — manual operator action remains; tooling surfaces data, operator writes prompt changes.
+- Live re-run on Pi — queued as Run 14 in `NEXT_STEPS.md` for operator-driven execution after phase close.
+
+### Part A — `/revise: <directive>` directive mode
+
+- [ ] **Step 33.1 — Pipeline regeneration API.** Add `Pipeline.regenerate_with_directive(directive: str, previous_draft: str) -> GenerationResult`. Builds normal `DecisionContext` via the existing assembler. Appends two sections to the assembled context: `[OPERATOR REVISION DIRECTIVE]: <directive>` (treated as highest-priority coaching note) and `[PREVIOUS DRAFT — REVISE PER DIRECTIVE]: <draft>`. Routes through the same Generation module call shape (same `attribution`, `purpose="generation_revision"` to distinguish in ledger). Returns a fresh `GenerationResult`. Tests: unit test asserts the two sections are appended in the right order; verifies `purpose=` is propagated; verifies the regenerate call uses the same provider/tier as the original generation.
+- [ ] **Step 33.2 — `/revise:` command in `OperatorReviewGate`.** Add `/revise: <directive>` (and `/revise <directive>` legacy) to `OperatorReviewGate.handle_command`. Parses the directive from the command suffix. Validates a pending review exists (returns `True` consumed with error message if not). Calls `pipeline.regenerate_with_directive(directive, self._pending.draft.response_text)`. Atomically replaces `_pending` slot with `(new_draft, adversarial=None, round_number, new_future)` — old future is discarded (the original `submit()` await is still bound to the old future via the same `_pending` reference, so updating the slot also updates what `submit()` will resolve on). Sends new draft via `transport.send(OutboundMessage(content=..., channel="coaching"))` with `Round N — Revised Draft (revise N/3)` header. Increments revise counter on the pending slot. Tests: unit test parses the command; integration test via `DryRunTelegramReviewGate` verifies slot replacement, header text, and that `submit()` ultimately returns the post-revise final action.
+- [ ] **Step 33.3 — Revise cap + chain logging.** Cap revise count at 3 per pending review (configurable via `OperatorReviewGate(max_revises=3)`). On the 4th `/revise:`, gate responds `[revise limit reached — /approve, /edit:, or /block to resolve]` and ignores the directive (review stays pending with the last revised draft). Schema migration: add `revise_directives TEXT` column (JSON array of directives in order) to `review_gate_edits`. `StateManager.log_review_decision` accepts an optional `revise_directives: list[str] | None` parameter and serializes it on write. Tests: unit test the cap rejection message; schema migration test confirms backward compatibility (existing rows have NULL); integration test via `DryRunTelegramReviewGate` runs revise → revise → revise → revise (4th rejected) → approve and verifies the final stored row has exactly 3 directives in order.
+- [ ] **Step 33.4 — `/revise:` flow tests.** End-to-end integration tests via `DryRunTelegramReviewGate` (extends the existing dry-run gate with a scripted command sequence): (a) revise → approve happy path; (b) revise → revise → approve (chain of 2); (c) revise → revise → revise → revise (4th rejected) → block; (d) revise → block; (e) revise then transport-send error in the new draft — verify `ReviewDecision(action="blocked", edit_notes="transport error: ...")` per D-42. Asserts no orphan futures (the gate's `_pending` field is always a valid slot or None), correct directive chain in storage, correct counter values on cap rejection. Verifies the originally-awaiting `submit()` returns the post-chain action.
+
+### Part B — Auto-classifier
+
+- [ ] **Step 33.5 — `LLMEditClassifier` module.** New `src/modules/edit_classifier/` package with `__init__.py`, `classifier.py`, `types.py`. `EditClassification` dataclass (`category: str`, `confidence: float`, `rationale: str`, `classifier_model: str`, `classified_at: datetime`). `LLMEditClassifier` class with `async classify(original: str, edited: str, edit_notes: str | None) -> EditClassification`. Uses `toolkit.structured_llm.structured_call(tier="commodity", purpose="edit_classification")` with schema enforcing `category ∈ {tone_softer, tone_harder, commitment_removed, ambiguity_added, constraint_enforcement, persona_correction}` and `confidence ∈ [0, 1]`. New prompt file `config/prompts/edit_classifier.txt` with the six category definitions copied from `diplomat-testing-doc.md` §7.3 plus 1-2 illustrative examples per category. Factory `build_edit_classifier(llm_client, llm_providers_config, tier, attribution)` mirrors `build_reconciler` pattern. Tests: unit test schema validation; mock `structured_call` and assert the prompt includes original + edited + edit_notes; assert tier/purpose propagation; assert factory wiring.
+- [ ] **Step 33.6 — `edit_classifications` table + State Manager API.** New SQL DDL in `config/schemas/state_patch.json` (or wherever DDL lives — confirm in `ARCH_state_manager.md`):
+  ```sql
+  CREATE TABLE edit_classifications (
+      id INTEGER PRIMARY KEY,
+      review_gate_edit_id INTEGER NOT NULL,
+      category TEXT NOT NULL,
+      confidence REAL NOT NULL,
+      rationale TEXT,
+      classified_at TIMESTAMP NOT NULL,
+      classifier_model TEXT NOT NULL,
+      FOREIGN KEY (review_gate_edit_id) REFERENCES review_gate_edits(id)
+  );
+  CREATE INDEX idx_edit_classifications_edit_id ON edit_classifications(review_gate_edit_id);
+  ```
+  Migration runs on `SQLiteStateManager.__init__` via the existing schema-evolution path. Add `StateManager.store_edit_classification(review_gate_edit_id, classification)` and `StateManager.get_edit_classifications(game_id=None, since_round=None) -> list[dict]` (joined view returning original_text + edited_text + classification fields). Tests: unit test the migration runs idempotently; CRUD round-trip test; join query test with synthetic data.
+- [ ] **Step 33.7 — `tools/classify_edit_log.py` CLI.** New script: `python tools/classify_edit_log.py --db <path> [--game-id <id>] [--force]`. Opens the SQLite DB read-write, queries `review_gate_edits` for `action='edited'` rows, filters out already-classified unless `--force`, instantiates `LLMEditClassifier` (provider/model from CLI flags or pipeline.yaml defaults), invokes classify per row, writes to `edit_classifications`. Prints summary table after completion: `category | count | most_recent_example_id`. Cost estimate: ~$0.01 per edit at `gemini-2.5-flash-lite` defaults. Tests: integration test against a fake DB with hand-crafted edited rows; verifies idempotency without `--force`; verifies summary output format.
+- [ ] **Step 33.8 — `/edits-summary` operator command.** Wire into `Pipeline.dispatch_operator` (existing `_dispatch_command` registry in `src/orchestrator.py`). Handler queries `edit_classifications` joined with `review_gate_edits`; for any `review_gate_edits` row with `action='edited'` and no matching classification, lazy-classifies via the same `LLMEditClassifier` (so the operator gets fresh data without running the CLI). Returns markdown table: category, count, most-recent example pair (original truncated to 80 chars, edited truncated to 80 chars). Updates the `/commands` help list. Tests: unit test on the dispatch registry; integration test confirms lazy classification happens for unclassified rows; verifies the markdown output shape.
+- [ ] **Step 33.9 — Classifier discrimination tests.** Fixture-based regression suite in `tests/prompt_regression/scenarios/edit_classification/`: 4-5 hand-curated `(original, edited, edit_notes, expected_category)` tuples per category (~24-30 fixtures total). Each scenario asserts `classify()` returns the expected category at confidence ≥ 0.7. Uses live `LLMEditClassifier` (not mock) — this is the only live-LLM step in Phase 33. Cost: ~$0.30 total. Acceptance threshold: ≥ 85% category accuracy across the suite (some category boundaries are genuinely fuzzy — e.g. `tone_softer` vs `ambiguity_added` overlap — so 100% isn't realistic). Runs in the existing prompt-regression pytest pathway with `--scenarios tests/prompt_regression/scenarios/edit_classification/`. If accuracy < 85%, iterate on the `edit_classifier.txt` prompt and re-run; don't ship below threshold.
+
+### Part C — Docs
+
+- [ ] **Step 33.10 — Documentation update.** Files to update before phase-review:
+  - `ARCH_review_gate.md` — add `/revise:` to the review commands list under `handle_command`; document the revise state machine (slot replacement, counter, cap); add `revise_directives` to the storage contract; add Step 33.4 test scenarios to the Usage Example section if appropriate.
+  - `ARCH_coaching.md` — update the "Review Gate Edit Log → Prompt Refinement" section: auto-classification now exists; recurring patterns are surfaceable via `/edits-summary` mid-game or `tools/classify_edit_log.py` post-game; the "write into `config/faction_prompt.txt` directly" step remains manual.
+  - `ARCHITECTURE.md` — add `/revise: <directive>` and `/edits-summary` to the User Actions list; add new "Edit Classifier" row to the Component Map; add coupling note for Edit Classifier ↔ State Manager and Edit Classifier ↔ toolkit/structured_llm; add `EditClassification` to the Core Objects list.
+  - `CLI_REFERENCE.md` — add a `tools/classify_edit_log.py` entry with flags, defaults, working example, cost estimate.
+  - `diplomat-testing-doc.md` §7.3 — note that auto-classification now exists; reference `tools/classify_edit_log.py` and the `/edits-summary` command; the manual classification workflow remains as a fallback / verification path.
+  - `NEXT_STEPS.md` §4 — mark §4e closed; leave §4f open; add Run 14 ("coached game exercising `/revise:` and `/edits-summary`") to the Carry-Forward Items list as a queued experimental run.
+  - `DEVLOG.md` — Phase 33 close entry following the standard pattern (one paragraph summary + per-step bullets + cross-references).
+  - `DEVPLAN.md` — collapse Phase 33 to a closed-phase summary block (this active step list is removed at close per the phase-close convention).
 
 <!-- history -->
 
