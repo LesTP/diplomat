@@ -18,6 +18,7 @@ import yaml
 from logging_config import get_logger
 from toolkit.coaching import CoachingEvent, Command
 from modules.context_assembler import CoachingEntry, DecisionContext
+from modules.edit_classifier import build_edit_classifier
 from modules.generation import GenerationResult
 from modules.persona import CoachingContext
 from modules.transport import OutboundMessage
@@ -156,6 +157,7 @@ class _OrchestratorCore:
             llm_client=llm_client,
             telegram_client=telegram_client,
         )
+        self._edit_classifier = None
         for name, instance in self.modules.items():
             setattr(self, name, instance)
 
@@ -217,6 +219,9 @@ class _OrchestratorCore:
         self._reset_round_budget()
 
     async def _route_operator_event(self, event: Any, event_id: str) -> None:
+        if event.content.strip().lower() == "/edits-summary":
+            await self._dispatch_command(Command(name="edits-summary", args={}))
+            return
         parsed = self.coaching_parser.parse(event.content)
         if isinstance(parsed, Command):
             await self._dispatch_command(parsed)
@@ -306,6 +311,7 @@ class _OrchestratorCore:
             "intel": self._command_intel,
             "divergences": self._command_divergences,
             "edits": self._command_edits,
+            "edits-summary": self._command_edits_summary,
             "commands": self._command_commands,
             "block": self._command_block,
         }
@@ -393,6 +399,42 @@ class _OrchestratorCore:
         rows = await self._query_state("review_gate_edits", {})
         return "Review Edits\n" + self._format_rows(rows)
 
+    async def _command_edits_summary(self, _command: Command) -> str:
+        edit_rows = await self._query_state("review_gate_edits", {})
+        classifications = await self._get_edit_classifications()
+        classified_ids = {
+            row.get("review_gate_edit_id")
+            for row in classifications
+            if row.get("review_gate_edit_id") is not None
+        }
+
+        pending_rows = [
+            row
+            for row in edit_rows
+            if row.get("decision") == "edited" and row.get("id") not in classified_ids
+        ]
+        if pending_rows:
+            classifier = await self._get_edit_classifier()
+            if classifier is None:
+                logger.info("edit_summary.skip reason=classifier_unavailable")
+            else:
+                for row in pending_rows:
+                    original_text = self._edit_original_text(row)
+                    edited_text = self._edit_edited_text(row)
+                    edit_notes = self._edit_notes(row)
+                    classification = await classifier.classify(
+                        original_text,
+                        edited_text,
+                        edit_notes,
+                    )
+                    await self.state_manager.store_edit_classification(
+                        row["id"],
+                        classification,
+                    )
+                classifications = await self._get_edit_classifications()
+
+        return self._format_edit_summary(classifications)
+
     async def _command_commands(self, _command: Command) -> str:
         return "\n".join([
             "Commands",
@@ -404,6 +446,7 @@ class _OrchestratorCore:
             "/intel — latest intelligence report",
             "/divergences — analyst disagreements",
             "/edits — review gate edit log",
+            "/edits-summary — classify and summarize edit patterns",
             "/approve — approve pending draft",
             "/edit: <text> — approve with modified text",
             "/block — reject pending draft",
@@ -430,6 +473,104 @@ class _OrchestratorCore:
 
     async def _send_operator(self, content: str) -> None:
         await self.transport.send(OutboundMessage(content=content, channel="coaching"))
+
+    async def _get_edit_classifier(self) -> Any | None:
+        classifier = getattr(self, "_edit_classifier", None)
+        if classifier is not None:
+            return classifier
+        generator = getattr(self, "generator", None)
+        llm_client = getattr(generator, "llm_client", None)
+        if llm_client is None:
+            return None
+        classifier = build_edit_classifier(
+            llm_client,
+            self.config["llm_providers"],
+            tier="commodity",
+            attribution=self.faction_id,
+        )
+        self._edit_classifier = classifier
+        return classifier
+
+    async def _get_edit_classifications(self) -> list[dict[str, Any]]:
+        getter = getattr(self.state_manager, "get_edit_classifications", None)
+        if callable(getter):
+            try:
+                return await getter()
+            except Exception:
+                logger.exception("Failed to load edit classifications")
+                return []
+        return await self._query_state("edit_classifications", {})
+
+    def _edit_original_text(self, row: dict[str, Any]) -> str:
+        original_text = row.get("original_text")
+        if isinstance(original_text, str) and original_text.strip():
+            return original_text.strip()
+        return "[original draft unavailable]"
+
+    def _edit_edited_text(self, row: dict[str, Any]) -> str:
+        edited_text = row.get("edited_text")
+        if isinstance(edited_text, str) and edited_text.strip():
+            return edited_text.strip()
+        edit_text = row.get("edit_text")
+        if isinstance(edit_text, str) and edit_text.strip():
+            return edit_text.strip()
+        return ""
+
+    def _edit_notes(self, row: dict[str, Any]) -> str | None:
+        revise_directives = row.get("revise_directives")
+        if isinstance(revise_directives, list) and revise_directives:
+            notes = ", ".join(
+                str(item).strip() for item in revise_directives if str(item).strip()
+            )
+            if notes:
+                return notes
+        edit_text = row.get("edit_text")
+        if isinstance(edit_text, str) and edit_text.strip():
+            return edit_text.strip()
+        return None
+
+    def _truncate_text(self, text: str | None, limit: int = 80) -> str:
+        if not text:
+            return "[none]"
+        value = text.strip()
+        if len(value) <= limit:
+            return value
+        return value[: limit - 1].rstrip() + "…"
+
+    def _format_edit_summary(self, rows: list[dict[str, Any]]) -> str:
+        if not rows:
+            return "Edit Summary\n(none)"
+
+        grouped: dict[str, list[dict[str, Any]]] = {}
+        for row in rows:
+            category = str(row.get("category", "unknown"))
+            grouped.setdefault(category, []).append(row)
+
+        lines = [
+            "Edit Summary",
+            "| Category | Count | Most recent example |",
+            "| --- | ---: | --- |",
+        ]
+        for category in sorted(grouped):
+            category_rows = grouped[category]
+            latest = max(
+                category_rows,
+                key=lambda row: (
+                    str(row.get("classified_at", "")),
+                    int(row.get("id", 0) or 0),
+                ),
+            )
+            original_text = self._truncate_text(latest.get("original_text"))
+            edited_text = self._truncate_text(latest.get("edited_text"))
+            lines.append(
+                "| {category} | {count} | original: {original} / edited: {edited} |".format(
+                    category=category,
+                    count=len(category_rows),
+                    original=original_text,
+                    edited=edited_text,
+                )
+            )
+        return "\n".join(lines)
 
     async def _time_round_loop(self) -> None:
         interval = float(self.round_detection["interval_seconds"])

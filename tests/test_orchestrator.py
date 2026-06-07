@@ -11,6 +11,7 @@ import pytest
 import yaml
 
 from modules.adversarial import AdversarialResult
+from modules.edit_classifier import EditClassification
 from modules.extraction import ExtractionResult
 from modules.generation import GenerationResult
 from modules.review_gate import ReviewDecision
@@ -63,6 +64,7 @@ class FakeStateManager:
             "coaching": [],
             "intelligence": [],
             "review_gate_edits": [],
+            "edit_classifications": [],
         }
         self.intelligence = []
         self.game_state = {}
@@ -113,6 +115,45 @@ class FakeStateManager:
 
     async def mark_coaching_consumed(self):
         self.consumed_marked = True
+
+    async def store_edit_classification(self, review_gate_edit_id, classification):
+        row = {
+            "id": len(self.rows["edit_classifications"]) + 1,
+            "review_gate_edit_id": review_gate_edit_id,
+            "category": classification.category,
+            "confidence": classification.confidence,
+            "rationale": classification.rationale,
+            "classified_at": classification.classified_at.isoformat(),
+            "classifier_model": classification.classifier_model,
+        }
+        self.rows["edit_classifications"].append(row)
+
+    async def get_edit_classifications(self, game_id=None, since_round=None):
+        del game_id
+        review_rows = {
+            row["id"]: row for row in self.rows["review_gate_edits"]
+        }
+        results = []
+        for row in self.rows["edit_classifications"]:
+            review_row = review_rows.get(row["review_gate_edit_id"], {})
+            results.append(
+                {
+                    **row,
+                    "event_id": review_row.get("event_id"),
+                    "decision": review_row.get("decision"),
+                    "edited_text": review_row.get("edit_text"),
+                    "original_text": review_row.get("original_text"),
+                    "revise_directives": review_row.get("revise_directives"),
+                }
+            )
+        if since_round is None:
+            return results
+        return [
+            row
+            for row in results
+            if str(row.get("event_id", "")).startswith("round-")
+            and int(str(row["event_id"])[6:]) >= since_round
+        ]
 
 
 class FailingPatchStateManager(FakeStateManager):
@@ -247,6 +288,28 @@ class FakeReviewGate:
         return self.decision
 
 
+class FakeEditClassifier:
+    def __init__(self, category="tone_softer"):
+        self.category = category
+        self.calls = []
+
+    async def classify(self, original, edited, edit_notes):
+        self.calls.append(
+            {
+                "original": original,
+                "edited": edited,
+                "edit_notes": edit_notes,
+            }
+        )
+        return EditClassification(
+            category=self.category,
+            confidence=0.95,
+            rationale="The edit softens the tone.",
+            classifier_model="fake-classifier",
+            classified_at=datetime(2026, 6, 7, tzinfo=timezone.utc),
+        )
+
+
 class FakeReconciler:
     async def reconcile(self, state, recent_events, current_round):
         return SimpleNamespace(
@@ -336,6 +399,7 @@ def _orchestrator(tmp_path, **overrides):
     transport = overrides.pop("transport", FakeTransport())
     cost_accountant = overrides.pop("cost_accountant", None)
     options = overrides.pop("options", None)
+    edit_classifier = overrides.pop("edit_classifier", None)
     config_path = _copy_project_config(tmp_path)
     orchestrator = Orchestrator(
         config_path,
@@ -351,6 +415,8 @@ def _orchestrator(tmp_path, **overrides):
             **overrides,
         },
     )
+    if edit_classifier is not None:
+        orchestrator._edit_classifier = edit_classifier
     orchestrator.message_debounce_seconds = 0
     return orchestrator, event_store, state_manager, extractor, transport
 
@@ -653,6 +719,7 @@ async def test_game_message_debounce_extracts_all_messages(tmp_path):
         ("/intel", "Intelligence\n"),
         ("/divergences", "Divergences\n"),
         ("/edits", "Review Edits\n"),
+        ("/edits-summary", "Edit Summary\n"),
         ("/commands", "Commands\n/commands"),
     ],
 )
@@ -667,6 +734,17 @@ async def test_command_handler_reply_formats(tmp_path, command, expected):
     state_manager.rows["review_gate_edits"] = [
         {"id": 1, "decision": "edited", "edit_text": "Softer."}
     ]
+    state_manager.rows["edit_classifications"] = [
+        {
+            "id": 1,
+            "review_gate_edit_id": 1,
+            "category": "tone_softer",
+            "confidence": 0.9,
+            "rationale": "Softened phrasing.",
+            "classified_at": "2026-06-07T00:00:00+00:00",
+            "classifier_model": "fake",
+        }
+    ]
     orchestrator, _event_store, _state_manager, _extractor, transport = _orchestrator(
         tmp_path,
         state_manager=state_manager,
@@ -677,6 +755,37 @@ async def test_command_handler_reply_formats(tmp_path, command, expected):
     assert transport.sent
     assert transport.sent[0].channel == "coaching"
     assert transport.sent[0].content.startswith(expected)
+    if command == "/commands":
+        assert "/edits-summary — classify and summarize edit patterns" in transport.sent[0].content
+
+
+@pytest.mark.asyncio
+async def test_edits_summary_lazy_classifies_unlabelled_rows(tmp_path):
+    state_manager = FakeStateManager()
+    state_manager.rows["review_gate_edits"] = [
+        {
+            "id": 7,
+            "event_id": "round-7",
+            "decision": "edited",
+            "edit_text": "We can be more flexible here.",
+        }
+    ]
+    fake_classifier = FakeEditClassifier()
+    orchestrator, _event_store, _state_manager, _extractor, transport = _orchestrator(
+        tmp_path,
+        state_manager=state_manager,
+        edit_classifier=fake_classifier,
+    )
+
+    await orchestrator.process_event(_event(content="/edits-summary"))
+
+    assert len(fake_classifier.calls) == 1
+    assert fake_classifier.calls[0]["original"] == "[original draft unavailable]"
+    assert fake_classifier.calls[0]["edited"] == "We can be more flexible here."
+    assert fake_classifier.calls[0]["edit_notes"] == "We can be more flexible here."
+    assert len(state_manager.rows["edit_classifications"]) == 1
+    assert transport.sent[0].content.startswith("Edit Summary\n")
+    assert "tone_softer" in transport.sent[0].content
 
 
 @pytest.mark.asyncio

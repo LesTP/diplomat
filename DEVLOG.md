@@ -523,7 +523,7 @@ Contract changes:
 
 Focused verification: `python3 -m pytest tests/test_edit_classifier.py tests/test_generation.py tests/test_reconciliation.py -q` --- `25 passed`.
 
-## 2026-06-07 — Phase 33 Step 33.6: edit classification storage + joined read API
+## 2026-06-07 - Phase 33 Step 33.6: edit classification storage + joined read API
 
 Added the `edit_classifications` table to the state manager schema and wired it into the SQLite bootstrap path with an index on `review_gate_edit_id`. `SQLiteStateManager` now exposes `store_edit_classification(review_gate_edit_id, classification)` for persisting classifier outputs and `get_edit_classifications(game_id=None, since_round=None)` for reading the classification rows joined against `review_gate_edits`, including the review row metadata and serialized revise directives. Existing `review_gate_edits` migrations still preserve pre-column rows with `revise_directives = NULL`.
 
@@ -532,3 +532,24 @@ Contract changes:
 - `tests/test_state_manager.py` - added CRUD/join coverage, migration/index coverage, and a round-filter regression for the joined read path.
 
 Focused verification: `python3 -m pytest tests/test_state_manager.py tests/test_review_gate.py tests/integration/test_review_gate_flow.py -q` --- `52 passed`.
+
+## 2026-06-07 - Phase 33 Step 33.7: edit log classification CLI
+
+Added `tools/classify_edit_log.py` to bulk-classify `review_gate_edits` rows with `decision='edited'`, skip already-classified rows unless `--force` is set, and print a markdown summary table of category counts and the most recent classification row per category. The script loads pipeline defaults from `config/pipeline.yaml`, allows provider/model overrides on the command line, and uses the existing `SQLiteStateManager` + `LLMEditClassifier` APIs rather than introducing new storage paths. Added focused regression coverage in `tests/test_classify_edit_log.py` for skip/idempotency and `--force` reclassification against a real temp DB with the classifier injected as a fake.
+
+Contract changes:
+- `tools/classify_edit_log.py` - new bulk edit-log classifier CLI.
+- `tests/test_classify_edit_log.py` - regression coverage for skip/idempotency, summary output, and force reclassification.
+- `DEVPLAN.md` - marked Step 33.7 complete.
+
+Focused verification: `python3 -m pytest tests/test_classify_edit_log.py tests/test_edit_classifier.py tests/test_state_manager.py -q` --- `23 passed`.
+
+## 2026-06-07 - Phase 33 Step 33.8: /edits-summary operator command
+
+Added `/edits-summary` to the operator dispatch path and taught it to lazy-classify any unlabelled `review_gate_edits` rows before rendering the summary. The orchestrator now caches an `LLMEditClassifier` built from the primary LLM client, reads the joined edit-classification rows from `SQLiteStateManager`, and renders a markdown summary table with category counts plus the most recent example pair per category. Because the shared coaching parser treats hyphenated slash commands as free coaching, `/edits-summary` gets an explicit raw-command fast-path in `_route_operator_event()` so it reaches the dispatcher reliably. Tests cover both the help-text update and the lazy-classification path.
+
+Contract changes:
+- `src/orchestrator.py` - added the `/edits-summary` handler, lazy classifier cache, markdown summary formatter, and raw-command fast-path.
+- `tests/test_orchestrator.py` - added reply-format coverage for `/edits-summary`, plus a lazy-classification regression that verifies the classifier is invoked and persisted.
+
+Focused verification: `./.venv/bin/python -m pytest tests/test_orchestrator.py tests/test_pipeline.py tests/test_review_gate.py tests/test_state_manager.py -q` --- `109 passed`.
