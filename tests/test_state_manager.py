@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from datetime import datetime, timezone
 
 import pytest
 from jsonschema import ValidationError
 
+from modules.edit_classifier.types import EditClassification
 from modules.review_gate import ReviewDecision
 from modules.state_manager import SQLiteStateManager
 from modules.types import PatchSource, StatePatch
@@ -218,6 +220,81 @@ async def test_log_review_decision_persists_revise_directives(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_store_edit_classification_and_get_joined_rows(tmp_path):
+    sm = manager(tmp_path)
+
+    await sm.log_review_decision(
+        round_number=8,
+        decision=ReviewDecision(
+            action="approved",
+            final_text="Draft v8",
+            edit_notes=None,
+        ),
+        draft_text="Draft v8",
+        revise_directives=["tighten tone"],
+    )
+    review_row = (await sm.query("review_gate_edits", {}))[0]
+
+    await sm.store_edit_classification(
+        review_row["id"],
+        EditClassification(
+            category="tone_softer",
+            confidence=0.93,
+            rationale="The revision tempers the wording.",
+            classifier_model="gemini-2.5-flash-lite",
+            classified_at=datetime(2026, 6, 7, tzinfo=timezone.utc),
+        ),
+    )
+
+    rows = await sm.get_edit_classifications()
+
+    assert len(rows) == 1
+    assert rows[0]["review_gate_edit_id"] == review_row["id"]
+    assert rows[0]["event_id"] == "round-8"
+    assert rows[0]["decision"] == "approved"
+    assert rows[0]["edited_text"] == "Draft v8"
+    assert rows[0]["original_text"] is None
+    assert rows[0]["revise_directives"] == ["tighten tone"]
+    assert rows[0]["category"] == "tone_softer"
+    assert rows[0]["confidence"] == 0.93
+    assert rows[0]["rationale"] == "The revision tempers the wording."
+    assert rows[0]["classifier_model"] == "gemini-2.5-flash-lite"
+    assert rows[0]["classified_at"] == "2026-06-07T00:00:00+00:00"
+
+
+@pytest.mark.asyncio
+async def test_get_edit_classifications_can_filter_by_since_round(tmp_path):
+    sm = manager(tmp_path)
+
+    for round_number, category in [(2, "tone_softer"), (6, "tone_harder")]:
+        await sm.log_review_decision(
+            round_number=round_number,
+            decision=ReviewDecision(
+                action="approved",
+                final_text=f"Draft v{round_number}",
+                edit_notes=None,
+            ),
+            draft_text=f"Draft v{round_number}",
+            revise_directives=None,
+        )
+        review_row = (await sm.query("review_gate_edits", {"event_id": f"round-{round_number}"}))[0]
+        await sm.store_edit_classification(
+            review_row["id"],
+            EditClassification(
+                category=category,
+                confidence=0.8,
+                rationale="Fixture",
+                classifier_model="gemini-2.5-flash-lite",
+                classified_at=datetime(2026, 6, 7, tzinfo=timezone.utc),
+            ),
+        )
+
+    rows = await sm.get_edit_classifications(since_round=5)
+
+    assert [row["event_id"] for row in rows] == ["round-6"]
+
+
+@pytest.mark.asyncio
 async def test_apply_patch_rejects_invalid_patch_without_audit_row(tmp_path):
     sm = manager(tmp_path)
 
@@ -266,6 +343,7 @@ def test_initialization_creates_owned_tables_and_enables_wal(tmp_path):
         "adversarial_reads",
         "coaching",
         "review_gate_edits",
+        "edit_classifications",
         "game_state",
     }.issubset(tables)
 
@@ -304,3 +382,23 @@ async def test_review_gate_edits_migration_keeps_existing_rows_null(tmp_path):
 
     assert "revise_directives" in columns
     assert rows[0]["revise_directives"] is None
+
+
+def test_edit_classifications_table_and_index_created(tmp_path):
+    db_path = tmp_path / "game.db"
+    manager(tmp_path)
+
+    with sqlite3.connect(db_path) as conn:
+        tables = {
+            row[0]
+            for row in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table'"
+            ).fetchall()
+        }
+        indexes = {
+            row[1]
+            for row in conn.execute("PRAGMA index_list(edit_classifications)").fetchall()
+        }
+
+    assert "edit_classifications" in tables
+    assert "idx_edit_classifications_edit_id" in indexes

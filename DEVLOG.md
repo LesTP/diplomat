@@ -522,3 +522,13 @@ Contract changes:
 - `tests/test_edit_classifier.py` - unit coverage for schema, prompt forwarding, attribution/purpose forwarding, blank-input rejection, and factory wiring.
 
 Focused verification: `python3 -m pytest tests/test_edit_classifier.py tests/test_generation.py tests/test_reconciliation.py -q` --- `25 passed`.
+
+## 2026-06-07 — Phase 33 Step 33.6: edit classification storage + joined read API
+
+Added the `edit_classifications` table to the state manager schema and wired it into the SQLite bootstrap path with an index on `review_gate_edit_id`. `SQLiteStateManager` now exposes `store_edit_classification(review_gate_edit_id, classification)` for persisting classifier outputs and `get_edit_classifications(game_id=None, since_round=None)` for reading the classification rows joined against `review_gate_edits`, including the review row metadata and serialized revise directives. Existing `review_gate_edits` migrations still preserve pre-column rows with `revise_directives = NULL`.
+
+Contract changes:
+- `src/modules/state_manager/__init__.py` - added `edit_classifications` ownership, schema bootstrap DDL, `store_edit_classification()`, and `get_edit_classifications()`.
+- `tests/test_state_manager.py` - added CRUD/join coverage, migration/index coverage, and a round-filter regression for the joined read path.
+
+Focused verification: `python3 -m pytest tests/test_state_manager.py tests/test_review_gate.py tests/integration/test_review_gate_flow.py -q` --- `52 passed`.

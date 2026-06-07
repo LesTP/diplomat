@@ -8,6 +8,7 @@ from typing import Any
 
 from jsonschema import Draft202012Validator
 
+from modules.edit_classifier.types import EditClassification
 from modules.types import PatchSource, StatePatch
 
 
@@ -22,6 +23,7 @@ class SQLiteStateManager:
         "adversarial_reads": "id",
         "coaching": "coaching_id",
         "review_gate_edits": "id",
+        "edit_classifications": "id",
         "game_state": "key",
     }
     _COLUMNS = {
@@ -75,6 +77,15 @@ class SQLiteStateManager:
             "edit_text",
             "revise_directives",
             "created_at",
+        },
+        "edit_classifications": {
+            "id",
+            "review_gate_edit_id",
+            "category",
+            "confidence",
+            "rationale",
+            "classified_at",
+            "classifier_model",
         },
         "game_state": {"key", "value"},
     }
@@ -174,6 +185,21 @@ class SQLiteStateManager:
                     revise_directives TEXT,
                     created_at TEXT NOT NULL
                 );
+
+                CREATE TABLE IF NOT EXISTS edit_classifications (
+                    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                    review_gate_edit_id INTEGER NOT NULL,
+                    category            TEXT NOT NULL,
+                    confidence          REAL NOT NULL,
+                    rationale           TEXT,
+                    classified_at       TEXT NOT NULL,
+                    classifier_model    TEXT NOT NULL,
+                    FOREIGN KEY (review_gate_edit_id)
+                        REFERENCES review_gate_edits(id)
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_edit_classifications_edit_id
+                    ON edit_classifications(review_gate_edit_id);
 
                 CREATE TABLE IF NOT EXISTS game_state (
                     key   TEXT PRIMARY KEY,
@@ -352,6 +378,85 @@ class SQLiteStateManager:
                 ),
             )
             conn.commit()
+
+    async def store_edit_classification(
+        self,
+        review_gate_edit_id: int,
+        classification: EditClassification,
+    ) -> None:
+        with self._connect() as conn:
+            conn.execute(
+                """
+                INSERT INTO edit_classifications (
+                    review_gate_edit_id,
+                    category,
+                    confidence,
+                    rationale,
+                    classified_at,
+                    classifier_model
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    review_gate_edit_id,
+                    classification.category,
+                    classification.confidence,
+                    classification.rationale,
+                    classification.classified_at.isoformat(),
+                    classification.classifier_model,
+                ),
+            )
+            conn.commit()
+
+    async def get_edit_classifications(
+        self,
+        game_id: str | None = None,
+        since_round: int | None = None,
+    ) -> list[dict[str, Any]]:
+        # The current review log does not persist a game identifier. Keep the
+        # parameter for forward compatibility, but only round-based filtering is
+        # available with the existing schema.
+        del game_id
+
+        sql = """
+            SELECT
+                ec.id,
+                ec.review_gate_edit_id,
+                rge.event_id,
+                rge.decision,
+                rge.edit_text AS edited_text,
+                NULL AS original_text,
+                rge.revise_directives,
+                ec.category,
+                ec.confidence,
+                ec.rationale,
+                ec.classified_at,
+                ec.classifier_model
+            FROM edit_classifications ec
+            JOIN review_gate_edits rge ON rge.id = ec.review_gate_edit_id
+        """
+        params: list[Any] = []
+        if since_round is not None:
+            sql += (
+                " WHERE CAST(SUBSTR(rge.event_id, 7) AS INTEGER) >= ?"
+            )
+            params.append(since_round)
+        sql += " ORDER BY ec.id ASC"
+
+        with self._connect() as conn:
+            rows = conn.execute(sql, params).fetchall()
+
+        return [self._serialize_row("edit_classifications", row) | {
+            "event_id": row["event_id"],
+            "decision": row["decision"],
+            "edited_text": row["edited_text"],
+            "original_text": row["original_text"],
+            "revise_directives": (
+                json.loads(row["revise_directives"])
+                if row["revise_directives"] is not None
+                else None
+            ),
+        } for row in rows]
 
     async def delete_entity(self, entity_type: str, entity_id: str) -> None:
         """Delete an entity by its primary key (e.g., promise_id, coalition_id)."""
@@ -564,6 +669,8 @@ class SQLiteStateManager:
                 data["revise_directives"] = json.loads(data["revise_directives"])
             except json.JSONDecodeError:
                 pass
+        if table == "edit_classifications" and "classified_at" in data:
+            data["classified_at"] = data["classified_at"]
         if table in {"inconsistencies", "coaching"} and "spent" in data:
             data["spent"] = bool(data["spent"])
         if table == "coaching" and "consumed" in data:
