@@ -1391,3 +1391,227 @@ extra coaching context. Tracked as NEXT_STEPS §4e.
 - None. Smoke run confirmed; move to Step 34.5 (integration tests).
 
 **Results file:** `tests/self_play/results/run14_smoke_bare_prompt.json`
+
+---
+
+## Phase 34 follow-on: Bare-vs-Full Ablation Campaign (Run 14a–e)
+
+**Campaign goal.** Test the harness contribution thesis directly:
+does Diplomat's harness measurably help over a bare-prompt baseline,
+and does the harness's contribution scale with model strength?
+
+**Design (locked 2026-06-08).** Three model tiers × 2 modes (full /
+bare) × 1 scenario (Water Rights β-squeezed) × 3 runs/cell = 18 runs
+total. β-squeezed picked for historical 2-of-2 deal rate — the
+right "leeway zone" where harness/model effects can plausibly differ.
+Single scenario; scenario breadth deferred to v1.5. See `NEXT_STEPS.md`
+§10 for the full matrix and `RESEARCH_NOTES.md` Note 1 for the
+scaling thesis the experiment tests.
+
+**Scenario sanity.** Water Rights β-squeezed has **27 possible deals,
+12 distinct achievable sums, 7 voluntarily acceptable, exactly 1
+Pareto-maximal** (`{High volume, Heavy-Downstream, Joint Desalination}`
+→ alpha 16 / beta 18 / gamma 20, sum 54, deltas `[+7, +3, +9]`). All
+or nothing — no middle ground between sum 35 (BATNA floor) and the
+single unique optimum. Per `tools/enumerate_outcomes.py`.
+
+**Scorer fix shipped mid-campaign.** Original LLM scorer was doing
+two jobs: (1) parse text → agreed_outcomes, (2) compute faction points
+by summing scoring-table values. The arithmetic step was unreliable —
+gpt-5.4-mini emitted `"points": 3 + 10 + 3` as JSON (invalid; arithmetic
+in JSON values, run 14a-2), and separately over-counted gamma by +2
+points (14b-2). Architectural fix (`c76b3da`): LLM extracts outcomes
+only; `faction_score()` does the math deterministically. All 14a-14c
+results below are post-rescore via `tools/rescore_run.py`. The LLM's
+arithmetic errors were small enough to mostly not flip deal/no-deal
+classifications, but two runs' faction scores shifted (14a-3 alpha
++1, 14b-2 gamma -2).
+
+### Run 14a — gpt-5.4-mini (mid tier), full harness — COMPLETE
+
+**Date:** 2026-06-08.
+**Configuration:** all three factions on `gpt-5.4-mini`. Full harness
+(Extraction, Analyst×2, Divergence, Reconciliation, Adversarial,
+Coaching parser all active). Water Rights β-squeezed, 4 rounds, 3 runs.
+**Cost:** ~$3-4 total (3 games at ~$1-1.50 each).
+
+**Results:**
+
+| Run | Deal? | δ sum | Faction deltas | `negotiated_surplus_share` |
+|---|---|---|---|---|
+| 14a-1 | No | 0 | `[0, 0, 0]` | 0.00 |
+| 14a-2 | Yes | +19 | `[+7, +3, +9]` | 1.00 |
+| 14a-3 | Yes | +19 | `[+7, +3, +9]` | 1.00 |
+| **Cell** | **2/3** | mean +12.7 | identical Pareto when closing | mean 0.67 |
+
+**Read:** mid tier with full harness reliably finds the unique Pareto
+optimum (2 of 3 runs converged on identical scores; the no-deal was
+variance). Matches historical Run 9 β-squeezed baseline (deltas
+[+6, +3, +11] with gpt-4.1-mini, similar shape).
+
+### Run 14b — gpt-5.4-mini (mid tier), bare prompt — COMPLETE
+
+**Date:** 2026-06-08.
+**Configuration:** same as 14a except `--bare-prompt` flag. All
+of Extraction / Analyst / Divergence / Reconciliation / Adversarial /
+Coaching disabled via `bare_module_overrides()` no-op stand-ins.
+DefaultContextAssembler produces persona + raw transcript only.
+**Cost:** ~$0.50 total (~50× cheaper per game than full mode).
+
+**Results:**
+
+| Run | Deal? | δ sum | Faction deltas |
+|---|---|---|---|
+| 14b-1 | No | 0 | `[0, 0, 0]` |
+| 14b-2 | Yes | +19 | `[+7, +3, +9]` — **identical to 14a Pareto deal** |
+| 14b-3 | No | 0 | `[0, 0, 0]` |
+| **Cell** | **1/3** | mean +6.3 | same Pareto when closing |
+
+**Read:** mid tier in bare mode closes ~half as often as full mode
+(1/3 vs 2/3) but **finds the exact same Pareto solution** when it
+does close. Harness contribution shows up in *close-rate*, not in
+*deal quality*.
+
+**Failure-mode note (14b-1):** the model conducted substantive
+negotiation but defected at the bottleneck. Beta + alpha proposed
+Heavy-Downstream payment; gamma swerved to Token payment in R4
+("Gamma is prepared to lean toward Token rather than forcing a heavy
+financial burden onto the downstream side"). Transcript shows agents
+converged on 2-of-3 issues (volume + infrastructure) — a near-miss
+that full mode probably would have closed via the Analyst's Pareto-trade
+intel.
+
+**Failure-mode note (14b-3):** also near-miss; agents discussed terms
+substantively but didn't converge on all three issues by R4. Bare
+mode lacks the Reconciler ratifying earlier commitments, so each
+round drifts somewhat.
+
+### Run 14c — gpt-4.1-nano (weak tier), full + bare — COMPLETE
+
+**Date:** 2026-06-08.
+**Configuration:** same scenario as 14a/14b; provider switched to
+`gpt-4.1-nano` (cheapest OpenAI tier, $0.10/$0.40 per MTok). 3 runs
+full + 3 runs bare.
+**Cost:** ~$0.30 total across all 6 runs.
+
+**Pre-flight note:** the first attempt at the 6 runs crashed in the
+post-game display formatter (line 550 of `game_environment.py`) —
+the deterministic scorer (`c76b3da`) returns `float` for points, but
+the formatter used `:+d` integer format for `vs_batna`. Crash happened
+inside `run_game()` before `_write_results()`, so JSONs weren't
+written. Fixed (`4a1bb46`) and re-fired; all 6 runs landed clean.
+
+**Results:**
+
+| Run | Mode | Deal? | δ sum | Faction deltas |
+|---|---|---|---|---|
+| 14c-1 | full | Yes | +19 | `[+7, +3, +9]` |
+| 14c-2 | full | No | 0 | `[0, 0, 0]` |
+| 14c-3 | full | Yes | +19 | `[+7, +3, +9]` |
+| 14c-bare-1 | bare | No | 0 | `[0, 0, 0]` |
+| 14c-bare-2 | bare | No | 0 | `[0, 0, 0]` |
+| 14c-bare-3 | bare | No | 0 | `[0, 0, 0]` |
+| **nano-full** | | **2/3** | mean +12.7 | identical Pareto when closing |
+| **nano-bare** | | **0/3** | 0 | always BATNA floor |
+
+**Read:** weak tier with full harness **matches mid tier's close-rate
+(2/3 = 2/3)** and finds the identical Pareto solution. Weak tier
+without harness **never closes**. The harness fully compensates for
+the model being ~10× cheaper.
+
+This is the strongest single-cell signal in the campaign so far.
+
+### Run 14d — claude-sonnet-4-6 (strong tier), bare — QUEUED
+
+Not yet fired. Expected cost ~$0.50 total for 3 runs. Fire before
+14e: bare mode is cheap and decisive for the headline question
+("does model strength substitute for harness at the strong tier?").
+See "Recommended next runs" below for the four-way conditional
+interpretation.
+
+### Run 14e — claude-sonnet-4-6 (strong tier), full — QUEUED
+
+Not yet fired. Expected cost ~$15-30 total for 3 runs (sonnet is
+~3× the cost of mid tier; full mode runs do ~50× more LLM work
+than bare). Fire conditionally on 14d signal — see "Recommended next
+runs."
+
+### Cross-cell synthesis (so far)
+
+| Tier | Model | Full close-rate | Bare close-rate | Δ (full − bare) |
+|---|---|---|---|---|
+| Weak | `gpt-4.1-nano` | 2/3 | 0/3 | **+67%** ← strong harness lift |
+| Mid | `gpt-5.4-mini` | 2/3 | 1/3 | +33% |
+| Strong | `claude-sonnet-4-6` | (pending) | (pending) | (pending) |
+
+**Three findings hold up clean across the 12 runs landed so far:**
+
+1. **Harness contribution is in close-rate, not deal quality.** Every
+   closing run (across both tiers, both modes) found the **identical
+   Pareto-optimal deal**: alpha 16 / beta 18 / gamma 20, deltas
+   `[+7, +3, +9]`. The scenario has one right answer; the model
+   either finds it or fails entirely. The harness affects whether
+   the model reaches that answer, not which answer it reaches.
+
+2. **Harness substitutes for ~1+ model tier.** `nano-full` (2/3)
+   matches `mid-full` (2/3), and `nano-full` (2/3) > `mid-bare`
+   (1/3). At this scenario, harness contribution exceeds the
+   ~10× cost differential between gpt-4.1-nano and gpt-5.4-mini.
+
+3. **Bare mode degrades steeply with weaker models.** Mid bare: 1/3.
+   Weak bare: 0/3. If sonnet-bare comes in at 2-3/3, that's a clear
+   monotonic curve (model strength → bare close-rate). If
+   sonnet-bare stays at 1/3 or below, bare mode is bottlenecked by
+   the scenario, not by model strength.
+
+**One important caveat** (per `RESEARCH_NOTES.md` Note 1): this is
+all on a **scale-1 scenario** — 3 factions, 3 issues, 4 rounds, ~4%
+context utilization, no deception, synchronous, unique Pareto
+optimum. The harness contribution observed here may not extrapolate
+to richer configurations. Specifically, the "harness affects only
+close-rate not quality" finding might invert when there are multiple
+Pareto solutions to coordinate between or deception to detect. The
+"weak + harness ≈ mid + full" finding might strengthen or weaken at
+larger scenario complexity. Treat current results as findings about
+**this scenario shape**, not about harnesses in general.
+
+### Recommended next runs
+
+**14d (sonnet bare, 3 runs, ~$0.50)** — fire first. Cheap and
+decisive. Four conditional readings:
+
+| 14d outcome | Implication for harness thesis |
+|---|---|
+| **0/3** (like nano-bare) | Bare mode is **bottlenecked by the scenario**, not by model strength. Even the strongest model can't close without the harness. Strong support for "harness load-bearing here." |
+| **1/3** (like mid-bare) | Linear degradation; bare-mode close-rate doesn't scale with model strength. Harness adds value at every tier. |
+| **2/3 or 3/3** | Model strength overtakes harness contribution at strong tier. The "buy bigger models" / "frontier models obviate scaffolding" story validated. |
+| **Anything weird** (e.g., closing on a sub-optimal voluntary deal at sum 51 instead of sum 54) | First evidence of model-class-specific quality differences. Worth investigating. |
+
+**14e (sonnet full, 3 runs, ~$15-30)** — fire conditionally:
+
+- If 14d ≥ 2/3 close-rate, 14e is probably not informative (already
+  saturated; sonnet-full unlikely to differ from sonnet-bare in a
+  meaningful way). Skip or defer.
+- If 14d ≤ 1/3 close-rate, 14e is the headline crossover test.
+  Fire it. Compare sonnet-full vs mid-full (both should be ≥2/3) +
+  sonnet-full vs sonnet-bare (the marginal harness lift at strong
+  tier).
+
+**After 14d/14e: project-direction decision.** Per `NEXT_STEPS.md`
+§10 TODOs, four options on the table:
+1. Continue building harness features (Tier 2/3 NEXT_STEPS work)
+2. Per-module ablation (Phase 35 candidate) — find which modules
+   matter
+3. Pivot to "Diplomat-lite" — minimal-harness reference
+4. **(New, per `RESEARCH_NOTES.md` Note 1)** Validate scaling thesis
+   first: §8 reverse builder + game-theoretic scenarios + re-ablation.
+   The Run 14 result tells us about scale-1 scenarios specifically;
+   other shapes may reverse the picture.
+
+The Note 1 framing argues for option 4 before committing to 1, 2, or 3.
+
+**Results files (post-rescore):**
+- `tests/self_play/results/run14_full_gpt54mini_beta_squeezed_{1,2,3}.json`
+- `tests/self_play/results/run14_bare_gpt54mini_beta_squeezed_{1,2,3}.json`
+- `tests/self_play/results/run14_full_gpt41nano_beta_squeezed_{1,2,3}.json`
+- `tests/self_play/results/run14_bare_gpt41nano_beta_squeezed_{1,2,3}.json`

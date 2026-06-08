@@ -1,32 +1,20 @@
 import json
 
-d = json.load(open(r'tests/self_play/results/run14_full_gpt54mini_beta_squeezed_2.json'))
-print('top-level keys:', list(d.keys()))
+d = json.load(open(r'tests/self_play/results/run14_bare_gpt54mini_beta_squeezed_2.json'))
+print('bare_mode:', d.get('bare_mode'))
 print()
-print('scores section:')
-print(json.dumps(d.get('scores'), indent=2)[:800] if d.get('scores') else 'MISSING/EMPTY')
+# What did the scorer LLM actually claim?
+print('=== SCORER LLM verdict (pre-rescore — original LLM output) ===')
+calls = d.get('llm_call_log', [])
+last = calls[-1] if calls else {}
+print('raw response:')
+print((last.get('response_text') or last.get('response') or '')[:1500])
 print()
-errors = d.get('metadata', {}).get('errors')
-print('metadata.errors:', errors if errors else '(none)')
-print()
+print('=== FINAL ROUND MESSAGES (full text) ===')
 transcript = d.get('transcript', [])
-print('transcript entries:', len(transcript))
-print()
-print('last 3 transcript entries (truncated):')
 for entry in transcript[-3:]:
     faction = entry.get('faction', '?')
-    rnd = entry.get('round', '?')
-    content = (entry.get('content') or entry.get('message') or '')[:300]
-    print(f'[R{rnd} {faction}] {content}')
-print()
-print('llm_call_log entries:', len(d.get('llm_call_log', [])))
-# Look for the failed scoring call
-for call in d.get('llm_call_log', []):
-    if call.get('purpose') and 'scor' in call.get('purpose', '').lower():
-        print()
-        print('SCORING call attempt:')
-        print('  purpose:', call.get('purpose'))
-        print('  success:', call.get('success'))
-        print('  error:', call.get('error'))
-        resp = call.get('response_text', call.get('response', ''))[:500]
-        print('  response snippet:', resp)
+    content = entry.get('content') or entry.get('message') or ''
+    print(f'--- [{faction}] ({len(content)} chars) ---')
+    print(content)
+    print()

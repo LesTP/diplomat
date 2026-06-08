@@ -28,14 +28,17 @@
 > order; the per-section detail (§1.6 through §9) keeps the historical
 > numbering for stable cross-references.
 
-> **State as of 2026-06-07:** Phases 20–33 closed. Runs 9 + 10 + 13 closed.
-> **Phase 34 queued (Bare-prompt mode for ablation experiments)** — the
-> build prerequisite for the foundational design-bet question: does
-> Diplomat's harness actually contribute to negotiation outcomes, or could
-> a bare-prompt agent (Persona + transcript + Generation only) perform
-> comparably? Worker may begin execution; see `DEVPLAN.md`. Run 13b
-> (coached re-test) + Run 14a-14f (ablation matrix) queued in §10 below
-> for after phase close.
+> **State as of 2026-06-08:** Phases 20–34 closed. Runs 9 + 10 + 13 closed.
+> **Run 14 ablation campaign in progress** — cells 14a (mid full, 2/3
+> deals), 14b (mid bare, 1/3 deals), 14c (weak full+bare, 2/3 + 0/3)
+> complete. Cells 14d (strong bare) + 14e (strong full) pending —
+> see §10 below for run sequencing + conditional decision logic. Run
+> 13b (coached re-test) still queued. **Cross-tier harness signal so
+> far:** harness substitutes for ~1+ model tier (weak+full ≈ mid+full;
+> bare degrades steeply with model strength); harness contribution is
+> in close-rate not deal quality (every closing run finds the same
+> Pareto-optimal deal). Findings caveated by scenario being "scale-1"
+> on every harness-relevant axis — see `RESEARCH_NOTES.md` Note 1.
 
 ---
 
@@ -582,15 +585,27 @@ hand-authoring one such scenario surfaces the constraint vocabulary.
 
 **Run sequencing (cheap cells first, sonnet-full last):**
 
-| Order | Run | Cell | Cost |
-|---|---|---|---|
-| 1 | 14a | gpt-5.4-mini, full (3) | ~$5-10 |
-| 2 | 14b | gpt-5.4-mini, bare (3) | ~$0.15 |
-| 3 | 14c | gpt-4.1-nano, full + bare (3+3) | ~$0.31 |
-| 4 | 14d | claude-sonnet-4-6, bare (3) | ~$0.50 |
-| 5 | 14e | claude-sonnet-4-6, full (3) | ~$15-30 |
+| Order | Run | Cell | Cost | Status |
+|---|---|---|---|---|
+| 1 | 14a | gpt-5.4-mini, full (3) | ~$3-4 actual | ✓ **Done.** 2/3 deals, mean δ +12.7, identical Pareto when closing. |
+| 2 | 14b | gpt-5.4-mini, bare (3) | ~$0.50 actual | ✓ **Done.** 1/3 deals, same Pareto when closing. |
+| 3 | 14c | gpt-4.1-nano, full + bare (3+3) | ~$0.30 actual | ✓ **Done.** Full 2/3, bare 0/3. Strongest harness lift in the campaign so far. |
+| 4 | 14d | claude-sonnet-4-6, bare (3) | ~$0.50 | **Queued.** Fire first of the sonnet cells — cheap, decisive about whether bare-mode bottleneck is scenario or model. |
+| 5 | 14e | claude-sonnet-4-6, full (3) | ~$15-30 | **Conditional.** Fire only if 14d shows ≤1/3 close-rate (= bare mode still bottlenecked at strong tier, need full mode to confirm tier ceiling). Skip if 14d ≥2/3 (model strength already saturating; full vs bare unlikely to differ). |
 
-Cells 1-4 total ~$6-11; gate cell 5 on whether the cheap cells already show a clear pattern. If 1-4 already point to a result, you can either fire cell 5 to confirm the strong-tier crossover (the headline test) or defer until the cheap-cell signal warrants the spend.
+**Cross-cell read so far (canonical narrative in `TUNING_LOG.md` Run 14 campaign entry):**
+
+| Tier | Model | Full close | Bare close | Δ |
+|---|---|---|---|---|
+| Weak | `gpt-4.1-nano` | 2/3 | 0/3 | +67% |
+| Mid | `gpt-5.4-mini` | 2/3 | 1/3 | +33% |
+| Strong | `claude-sonnet-4-6` | pending | pending | pending |
+
+**Headline findings (all caveated by `RESEARCH_NOTES.md` Note 1: scenario is "scale-1" on every harness-relevant axis; results may not extrapolate to richer configurations):**
+
+1. **Harness contribution is in close-rate, not deal quality.** Every closing run found the *identical* Pareto-optimal deal (alpha 16 / beta 18 / gamma 20, deltas `[+7, +3, +9]`). Scenario has one right answer; harness affects whether the model gets to it.
+2. **Harness substitutes for ~1+ model tier.** `nano-full` (2/3) matches `mid-full` (2/3); `nano-full` > `mid-bare` (1/3). At this scenario, harness contribution exceeds the ~10× cost differential between nano and mid.
+3. **Bare mode degrades steeply with weaker models.** Mid bare 1/3, weak bare 0/3. 14d will determine whether strong-bare follows the monotonic trend (2-3/3) or whether bare is scenario-bottlenecked regardless of model.
 
 Run-by-run sequencing per `RUN_PROTOCOL.md`: define inputs → verify scenario → probe providers → dry-run plumbing → live → verify output → document.
 
@@ -868,3 +883,4 @@ corresponding phase or Phase 19 ad-hoc entries, and `TUNING_LOG.md` /
 | 2026-06-07 | **Bare-prompt ablation -> Phase 34 + section 10.** Added new section 10 "Ablation: bare-prompt vs full-harness" with the Run 14a-14f experimental matrix (3 model tiers x 2 modes x 2 scenarios x 3 runs = 36 runs, ~$60-100). Phase 34 (bare-mode plumbing) queued in `DEVPLAN.md`. Renamed the previous post-Phase-33 coached re-test from "Run 14" to **Run 13b** to free Run 14 for the ablation series - updated in section 4 Status block + section 4 Original TODOs + Carry-Forward + Tier 1 "Coaching test loop on Pi" row. New Tier 1 row "Bare-prompt ablation (does the harness contribute?)" added. State-as-of block updated. | Operator: "tbh I'd rather pursue this now. if we find that harness does nothing, there's no point in working on it any further... right?" |
 | 2026-06-08 | **Cleanup pass.** Tier 1 Open Items table: removed closed rows (Coached game UX fixes, OpenRouter integration). Updated Bare-prompt ablation row to reflect Phase 34 close. Pure-build extensions table: removed closed rows (1.6 OpenRouter, ASSESSMENT 3.3 vs-Naive baseline). Sequencing list: dropped stale "Coached game UX fixes" entry; renumbered (now 1=Run 14a-14f ablation, 2=Pricing audit, 3=Game-platform). Deleted closed sections in their entirety: 1.6 (OpenRouter, closed Phase 30), 1.9 (Near-miss diagnostics, closed Phase 28), 9 (Voice templates, WON'T DO). Backlog: removed empty "Outstanding tooling debt (None)" subsection. 10 Build status updated from "prerequisite/queued" to "closed 2026-06-08". File shrunk ~80 lines. | Operator: "clean up the next_steps doc - remove closed items from Open Items table - if the info is in devlog, just delete, otherwise consider where it should go but don't keep them in the open table" |
 | 2026-06-08 | **10 matrix locked.** Final design: 3 model tiers (gpt-4.1-nano weak / gpt-5.4-mini mid / claude-sonnet-4-6 strong) x 2 modes (full/bare) x 1 scenario (Water Rights beta-squeezed) x 3 runs = 18 runs, ~$20-40. Dropped second scenario (Trade Summit not in repo; Three-Party Coalition viable as v1.5 follow-up if results warrant). Mid bumped to gpt-5.4-mini per operator pin (was gpt-4.1-mini). Strong bumped to claude-sonnet-4-6 from haiku self-play default since haiku is tier-equivalent to mid - no real tier separation. BATNA fixed at beta-squeezed per operator (~50% historical deal rate gives leeway for harness/bare differentiation, vs symmetric where everyone sits at BATNA). Run order sequenced cheap-first: gpt-5.4-mini cells -> gpt-4.1-nano cells -> sonnet-bare -> sonnet-full last. | Operator: "let's bump mid-tier to 5.4, strong tier whatever is default, drop second scenario, use beta-squeezed - we want something that produces agreement ~half the time so models have some leeway" |
+| 2026-06-08 | **Run 14 mid-campaign sync.** Cells 14a-14c complete (12 runs); 14d/14e pending. State-as-of bumped (Phase 34 closed, 14a-c done with cross-tier picture). 10 Run sequencing table got Status column with results + revised cost figures (sonnet-bare ~$0.50, sonnet-full conditional). New "Cross-cell read" subsection summarizing the three headline findings (harness contribution is close-rate-not-quality; harness substitutes for ~1+ model tier; bare degrades steeply with weaker models). All findings caveated by RESEARCH_NOTES.md Note 1 scale-1 scenario warning. Canonical narrative + per-cell detail moved to TUNING_LOG.md Run 14 campaign entry. | Operator wrap of work-session: "document our outcomes for completed runs + discuss implications + document 14d/14e as potential next runs and why + update next steps as per results" |
