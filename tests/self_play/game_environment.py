@@ -547,7 +547,13 @@ class GameEnvironment:
                 batna = score_data.get("batna", 0)
                 vs_batna = pts - batna
                 marker = "WIN" if vs_batna > 0 else "LOSE" if vs_batna < 0 else "DRAW"
-                print(f"  [{fid}] {pts} pts (BATNA={batna}, vs BATNA: {vs_batna:+d}) {marker}")
+                # pts/batna are now floats (deterministic scorer via faction_score).
+                # Cast to int for display when they're whole numbers (scoring tables
+                # are integer-valued), else show one decimal.
+                pts_str = f"{int(pts)}" if pts == int(pts) else f"{pts:.1f}"
+                batna_str = f"{int(batna)}" if batna == int(batna) else f"{batna:.1f}"
+                vs_batna_str = f"{vs_batna:+.0f}" if vs_batna == int(vs_batna) else f"{vs_batna:+.1f}"
+                print(f"  [{fid}] {pts_str} pts (BATNA={batna_str}, vs BATNA: {vs_batna_str}) {marker}")
             winner = max(
                 scores.get("faction_scores", {}).items(),
                 key=lambda x: x[1].get("points", 0),
