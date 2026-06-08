@@ -330,7 +330,7 @@ Rationale: The shared coaching parser classifies hyphenated slash commands as fr
 Revisit if: The shared parser grows native support for hyphenated operator commands and the fast-path becomes redundant.
 
 D-50: Phase 34 bare-prompt mode stays all-or-none per game
-Date: 2026-06-08 | Status: Proposed
+Date: 2026-06-08 | Status: Closed
 Priority: Important
 Decision: Phase 34 will implement bare-prompt ablation as an all-bare or all-full game-level toggle only. Mixed bare/full factions in the same game stay out of scope, and the implementation remains self-play/ablation only rather than wiring production defaults.
 Rationale: The experiment’s question is whether the harness contributes at the game level. Keeping the toggle per-game avoids confounding the comparison with mixed-mode interactions and preserves a clean baseline against the existing full harness.

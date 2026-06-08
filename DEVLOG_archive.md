@@ -2749,3 +2749,29 @@ Tests: `.venv/bin/python -m pytest` — 340 passed.
 
 DEVLOG archival: Archived Phase 26 entries to `DEVLOG_archive.md`; Phase 27 entries remain in `DEVLOG.md` for immediate audit.
 
+## 2026-06-08 — Phase 34 step archive
+
+## Phase 34 — Step 34.1 (2026-06-08)
+
+**Step 34.1 — Bare module set helper.** Created `tests/self_play/bare_mode.py` with five stand-in classes and `bare_module_overrides()` helper:
+
+- `_BareExtractor`: returns `ExtractionResult(success=True, patch=StatePatch({}), error=None)` — no LLM call, no state write.
+- `_BareAnalyst`: returns `AnalysisResult(success=False, error="bare_mode")` — orchestrator's primary-failed early-return in `handle_round_boundary()` cleanly skips intelligence storage. Round advancement stays driven by `RoundSteppedFlow.advance_to_round()`, so the game progresses correctly.
+- `_BareReconciler`: returns `ReconciliationResult(success=True)` — no-op; must be set separately on `orchestrator.reconciler` after `GameEnvironment.setup()` (reconciler is not a module_override).
+- `_BareAdversarial`: returns `AdversarialResult(success=True, analysis=None, error=None)` — passes through review gate without adversarial data.
+- `_BareCoaching`: returns a blank `CoachingEvent(coaching_type="FREE", content="", route="free_coaching")` — ignores operator input; coaching context in bare mode will be empty.
+- `bare_module_overrides(state_manager)`: returns dict for `extractor`, `primary_analyst`, `secondary_analyst`, `divergence`, `adversarial`, `coaching_parser`. Divergence callable kept as-is (never reached when primary fails). Reconciler excluded — handled separately by step 34.3 runner.
+
+14 new unit tests in `tests/test_bare_mode.py`. 397 tests total, all passing.
+
+**2026-06-08 — Step 34.2: Bare context-assembler path**
+`DefaultContextAssembler.assemble()` gains `bare_mode: bool = False`. When `True`, delegates to `_assemble_bare()` which produces a `DecisionContext` with `system_prompt=persona_prompt` and `user_prompt=raw transcript + minimal task instruction`. Skips intel, divergences, coaching, round-context, and the `recent_events_limit` filter (all events included — no harness filtering). Metadata gains `bare_mode: True` and `coaching_count: 0`. Five new tests cover omission of full-mode sections, persona/transcript presence, skip-filtering, metadata marker, and backward-compat (bare_mode=False yields full shape). 402 tests passing.
+
+**2026-06-08 — Step 34.3: Self-play --bare-prompt flag**
+Wired bare-prompt mode end-to-end through the self-play runner. `OrchestrationOptions` gains `bare_mode: bool = False`; `_build_decision_context` passes it to `context_assembler.assemble()`. `GameEnvironment.__init__` gains `bare_mode: bool = False`; `setup()` injects `bare_module_overrides()` + `_BareReconciler` when enabled, and constructs each orchestrator with `bare_mode=True` in options. Results JSON gains `bare_mode` field. `run_simulation.py` gains `--bare-prompt` flag that sets `bare_mode=True` on `GameEnvironment` and prints a mode banner. Three new tests: `bare_mode=True` stored in results, `bare_mode=False` default, and context-assembler produces shorter bare prompt than full. 405 tests passing.
+
+**2026-06-08 — Step 34.4: Smoke validation**
+End-to-end smoke of `--bare-prompt` via RUN_PROTOCOL sequence (probe → dry-run → live). Scenario: Water Rights γ-squeezed, all-gpt-4.1-mini, 4 rounds. Probe: 3/3 passed. Dry-run: 4 rounds, 21 transcript entries, `bare_mode=true` in JSON, all scoring fields populated. Live run: completed without exception, 12 GEN + 1 SCORE call (no EXT/ANALYST/ADV/RECON calls — bare modules correctly suppressed). No deal reached (all at BATNA) — consistent with ablating the Analyst that surfaces Pareto trades. Key cost finding: bare live run cost ~$0.02 (12 GEN-only calls) vs ~$1 projected. Bare mode is ~10-20× cheaper per game than full mode, making the Run 14a-14f series achievable at much lower cost. Results at `tests/self_play/results/run14_smoke_bare_prompt.json`.
+
+**2026-06-08 — Step 34.5: Integration tests**
+New `tests/integration/test_bare_mode.py` with 8 tests covering: (a) `handle_round_boundary()` completes without exception in bare mode; (b) no intelligence rows written (analyst no-op early return skips `_store_intelligence`); (c) no LLM calls during round boundary; (d) generation call's system prompt is the persona (not empty); (e) user prompt has no INTELLIGENCE REPORT / DIVERGENCE / COACHING sections; (f) user prompt contains injected transcript text; (g) `GameEnvironment` default `bare_mode=False` produces correct result; (h) `GameEnvironment(bare_mode=True)` produces `bare_mode=True` in results with all 3 factions responding across 4 rounds. 414 tests passing.

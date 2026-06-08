@@ -138,7 +138,7 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 
 | Layer | Status |
 |-------|--------|
-| Unit and regression tests | Complete — ~400 tests after Phase 33 (added `/revise:` flow tests, LLMEditClassifier unit tests, `edit_classifications` storage, classify_edit_log CLI tests, `/edits-summary` orchestrator tests, and classifier discrimination fixtures) |
+| Unit and regression tests | Complete — 414 tests after Phase 34 (added bare-mode stand-ins, bare context assembler path, `--bare-prompt`, bare-mode integration tests, and docs) |
 | Pipeline integration | Complete — 23 fake-backed Orchestrator integration tests (Phase 18 path coverage added Phase 20) |
 | Transcript replay | Complete — 2 transcript fixtures, 5 replay tests |
 | Prompt regression | Complete — 6 starter scenarios (4 extraction free, 2 generation require live LLM) |
