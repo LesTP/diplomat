@@ -591,3 +591,6 @@ Phase 33 closed 10 steps. All 🔨 pure build, no live LLM spend during build (D
 - `bare_module_overrides(state_manager)`: returns dict for `extractor`, `primary_analyst`, `secondary_analyst`, `divergence`, `adversarial`, `coaching_parser`. Divergence callable kept as-is (never reached when primary fails). Reconciler excluded — handled separately by step 34.3 runner.
 
 14 new unit tests in `tests/test_bare_mode.py`. 397 tests total, all passing.
+
+**2026-06-08 — Step 34.2: Bare context-assembler path**
+`DefaultContextAssembler.assemble()` gains `bare_mode: bool = False`. When `True`, delegates to `_assemble_bare()` which produces a `DecisionContext` with `system_prompt=persona_prompt` and `user_prompt=raw transcript + minimal task instruction`. Skips intel, divergences, coaching, round-context, and the `recent_events_limit` filter (all events included — no harness filtering). Metadata gains `bare_mode: True` and `coaching_count: 0`. Five new tests cover omission of full-mode sections, persona/transcript presence, skip-filtering, metadata marker, and backward-compat (bare_mode=False yields full shape). 402 tests passing.
