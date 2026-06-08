@@ -58,12 +58,10 @@ cross-references.
 
 | Item | Tags | Loop | Where | Notes |
 |---|---|---|---|---|
-| **Coached game UX fixes** | `[A][X]` | 🔨 | §4 | **Closed.** §4a/§4b/§4c shipped Phase 31 + Phase 32 + prompt change. §4d satisfied by Run 13 (2026-06-04). §4e (`/revise:` LLM-rewrite edit mode + auto-classifier) closed Phase 33 (2026-06-07). §4f stays open (lower priority UX polish). |
-| **Bare-prompt ablation** (does the harness contribute?) | `[A][X]` | 🔨 / 👁 | §10 | **Phase 34 queued in `DEVPLAN.md` (2026-06-07)** for the build (bare-mode plumbing, ~6 steps). Runs 14a-14f (3 models × 2 modes × 2 scenarios × 3 runs = 36 runs, ~$60-100) queued in §10. Headline question: harness load-bearing, theater, or scaffold? Foundational design-bet test; uncomfortable-result possibility is part of the point. |
-| **Coaching test loop on Pi** | `[X]` | 👁 | §4 | First coached game completed 2026-06-03 (β=18, +8 above BATNA, β muted for R2-R4 by char-limit bug). Run 13 (2026-06-04) validated new gate end-to-end but operator chose approve-only — edit path untested. Phase 33 closed 2026-06-07 (ships `/revise:` + auto-classifier). Run 13b queued to exercise edit modes live (renamed from "Run 14" 2026-06-07 to free that number for the §10 ablation series). |
-| **Game-platform exploration** (Clankmates / Discord / fallback) | `[X]` | 👁 | §5 | Gated on operator + partner platform decision. Updated 2026-06-02 to consider Discord alongside Clankmates. |
+| **Bare-prompt ablation** (does the harness contribute?) | `[A][X]` | 👁 | §10 | Phase 34 closed 2026-06-08 (bare-mode plumbing shipped, ~$0.02/game vs ~$1 projected). Runs 14a-14f (3 models × 2 modes × 2 scenarios × 3 runs = 36 runs, ~$60-100) queued. Foundational design-bet test: harness load-bearing, theater, or scaffold? |
+| **Coaching test loop on Pi** | `[X]` | 👁 | §4 | Run 13 (2026-06-04) validated new gate end-to-end but operator chose approve-only — edit path untested. Phase 33 shipped `/revise:` + auto-classifier (2026-06-07). Run 13b queued to exercise edit modes live. |
+| **Game-platform exploration** (Clankmates / Discord / fallback) | `[X]` | 👁 | §5 | Gated on operator + partner platform decision. Discord considered alongside Clankmates. |
 | **Pricing & accounting audit** | `[X][C]` | 👁 | §6 | Best done before Tier 3 §7 so per-role cost claims have a firm baseline. |
-| **OpenRouter integration** | `[X][B]` | ✓ | §1.6 | **CLOSED Phase 30 (2026-06-03).** `OpenRouterProvider` wired in toolkit; probe/dry-run verified; use `--per-faction-providers` with `provider:"openrouter"`. |
 | **TelegramReviewGate as production default** | `[X]` | 👁 | (decision) | Whether to flip `pipeline.yaml` `review_gate` to `TelegramReviewGate` as the production default. Smoke runs on `pipeline_smoke.yaml` already use it. |
 | **Provider-native structured output** (`response_format: json_schema`) | `[X]` | 🔀 | Carry-forward | Toolkit plumbing build; gives token-level schema compliance. Lower priority — current `structured_call` retry loop is working. |
 
@@ -98,7 +96,7 @@ cross-references.
 
 If working down the tiers, the immediate decision is which Tier 1 item to do first. Recommended order:
 
-1. **Coached game UX fixes (§4)** — highest priority. TG char limit, transcript visibility, verbose responses. All pure build, blocks meaningful coached re-test.
+1. **Run 14a-14f bare-prompt ablation (§10)** — Phase 34 built the plumbing; the experimental runs answer the foundational design-bet question. Cheap (~$60-100 across 36 runs) and the result drives everything else.
 2. **Pricing audit (§6)** — best done before Tier 3 §7 so per-role decisions have a firm cost baseline.
 3. **Game-platform exploration (§5)** — gated on operator + partner alignment; explore Discord alongside Clankmates while the partner decision is pending.
 
@@ -113,58 +111,7 @@ Items with a clean "build half" suitable for a future Phase 30+:
 
 | Candidate | Build slice | What stays supervised |
 |---|---|---|
-| §1.6 OpenRouter | Add OpenRouter as a provider in `toolkit/llm_client/providers.py` + factory branch + tests | Run choice; writing TUNING notes about its behavior |
-| ASSESSMENT §3.3 vs-Naive baseline (equal-split) | Implement equal-split baseline scorer + add to scoring output alongside Pareto efficiency | Choosing whether equal-split is "the" baseline vs Nash bargaining vs BATNA-clearing |
 | **`tools/identify_blocker.py`** | Read `scenario_analysis.json`; one `structured_call` to an analyst LLM asking "for the Pareto-optimal deal, which faction has to concede most on their priority issue?" Output ranked list of squeeze candidates. | Scenario-design judgment about whether to act on the recommendation. |
-
----
-
-## 1.6. `[X][B]` OpenRouter + Mistral / Groq / DeepSeek — **CLOSED Phase 30**
-
-**Goal:** Expand the provider matrix cheaply by routing through OpenRouter,
-then promote winners to native integrations if needed.
-
-**Status (2026-06-03):** Phase 30 complete. `OpenRouterProvider` added to
-`toolkit/llm_client/providers.py`, factory dispatch wired, pricing entries in
-`cost_accountant/types.py`, probe/dry-run integration verified, 6 tests pass.
-Use `--per-faction-providers '{"faction":{"provider":"openrouter","model":"<model-id>"}}'`
-in any self-play run with `OPENROUTER_API_KEY` set.
-
-**Priority context (2026-06-02):** Lower urgency than before — Run 10 B'
-showed that the cross-provider variable we cared about most (Generator
-provider per faction) is already accessible via `--per-faction-providers`
-with the native OpenAI / Anthropic / Google integrations. OpenRouter would
-add Groq / DeepSeek / Mistral / etc. to that mix cheaply, but the immediate
-deal-making questions don't require it. Treat as a Tier 1 `[X]`
-infrastructure item to slot in on a cheap day.
-
-ARCHITECTURE.md already lists OpenRouter as supported via toolkit, so the
-entry point exists. This is mostly config + provider routing work.
-
-### TODOs — remaining (plumbing complete)
-
-- [x] Confirm OpenRouter wiring in `toolkit/llm_client` actually works — write
-      a probe script (`tests/self_play/probe_providers.py` extension) that
-      makes one trivial JSON request through OpenRouter.
-- [x] Add OpenRouter as a provider option in `pipeline.yaml` and self-play
-      runner.
-- [x] Extend `--per-faction-providers` JSON schema to accept OpenRouter
-      sub-model spec (e.g. `{"model": "deepseek/deepseek-v3"}`).
-- [ ] Once routed, run a multi-provider tournament: rotate which provider
-      plays which faction in Water Rights, mix native (OpenAI/Anthropic/Google)
-      and OpenRouter-routed (Groq Llama, DeepSeek, Mistral) generators.
-      Slot this in as a Run 12+ candidate after the Tier 1 priorities clear.
-- [ ] Document provider behavior notes in `TUNING.md` — voice, latency,
-      reliability, cost — as we accumulate runs.
-
-### Provider candidate notes
-
-| Provider | Strengths | Free tier | Diplomat relevance |
-|---|---|---|---|
-| **Groq** | Sub-second responses, Llama 3.3 70B, Mixtral | 30 RPM / 14,400 RPD free | Speed makes Stage 2 multi-pass per round cheap |
-| **DeepSeek** | V3 ~$0.27/$1.10 per MTok; R1 reasoning very cheap | No real free tier, but absurdly cheap | Strong reasoning at GPT-4 quality for ~10% the cost; R1 may produce visibly different *strategic* reasoning |
-| **Mistral** | Mistral Large, Codestral, EU-hosted | La Plateforme free tier on smaller models | French RLHF lineage → noticeably different negotiation voice |
-| **OpenRouter** | One key, ~200 models, auto-routing | Some free models (Llama variants, Gemma) | Lets us test any provider with no per-provider plumbing |
 
 ---
 
@@ -233,39 +180,6 @@ should not occupy any consistency-critical seat in multi-round negotiations.
       tactics) on all OpenAI gpt-4.1-mini, observe whether the deception-then-reveal
       arc that worked in Run 5 still holds. Different question (tactical
       commitment vs cross-round commitment) but related. ~$0.30.
-
----
-
-## 1.9. `[A]` Near-miss + defection diagnostics in `analysis.py`
-
-**Status.** Implemented in Phase 28 as a read-only diagnostic. Operator
-rationale 2026-06-01: "no agreement = no agreement, doesn't matter if
-missed by an inch or a mile." The helper stays off the score and only
-annotates the report.
-
-### Design
-
-- `near_miss: bool` — true when N-1 factions stated identical positions (per issue)
-  in R4 but the Nth diverged.
-- `converging_factions: [list]` — the N-1 that agreed.
-- `dissenting_faction: <id>` — the one that broke consensus.
-- `defection_event_log: [{faction, round, from: {issue: outcome}, to: {issue: outcome}, was_contingent: bool}]`
-  — per-faction position changes round-over-round, with a flag for whether the
-  R3 statement was contingent on something the other factions then satisfied.
-
-### TODOs
-
-- [x] Add the fields to `analyze_results()` in `tests/self_play/analysis.py`.
-      Hand-extract positions from R4 messages (regex/substring against
-      `scenario_analysis['issues'][*]['outcomes']`).
-- [x] Backfill on Run 9 α-squeezed and Run 10 C' (both flag
-      `near_miss=true`). Backfill on Run 9 β-squeezed and Run 10 B'
-      (both flag `near_miss=false` because the final round is unanimous).
-- [x] Add reliability coverage with a synthetic 4-round fixture plus
-      Run 9/10 fixture-backed tests. The token-based matcher still has a
-      noise floor, but the documented cases now pin the intended behavior.
-
-~2-step build, no LLM cost, no test infrastructure beyond existing fixtures.
 
 ---
 
@@ -643,22 +557,11 @@ hand-authoring one such scenario surfaces the constraint vocabulary.
 
 ---
 
-## 9. `[B]` Voice / style templates — **WON'T DO** (2026-06-04)
-
-Folded into `generation.txt`. Stylistic considerations (length, voice, tone)
-all live in the generation prompt as one axis; per operator: "what is the
-use that we get for added complexity? if it's little use, then no... these
-are stylistic considerations and they can be kept together for simplicity's
-sake." If a future need for swappable voice profiles arises, revisit by
-extending the persona template; until then, edit `generation.txt` directly.
-
----
-
 ## 10. `[A][X]` Ablation: bare-prompt vs full-harness
 
 **Origin.** Operator question 2026-06-07: "How much of the good decision-making is the provider/model, and how much is the harness? Can weak models with strong harness outperform strong models without one?" Frames the foundational design-bet question for Diplomat: 33 phases of harness work assume the harness is load-bearing. If a bare-prompt agent (Persona + raw transcript + Generation only) performs comparably, the design bet hasn't paid off and the project should pivot.
 
-**Build prerequisite.** Phase 34 (queued 2026-06-07 in `DEVPLAN.md`) ships bare-mode plumbing — a `bare_module_overrides()` helper that produces no-op stand-ins for Extraction, Analyst, Divergence, Reconciliation, Adversarial, and Coaching, plus a `bare_mode` flag on `DefaultContextAssembler` that strips intelligence/divergences/coaching from the assembled context. Reachable only via the self-play `--bare-prompt` flag; the production live-game path is untouched.
+**Build status.** Phase 34 closed 2026-06-08. Bare-mode plumbing shipped (commits `ca7e3bb` through `63d04cd`): `bare_module_overrides()` helper in `tests/self_play/bare_mode.py` produces no-op stand-ins for Extraction, Analyst, Divergence, Reconciliation, Adversarial, and Coaching; `DefaultContextAssembler.assemble(bare_mode=True)` strips intelligence/divergences/coaching from the assembled context; `run_simulation.py --bare-prompt` wires the flag end-to-end. Smoke (Step 34.4): bare live run cost ~$0.02 vs $1 projected (12 GEN-only calls; no EXT/ANALYST/ADV/RECON). 414 tests passing. Production live-game path untouched. Ready for Run 14a-14f.
 
 **Experimental matrix (Standard flavor — 36 runs):**
 
@@ -798,11 +701,6 @@ a real self-play scenario, not just deterministic fixtures.
       promise resolves mid-game (one-shot favor in early rounds that the
       receiving faction acknowledges). A staged scenario from §2 (divorce)
       is the natural venue if Run 10 inspection above doesn't suffice.
-
-### Outstanding tooling debt (🔨 PURE BUILD)
-
-None — both prior items (service.sh tmux rewrite, structured per-event
-logging) shipped as Phases 25 and 26. See Appendix A.
 
 ### Telegram-platform finding (worth knowing)
 
@@ -965,3 +863,4 @@ corresponding phase or Phase 19 ad-hoc entries, and `TUNING_LOG.md` /
 | 2026-06-02 | **Conversation model deprioritized.** Stage 2a removed from Tier 1 (sealed-bid rounds produce real dynamics; pressure mechanisms work with extra rounds). §3 rewritten as standalone deferred section with deprioritization rationale. §2 pressure mechanisms decoupled from §3 dependency ("Connects directly to §3" → uses existing `round_updates` mechanism). Conversation model moved to new "Deferred" tier below Tier 3. §2 Tier 2 row updated. Cross-tier deps trimmed. Pure-build table dropped Stage 2a row. Sequencing list shortened. | Operator: "unclear how this is different from having twice as many rounds... I don't see the value" |
 | 2026-06-07 | **Coaching v2 → Phase 33.** §4e rewritten as a pointer to the queued phase plan (full design pinned in `DEVPLAN.md` Phase 33: `/revise:` directive mode + `LLMEditClassifier` + `tools/classify_edit_log.py` + `/edits-summary` command + storage schema). §4 status block updated to note Run 13 was approve-only and edit path remains untested in a live run. Original §4 TODOs split: "After UX fixes" item replaced with two explicit follow-ups (Run 14 + prompt-refinement step). §4f marked out-of-scope for Phase 33. Tier 1 table row "Coached game UX fixes" reclassified as **closed** (§4a-§4d shipped); residual coaching items now queued in Phase 33. "Coaching test loop on Pi" row updated with Run 13 status + gating on Phase 33. Carry-Forward Items table adds Run 14 as a queued experimental run with cost estimate. | Operator: "let's discuss and plan coaching v2; once done, let's write it into devplan and I'll run it, no point in moving it to next steps and back" |
 | 2026-06-07 | **Bare-prompt ablation -> Phase 34 + section 10.** Added new section 10 "Ablation: bare-prompt vs full-harness" with the Run 14a-14f experimental matrix (3 model tiers x 2 modes x 2 scenarios x 3 runs = 36 runs, ~$60-100). Phase 34 (bare-mode plumbing) queued in `DEVPLAN.md`. Renamed the previous post-Phase-33 coached re-test from "Run 14" to **Run 13b** to free Run 14 for the ablation series - updated in section 4 Status block + section 4 Original TODOs + Carry-Forward + Tier 1 "Coaching test loop on Pi" row. New Tier 1 row "Bare-prompt ablation (does the harness contribute?)" added. State-as-of block updated. | Operator: "tbh I'd rather pursue this now. if we find that harness does nothing, there's no point in working on it any further... right?" |
+| 2026-06-08 | **Cleanup pass.** Tier 1 Open Items table: removed closed rows (Coached game UX fixes, OpenRouter integration). Updated Bare-prompt ablation row to reflect Phase 34 close. Pure-build extensions table: removed closed rows (1.6 OpenRouter, ASSESSMENT 3.3 vs-Naive baseline). Sequencing list: dropped stale "Coached game UX fixes" entry; renumbered (now 1=Run 14a-14f ablation, 2=Pricing audit, 3=Game-platform). Deleted closed sections in their entirety: 1.6 (OpenRouter, closed Phase 30), 1.9 (Near-miss diagnostics, closed Phase 28), 9 (Voice templates, WON'T DO). Backlog: removed empty "Outstanding tooling debt (None)" subsection. 10 Build status updated from "prerequisite/queued" to "closed 2026-06-08". File shrunk ~80 lines. | Operator: "clean up the next_steps doc - remove closed items from Open Items table - if the info is in devlog, just delete, otherwise consider where it should go but don't keep them in the open table" |
