@@ -36,6 +36,19 @@
 
 set -euo pipefail
 
+# Use the project venv's python if it exists (it has toolkit + openai +
+# anthropic SDKs installed editable). Fall back to system python3 only
+# if the venv is missing (which would itself be a configuration error
+# for this project).
+VENV_PYTHON="$(pwd)/.venv/bin/python"
+if [ -x "$VENV_PYTHON" ]; then
+  PY="$VENV_PYTHON"
+else
+  echo "[warn] .venv/bin/python not found at $VENV_PYTHON — falling back to system python3" >&2
+  echo "[warn] This will likely fail with 'openai package required' or similar import errors." >&2
+  PY="python3"
+fi
+
 SCENARIO_MD="tests/self_play/scenarios/water_rights.md"
 ANALYSIS_JSON="tests/self_play/scenarios/water_rights_beta_squeezed/scenario_analysis.json"
 RESULTS_DIR="tests/self_play/results"
@@ -70,8 +83,8 @@ model_tag() {
 
 cmd_probe() {
   local model="$1"
-  echo "[probe] model=$model"
-  python3 -m tests.self_play.probe_providers \
+  echo "[probe] model=$model (python=$PY)"
+  "$PY" -m tests.self_play.probe_providers \
     --providers "$(providers_json "$model")"
 }
 
@@ -94,8 +107,8 @@ cmd_run() {
     bare_flag="--bare-prompt"
   fi
 
-  echo "[run] model=$model mode=$mode run=$run_n output=$output"
-  python3 -m tests.self_play.run_simulation \
+  echo "[run] model=$model mode=$mode run=$run_n output=$output (python=$PY)"
+  "$PY" -m tests.self_play.run_simulation \
     --scenario "$SCENARIO_MD" \
     --analysis-json "$ANALYSIS_JSON" \
     --rounds 4 \
@@ -105,7 +118,7 @@ cmd_run() {
 
   echo "[done] $output"
   # Quick eyeball of the headline metric.
-  python3 -c "
+  "$PY" -c "
 import json
 d = json.load(open('$output'))
 scores = d.get('scores', {})
@@ -121,7 +134,7 @@ cmd_summary() {
   echo "-----------------+------+-----+---------------+-----------"
   for f in ${RESULTS_DIR}/run14_*.json; do
     [ -f "$f" ] || continue
-    python3 -c "
+    "$PY" -c "
 import json, os, re
 f = '$f'
 d = json.load(open(f))
