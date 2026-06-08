@@ -1357,3 +1357,37 @@ extra coaching context. Tracked as NEXT_STEPS §4e.
 - [ ] **Persona endgame over-anchoring (Run 7).** Static `ENDGAME:` paragraph in the auto-compiled persona caused faction A to invent the phrase *"as we approach our final round"* in round 2 of Run 7-v1. Decide whether to soften the static persona text, move more of the urgency into the dynamic markers only, or accept that some early-round endgame thinking is fine.
 - [ ] **`LoggingLLMClient` doesn't see SCORE or RECON calls (Run 7).** Both `score_game()` and reconciliation setup unwrap the wrapper to use the inner client. Result: `verify_dryrun` and the call-log inspector miss these calls.
 - [ ] **Conversation model Stage 2+.** `ARCH_conversation_model.md` documents the M2-bounded / M2-debounced / M2-async migration path. Stage 2 (K=2 passes per round — open + react) is the natural next upgrade if Run 9 results suggest agents need within-round reactivity to test interesting hypotheses.
+
+---
+
+## Phase 34: Bare-Prompt Ablation Infrastructure
+
+### Run 14-smoke — Bare-Prompt Mode Validation (Water Rights γ-squeezed, all-gpt-4.1-mini) — COMPLETE
+
+**Date:** 2026-06-08.
+**Hypothesis:** `--bare-prompt` flag routes correctly end-to-end: no exceptions, valid run JSON with `bare_mode=true`, scoring metrics populated, coherent faction messages. This is a plumbing smoke, not an experimental comparison.
+
+**Variables:** `--bare-prompt` flag (Phase 34 build). Scenario: Water Rights γ-squeezed. Provider: gpt-4.1-mini for all three factions. Rounds: 4.
+
+**Pre-flight:**
+- Probe: 3/3 passed (openai/gpt-4.1-mini, all factions).
+- Dry-run: completed cleanly, 4 rounds, 21 transcript entries, `bare_mode=true` in JSON, scores populated. `verify_dryrun` invariant failures are all expected (no round-context in bare assembler → no `Round: X of Y` in user prompt → round hints absent; no adversarial calls by design). These are intentional bare-mode omissions, not bugs.
+- Live run: ran without exception.
+
+**Results:**
+- Game completed 4 rounds, 21 messages, no deal (all factions at BATNA: α=11, β=10, γ=15).
+- `bare_mode=true` in results JSON. Scoring fields populated.
+- LLM call log: 12 GEN calls + 1 SCORE call (13 total). No EXT/ANALYST/ADV/RECON calls — bare modules correctly suppressed.
+- Faction messages coherent: each faction articulated clear positions and proposals with issue-specific reasoning.
+
+**Cost observation:** The live run was extremely cheap — 12 GEN calls with short bare context (persona + accumulating transcript only). Estimated ~$0.02 vs the projected ~$1. Bare mode removes the dominant cost drivers (Analyst × 2 + Adversarial per round). This makes the Run 14a-14f series (~$60-100 projected in full mode) likely achievable for ~$1-3 per bare game, or roughly 10-20× cheaper per bare run than full.
+
+**Learnings:**
+- Bare-mode plumbing is confirmed working end-to-end.
+- No deal reached — consistent with removing the Analyst intelligence that helps agents identify Pareto trades. This is the expected signal for the ablation hypothesis.
+- `verify_dryrun --adversarial` flag should NOT be passed for bare-mode runs. The script does not know about bare mode; its round-tracking and adversarial invariants don't apply.
+
+**Decisions:**
+- None. Smoke run confirmed; move to Step 34.5 (integration tests).
+
+**Results file:** `tests/self_play/results/run14_smoke_bare_prompt.json`
