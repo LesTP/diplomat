@@ -1,8 +1,8 @@
 ---
-phase: 33
+phase: 34
 blocked: false
 state: plan
-steps_remaining: 0
+steps_remaining:
 ---
 
 # Diplomat — Development Plan
@@ -53,13 +53,58 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 33 closed 2026-06-07. Coaching v2: `/revise: <directive>` LLM-rewrite edit mode + auto-classifier for the review-gate edit log. See `DEVLOG.md` "Phase 33 close".
-- **Focus** — Closed. Run 14 remains queued in `NEXT_STEPS.md` as the live validation step after phase close.
-- **Blocked/Broken** — `blocked: true`.
+- **Phase** — Phase 34 queued 2026-06-07. **Bare-prompt mode for ablation experiments.** Adds a `bare_mode` config flag that disables Extraction, Analyst, Divergence, Reconciliation, Adversarial, and Coaching modules, leaving only Transport + Persona + Generation (+ optional Review Gate). Cleanly toggleable via existing `module_overrides` pattern. Build phase is small (~6 steps); the experimental payoff lives in the queued Run 14a-14f series in `NEXT_STEPS.md` (~36 self-play runs, ~$60-100, headline question: "does the harness contribute, or is it theater?").
+- **Focus** — 6 steps, all 🔨 pure build, loop-ready. No live LLM spend during build (DryRun + fakes throughout). Step 34.4 smoke is one live Water Rights run at ~$1 to validate end-to-end. Run 14a-14f series queued separately in NEXT_STEPS for after phase close.
+- **Blocked/Broken** — `blocked: false`. Worker may begin execution.
 
 <!-- Closed phases only: newest first. -->
 
 <!-- history -->
+
+## Phase 34: Bare-prompt mode — Plan
+
+**Goal.** Add a `bare_mode` configuration flag that produces a stripped-down Diplomat agent with Persona + raw transcript + Generation only (no Extraction, Analyst, Divergence, Reconciliation, Adversarial, or Coaching). The flag enables an ablation experiment: **does Diplomat's harness actually contribute to negotiation outcomes, or could a bare-prompt agent perform comparably?**
+
+The build is the small-but-load-bearing prerequisite for the Run 14a-14f experimental series queued in `NEXT_STEPS.md`, which uses the bare/full comparison across model tiers and scenarios to answer the foundational design-bet question.
+
+**Mechanism.** Diplomat's self-play harness already supports per-game module substitution via `GameEnvironment(extra_module_overrides=...)` (used by `coached_game.py` to inject `TelegramReviewGate` for one faction). Bare mode extends the same pattern: a single new helper `bare_module_overrides()` produces a dict of no-op / minimal implementations for the modules being ablated, suitable to pass as `extra_module_overrides`. No fork of the orchestrator; the existing module-injection seam handles it cleanly.
+
+**Design decisions pinned 2026-06-07:**
+- **What stays in bare mode:** Transport (must — agent sends/receives), Persona (must — agent knows its role; narrative + BATNA + scoring table preserved, since these are scenario inputs not "harness output"), Generation (the LLM call itself), Event Store (read-only — needed to source the raw transcript), Review Gate (auto-approve in self-play; kept for parity with full mode so the comparison isn't confounded by review-gate effects).
+- **What gets disabled:** Extraction, Analyst (primary + secondary), Divergence, Reconciliation, Adversarial Reader, Coaching parser. State Manager's *write* path is mostly idle in bare mode (no patches arrive, no coaching stored, no adversarial reads stored) but the table schema stays — simpler than building a state-managerless variant.
+- **Bare context shape:** `DefaultContextAssembler` learns a `bare_mode` flag. When true, the assembled `DecisionContext` contains only persona prompt + raw transcript of all rounds-to-date. Skip the intel report, divergences list, coaching notes, recent-events filtering, and round-context structuring that full mode produces.
+- **Per-game, not per-faction.** Bare mode applies to all factions in a game (all-bare game) or none (all-full game). The Run 14a-14f experimental matrix uses all-bare vs all-full per game — cleanest signal for "does the harness help."  Per-faction mixed-mode games are out of scope for this phase (potential follow-up if the all-bare-vs-all-full result is interesting).
+- **No new module.** Bare mode is a configuration flag + a helper that produces no-op stand-ins for existing module slots. No new `src/modules/bare/` package. The stand-ins live in `tests/self_play/bare_mode.py` since they're experimental-harness concerns, not production runtime modules.
+- **No production-pipeline change.** Bare mode is reachable only via the self-play `--bare-prompt` flag or `extra_module_overrides`. `src/main.py` and `pipeline.yaml`'s production defaults are untouched. Out of scope for Phase 34 to wire bare mode into the live Telegram bot.
+
+**Out of scope (deliberate):**
+- Per-faction mixed bare/full games (interesting follow-up if all-vs-all results warrant)
+- "Medium" harness ablation (full vs medium vs bare). v1 is binary: bare or full. If results show harness helps, a future phase can ablate per-module to find the elbow.
+- Wiring bare mode into the production live-game path. Self-play / ablation-only for v1.
+- The experimental runs themselves — those live in `NEXT_STEPS.md` as Run 14a-14f, executed operator-driven after phase close.
+
+### Part A — Bare-mode plumbing
+
+- [ ] **Step 34.1 — Bare module set helper.** New `tests/self_play/bare_mode.py` module exposing `bare_module_overrides(state_manager) -> dict[str, Any]` that produces no-op / minimal implementations for the modules being ablated. Stand-ins: `_BareExtractor` (returns `ExtractionResult(success=True, patch={}, error=None)` for every input — pipeline-compatible no-op), `_BareAnalyst` (returns `AnalysisResult(success=False, report=None, error="bare_mode")` from `analyze()` — orchestrator already handles secondary-analyst-failed gracefully and the primary-failed early-return is fine here too since bare mode skips intelligence storage entirely), `_BareReconciler` (no-op `reconcile()`), `_BareAdversarial` (returns `AdversarialResult(success=True, analysis=None, error=None)`), `_BareCoaching` (no-op parser that ignores all input). State Manager passes through unchanged (it's read-only for bare-mode purposes; the write path is exercised by orchestrator's intelligence/coaching/adversarial storage which now go through no-op modules). Tests: unit tests verify each stand-in returns the right no-op shape and doesn't blow up under normal pipeline call patterns.
+- [ ] **Step 34.2 — Bare context-assembler path.** Modify `DefaultContextAssembler.assemble()` to accept a `bare_mode: bool = False` parameter. When `True`, return a `DecisionContext` with only `system_prompt=persona_prompt` and `user_prompt=<raw transcript of recent_events joined as readable text>`. Skip the intel report, divergences, coaching, round-context structuring. The persona prompt itself stays full (includes BATNA, scoring table, strategic notes — these come from the scenario compiler, are part of "the agent's setup," not part of the harness being ablated). Tests: assert that bare context omits intel/divergences/coaching sections; assert that persona + transcript are present and well-formed; assert that switching to `bare_mode=False` produces the existing full-context shape.
+- [ ] **Step 34.3 — Self-play `--bare-prompt` flag.** Add `--bare-prompt` flag to `tests/self_play/run_simulation.py`. When set, the runner calls `bare_module_overrides(state_manager)` and passes the result as `extra_module_overrides` to `GameEnvironment`, and sets a `bare_mode=True` flag that the orchestrator threads through to its context-assembler call. The flag is stored in the run results JSON so the ablation analysis can group runs by mode. Tests: dry-run with `--bare-prompt` should complete without errors; verify the produced run JSON includes `"bare_mode": true` in metadata; verify the same scenario produces shorter prompts (raw transcript) than full mode.
+- [ ] **Step 34.4 — Smoke validation.** One dry-run + one live Water Rights run with `gpt-4.1-mini` + `--bare-prompt` to validate the path works end-to-end (no exceptions, valid run JSON produced, scoring metrics populated, agent produces coherent messages). Per `RUN_PROTOCOL.md` (probe providers → dry-run → live). Live run ~$1. Documents the bare-mode prompt size + per-round token use for cost projections of the Run 14a-14f series.
+
+### Part B — Tests
+
+- [ ] **Step 34.5 — Integration tests.** Add `tests/integration/test_bare_mode.py` with: (a) bare-mode orchestrator processes a round-end event without raising (no analyst-call, no intelligence row written); (b) bare-mode context-assembler produces correct shape under fake LLM client; (c) `bare_module_overrides()` integrates with `GameEnvironment` and produces a complete game (4 rounds, all factions act). Use existing fixtures from `tests/integration/conftest.py` + `tests/self_play/fake_llm_client.py`. ~5-8 new tests.
+
+### Part C — Docs
+
+- [ ] **Step 34.6 — Documentation update.** Files to update before phase-review:
+  - `ARCH_context_assembler.md` — document the `bare_mode` parameter and the resulting context shape (persona + raw transcript only).
+  - `ARCH_orchestrator.md` (or `ARCH_flow.md` if the bare-mode flag lives at the flow layer) — note the `bare_module_overrides` injection pattern as an experimental-harness mechanism, similar to how `coached_game.py` injects `TelegramReviewGate`.
+  - `ARCHITECTURE.md` — add a one-line note in the Extension Points section: "Bare-prompt ablation mode: pass `bare_module_overrides()` as `extra_module_overrides` to disable Extraction/Analyst/Divergence/Reconciliation/Adversarial/Coaching for ablation experiments. See `tests/self_play/bare_mode.py`."
+  - `CLI_REFERENCE.md` — add the `--bare-prompt` flag to the `run_simulation` entry.
+  - `diplomat-testing-doc.md` — add bare-mode as an experimental harness configuration alongside the existing self-play / coached-self-play modes.
+  - `NEXT_STEPS.md` — add the Run 14a-14f experimental series under §10 (new section: "Ablation: bare-prompt vs full-harness"); flag that Run 14 (the original coached re-test queued from Phase 33) is **renamed Run 13b** to avoid number collision with the ablation series.
+  - `DEVLOG.md` — Phase 34 close entry following the standard pattern.
+  - `DEVPLAN.md` — collapse Phase 34 to a closed-phase summary block at close.
 
 <!-- history -->
 

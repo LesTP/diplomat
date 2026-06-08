@@ -28,12 +28,14 @@
 > order; the per-section detail (§1.6 through §9) keeps the historical
 > numbering for stable cross-references.
 
-> **State as of 2026-06-07:** Phases 20–32 closed. Runs 9 + 10 closed; Run 13
-> validated the coached gate end-to-end (approve-only). **Phase 33 queued
-> (Coaching v2: `/revise:` LLM-rewrite edit mode + auto-classifier for the
-> edit log)** — closes §4e and unblocks the §4 feedback loop. Worker may
-> begin execution; see `DEVPLAN.md`. Run 14 (live re-run exercising the new
-> edit modes) queued in Carry-Forward for after phase close.
+> **State as of 2026-06-07:** Phases 20–33 closed. Runs 9 + 10 + 13 closed.
+> **Phase 34 queued (Bare-prompt mode for ablation experiments)** — the
+> build prerequisite for the foundational design-bet question: does
+> Diplomat's harness actually contribute to negotiation outcomes, or could
+> a bare-prompt agent (Persona + transcript + Generation only) perform
+> comparably? Worker may begin execution; see `DEVPLAN.md`. Run 13b
+> (coached re-test) + Run 14a-14f (ablation matrix) queued in §10 below
+> for after phase close.
 
 ---
 
@@ -57,7 +59,8 @@ cross-references.
 | Item | Tags | Loop | Where | Notes |
 |---|---|---|---|---|
 | **Coached game UX fixes** | `[A][X]` | 🔨 | §4 | **Closed.** §4a/§4b/§4c shipped Phase 31 + Phase 32 + prompt change. §4d satisfied by Run 13 (2026-06-04). §4e (`/revise:` LLM-rewrite edit mode + auto-classifier) closed Phase 33 (2026-06-07). §4f stays open (lower priority UX polish). |
-| **Coaching test loop on Pi** | `[X]` | 👁 | §4 | First coached game completed 2026-06-03 (β=18, +8 above BATNA, β muted for R2-R4 by char-limit bug). Run 13 (2026-06-04) validated new gate end-to-end but operator chose approve-only — edit path untested. Phase 33 closed 2026-06-07 (ships `/revise:` + auto-classifier). Run 14 queued to exercise edit modes live. |
+| **Bare-prompt ablation** (does the harness contribute?) | `[A][X]` | 🔨 / 👁 | §10 | **Phase 34 queued in `DEVPLAN.md` (2026-06-07)** for the build (bare-mode plumbing, ~6 steps). Runs 14a-14f (3 models × 2 modes × 2 scenarios × 3 runs = 36 runs, ~$60-100) queued in §10. Headline question: harness load-bearing, theater, or scaffold? Foundational design-bet test; uncomfortable-result possibility is part of the point. |
+| **Coaching test loop on Pi** | `[X]` | 👁 | §4 | First coached game completed 2026-06-03 (β=18, +8 above BATNA, β muted for R2-R4 by char-limit bug). Run 13 (2026-06-04) validated new gate end-to-end but operator chose approve-only — edit path untested. Phase 33 closed 2026-06-07 (ships `/revise:` + auto-classifier). Run 13b queued to exercise edit modes live (renamed from "Run 14" 2026-06-07 to free that number for the §10 ablation series). |
 | **Game-platform exploration** (Clankmates / Discord / fallback) | `[X]` | 👁 | §5 | Gated on operator + partner platform decision. Updated 2026-06-02 to consider Discord alongside Clankmates. |
 | **Pricing & accounting audit** | `[X][C]` | 👁 | §6 | Best done before Tier 3 §7 so per-role cost claims have a firm baseline. |
 | **OpenRouter integration** | `[X][B]` | ✓ | §1.6 | **CLOSED Phase 30 (2026-06-03).** `OpenRouterProvider` wired in toolkit; probe/dry-run verified; use `--per-faction-providers` with `provider:"openrouter"`. |
@@ -406,7 +409,7 @@ strategy library, A/B test per-faction.
 
 ## 4. `[X]` Coaching test loop on Pi
 
-**Status 2026-06-07:** Three iterations done. First coached game (2026-06-03) surfaced 4 UX bugs (§4a-§4d), all closed via Phase 31 + Phase 32 + a prompt change. Run 13 (2026-06-04) validated the new gate end-to-end on all-Gemini-flash Water Rights symmetric — gate, transport, chunking, lazy-fetch, commands-during-review all worked. **But operator chose approve-only across all 4 rounds, so the edit path is still untested in a live run** and the feedback loop (classify edits → feed patterns into faction_prompt) has zero data. Phase 33 (queued 2026-06-07, see `DEVPLAN.md`) addresses both — `/revise: <directive>` LLM-rewrite edit mode plus auto-classifier for the edit log. Run 14 (live re-run exercising the new edit modes) is the immediate post-phase test.
+**Status 2026-06-07:** Three iterations done. First coached game (2026-06-03) surfaced 4 UX bugs (§4a-§4d), all closed via Phase 31 + Phase 32 + a prompt change. Run 13 (2026-06-04) validated the new gate end-to-end on all-Gemini-flash Water Rights symmetric — gate, transport, chunking, lazy-fetch, commands-during-review all worked. **But operator chose approve-only across all 4 rounds, so the edit path is still untested in a live run** and the feedback loop (classify edits → feed patterns into faction_prompt) has zero data. Phase 33 closed 2026-06-07 — ships `/revise: <directive>` LLM-rewrite edit mode + auto-classifier for the edit log. **Run 13b** (live re-run exercising the new edit modes; renamed from "Run 14" to free that number for the §10 ablation series) is the immediate post-phase test.
 
 **What happened on the first coached game (2026-06-03, pre-Phase 31):** Operator coached beta faction via Telegram on Water Rights symmetric (all-Anthropic). Beta spoke in Round 1, then R2-R4 drafts hit Telegram's 4096-char message limit and failed silently. Beta was muted for 75% of the game. Alpha and Gamma negotiated around the silence and converged on a deal that happened to include beta. Operator rubber-stamped the R1 draft because they had no visibility into what other factions were saying.
 
@@ -431,8 +434,8 @@ strategy library, A/B test per-faction.
 - [x] Build `coached_game.py` (Phase 28)
 - [x] Test scenario: Water Rights symmetric, all-Anthropic (2026-06-03)
 - [x] Run on Pi (incus container, `.venv/bin/python3`)
-- [ ] **Run 14 — coached game exercising `/revise:` and `/edits-summary`.** (Queued — Phase 33 closed.) Goal is to validate the new edit modes end-to-end in a live game and produce the first non-trivial `review_gate_edits` log with `revise_directives` populated and `edit_classifications` populated. Suggested config: Water Rights symmetric (matches Run 13 baseline so edit signal isn't confounded by other variables), all-Gemini-flash or mixed providers per latest tuning. Cost: ~$0.50-1.00 for the game + ~$0.05 for classification. Per `RUN_PROTOCOL.md`.
-- [ ] **After Run 14: inspect edit log, classify edits, feed patterns back into `config/faction_prompt.txt`.** This is the actual feedback loop closing — recurring `constraint_enforcement` or `persona_correction` patterns become prompt edits per `ARCH_coaching.md` §"Review Gate Edit Log → Prompt Refinement". Phase 33 surfaces the patterns; this step does the prompt work.
+- [ ] **After Phase 33 ships: Run 13b — coached game exercising `/revise:` and `/edits-summary`.** (Queued — Phase 33 closed. Renumbered from "Run 14" 2026-06-07 to avoid collision with the Run 14a-14f ablation series in §10.) Goal is to validate the new edit modes end-to-end in a live game and produce the first non-trivial `review_gate_edits` log with `revise_directives` populated and `edit_classifications` populated. Suggested config: Water Rights symmetric (matches Run 13 baseline so edit signal isn't confounded by other variables), all-Gemini-flash or mixed providers per latest tuning. Cost: ~$0.50-1.00 for the game + ~$0.05 for classification. Per `RUN_PROTOCOL.md`.
+- [ ] **After Run 13b: inspect edit log, classify edits, feed patterns back into `config/faction_prompt.txt`.** This is the actual feedback loop closing — recurring `constraint_enforcement` or `persona_correction` patterns become prompt edits per `ARCH_coaching.md` §"Review Gate Edit Log → Prompt Refinement". Phase 33 surfaces the patterns; this step does the prompt work.
 
 ---
 
@@ -651,6 +654,77 @@ extending the persona template; until then, edit `generation.txt` directly.
 
 ---
 
+## 10. `[A][X]` Ablation: bare-prompt vs full-harness
+
+**Origin.** Operator question 2026-06-07: "How much of the good decision-making is the provider/model, and how much is the harness? Can weak models with strong harness outperform strong models without one?" Frames the foundational design-bet question for Diplomat: 33 phases of harness work assume the harness is load-bearing. If a bare-prompt agent (Persona + raw transcript + Generation only) performs comparably, the design bet hasn't paid off and the project should pivot.
+
+**Build prerequisite.** Phase 34 (queued 2026-06-07 in `DEVPLAN.md`) ships bare-mode plumbing — a `bare_module_overrides()` helper that produces no-op stand-ins for Extraction, Analyst, Divergence, Reconciliation, Adversarial, and Coaching, plus a `bare_mode` flag on `DefaultContextAssembler` that strips intelligence/divergences/coaching from the assembled context. Reachable only via the self-play `--bare-prompt` flag; the production live-game path is untouched.
+
+**Experimental matrix (Standard flavor — 36 runs):**
+
+| Model tier | Model | Mode A: full harness | Mode B: bare prompt |
+|---|---|---|---|
+| Weak | `gpt-4.1-nano` ($0.10/$0.40) | 3 Water Rights runs + 3 Trade Summit runs | 3 + 3 |
+| Mid | `gpt-4.1-mini` ($0.40/$1.60) | 3 + 3 (some already exist from Runs 8-13; may need only 0-2 additional) | 3 + 3 |
+| Strong | `claude-sonnet` (current dated) (~$3/$15) | 3 + 3 | 3 + 3 |
+
+Total cells: 12 (3 tiers × 2 modes × 2 scenarios). Total runs: 36 (3 per cell). Estimated cost: $60-100 depending on conversation length per round + how many mid-tier runs we can re-use from existing data.
+
+**Why this design:**
+- **3 tiers** spread across providers (OpenAI weak + mid, Anthropic strong) controls partially for provider-specific effects without exploding the cell count.
+- **2 scenarios** controls for scenario-specific harness contribution. Water Rights is the most-studied baseline; Trade Summit has deception-heavy dynamics (different shape).
+- **3 runs/cell** gives a usable noise margin given Diplomat's observed run-to-run variance.
+- **All-bare game vs all-full game** (not per-faction mixed) is the cleanest signal for "does harness help" — three bare agents vs three full agents on identical scenarios, no confound from "bare faction competing against full opponents who have analyst intelligence about it."
+- **Metric:** `negotiated_surplus_share` (per ASSESSMENT.md §3.2) as the headline number. Already implemented and stored per-run. Cross-validate with `skill_premium_vs_batna` and the §3.4 process signatures (broken-promise rate, coalition stability, time-to-deal, opening gap, near-miss diagnostic).
+
+**Suggested run sequencing (operator-driven, ~one weekend):**
+
+| Run | Cell | Cost | Notes |
+|---|---|---|---|
+| 14a | gpt-4.1-mini, Water Rights, **full** (3 runs) | ~$3-6 | May be skippable if existing Run 8-13 data is sufficient (4+ data points) |
+| 14b | gpt-4.1-mini, Water Rights, **bare** (3 runs) | ~$1-2 | Cheap; bare = shorter prompts |
+| 14c | gpt-4.1-nano, Water Rights, **full** + **bare** (3+3 runs) | ~$1-2 total | Weak tier; bare ≈ tiny prompts |
+| 14d | claude-sonnet, Water Rights, **full** + **bare** (3+3 runs) | ~$20-30 | Strong tier; the headline crossover test |
+| 14e | gpt-4.1-mini + gpt-4.1-nano, Trade Summit, both modes (12 runs) | ~$8-15 | Scenario breadth |
+| 14f | claude-sonnet, Trade Summit, both modes (6 runs) | ~$20-30 | Strong tier on Trade Summit |
+
+Run-by-run sequencing per `RUN_PROTOCOL.md`: define inputs → verify scenario → probe providers → dry-run plumbing → live → verify output → document.
+
+**Analysis tooling (new — small, written after the runs land):**
+
+`tools/ablation_summary.py` — reads the 36+ run JSONs by `bare_mode` + `model` + `scenario` metadata fields and produces a comparison table: per-cell mean / std of `negotiated_surplus_share`, plus pairwise full-vs-bare deltas per (model, scenario). ~50 lines; no LLM cost.
+
+**What the results imply for the project:**
+
+| Pattern | Implication |
+|---|---|
+| Bare always loses to full at every tier | Harness load-bearing. Design bet validated. Keep building. |
+| Bare ≈ full at strong-model tier; full > bare at weak/mid | Harness substitutes for model tier. Diplomat positions as "make cheap models good enough." |
+| Bare ≈ full at all tiers | **Harness is theater.** Investment hasn't paid off. Pivot: drop the harness, or ablate per-module to find the *one* piece that helps. |
+| Strong-bare > weak-full | "Pay for model, not infra" — same message as the row above, sharper. |
+| Mixed by scenario | Follow-up phase to ablate per-module on the scenarios where harness wins, find which pieces are load-bearing. |
+
+The third / fourth row is the uncomfortable outcome. **Better to learn it now than after Phase 50.**
+
+### TODOs
+
+- [ ] **Phase 34 build** — see `DEVPLAN.md`. ~6 steps, all 🔨 pure build. Smoke at step 34.4 (~$1 live run) validates the path before any experimental runs fire.
+- [ ] **Runs 14a-14f** — operator-driven post-Phase-34. Sequencing as above.
+- [ ] **`tools/ablation_summary.py`** — write after the run data accumulates (don't pre-build; the right shape will be obvious once we see real numbers).
+- [ ] **Decision: project direction.** After Run 14f closes, the operator reviews the ablation summary and makes a project-direction call:
+  - If harness load-bearing → continue building harness features (per existing NEXT_STEPS Tier 2 / Tier 3 work).
+  - If mixed → spawn a per-module ablation phase (Phase 35 candidate) to find which modules actually matter.
+  - If harness theater → spawn a "Diplomat-lite" planning phase to scope out a much smaller surface area.
+
+### Follow-up flavors (deferred — only if Standard results warrant)
+
+- **Quick flavor** (~$30-50, 16 runs): drop weak tier or one scenario. Use only if cost is a hard constraint.
+- **Thorough flavor** (~$150-250, 81 runs): adds a "medium harness" mode (full minus adversarial + minus reconciliation) and a third scenario. Use only if Standard results are interesting AND we want to find the harness elbow.
+- **Per-module ablation** (Phase 35 candidate): full minus extraction, full minus analyst, full minus reconciliation, etc. Use only if Standard shows mixed results that justify finding which pieces help.
+- **Per-faction mixed-mode games**: one bare faction vs two full opponents (adversarial bare). Different question — measures "does harness help when other agents have it" rather than "does harness help in symmetric games." Deferred.
+
+---
+
 ## Backlog — still-open items
 
 ### Surplus distribution favors the un-pressured neutral-on-bottleneck faction
@@ -761,12 +835,18 @@ Closed items have been moved to **Appendix A**.
 - [ ] **Run 11 alternate / Run 12 — OpenAI defection cross-scenario test**
       (§1.8). Cheap (~$0.30). Tells us whether the gpt-4.1-mini R3→R4
       defection is Water-Rights-specific or general.
-- [ ] **Run 14 — coached game exercising `/revise:` and `/edits-summary`**
+- [ ] **Run 13b — coached game exercising `/revise:` and `/edits-summary`**
       (§4 Original TODOs). Phase 33 closed 2026-06-07 — queued for operator-driven
       execution. Water Rights symmetric matches Run 13 baseline so edit signal
       isn't confounded; expected cost ~$0.50-1.00 + ~$0.05 classification.
       Produces the first non-trivial edit log with `revise_directives` populated
-      and `edit_classifications` populated.
+      and `edit_classifications` populated. (Renumbered from "Run 14"
+      2026-06-07 to free that number for the ablation series in §10.)
+- [ ] **Runs 14a-14f — bare-prompt vs full-harness ablation matrix**
+      (§10). 36 runs total: 3 model tiers × 2 modes × 2 scenarios × 3 runs.
+      Estimated $60-100. Gated on Phase 34 close (bare-mode plumbing). The
+      foundational design-bet test: does the harness contribute, or is it
+      theater? Result drives the post-Phase 34 project-direction decision.
 - [ ] **Persona payment rigidity** — recurring across Runs 7-10. Run 9
       post-mortem partially deflated this: under squeeze, the rule isn't
       binding. Still worth an A/B in a future run (Tier 3 `[B]`).
@@ -884,3 +964,4 @@ corresponding phase or Phase 19 ad-hoc entries, and `TUNING_LOG.md` /
 | 2026-06-02 | **Phase 28 cleanup.** State summary updated (Phases 20–28 closed). Near-miss §1.9 marked closed in Tier 1 table (all TODOs done). Coached self-play harness + near-miss rows removed from pure-build extensions table (shipped). Sequencing list trimmed (near-miss removed; coaching test updated to reflect build-done status). Stage 2a → "Phase 29 candidate." §3 TODO removed stale "Phase 25 candidate" note. §6 audit scope updated to Runs 1–10. Appendix A expanded with Phase 28 items. | Sync with Phase 28 completion |
 | 2026-06-02 | **Conversation model deprioritized.** Stage 2a removed from Tier 1 (sealed-bid rounds produce real dynamics; pressure mechanisms work with extra rounds). §3 rewritten as standalone deferred section with deprioritization rationale. §2 pressure mechanisms decoupled from §3 dependency ("Connects directly to §3" → uses existing `round_updates` mechanism). Conversation model moved to new "Deferred" tier below Tier 3. §2 Tier 2 row updated. Cross-tier deps trimmed. Pure-build table dropped Stage 2a row. Sequencing list shortened. | Operator: "unclear how this is different from having twice as many rounds... I don't see the value" |
 | 2026-06-07 | **Coaching v2 → Phase 33.** §4e rewritten as a pointer to the queued phase plan (full design pinned in `DEVPLAN.md` Phase 33: `/revise:` directive mode + `LLMEditClassifier` + `tools/classify_edit_log.py` + `/edits-summary` command + storage schema). §4 status block updated to note Run 13 was approve-only and edit path remains untested in a live run. Original §4 TODOs split: "After UX fixes" item replaced with two explicit follow-ups (Run 14 + prompt-refinement step). §4f marked out-of-scope for Phase 33. Tier 1 table row "Coached game UX fixes" reclassified as **closed** (§4a-§4d shipped); residual coaching items now queued in Phase 33. "Coaching test loop on Pi" row updated with Run 13 status + gating on Phase 33. Carry-Forward Items table adds Run 14 as a queued experimental run with cost estimate. | Operator: "let's discuss and plan coaching v2; once done, let's write it into devplan and I'll run it, no point in moving it to next steps and back" |
+| 2026-06-07 | **Bare-prompt ablation -> Phase 34 + section 10.** Added new section 10 "Ablation: bare-prompt vs full-harness" with the Run 14a-14f experimental matrix (3 model tiers x 2 modes x 2 scenarios x 3 runs = 36 runs, ~$60-100). Phase 34 (bare-mode plumbing) queued in `DEVPLAN.md`. Renamed the previous post-Phase-33 coached re-test from "Run 14" to **Run 13b** to free Run 14 for the ablation series - updated in section 4 Status block + section 4 Original TODOs + Carry-Forward + Tier 1 "Coaching test loop on Pi" row. New Tier 1 row "Bare-prompt ablation (does the harness contribute?)" added. State-as-of block updated. | Operator: "tbh I'd rather pursue this now. if we find that harness does nothing, there's no point in working on it any further... right?" |
