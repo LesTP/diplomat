@@ -578,3 +578,16 @@ Phase 33 closed 10 steps. All 🔨 pure build, no live LLM spend during build (D
 - **Step 33.10 (Part C — Docs):** `ARCH_review_gate.md`, `ARCH_coaching.md`, `ARCHITECTURE.md`, `CLI_REFERENCE.md`, `diplomat-testing-doc.md` §7.3, `NEXT_STEPS.md` §4e marked closed + Run 14 queued, `DEVLOG.md` (this entry).
 
 **Closes:** `NEXT_STEPS.md` §4e. **Queues:** Run 14 (live coached game exercising `/revise:` and `/edits-summary`) as the immediate post-phase validation step.
+
+## Phase 34 — Step 34.1 (2026-06-08)
+
+**Step 34.1 — Bare module set helper.** Created `tests/self_play/bare_mode.py` with five stand-in classes and `bare_module_overrides()` helper:
+
+- `_BareExtractor`: returns `ExtractionResult(success=True, patch=StatePatch({}), error=None)` — no LLM call, no state write.
+- `_BareAnalyst`: returns `AnalysisResult(success=False, error="bare_mode")` — orchestrator's primary-failed early-return in `handle_round_boundary()` cleanly skips intelligence storage. Round advancement stays driven by `RoundSteppedFlow.advance_to_round()`, so the game progresses correctly.
+- `_BareReconciler`: returns `ReconciliationResult(success=True)` — no-op; must be set separately on `orchestrator.reconciler` after `GameEnvironment.setup()` (reconciler is not a module_override).
+- `_BareAdversarial`: returns `AdversarialResult(success=True, analysis=None, error=None)` — passes through review gate without adversarial data.
+- `_BareCoaching`: returns a blank `CoachingEvent(coaching_type="FREE", content="", route="free_coaching")` — ignores operator input; coaching context in bare mode will be empty.
+- `bare_module_overrides(state_manager)`: returns dict for `extractor`, `primary_analyst`, `secondary_analyst`, `divergence`, `adversarial`, `coaching_parser`. Divergence callable kept as-is (never reached when primary fails). Reconciler excluded — handled separately by step 34.3 runner.
+
+14 new unit tests in `tests/test_bare_mode.py`. 397 tests total, all passing.
