@@ -2,7 +2,7 @@
 phase: 34
 blocked: false
 state: plan
-steps_remaining:
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -54,7 +54,7 @@ steps_remaining:
 ## Current Status
 
 - **Phase** — Phase 34 queued 2026-06-07. **Bare-prompt mode for ablation experiments.** Adds a `bare_mode` config flag that disables Extraction, Analyst, Divergence, Reconciliation, Adversarial, and Coaching modules, leaving only Transport + Persona + Generation (+ optional Review Gate). Cleanly toggleable via existing `module_overrides` pattern. Build phase is small (~6 steps); the experimental payoff lives in the queued Run 14a-14f series in `NEXT_STEPS.md` (~36 self-play runs, ~$60-100, headline question: "does the harness contribute, or is it theater?").
-- **Focus** — 6 steps, all 🔨 pure build, loop-ready. No live LLM spend during build (DryRun + fakes throughout). Step 34.4 smoke is one live Water Rights run at ~$1 to validate end-to-end. Run 14a-14f series queued separately in NEXT_STEPS for after phase close.
+- **Focus** — 6 steps, all 🔨 pure build except 34.4 smoke. Bare mode is all-or-none per game; mixed-mode is out of scope. No live LLM spend during build (DryRun + fakes throughout). Step 34.4 smoke is one live Water Rights run at ~$1 to validate end-to-end. Run 14a-14f series queued separately in NEXT_STEPS for after phase close.
 - **Blocked/Broken** — `blocked: false`. Worker may begin execution.
 
 <!-- Closed phases only: newest first. -->
