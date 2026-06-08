@@ -87,7 +87,7 @@ async def bare_pipeline(tmp_path: Path) -> BareOrchestrationHarness:
     cost_accountant = FakeCostAccountant()
 
     overrides: dict[str, Any] = {"transport": transport}
-    overrides.update(bare_module_overrides(None))
+    overrides.update(bare_module_overrides())
 
     orchestrator = Orchestrator(
         config_path,

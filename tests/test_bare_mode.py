@@ -106,18 +106,18 @@ def test_bare_coaching_ignores_all_input_variants():
 
 
 def test_bare_module_overrides_contains_expected_module_keys():
-    overrides = bare_module_overrides(None)
+    overrides = bare_module_overrides()
     required_keys = {"extractor", "primary_analyst", "secondary_analyst", "divergence", "adversarial", "coaching_parser"}
     assert required_keys <= overrides.keys()
 
 
 def test_bare_module_overrides_does_not_include_reconciler():
-    overrides = bare_module_overrides(None)
+    overrides = bare_module_overrides()
     assert "reconciler" not in overrides
 
 
 def test_bare_module_overrides_stand_in_types():
-    overrides = bare_module_overrides(None)
+    overrides = bare_module_overrides()
     assert isinstance(overrides["extractor"], _BareExtractor)
     assert isinstance(overrides["primary_analyst"], _BareAnalyst)
     assert isinstance(overrides["secondary_analyst"], _BareAnalyst)
@@ -127,7 +127,7 @@ def test_bare_module_overrides_stand_in_types():
 
 
 def test_bare_module_overrides_analyst_provider_ids():
-    overrides = bare_module_overrides(None)
+    overrides = bare_module_overrides()
     assert overrides["primary_analyst"].provider_id == "bare_primary"
     assert overrides["secondary_analyst"].provider_id == "bare_secondary"
 

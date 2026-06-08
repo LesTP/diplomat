@@ -10,7 +10,7 @@ Usage::
     from tests.self_play.bare_mode import bare_module_overrides, _BareReconciler
 
     # Pass overrides to GameEnvironment
-    env = GameEnvironment(..., extra_module_overrides=bare_module_overrides(state_manager))
+    env = GameEnvironment(..., extra_module_overrides=bare_module_overrides())
 
     # After setup(), override reconciler per agent
     for handle in env.agents.values():
@@ -84,7 +84,7 @@ class _BareCoaching:
         return CoachingEvent(coaching_type="FREE", content="", route="free_coaching")
 
 
-def bare_module_overrides(state_manager: Any) -> dict[str, Any]:
+def bare_module_overrides() -> dict[str, Any]:
     """Return a module-overrides dict for bare-prompt ablation mode.
 
     Disables Extraction, Analyst (primary + secondary), Adversarial, and

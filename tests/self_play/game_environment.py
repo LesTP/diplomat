@@ -320,7 +320,7 @@ class GameEnvironment:
         bare_overrides: dict[str, Any] = {}
         if self.bare_mode:
             from tests.self_play.bare_mode import bare_module_overrides
-            bare_overrides = bare_module_overrides(None)
+            bare_overrides = bare_module_overrides()
 
         for faction_id, persona_path in self.faction_personas.items():
             db_path = self.tmp_dir / f"{faction_id}.db"

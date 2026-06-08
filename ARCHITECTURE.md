@@ -166,7 +166,7 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 - **Extension: new Transport implementation** → additive (new class, config change). No other modules affected.
 - **Extension: new LLM provider** → toolkit config change only. No Diplomat code changes.
 - **Extension: different game domain** → replace config/ directory and persona files. Scenario compiler can auto-generate personas from a narrative description.
-- **Bare-prompt ablation mode** → pass `bare_module_overrides()` as `extra_module_overrides` to `GameEnvironment` (or use `GameEnvironment(bare_mode=True)`) to disable Extraction/Analyst/Divergence/Reconciliation/Adversarial/Coaching for ablation experiments. See `tests/self_play/bare_mode.py`.
+- **Bare-prompt ablation mode** → use `GameEnvironment(bare_mode=True)` (or pass `bare_module_overrides()` as `extra_module_overrides`) to disable Extraction/Analyst/Divergence/Reconciliation/Adversarial/Coaching for ablation experiments. See `tests/self_play/bare_mode.py`.
 
 ## Key Decisions
 
