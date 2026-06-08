@@ -130,3 +130,128 @@ def test_bare_module_overrides_analyst_provider_ids():
     overrides = bare_module_overrides(None)
     assert overrides["primary_analyst"].provider_id == "bare_primary"
     assert overrides["secondary_analyst"].provider_id == "bare_secondary"
+
+
+# ── Step 34.3: --bare-prompt flag integration tests ──────────────────
+
+
+@pytest.mark.asyncio
+async def test_game_environment_bare_mode_flag_in_results(tmp_path):
+    """bare_mode=True is stored in the results JSON."""
+    from pathlib import Path
+    from tests.helpers.factories import FakeCostAccountant, FakeLLMClient
+    from tests.self_play.game_environment import GameEnvironment
+
+    personas_dir = Path(__file__).resolve().parent / "self_play" / "personas"
+    project_root = Path(__file__).resolve().parent.parent
+    factions = {
+        "alpha": personas_dir / "alpha.txt",
+        "beta": personas_dir / "beta.txt",
+    }
+    # Bare mode only needs generation responses — no analyst, no adversarial.
+    llm_client = FakeLLMClient(
+        [{"response": "Test message.", "reasoning": "Testing."}] * 20
+    )
+    env = GameEnvironment(
+        faction_personas=factions,
+        llm_client=llm_client,
+        cost_accountant=FakeCostAccountant(),
+        base_path=project_root,
+        tmp_dir=tmp_path,
+        bare_mode=True,
+    )
+    await env.setup()
+    results = await env.run_game(total_rounds=1)
+    await env.teardown()
+
+    assert results.get("bare_mode") is True
+
+
+@pytest.mark.asyncio
+async def test_game_environment_full_mode_bare_mode_false(tmp_path):
+    """bare_mode defaults to False and is stored as such in results."""
+    from pathlib import Path
+    from tests.helpers.factories import FakeCostAccountant, FakeLLMClient
+    from tests.helpers.stub_analyst import StubAnalyst
+    from tests.self_play.game_environment import GameEnvironment
+
+    personas_dir = Path(__file__).resolve().parent / "self_play" / "personas"
+    project_root = Path(__file__).resolve().parent.parent
+    fixture = project_root / "tests" / "integration" / "fixtures" / "intelligence_stub.json"
+    factions = {
+        "alpha": personas_dir / "alpha.txt",
+        "beta": personas_dir / "beta.txt",
+    }
+    llm_client = FakeLLMClient(
+        [
+            {"response": "Test message.", "reasoning": "Testing."},
+            {"reveals": [], "commits_to": [], "exploitable": [], "counter_moves": [], "summary": "No exploit."},
+        ] * 20
+    )
+    env = GameEnvironment(
+        faction_personas=factions,
+        llm_client=llm_client,
+        cost_accountant=FakeCostAccountant(),
+        base_path=project_root,
+        tmp_dir=tmp_path,
+        extra_module_overrides={
+            "primary_analyst": StubAnalyst(fixture, provider_id="primary"),
+            "secondary_analyst": StubAnalyst(fixture, provider_id="secondary"),
+        },
+    )
+    await env.setup()
+    results = await env.run_game(total_rounds=1)
+    await env.teardown()
+
+    assert results.get("bare_mode") is False
+
+
+@pytest.mark.asyncio
+async def test_bare_mode_context_shorter_than_full_mode():
+    """Bare-mode context omits intel/divergences/coaching, producing a shorter prompt."""
+    from datetime import datetime, timezone
+    from modules.context_assembler import DefaultContextAssembler
+    from modules.types import StoredEvent, InboundEvent
+
+    assembler = DefaultContextAssembler()
+    persona = "You are Alpha faction in a water rights dispute."
+    round_ctx = "Round 1. Opening positions."
+    intelligence = {"threat_level": "high", "leverage": "upstream control", "risks": []}
+    divergences = []
+    now = datetime.now(timezone.utc)
+    event = StoredEvent(
+        event_id="e1",
+        round_number=1,
+        event=InboundEvent(sender_faction="alpha", channel="public", content="Hello.", timestamp=now),
+    )
+    recent_events = [event]
+    coaching = []
+
+    full_ctx = await assembler.assemble(
+        persona_prompt=persona,
+        round_context=round_ctx,
+        intelligence=intelligence,
+        divergences=divergences,
+        recent_events=recent_events,
+        free_coaching=coaching,
+        review_gate_enabled=False,
+        bare_mode=False,
+    )
+    bare_ctx = await assembler.assemble(
+        persona_prompt=persona,
+        round_context=round_ctx,
+        intelligence=intelligence,
+        divergences=divergences,
+        recent_events=recent_events,
+        free_coaching=coaching,
+        review_gate_enabled=False,
+        bare_mode=True,
+    )
+
+    assert len(bare_ctx.user_prompt) < len(full_ctx.user_prompt), (
+        "Bare-mode prompt should be shorter than full-mode prompt"
+    )
+    assert "INTELLIGENCE" not in bare_ctx.user_prompt
+    assert "COACHING" not in bare_ctx.user_prompt
+    assert "TRANSCRIPT" in bare_ctx.user_prompt
+    assert bare_ctx.metadata.get("bare_mode") is True

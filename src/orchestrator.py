@@ -86,6 +86,7 @@ class PipelinePaths:
 class OrchestrationOptions:
     auto_response_enabled: bool = True
     total_rounds: int | None = None
+    bare_mode: bool = False
 
     @classmethod
     def from_config(cls, config: dict[str, Any]) -> "OrchestrationOptions":
@@ -773,6 +774,7 @@ class _OrchestratorCore:
             recent_events=await self._recent_events(),
             free_coaching=await self._free_coaching_entries(),
             review_gate_enabled=self.feature_flags["review_gate"]["enabled"],
+            bare_mode=self.options.bare_mode,
         )
 
     def _is_direct_address(self, event: Any) -> bool:

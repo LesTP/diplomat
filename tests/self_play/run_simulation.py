@@ -143,6 +143,17 @@ def _parse_args() -> argparse.Namespace:
             "source scenario_analysis.json."
         ),
     )
+    parser.add_argument(
+        "--bare-prompt",
+        action="store_true",
+        help=(
+            "Enable bare-prompt ablation mode. Disables Extraction, Analyst, "
+            "Divergence, Reconciliation, Adversarial, and Coaching modules. "
+            "Each agent responds using only its persona prompt and the raw "
+            "message transcript. Enables ablation comparison against full mode. "
+            "Results JSON will include bare_mode=true in metadata."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -490,6 +501,11 @@ async def _run(args: argparse.Namespace) -> None:
         else:
             personas = _resolve_personas(faction_ids)
 
+        if args.bare_prompt:
+            print("=" * 60)
+            print("  BARE-PROMPT MODE — Extraction/Analyst/Adversarial/Coaching disabled")
+            print("=" * 60)
+
         env = GameEnvironment(
             faction_personas=personas,
             llm_client=llm_client,
@@ -500,6 +516,7 @@ async def _run(args: argparse.Namespace) -> None:
             round_updates=round_updates,
             scenario_analysis=scenario_analysis,
             per_faction_providers=per_faction_providers,
+            bare_mode=args.bare_prompt,
         )
 
         await env.setup()

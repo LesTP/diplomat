@@ -180,6 +180,7 @@ class GameEnvironment:
         round_updates: dict[int, str] | None = None,
         scenario_analysis: dict[str, Any] | None = None,
         per_faction_providers: dict[str, dict[str, str]] | None = None,
+        bare_mode: bool = False,
     ) -> None:
         self.faction_personas = faction_personas
         self.llm_client = llm_client
@@ -191,6 +192,7 @@ class GameEnvironment:
         self.round_updates = round_updates if round_updates is not None else DEFAULT_ROUND_UPDATES
         self.scenario_analysis = scenario_analysis
         self.per_faction_providers = per_faction_providers or {}
+        self.bare_mode = bare_mode
         self.agents: dict[str, AgentHandle] = {}
         self.round_flow: RoundSteppedFlow | None = None
         self.channel_log: list[dict[str, Any]] = []
@@ -315,6 +317,11 @@ class GameEnvironment:
 
     async def setup(self) -> None:
         """Create and start all agent Orchestrators."""
+        bare_overrides: dict[str, Any] = {}
+        if self.bare_mode:
+            from tests.self_play.bare_mode import bare_module_overrides
+            bare_overrides = bare_module_overrides(None)
+
         for faction_id, persona_path in self.faction_personas.items():
             db_path = self.tmp_dir / f"{faction_id}.db"
             config_path = self._generate_faction_config(
@@ -323,10 +330,14 @@ class GameEnvironment:
 
             transport = TestTransport()
             overrides = {"transport": transport}
+            overrides.update(bare_overrides)
             overrides.update(self.extra_module_overrides)
             orchestrator = Orchestrator(
                 config_path,
-                options=OrchestrationOptions(auto_response_enabled=False),
+                options=OrchestrationOptions(
+                    auto_response_enabled=False,
+                    bare_mode=self.bare_mode,
+                ),
                 llm_client=self.llm_client,
                 cost_accountant=self.cost_accountant,
                 module_overrides=overrides,
@@ -337,13 +348,17 @@ class GameEnvironment:
             # metadata tags RECON calls in the LLM call log when logging is
             # enabled.
             recon_llm_client: Any = self.logging_client or self.llm_client
-            from modules.reconciliation import build_reconciler
-            orchestrator.reconciler = build_reconciler(
-                recon_llm_client,
-                {"primary": _SELF_PLAY_PRIMARY},
-                tier="commodity",
-                attribution=f"recon:{faction_id}",
-            )
+            if self.bare_mode:
+                from tests.self_play.bare_mode import _BareReconciler
+                orchestrator.reconciler = _BareReconciler()
+            else:
+                from modules.reconciliation import build_reconciler
+                orchestrator.reconciler = build_reconciler(
+                    recon_llm_client,
+                    {"primary": _SELF_PLAY_PRIMARY},
+                    tier="commodity",
+                    attribution=f"recon:{faction_id}",
+                )
             task = asyncio.create_task(orchestrator.start())
             await asyncio.sleep(0)  # let the event loop start
 
@@ -495,6 +510,7 @@ class GameEnvironment:
             str(k): v for k, v in all_responses.items()
         }
         results["rounds_completed"] = total_rounds
+        results["bare_mode"] = self.bare_mode
 
         # Post-game scoring.
         if self.scenario_analysis:
