@@ -563,33 +563,34 @@ hand-authoring one such scenario surfaces the constraint vocabulary.
 
 **Build status.** Phase 34 closed 2026-06-08. Bare-mode plumbing shipped (commits `ca7e3bb` through `63d04cd`): `bare_module_overrides()` helper in `tests/self_play/bare_mode.py` produces no-op stand-ins for Extraction, Analyst, Divergence, Reconciliation, Adversarial, and Coaching; `DefaultContextAssembler.assemble(bare_mode=True)` strips intelligence/divergences/coaching from the assembled context; `run_simulation.py --bare-prompt` wires the flag end-to-end. Smoke (Step 34.4): bare live run cost ~$0.02 vs $1 projected (12 GEN-only calls; no EXT/ANALYST/ADV/RECON). 414 tests passing. Production live-game path untouched. Ready for Run 14a-14f.
 
-**Experimental matrix (Standard flavor — 36 runs):**
+**Experimental matrix (locked 2026-06-08 — 18 runs, single scenario):**
 
-| Model tier | Model | Mode A: full harness | Mode B: bare prompt |
+| Model tier | Model | $/MTok in/out | Full harness | Bare prompt |
+|---|---|---|---|---|
+| Weak | `gpt-4.1-nano` | $0.10 / $0.40 | 3 runs | 3 runs |
+| Mid | `gpt-5.4-mini` | $0.75 / $4.50 | 3 runs | 3 runs |
+| Strong | `claude-sonnet-4-6` | $3 / $15 | 3 runs | 3 runs |
+
+3 tiers × 2 modes × **1 scenario** (Water Rights β-squeezed) × 3 runs = **18 runs**. Total cost estimate: **~$20-40**, dominated entirely by claude-sonnet-4-6 full-mode (cells 14e). All bare cells together < $1.
+
+**Why this design (locked 2026-06-08):**
+- **3 tiers** spread across providers (OpenAI weak + mid, Anthropic strong) provides real tier separation needed for the "harness substitutes for model tier" test. Pinned models confirmed: `gpt-5.4-mini` matches the worker-loop's codex pin; `claude-sonnet-4-6` is the production-target quality tier (true strong, not the haiku self-play default which would be tier-equivalent to mid).
+- **Single scenario: Water Rights β-squeezed.** Historical 2-of-2 Pareto-deal rate (Run 9 β-squeezed all-OpenAI; Run 10 B' α-squeezed+Anthropic-on-β) — the right "leeway" zone where skill / harness can plausibly affect outcomes. Symmetric / α-squeezed / dual-squeeze all sit at no-deal floor; γ-squeezed is untested at scale. β-squeezed gives signal-to-noise. Trade Summit was originally on the matrix but the scenario file isn't in the repo (only the run5 results JSON exists). Scenario breadth deferred to v1.5 if first results are interesting.
+- **3 runs/cell** for noise margin given Diplomat's observed run-to-run variance.
+- **All-bare game vs all-full game** (not per-faction mixed) — three bare agents play three bare agents on the same scenario; three full play three full. Isolates the harness effect with no confound from "bare faction competing against full opponents who have analyst intelligence about it."
+- **Metric:** `negotiated_surplus_share` (per ASSESSMENT.md §3.2). Range `[0, 1.0]`: 0.0 = no-deal floor, 1.0 = deterministic Pareto optimum. Already implemented and stored per-run. Cross-validate with `skill_premium_vs_batna` (§3.3) and the §3.4 process signatures.
+
+**Run sequencing (cheap cells first, sonnet-full last):**
+
+| Order | Run | Cell | Cost |
 |---|---|---|---|
-| Weak | `gpt-4.1-nano` ($0.10/$0.40) | 3 Water Rights runs + 3 Trade Summit runs | 3 + 3 |
-| Mid | `gpt-4.1-mini` ($0.40/$1.60) | 3 + 3 (some already exist from Runs 8-13; may need only 0-2 additional) | 3 + 3 |
-| Strong | `claude-sonnet` (current dated) (~$3/$15) | 3 + 3 | 3 + 3 |
+| 1 | 14a | gpt-5.4-mini, full (3) | ~$5-10 |
+| 2 | 14b | gpt-5.4-mini, bare (3) | ~$0.15 |
+| 3 | 14c | gpt-4.1-nano, full + bare (3+3) | ~$0.31 |
+| 4 | 14d | claude-sonnet-4-6, bare (3) | ~$0.50 |
+| 5 | 14e | claude-sonnet-4-6, full (3) | ~$15-30 |
 
-Total cells: 12 (3 tiers × 2 modes × 2 scenarios). Total runs: 36 (3 per cell). Estimated cost: $60-100 depending on conversation length per round + how many mid-tier runs we can re-use from existing data.
-
-**Why this design:**
-- **3 tiers** spread across providers (OpenAI weak + mid, Anthropic strong) controls partially for provider-specific effects without exploding the cell count.
-- **2 scenarios** controls for scenario-specific harness contribution. Water Rights is the most-studied baseline; Trade Summit has deception-heavy dynamics (different shape).
-- **3 runs/cell** gives a usable noise margin given Diplomat's observed run-to-run variance.
-- **All-bare game vs all-full game** (not per-faction mixed) is the cleanest signal for "does harness help" — three bare agents vs three full agents on identical scenarios, no confound from "bare faction competing against full opponents who have analyst intelligence about it."
-- **Metric:** `negotiated_surplus_share` (per ASSESSMENT.md §3.2) as the headline number. Already implemented and stored per-run. Cross-validate with `skill_premium_vs_batna` and the §3.4 process signatures (broken-promise rate, coalition stability, time-to-deal, opening gap, near-miss diagnostic).
-
-**Suggested run sequencing (operator-driven, ~one weekend):**
-
-| Run | Cell | Cost | Notes |
-|---|---|---|---|
-| 14a | gpt-4.1-mini, Water Rights, **full** (3 runs) | ~$3-6 | May be skippable if existing Run 8-13 data is sufficient (4+ data points) |
-| 14b | gpt-4.1-mini, Water Rights, **bare** (3 runs) | ~$1-2 | Cheap; bare = shorter prompts |
-| 14c | gpt-4.1-nano, Water Rights, **full** + **bare** (3+3 runs) | ~$1-2 total | Weak tier; bare ≈ tiny prompts |
-| 14d | claude-sonnet, Water Rights, **full** + **bare** (3+3 runs) | ~$20-30 | Strong tier; the headline crossover test |
-| 14e | gpt-4.1-mini + gpt-4.1-nano, Trade Summit, both modes (12 runs) | ~$8-15 | Scenario breadth |
-| 14f | claude-sonnet, Trade Summit, both modes (6 runs) | ~$20-30 | Strong tier on Trade Summit |
+Cells 1-4 total ~$6-11; gate cell 5 on whether the cheap cells already show a clear pattern. If 1-4 already point to a result, you can either fire cell 5 to confirm the strong-tier crossover (the headline test) or defer until the cheap-cell signal warrants the spend.
 
 Run-by-run sequencing per `RUN_PROTOCOL.md`: define inputs → verify scenario → probe providers → dry-run plumbing → live → verify output → document.
 
@@ -619,11 +620,11 @@ The third / fourth row is the uncomfortable outcome. **Better to learn it now th
   - If mixed → spawn a per-module ablation phase (Phase 35 candidate) to find which modules actually matter.
   - If harness theater → spawn a "Diplomat-lite" planning phase to scope out a much smaller surface area.
 
-### Follow-up flavors (deferred — only if Standard results warrant)
+### Follow-up flavors (deferred — only if v1 results warrant)
 
-- **Quick flavor** (~$30-50, 16 runs): drop weak tier or one scenario. Use only if cost is a hard constraint.
-- **Thorough flavor** (~$150-250, 81 runs): adds a "medium harness" mode (full minus adversarial + minus reconciliation) and a third scenario. Use only if Standard results are interesting AND we want to find the harness elbow.
-- **Per-module ablation** (Phase 35 candidate): full minus extraction, full minus analyst, full minus reconciliation, etc. Use only if Standard shows mixed results that justify finding which pieces help.
+- **Add second scenario** (Three-Party Coalition compile, OR new Trade Summit compile): doubles runs to 36. Justified if Water Rights β-squeezed v1 result is scenario-suspect (e.g. "bare loses badly but only because the scenario hits a harness-specific feature").
+- **Thorough flavor** (~$150-250, 81 runs): adds a "medium harness" mode (full minus adversarial + minus reconciliation) and a third scenario. Use only if v1 + scenario-add results are interesting AND we want to find the harness elbow.
+- **Per-module ablation** (Phase 35 candidate): full minus extraction, full minus analyst, full minus reconciliation, etc. Use only if v1 shows mixed results that justify finding which pieces help.
 - **Per-faction mixed-mode games**: one bare faction vs two full opponents (adversarial bare). Different question — measures "does harness help when other agents have it" rather than "does harness help in symmetric games." Deferred.
 
 ---
@@ -864,3 +865,4 @@ corresponding phase or Phase 19 ad-hoc entries, and `TUNING_LOG.md` /
 | 2026-06-07 | **Coaching v2 → Phase 33.** §4e rewritten as a pointer to the queued phase plan (full design pinned in `DEVPLAN.md` Phase 33: `/revise:` directive mode + `LLMEditClassifier` + `tools/classify_edit_log.py` + `/edits-summary` command + storage schema). §4 status block updated to note Run 13 was approve-only and edit path remains untested in a live run. Original §4 TODOs split: "After UX fixes" item replaced with two explicit follow-ups (Run 14 + prompt-refinement step). §4f marked out-of-scope for Phase 33. Tier 1 table row "Coached game UX fixes" reclassified as **closed** (§4a-§4d shipped); residual coaching items now queued in Phase 33. "Coaching test loop on Pi" row updated with Run 13 status + gating on Phase 33. Carry-Forward Items table adds Run 14 as a queued experimental run with cost estimate. | Operator: "let's discuss and plan coaching v2; once done, let's write it into devplan and I'll run it, no point in moving it to next steps and back" |
 | 2026-06-07 | **Bare-prompt ablation -> Phase 34 + section 10.** Added new section 10 "Ablation: bare-prompt vs full-harness" with the Run 14a-14f experimental matrix (3 model tiers x 2 modes x 2 scenarios x 3 runs = 36 runs, ~$60-100). Phase 34 (bare-mode plumbing) queued in `DEVPLAN.md`. Renamed the previous post-Phase-33 coached re-test from "Run 14" to **Run 13b** to free Run 14 for the ablation series - updated in section 4 Status block + section 4 Original TODOs + Carry-Forward + Tier 1 "Coaching test loop on Pi" row. New Tier 1 row "Bare-prompt ablation (does the harness contribute?)" added. State-as-of block updated. | Operator: "tbh I'd rather pursue this now. if we find that harness does nothing, there's no point in working on it any further... right?" |
 | 2026-06-08 | **Cleanup pass.** Tier 1 Open Items table: removed closed rows (Coached game UX fixes, OpenRouter integration). Updated Bare-prompt ablation row to reflect Phase 34 close. Pure-build extensions table: removed closed rows (1.6 OpenRouter, ASSESSMENT 3.3 vs-Naive baseline). Sequencing list: dropped stale "Coached game UX fixes" entry; renumbered (now 1=Run 14a-14f ablation, 2=Pricing audit, 3=Game-platform). Deleted closed sections in their entirety: 1.6 (OpenRouter, closed Phase 30), 1.9 (Near-miss diagnostics, closed Phase 28), 9 (Voice templates, WON'T DO). Backlog: removed empty "Outstanding tooling debt (None)" subsection. 10 Build status updated from "prerequisite/queued" to "closed 2026-06-08". File shrunk ~80 lines. | Operator: "clean up the next_steps doc - remove closed items from Open Items table - if the info is in devlog, just delete, otherwise consider where it should go but don't keep them in the open table" |
+| 2026-06-08 | **10 matrix locked.** Final design: 3 model tiers (gpt-4.1-nano weak / gpt-5.4-mini mid / claude-sonnet-4-6 strong) x 2 modes (full/bare) x 1 scenario (Water Rights beta-squeezed) x 3 runs = 18 runs, ~$20-40. Dropped second scenario (Trade Summit not in repo; Three-Party Coalition viable as v1.5 follow-up if results warrant). Mid bumped to gpt-5.4-mini per operator pin (was gpt-4.1-mini). Strong bumped to claude-sonnet-4-6 from haiku self-play default since haiku is tier-equivalent to mid - no real tier separation. BATNA fixed at beta-squeezed per operator (~50% historical deal rate gives leeway for harness/bare differentiation, vs symmetric where everyone sits at BATNA). Run order sequenced cheap-first: gpt-5.4-mini cells -> gpt-4.1-nano cells -> sonnet-bare -> sonnet-full last. | Operator: "let's bump mid-tier to 5.4, strong tier whatever is default, drop second scenario, use beta-squeezed - we want something that produces agreement ~half the time so models have some leeway" |
