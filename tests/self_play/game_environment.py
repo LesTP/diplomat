@@ -621,7 +621,14 @@ class GameEnvironment:
                 "and their private scoring table.\n"
                 "4. If no deal, each faction gets their BATNA score.\n"
                 "Be strict about what counts as agreement — positions must be "
-                "explicitly compatible, not just close."
+                "explicitly compatible, not just close.\n"
+                "\n"
+                "JSON formatting (critical): every numeric value must be a "
+                "single computed literal (e.g. `16`), never an arithmetic "
+                "expression (e.g. `3 + 10 + 3` is INVALID JSON and will be "
+                "rejected). Compute the sum yourself and emit the final "
+                "number. Use the `reasoning` field to show your work, not the "
+                "numeric value fields."
             ),
             user_prompt=(
                 f"Scoring tables:\n{json.dumps(self.scenario_analysis['scoring'], indent=2)}\n\n"
@@ -629,7 +636,7 @@ class GameEnvironment:
                 f"Issues:\n{json.dumps(self.scenario_analysis['issues'], indent=2)}\n\n"
                 f"Final round proposals:\n{factions_text}"
             ),
-            max_retries=1,
+            max_retries=3,
             attribution="scorer",
             purpose="scoring",
         )
