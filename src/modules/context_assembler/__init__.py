@@ -47,7 +47,11 @@ class DefaultContextAssembler:
         recent_events: list[StoredEvent],
         free_coaching: list[CoachingEntry],
         review_gate_enabled: bool,
+        bare_mode: bool = False,
     ) -> DecisionContext:
+        if bare_mode:
+            return self._assemble_bare(persona_prompt, recent_events, review_gate_enabled)
+
         included_events = self._limit_recent_events(recent_events)
         included_coaching = self._filter_coaching(free_coaching)
 
@@ -76,6 +80,31 @@ class DefaultContextAssembler:
                 "round_number": self._round_number(included_events),
                 "event_count": len(included_events),
                 "coaching_count": len(included_coaching),
+            },
+        )
+
+    def _assemble_bare(
+        self,
+        persona_prompt: str,
+        recent_events: list[StoredEvent],
+        review_gate_enabled: bool,
+    ) -> DecisionContext:
+        user_prompt = "\n\n".join(
+            [
+                "--- TRANSCRIPT ---\n" + self._format_recent_events(recent_events),
+                "--- TASK ---\n"
+                "Generate your faction's next message for the diplomatic channel.\n"
+                + self._format_output_instruction(review_gate_enabled),
+            ]
+        )
+        return DecisionContext(
+            system_prompt=persona_prompt.strip(),
+            user_prompt=user_prompt,
+            metadata={
+                "round_number": self._round_number(recent_events),
+                "event_count": len(recent_events),
+                "coaching_count": 0,
+                "bare_mode": True,
             },
         )
 
