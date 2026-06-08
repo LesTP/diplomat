@@ -569,28 +569,24 @@ class GameEnvironment:
             return {"error": "No scenario analysis available for scoring"}
 
         from toolkit.structured_llm import structured_call
+        from tests.self_play.verify_scenario_optimum import faction_score
 
+        # LLM extracts agreed outcomes only — the math is deterministic.
+        # Asking the LLM to compute faction points (sum lookup values) was
+        # unreliable: gpt-5.4-mini emitted arithmetic expressions as JSON
+        # values (run14a-2: "points": 3 + 10 + 3 -> invalid JSON) and
+        # over-counted faction totals beyond the scoring-table maxima
+        # (run14b-2: gamma 22 vs canonical 20). LLM identifies the deal,
+        # faction_score() computes the points from scenario_analysis.scoring.
         scoring_schema = {
             "type": "object",
-            "additionalProperties": False,
-            "required": ["deal_reached", "faction_scores", "reasoning"],
+            "required": ["deal_reached", "reasoning"],
             "properties": {
                 "deal_reached": {"type": "boolean"},
                 "agreed_outcomes": {
                     "type": "object",
                     "additionalProperties": {"type": "string"},
-                    "description": "Issue name -> agreed outcome, if deal reached",
-                },
-                "faction_scores": {
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "object",
-                        "properties": {
-                            "points": {"type": "number"},
-                            "batna": {"type": "number"},
-                        },
-                        "required": ["points", "batna"],
-                    },
+                    "description": "Issue name -> agreed outcome, if deal reached. Required when deal_reached is true.",
                 },
                 "reasoning": {"type": "string"},
             },
@@ -613,28 +609,26 @@ class GameEnvironment:
             schema=scoring_schema,
             system_prompt=(
                 "You are a negotiation game scorer. Given the final round's "
-                "proposals from all factions and the scoring tables, determine:\n"
+                "proposals from all factions, determine:\n"
                 "1. Whether a deal was reached (did all factions converge on "
                 "compatible terms?)\n"
                 "2. If yes, what the agreed outcomes are per issue.\n"
-                "3. Each faction's point score based on the agreed outcomes "
-                "and their private scoring table.\n"
-                "4. If no deal, each faction gets their BATNA score.\n"
                 "Be strict about what counts as agreement — positions must be "
-                "explicitly compatible, not just close.\n"
+                "explicitly compatible, not just close. If any issue lacks "
+                "unanimous agreement on a specific outcome, the deal is not "
+                "reached.\n"
                 "\n"
-                "JSON formatting (critical): every numeric value must be a "
-                "single computed literal (e.g. `16`), never an arithmetic "
-                "expression (e.g. `3 + 10 + 3` is INVALID JSON and will be "
-                "rejected). Compute the sum yourself and emit the final "
-                "number. Use the `reasoning` field to show your work, not the "
-                "numeric value fields."
+                "You do NOT compute faction point scores. Just identify the "
+                "agreed outcomes per issue (using the exact outcome strings "
+                "from the issue definitions). Point computation is "
+                "deterministic and handled by the calling code from the "
+                "scoring tables."
             ),
             user_prompt=(
-                f"Scoring tables:\n{json.dumps(self.scenario_analysis['scoring'], indent=2)}\n\n"
-                f"BATNAs:\n{json.dumps(self.scenario_analysis['batna'], indent=2)}\n\n"
-                f"Issues:\n{json.dumps(self.scenario_analysis['issues'], indent=2)}\n\n"
-                f"Final round proposals:\n{factions_text}"
+                f"Issues and possible outcomes:\n{json.dumps(self.scenario_analysis['issues'], indent=2)}\n\n"
+                f"Final round proposals:\n{factions_text}\n\n"
+                "Return deal_reached + (if reached) agreed_outcomes mapping "
+                "each issue name to its agreed outcome string + reasoning."
             ),
             max_retries=3,
             attribution="scorer",
@@ -645,6 +639,25 @@ class GameEnvironment:
             return {"error": f"Scoring failed: {result.error}"}
 
         score_data = dict(result.data)
+
+        # Deterministic point computation from agreed_outcomes (or BATNA on no-deal).
+        agreed_outcomes = score_data.get("agreed_outcomes") or {}
+        batnas = self.scenario_analysis.get("batna", {})
+        if score_data.get("deal_reached") and agreed_outcomes:
+            score_data["faction_scores"] = {
+                f: {
+                    "points": float(faction_score(self.scenario_analysis, f, agreed_outcomes)),
+                    "batna": float(batnas.get(f, 0.0)),
+                }
+                for f in self.scenario_analysis.get("factions", [])
+            }
+        else:
+            # No deal — everyone falls back to BATNA.
+            score_data["faction_scores"] = {
+                f: {"points": float(batnas.get(f, 0.0)), "batna": float(batnas.get(f, 0.0))}
+                for f in self.scenario_analysis.get("factions", [])
+            }
+
         score_data.update(_pareto_efficiency_metrics(self.scenario_analysis, score_data))
         score_data.update(_compute_baselines(self.scenario_analysis, score_data))
         return score_data
