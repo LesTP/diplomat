@@ -2,7 +2,7 @@
 phase: 34
 blocked: false
 state: execute
-steps_remaining: 2
+steps_remaining: 1
 ---
 
 # Diplomat — Development Plan
@@ -92,7 +92,7 @@ The build is the small-but-load-bearing prerequisite for the Run 14a-14f experim
 
 ### Part B — Tests
 
-- [ ] **Step 34.5 — Integration tests.** Add `tests/integration/test_bare_mode.py` with: (a) bare-mode orchestrator processes a round-end event without raising (no analyst-call, no intelligence row written); (b) bare-mode context-assembler produces correct shape under fake LLM client; (c) `bare_module_overrides()` integrates with `GameEnvironment` and produces a complete game (4 rounds, all factions act). Use existing fixtures from `tests/integration/conftest.py` + `tests/self_play/fake_llm_client.py`. ~5-8 new tests.
+- [x] **Step 34.5 — Integration tests.** Add `tests/integration/test_bare_mode.py` with: (a) bare-mode orchestrator processes a round-end event without raising (no analyst-call, no intelligence row written); (b) bare-mode context-assembler produces correct shape under fake LLM client; (c) `bare_module_overrides()` integrates with `GameEnvironment` and produces a complete game (4 rounds, all factions act). Use existing fixtures from `tests/integration/conftest.py` + `tests/self_play/fake_llm_client.py`. ~5-8 new tests.
 
 ### Part C — Docs
 
