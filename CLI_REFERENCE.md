@@ -149,6 +149,7 @@ python -m tests.self_play.run_simulation \
 | `--game-mode` | — | Runtime override for the compiled scenario's `game_mode` classification. Choices: `cooperative` / `competitive` / `mixed`. Applies a temporary persona overlay without touching `scenario_analysis.json` — lets you re-run the same scenario in a different posture without recompiling. |
 | `--per-faction-providers` | — | JSON map `{faction:{provider,model}}` — overrides only the Generator slot per faction. Other modules stay on shared primary/secondary. |
 | `--dry-run` | `false` | Zero-cost path: `DryRunLLMClient` returns canned responses. Use before any live multi-provider run. See `RUN_PROTOCOL.md`. |
+| `--bare-prompt` | `false` | Ablation mode: disables Extraction, Analyst, Divergence, Reconciliation, Adversarial, and Coaching. Context assembler produces persona + raw transcript only. Results JSON includes `bare_mode: true`. ~10-20× cheaper per game than full mode. See `tests/self_play/bare_mode.py`. |
 
 **Workflow recommendations:**
 - Always dry-run first to catch plumbing bugs (~$0 instead of ~$1)

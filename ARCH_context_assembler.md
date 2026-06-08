@@ -8,7 +8,7 @@ INTEL coaching notes are deliberately excluded from the assembled context — th
 ## Public API
 
 ### assemble
-- **Signature:** `async def assemble(self, persona_prompt: str, round_context: str, intelligence: dict, divergences: list[Divergence], recent_events: list[StoredEvent], free_coaching: list[CoachingEntry], review_gate_enabled: bool) -> DecisionContext`
+- **Signature:** `async def assemble(self, persona_prompt: str, round_context: str, intelligence: dict, divergences: list[Divergence], recent_events: list[StoredEvent], free_coaching: list[CoachingEntry], review_gate_enabled: bool, bare_mode: bool = False) -> DecisionContext`
 - **Parameters:**
   - persona_prompt: str — from Persona.get_base_prompt()
   - round_context: str — from Persona.build_round_context()
@@ -17,6 +17,7 @@ INTEL coaching notes are deliberately excluded from the assembled context — th
   - recent_events: list[StoredEvent] — from Event Store (last N messages)
   - free_coaching: list[CoachingEntry] — unconsumed coaching queue entries (PRIORITY, CONSTRAINT, TONE, WATCH, FREE — not INTEL)
   - review_gate_enabled: bool — controls output format instruction (JSON vs plain text)
+  - bare_mode: bool = False — when True, delegates to bare path (see §Bare Mode below)
 - **Returns:** DecisionContext
 - **Errors:** none
 
@@ -64,6 +65,17 @@ Generate your faction's next message for the diplomatic channel.
 Treat analyst divergences as genuinely uncertain.
 {JSON output instruction if review gate enabled | plain text instruction if not}
 ```
+
+## Bare Mode
+
+When `bare_mode=True`, `assemble()` delegates to `_assemble_bare()` and produces a stripped `DecisionContext` suitable for the ablation experiment (Phase 34):
+
+- **system_prompt:** `persona_prompt` only (includes BATNA, scoring table, strategic notes — these are scenario inputs, not harness output)
+- **user_prompt:** raw concatenated transcript of all `recent_events` (no limit applied) + minimal task instruction
+- **Omitted:** round context, intelligence report, divergences, coaching, recent-events filtering
+- **metadata:** includes `bare_mode: True` and `coaching_count: 0`
+
+Bare mode is only reachable via the self-play `--bare-prompt` flag. The production pipeline never passes `bare_mode=True`. Its purpose is ablation: removing the harness layers lets you compare bare-prompt vs full-harness outcomes on identical scenarios.
 
 ## Inputs
 - All parameters listed above, provided by the Orchestrator from their respective modules

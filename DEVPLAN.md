@@ -1,8 +1,8 @@
 ---
 phase: 34
 blocked: false
-state: execute
-steps_remaining: 1
+state: review
+steps_remaining: 2
 ---
 
 # Diplomat — Development Plan
@@ -96,7 +96,7 @@ The build is the small-but-load-bearing prerequisite for the Run 14a-14f experim
 
 ### Part C — Docs
 
-- [ ] **Step 34.6 — Documentation update.** Files to update before phase-review:
+- [x] **Step 34.6 — Documentation update.** Files to update before phase-review:
   - `ARCH_context_assembler.md` — document the `bare_mode` parameter and the resulting context shape (persona + raw transcript only).
   - `ARCH_orchestrator.md` (or `ARCH_flow.md` if the bare-mode flag lives at the flow layer) — note the `bare_module_overrides` injection pattern as an experimental-harness mechanism, similar to how `coached_game.py` injects `TelegramReviewGate`.
   - `ARCHITECTURE.md` — add a one-line note in the Extension Points section: "Bare-prompt ablation mode: pass `bare_module_overrides()` as `extra_module_overrides` to disable Extraction/Analyst/Divergence/Reconciliation/Adversarial/Coaching for ablation experiments. See `tests/self_play/bare_mode.py`."

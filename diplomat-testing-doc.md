@@ -1316,6 +1316,36 @@ subsection when `results["scores"]` is present. Phase 28 also adds a
 `near_miss`, `converging_factions`, `dissenting_faction`, and
 `defection_event_log`.
 
+### 6.2b Bare-Prompt Ablation Mode
+
+Bare-prompt mode (Phase 34) runs an all-bare game for ablation experiments — measuring whether the harness contributes to negotiation outcomes or whether a bare-prompt agent (Persona + raw transcript + Generation only) performs comparably.
+
+```bash
+# Dry-run (validates plumbing, ~$0)
+python -m tests.self_play.run_simulation --dry-run --bare-prompt \
+    --rounds 4 --scenario tests/self_play/scenarios/water_rights.md \
+    --analysis-json tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json \
+    --output tests/self_play/results/bare_dryrun.json
+
+# Live bare-prompt game
+python -m tests.self_play.run_simulation --bare-prompt \
+    --rounds 4 --scenario tests/self_play/scenarios/water_rights.md \
+    --analysis-json tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json \
+    --output tests/self_play/results/bare_live.json
+```
+
+**What bare mode disables:** Extraction, Analyst (primary + secondary), Divergence, Reconciliation, Adversarial, and Coaching. Only Transport, Persona, Generation, and (auto-approve) Review Gate remain active.
+
+**Context shape in bare mode:** `system_prompt` = persona prompt only; `user_prompt` = raw transcript of all rounds to date + minimal task instruction. No intelligence report, divergences, coaching, or round-context structuring.
+
+**Cost:** ~10-20× cheaper per game than full mode (~$0.02 for a 4-round game with gpt-4.1-mini vs ~$1 full). Makes the Run 14a-14f ablation matrix (~36 runs) achievable at $10-20 total instead of $60-100.
+
+**Results JSON:** includes `"bare_mode": true` in metadata for grouping runs in `tools/ablation_summary.py`.
+
+**Implementation:** `tests/self_play/bare_mode.py` contains `bare_module_overrides(state_manager)` and the stand-in classes. `GameEnvironment(bare_mode=True)` calls this automatically.
+
+Compare bare vs full runs at the same model tier and scenario to measure the harness contribution. See `NEXT_STEPS.md` §10 for the full Run 14a-14f experimental matrix.
+
 ### 6.3 Scenario Compiler
 
 The compiler (`src/tools/scenario_compiler.py`) is a pre-game preparation tool, usable for both self-play testing and real game deployment. It uses `structured_call` to extract from a narrative:

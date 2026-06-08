@@ -708,7 +708,7 @@ The third / fourth row is the uncomfortable outcome. **Better to learn it now th
 
 ### TODOs
 
-- [ ] **Phase 34 build** — see `DEVPLAN.md`. ~6 steps, all 🔨 pure build. Smoke at step 34.4 (~$1 live run) validates the path before any experimental runs fire.
+- [x] **Phase 34 build** — Closed 2026-06-08. 6 steps: bare module set helper, bare context-assembler path, `--bare-prompt` flag, smoke validation (live cost ~$0.02 vs ~$1 projected — bare mode is ~10-20× cheaper), integration tests (414 passing), documentation. `tests/self_play/bare_mode.py` + `--bare-prompt` flag in `run_simulation.py`.
 - [ ] **Runs 14a-14f** — operator-driven post-Phase-34. Sequencing as above.
 - [ ] **`tools/ablation_summary.py`** — write after the run data accumulates (don't pre-build; the right shape will be obvious once we see real numbers).
 - [ ] **Decision: project direction.** After Run 14f closes, the operator reviews the ablation summary and makes a project-direction call:

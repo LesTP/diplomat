@@ -134,6 +134,15 @@ changes are required unless the new driver needs a genuinely new
 capability. In that case, extend `Pipeline` first and keep the Flow as a
 scheduler.
 
+## Experimental Harness Configurations
+
+`GameEnvironment` accepts `extra_module_overrides` to substitute stand-in implementations for pipeline modules — used by two experimental configurations:
+
+- **Coached self-play** (`tests/self_play/coached_game.py`): injects `OperatorReviewGate` / `TelegramBotTransport` for one faction, routing that faction through a live Telegram review loop while other factions auto-approve.
+- **Bare-prompt ablation** (`tests/self_play/bare_mode.py`): `bare_module_overrides(state_manager)` produces no-op stand-ins for Extraction, Analyst, Divergence, Reconciliation, Adversarial, and Coaching. `GameEnvironment(bare_mode=True)` calls this automatically and sets `bare_mode=True` on each faction's `OrchestrationOptions` so `DefaultContextAssembler` assembles persona + raw transcript only. Enables the Phase 34 ablation experiment (does the harness contribute, or could a bare-prompt agent perform comparably?).
+
+Neither configuration touches production code. The `extra_module_overrides` seam is the intended extension point for experimental module substitution.
+
 ## Testing
 
 Contract coverage lives in:

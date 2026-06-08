@@ -603,3 +603,25 @@ End-to-end smoke of `--bare-prompt` via RUN_PROTOCOL sequence (probe → dry-run
 
 **2026-06-08 — Step 34.5: Integration tests**
 New `tests/integration/test_bare_mode.py` with 8 tests covering: (a) `handle_round_boundary()` completes without exception in bare mode; (b) no intelligence rows written (analyst no-op early return skips `_store_intelligence`); (c) no LLM calls during round boundary; (d) generation call's system prompt is the persona (not empty); (e) user prompt has no INTELLIGENCE REPORT / DIVERGENCE / COACHING sections; (f) user prompt contains injected transcript text; (g) `GameEnvironment` default `bare_mode=False` produces correct result; (h) `GameEnvironment(bare_mode=True)` produces `bare_mode=True` in results with all 3 factions responding across 4 rounds. 414 tests passing.
+
+## 2026-06-08 — Phase 34 close: Bare-prompt mode for ablation experiments
+
+Phase 34 closed 6 steps. All 🔨 pure build, no live LLM spend during build (DryRun + fakes throughout). Step 34.4 smoke was one live Water Rights run with gpt-4.1-mini (~$0.02, far below the ~$1 projection — bare mode is ~10-20× cheaper per game than full mode). No scope expansion; no production pipeline changes (bare mode is self-play / ablation-only).
+
+**What was built:**
+
+- **Step 34.1 (bare module set helper):** `tests/self_play/bare_mode.py` — `bare_module_overrides(state_manager)` returns no-op stand-ins for Extraction, primary and secondary Analyst, Divergence, Adversarial, and Coaching. Each stand-in returns the correct pipeline-compatible shape without calling any LLM. `_BareReconciler` handled separately (wired by `GameEnvironment.setup()` as `orchestrator.reconciler` after setup). 14 unit tests in `tests/test_bare_mode.py`.
+
+- **Step 34.2 (bare context-assembler path):** `DefaultContextAssembler.assemble()` gains `bare_mode: bool = False`. When True, delegates to `_assemble_bare()`: `system_prompt=persona_prompt`, `user_prompt=raw transcript + minimal task instruction`, no recent-events limit, no intel/divergences/coaching sections. Metadata includes `bare_mode: True`. 5 new tests.
+
+- **Step 34.3 (--bare-prompt flag):** `OrchestrationOptions` gains `bare_mode: bool = False`; `_build_decision_context` threads it to `context_assembler.assemble()`. `GameEnvironment.__init__` gains `bare_mode: bool = False`; `setup()` injects bare module overrides + `_BareReconciler` when enabled. Results JSON gains `bare_mode` field. `run_simulation.py` gains `--bare-prompt` flag. 3 new tests.
+
+- **Step 34.4 (smoke validation):** Probe → dry-run → live per `RUN_PROTOCOL.md`. Water Rights γ-squeezed, gpt-4.1-mini. Dry-run: 21 transcript entries, `bare_mode=true` in JSON. Live: 12 GEN + 1 SCORE (no EXT/ANALYST/ADV/RECON). No deal (all at BATNA) — consistent with no Analyst surfacing Pareto trades. Cost: ~$0.02 (vs ~$1 full mode).
+
+- **Step 34.5 (integration tests):** `tests/integration/test_bare_mode.py` — 8 tests: round boundary without exception, no intelligence rows written, no LLM calls during boundary, persona in system prompt, no INTELLIGENCE/DIVERGENCE/COACHING in user prompt, transcript injected, `bare_mode=False` default, full 4-round bare game. 414 tests passing.
+
+- **Step 34.6 (documentation):** `ARCH_context_assembler.md` (bare_mode param + Bare Mode section), `ARCH_flow.md` (Experimental Harness Configurations section), `ARCHITECTURE.md` (Extension Points bare-prompt note), `CLI_REFERENCE.md` (--bare-prompt flag in run_simulation table), `diplomat-testing-doc.md` (§6.2b bare-prompt ablation mode), `NEXT_STEPS.md` (Phase 34 build checked off), `DEVLOG.md` (this entry).
+
+**Key finding from smoke (Step 34.4):** Bare mode cost ~$0.02 for a 4-round game vs ~$1 projected (~50× cheaper). The Run 14a-14f ablation matrix (~36 runs) is achievable at ~$10-20 total instead of ~$60-100. The no-deal result (all factions at BATNA) is the expected bare-mode outcome — without the Analyst surfacing Pareto trades, agents have no mechanism to discover joint gains.
+
+**Closes:** Phase 34. **Queues:** Run 13b (coached game with `/revise:` edit modes) + Run 14a-14f (ablation matrix) in `NEXT_STEPS.md` §4 and §10.
