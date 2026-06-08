@@ -619,10 +619,12 @@ The third / fourth row is the uncomfortable outcome. **Better to learn it now th
   - If harness load-bearing → continue building harness features (per existing NEXT_STEPS Tier 2 / Tier 3 work).
   - If mixed → spawn a per-module ablation phase (Phase 35 candidate) to find which modules actually matter.
   - If harness theater → spawn a "Diplomat-lite" planning phase to scope out a much smaller surface area.
+  - **NEW (2026-06-08):** Consider a fourth option: **§8 reverse builder → game-theoretic scenarios → re-ablation** (per `RESEARCH_NOTES.md` Note 1). The current scenario is "scale-1" on every harness-relevant axis (context, factions, deception, async, horizon), so the modest-lift result may not extrapolate. Validating via richer scenarios is the lowest-risk path before committing project direction either way.
 
 ### Follow-up flavors (deferred — only if v1 results warrant)
 
-- **Add second scenario** (Three-Party Coalition compile, OR new Trade Summit compile): doubles runs to 36. Justified if Water Rights β-squeezed v1 result is scenario-suspect (e.g. "bare loses badly but only because the scenario hits a harness-specific feature").
+- **Scale-up scenarios per `RESEARCH_NOTES.md` Note 1.** Build §8 reverse builder, then compile complexity-axis scenarios (Nash≠Pareto, multiple Pareto, long-horizon Water Rights, wide-Water-Rights, repeated-game, §2-pressured) and re-run the 18-run matrix on each. Tests whether harness contribution grows with scenario complexity as the thesis predicts. ~$50-150 + Phase-35-sized build for §8.
+- **Add second scenario** (Three-Party Coalition compile, OR new Trade Summit compile): doubles runs to 36. Justified if Water Rights β-squeezed v1 result is scenario-suspect.
 - **Thorough flavor** (~$150-250, 81 runs): adds a "medium harness" mode (full minus adversarial + minus reconciliation) and a third scenario. Use only if v1 + scenario-add results are interesting AND we want to find the harness elbow.
 - **Per-module ablation** (Phase 35 candidate): full minus extraction, full minus analyst, full minus reconciliation, etc. Use only if v1 shows mixed results that justify finding which pieces help.
 - **Per-faction mixed-mode games**: one bare faction vs two full opponents (adversarial bare). Different question — measures "does harness help when other agents have it" rather than "does harness help in symmetric games." Deferred.
