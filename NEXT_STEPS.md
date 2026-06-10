@@ -73,7 +73,7 @@ cross-references.
 | Item | Tags | Loop | Where | Notes |
 |---|---|---|---|---|
 | **Game pressure beyond BATNA + divorce scenario** | `[C]` | 🔀 | §2 | Run 10 confirmed BATNA is refusal-strengthening; round-cost decay + exogenous events are the missing concession-eliciting mechanisms. Works with current Stage 1 round model (extra rounds, not multi-pass). |
-| **Reverse scenario builder** | `[C]` | 🔀 | §8 | Outcome-shape → scenario. Best done after one divorce scenario surfaces the constraint vocabulary. |
+| **Reverse scenario builder** | `[C]` | ✓ built | §8 | Phase 35 closed. `tools.scenario_builder` ships `ScenarioSpec` + hill-climb search + `--verify`. Operator follow-up: author `multi_pareto_v1/` proof-of-concept scenario. |
 | **Pareto-frontier annotation in analyst output** | `[C][B]` | 🔀 | §2 TODOs | Analyst surfaces threats/leverage; add Pareto-compromise opportunities. Schema + prompt change. |
 | **Surplus-distribution diagnosis** | `[C]` | 👁 | Backlog | Cross-scenario investigation of "why does gamma extract 52-55% of surplus?" Likely game-theoretic; if confirmed, a scenario-design lever. |
 | **Identify-the-blocker tool** | `[C][X]` | 🔀 | (loop-readiness) | Pre-game LLM analyst pass over scoring tables to predict squeeze target. Lower priority post-Run 10 but still a useful scenario-design aid. |
@@ -517,9 +517,11 @@ baseline, §1.8 cross-scenario) are higher-leverage and cheaper to run first.
 
 ---
 
-## 8. `[C]` Reverse scenario builder (outcome-shape → scenario)
+## 8. `[C]` ✓ Reverse scenario builder (outcome-shape → scenario) — Phase 35 built
 
-**Scope:** Inverse of the existing forward pipeline. Operator specifies desired
+**Status:** Phase 35 closed 2026-06-10. `src/tools/scenario_builder.py` ships with `ScenarioSpec` + `IssueSpec` dataclasses (`src/tools/scenario_spec.py`), fitness scoring (`src/tools/scenario_fitness.py`), random-restart hill-climb search, output emission via existing compiler helpers, and `--verify` integration. See `CLI_REFERENCE.md` `tools.scenario_builder` for flags and spec schema. Operator follow-up: author `multi_pareto_v1/` proof-of-concept scenario using the tool.
+
+**Scope (original):** Inverse of the existing forward pipeline. Operator specifies desired
 outcome-distribution properties; tool generates issues / outcomes / scoring
 tables / BATNAs that satisfy them.
 

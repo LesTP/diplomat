@@ -22,6 +22,7 @@ Cross-references point at fuller discussion in `TUNING.md`, `DEVPLAN.md`,
 | Run a self-play game with one Telegram-coached faction | [`tests.self_play.coached_game`](#testsself_playcoached_game--coached-self-play-runner) |
 | Validate plumbing without spending money | `--dry-run` flag on `run_simulation` |
 | Compile a narrative scenario into personas | [`tools.scenario_compiler`](#toolsscenario_compiler--narrative--scored-personas) |
+| Generate a scenario from outcome-shape constraints | [`tools.scenario_builder`](#toolsscenario_builder--constraint-driven-scenario-generator) |
 | Check providers are reachable before a live run | [`tests.self_play.probe_providers`](#testsself_playprobe_providers--live-provider-auth--parse-check) |
 | Assert dry-run output meets invariants | [`tests.self_play.verify_dryrun`](#testsself_playverify_dryrun--assert-dry-run-output-invariants) |
 | Check a scenario has a non-trivial optimum before running | [`tests.self_play.verify_scenario_optimum`](#testsself_playverify_scenario_optimum--enumerate-scenario-outcomes) |
@@ -309,6 +310,85 @@ After compilation, prints any per-faction BATNA pressure warnings from
 
 ---
 
+### `tools.scenario_builder` — constraint-driven scenario generator
+
+Reverse of `tools.scenario_compiler`. Operator writes a `ScenarioSpec` JSON
+file declaring desired outcome-shape properties; the tool searches scoring-table
+space via random-restart hill-climb and emits a `scenario_analysis.json` +
+per-faction `.txt` persona directory compatible with `run_simulation.py`.
+
+No LLM calls — pure combinatorial search. `logrolling` and `deception_tactics`
+fields are emitted as stubs; fill them by hand or by running
+`tools.scenario_compiler` over the generated tables.
+
+```bash
+# Build a scenario from a spec, verify the Pareto count matches the target
+python -m tools.scenario_builder \
+    --spec tests/self_play/specs/multi_pareto.json \
+    --output-dir tests/self_play/scenarios/multi_pareto_v1 \
+    --title "Multi-Pareto River Basin" \
+    --verify
+
+# Reproducible run with fixed seed
+python -m tools.scenario_builder \
+    --spec tests/self_play/specs/multi_pareto.json \
+    --output-dir /tmp/scenario_test \
+    --seed 42 \
+    --max-iterations 2000 \
+    --verify
+```
+
+| Flag | Default | Notes |
+|---|---|---|
+| `--spec` * | — | Path to `ScenarioSpec` JSON file (see spec schema below) |
+| `--output-dir` * | — | Directory to write `scenario_analysis.json` and per-faction `.txt` persona files |
+| `--title` | `"a reverse-engineered negotiation"` | Scenario title used in persona text headers |
+| `--seed` | `None` (from spec's `seed` field) | Override the spec's random seed |
+| `--max-iterations` | `1000` | Maximum hill-climb restarts before declaring failure |
+| `--verify` | `false` | After emission, run `verify_scenario_optimum` on the result; exit non-zero if it reports FAIL |
+
+**Spec schema** (`ScenarioSpec` JSON):
+
+```json
+{
+  "factions": ["alpha", "beta", "gamma"],
+  "issues": [
+    {
+      "name": "Water Allocation",
+      "outcomes": ["low", "medium", "high"],
+      "description": "Share of river flow"
+    }
+  ],
+  "score_range": [1, 10],
+  "pareto_count_target": 3,
+  "pareto_distribution_spread": 1.5,
+  "batna_clearing_count_target": 2,
+  "batna_to_pareto_gap_pct": 0.15,
+  "requires_logrolling": true,
+  "priority_collision": "soft",
+  "asymmetric_batna_fractions": {"alpha": 0.65, "beta": 0.45},
+  "game_mode": "mixed",
+  "seed": 42
+}
+```
+
+| Field | Type | Default | Notes |
+|---|---|---|---|
+| `factions` * | list[str] | — | Faction IDs (≥ 2, unique) |
+| `issues` * | list[IssueSpec] | — | Each issue has `name`, `outcomes` (list, ≥ 2, unique), optional `description` |
+| `score_range` | [int, int] | `[1, 10]` | Min/max score value for every cell in the scoring table |
+| `pareto_count_target` | int or [min, max] | `1` | Target number of Pareto-optimal deals; range tuple accepted |
+| `pareto_distribution_spread` | float | `0.0` | Min stdev of per-faction max–min scores across Pareto deals (spread enforcement) |
+| `batna_clearing_count_target` | int | `1` | Minimum number of deals that beat BATNA for every faction |
+| `batna_to_pareto_gap_pct` | float (0–1) | `0.10` | Minimum gap between best BATNA and worst Pareto deal, as fraction of score range |
+| `requires_logrolling` | bool | `false` | Emit a logrolling stub in `scenario_analysis.json` (structural flag; not enforced combinatorially) |
+| `priority_collision` | `"none"` \| `"soft"` \| `"hard"` | `"none"` | Priority-collision property target (soft/hard = overlapping faction priorities) |
+| `asymmetric_batna_fractions` | dict[str, float] | `{}` | Per-faction BATNA fraction overrides; unspecified factions use `0.50` |
+| `game_mode` | `"cooperative"` \| `"competitive"` \| `"mixed"` | `"mixed"` | Recorded in emitted analysis; no effect on search |
+| `seed` | int | `0` | Random seed for reproducibility; overridden by `--seed` flag |
+
+---
+
 ## Prompt regression
 
 ### `tests.prompt_regression.runner` — scenario-based prompt eval
@@ -552,3 +632,4 @@ procedure to validate the Diplomat bot on the Raspberry Pi after code changes.
 | 2026-05-30 | Expanded: added inspection-tools section, env-var table for `main.py`, workflow examples, by-purpose quick index, toolkit cross-reference, examples for every command. |
 | 2026-05-30 | Documented `tools/service.sh` (the actual bot-lifecycle mechanism — nohup-based wrapper around `src/main.py`). Updated `tools/inspect_ledger.py` entry to match the new flag-driven version (`--selfplay`, `--path`, `--show`). Updated by-purpose quick index to route "run the bot" at `service.sh`. |
 | 2026-06-07 | Phase 33: added `tools/classify_edit_log.py` entry (bulk edit-log classifier); added "classify the review-gate edit log" row to quick index. |
+| 2026-06-10 | Phase 35: added `tools.scenario_builder` section (constraint-driven scenario generator; `--spec`, `--output-dir`, `--title`, `--seed`, `--max-iterations`, `--verify`); added quick-index row. |
