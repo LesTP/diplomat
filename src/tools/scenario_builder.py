@@ -8,8 +8,10 @@ analysis.
 
 from __future__ import annotations
 
+import argparse
 import copy
 import random
+import sys
 from pathlib import Path
 from dataclasses import dataclass
 from typing import Any
@@ -199,3 +201,91 @@ def build_and_save_scenario(
         scenario_title,
     )
     return analysis, analysis_path, persona_paths
+
+
+def _parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Reverse scenario builder — constraint-driven scenario generator.",
+    )
+    parser.add_argument("--spec", required=True, help="Path to scenario spec JSON")
+    parser.add_argument("--output-dir", required=True, help="Directory to write scenario artifacts")
+    parser.add_argument(
+        "--title",
+        default="a reverse-engineered negotiation",
+        help="Scenario title used in persona text",
+    )
+    parser.add_argument("--seed", type=int, default=None, help="Random seed override")
+    parser.add_argument(
+        "--max-iterations",
+        type=int,
+        default=1000,
+        help="Maximum hill-climb restarts (default 1000)",
+    )
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help=(
+            "After emitting the scenario, run verify_scenario_optimum on the "
+            "emitted JSON; exit non-zero if verification fails."
+        ),
+    )
+    return parser.parse_args()
+
+
+def _run(args: argparse.Namespace) -> None:
+    spec_path = Path(args.spec)
+    if not spec_path.is_file():
+        print(f"ERROR: spec file not found: {spec_path}", file=sys.stderr)
+        sys.exit(1)
+
+    from tools.scenario_spec import load_spec
+
+    spec = load_spec(spec_path)
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    print(f"Building scenario from spec: {spec_path.name}")
+    print(f"  Factions: {', '.join(spec.factions)}")
+    print(f"  Issues: {', '.join(i.name for i in spec.issues)}")
+    print(f"  Pareto count target: {spec.pareto_count_target}")
+    print(f"  Max restarts: {args.max_iterations}")
+
+    try:
+        analysis, analysis_path, persona_paths = build_and_save_scenario(
+            spec,
+            output_dir,
+            scenario_title=args.title,
+            max_restarts=args.max_iterations,
+            seed=args.seed,
+        )
+    except RuntimeError as exc:
+        print(f"\nERROR: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    print("\nScenario emitted:")
+    print(f"  Analysis: {analysis_path}")
+    for faction_id, path in persona_paths.items():
+        print(f"  Persona ({faction_id}): {path}")
+
+    if args.verify:
+        from tests.self_play.verify_scenario_optimum import main as _verify_main
+
+        old_argv = sys.argv
+        sys.argv = ["verify_scenario_optimum", "--analysis", str(analysis_path)]
+        try:
+            rc = _verify_main()
+        finally:
+            sys.argv = old_argv
+        if rc != 0:
+            print(f"\nVERIFY FAILED (exit code {rc})", file=sys.stderr)
+            sys.exit(rc)
+        print("\nVERIFY PASSED")
+
+
+def main() -> None:
+    args = _parse_args()
+    _run(args)
+
+
+if __name__ == "__main__":
+    main()
