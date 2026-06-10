@@ -1,0 +1,34 @@
+{
+  "factions": ["alpha", "beta", "gamma"],
+  "issues": [
+    {
+      "name": "mission_objective",
+      "outcomes": ["Science-Priority", "Exploration-Priority", "Commercial-Tech-Demo"],
+      "description": "Primary purpose of the joint mission."
+    },
+    {
+      "name": "hardware_lead",
+      "outcomes": ["Alpha-Lead", "Joint-Build", "Gamma-Lead"],
+      "description": "Which agency leads design and integration of the primary spacecraft."
+    },
+    {
+      "name": "funding_split",
+      "outcomes": ["Equal-Thirds", "Commercial-Heavy", "Government-Heavy"],
+      "description": "How the mission's total cost is divided across the three agencies."
+    }
+  ],
+  "score_range": [1, 10],
+  "pareto_count_target": [3, 5],
+  "pareto_distribution_spread": 0.35,
+  "batna_clearing_count_target": 10,
+  "batna_to_pareto_gap_pct": 0.45,
+  "requires_logrolling": true,
+  "priority_collision": "soft",
+  "asymmetric_batna_fractions": {
+    "alpha": 0.50,
+    "beta": 0.50,
+    "gamma": 0.50
+  },
+  "game_mode": "mixed",
+  "seed": 42
+}

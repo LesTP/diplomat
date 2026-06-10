@@ -1,7 +1,7 @@
 ---
-phase: 35
-blocked: true
-state: close
+phase: 36
+blocked: false
+state: plan
 steps_remaining: 0
 ---
 
@@ -53,8 +53,57 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 35 closed 2026-06-10; see `DEVLOG.md` Phase 35 close for that build summary. No next phase planned — awaiting operator direction (Run 14a-14f ablation matrix or `multi_pareto_v1/` proof-of-concept scenario; see `NEXT_STEPS.md` §8 and §10).
-- **Blocked/Broken** — none. `blocked: false`.
+- **Phase** — Phase 36 queued — Scenario Builder Search Improvements. Phase 35 shipped the builder but empirical operator probes (2026-06-10) showed the random-restart hill-climb does not converge on realistic 3-faction × 3-issue × 3-outcome specs with 5-6 simultaneous strict constraints in reasonable budget. Phase 36 adds soft constraints, simulated annealing, smarter initialization, and instrumentation. Success criterion = converging on the operator-authored `tests/self_play/scenarios/joint_space_mission_v1/spec.json` within a 5-minute budget.
+- **Deferred — Phase B (proof-of-concept scenario):** Joint Space Mission scenario authoring (`tests/self_play/scenarios/joint_space_mission_v1/`) deferred pending Phase 36 close. Spec already authored and committed as the Phase 36 success criterion. Operator design choices captured: domain = Joint Space Mission, factions = alpha (NASA-style) / beta (ESA-style) / gamma (commercial), 3 issues (mission_objective, hardware_lead, funding_split), target 3-5 distinct Pareto deals with distribution spread ≥0.35, symmetric BATNAs at 0.50, soft priority collision, seed=42. Live self-play smoke (~$0.30) as final check before any ablation run.
+- **Queued operator-driven work:** Run 14a-14f bare-prompt ablation matrix (`NEXT_STEPS.md` §10); Run 13b coached re-test (`NEXT_STEPS.md` §4).
+- **Blocked/Broken** — none. `blocked: false` — Phase 36 ready for loop dispatch.
+
+## Phase 36: Scenario Builder Search Improvements — In Progress
+
+**Goal.** Make `tools.scenario_builder` converge on realistic 3-faction × 3-issue × 3-outcome specs with multi-constraint targets. Success criterion: the tool successfully generates a passing scenario from `tests/self_play/scenarios/joint_space_mission_v1/spec.json` within a 5-minute wall-clock budget on dev hardware. Phase scope = search algorithm + fitness shaping + instrumentation only; no LLM dependency added in this phase (LLM-guided proposal is a follow-up if pure-algorithmic improvements don't suffice).
+
+**Why now.** Operator probes on 2026-06-10 showed the current pure-greedy hill-climb fails to satisfy our v1 spec even at 80 random restarts (~57s). Diagnosis: (a) binary categorical signals (logrolling presence, priority-collision level) produce no gradient for local moves, (b) per-target distances are unweighted L1 and categorical mismatches dominate (distance=1.0 vs ~0.1 for continuous near-miss), (c) `satisfies(0.10)` requires *every* target within tolerance — strict AND of strict bounds, no soft trade-off. The 2×2×2 test fixture passes because its targets are loose and the deal space is tiny; realistic specs need algorithmic improvements.
+
+**Out of scope (deferred follow-ups).**
+- LLM-guided scoring-table proposal (`structured_call` to generate candidate tables from the spec text) — try only if Phase 36's pure-algorithmic improvements still fall short on richer specs.
+- Larger-than-3×3×3 search spaces (e.g., 4 issues, 5 factions). Phase 36 targets 3×3×3 success; larger spaces are a follow-up phase.
+- Phase B execution (using the improved tool to ship `joint_space_mission_v1/`). Operator-driven post-close work.
+
+**Steps.**
+
+- [ ] **36.1 — Instrument the search loop.** Add structured logging to `_search_loop` in `src/tools/scenario_builder.py`. Per-restart: log starting fitness, ending fitness, restart-exit reason (`accepted` / `plateau` / `budget_exhausted`), per-target distances at exit. New `--debug-search` CLI flag in `_parse_args` enables verbose progress output (default off — silent for normal runs). Add 1 unit test asserting log records have a stable schema across runs. Existing tests continue to pass.
+
+- [ ] **36.2 — Soft constraints with per-target weights.** Extend `ScenarioSpec` with optional `target_weights: dict[str, float]` (default `{}`); when unset, all targets weight 1.0. Update `compute_fitness` in `src/tools/scenario_fitness.py` so `total_distance = sum(weight[k] * distance[k])` and `satisfies(tolerance)` becomes `sum(weighted distances) <= tolerance` (soft total budget) rather than per-target AND. Categorical targets (`requires_logrolling`, `priority_collision`, `game_mode`) get default weight `0.3` so a single categorical mismatch doesn't bust the budget. Add tests for: weighted-distance arithmetic, default weights, total-budget satisfaction.
+
+- [ ] **36.3 — Simulated annealing in the local-move loop.** Replace pure greedy single-cell flips in `_best_single_cell_flip` / inner loop with temperature-cooled acceptance — accept worse-distance candidates with probability `exp(-Δdistance / T)`. Temperature schedule: start `T=1.0`, cool geometrically to `T=0.01` over `max_local_moves`. Add `_anneal_local` helper. Tests: deterministic with seed, accepts at least one uphill move on a hand-built plateau trap, converges on the 2×2×2 fixture as before.
+
+- [ ] **36.4 — Smarter random initialization.** Bias initial scoring tables toward target categorical constraints. If `spec.priority_collision == "soft"` is requested, initialize so at least 2 of N factions share a priority issue (pick one shared "consensus issue" and bias those factions' scoring there). If `spec.requires_logrolling == True`, plant one deal where every faction is at ≥80% of their score-range max. Initialization helper isolated in `_seed_scoring_table(spec, rng)`. Tests: seeded tables start with lower fitness than uniform random on average across 50 seeds.
+
+- [ ] **36.5 — Validate on the operator spec.** Run `python -m tools.scenario_builder --spec tests/self_play/scenarios/joint_space_mission_v1/spec.json --output-dir <tmp> --seed 42 --max-iterations 1000 --verify` end-to-end. Required outcome: completes within 5 minutes wall-clock on dev hardware, emits passing `scenario_analysis.json`, `verify_scenario_optimum` reports PASS. If the spec still fails, document the lowest-distance candidate the tool found + per-target distances in `DEVLOG.md` and adjust either the search (more iterations / different initialization) or document the spec as infeasible for current tooling and queue a phase to add LLM-guided proposal.
+
+- [ ] **36.6 — Doc updates.** Update `CLI_REFERENCE.md` `tools.scenario_builder` section with the new `--debug-search` flag, `target_weights` spec field, and example invocation. Append a paragraph to the `NEXT_STEPS.md` §8 entry noting Phase 36's success criterion and what's still deferred. Update `ARCHITECTURE.md` Implementation Sequence row for scenario_builder with Phase 36 status.
+
+- [ ] **36.7 — Phase close.** Append Phase 36 close entry to `DEVLOG.md` summarizing what shipped (file list, test count delta, validation outcome on the operator spec). Move Phase 35's heading down under the `<!-- history -->` divider per the established pattern.
+
+**Files to modify.**
+- `p:\shared\diplomat\src\tools\scenario_builder.py` (steps 36.1, 36.3, 36.4)
+- `p:\shared\diplomat\src\tools\scenario_fitness.py` (step 36.2)
+- `p:\shared\diplomat\src\tools\scenario_spec.py` (step 36.2 — `target_weights` field)
+- `p:\shared\diplomat\tests\test_scenario_builder.py` (steps 36.1, 36.3, 36.4)
+- `p:\shared\diplomat\tests\test_scenario_fitness.py` (step 36.2)
+- `p:\shared\diplomat\tests\test_scenario_spec.py` (step 36.2)
+- `p:\shared\diplomat\CLI_REFERENCE.md`, `p:\shared\diplomat\NEXT_STEPS.md`, `p:\shared\diplomat\ARCHITECTURE.md`, `p:\shared\diplomat\DEVLOG.md` (steps 36.6, 36.7)
+
+**Files referenced as success criterion (do not modify).**
+- `p:\shared\diplomat\tests\self_play\scenarios\joint_space_mission_v1\spec.json` — operator-authored spec the improved tool must converge on within 5 min.
+
+**Validation criteria for phase close.**
+1. All new unit tests pass; full diplomat test suite remains green (current baseline 426 tests post-Phase 35).
+2. `tools.scenario_builder` converges on `joint_space_mission_v1/spec.json` within 5 min wall-clock and emits a `verify_scenario_optimum`-passing scenario directory.
+3. CLI_REFERENCE.md documents the new flag(s) and spec field with at least one working example.
+4. DEVLOG.md Phase 36 close entry documents validation outcome (PASS or — if spec still infeasible — the lowest-distance candidate + per-target distances + recommended follow-up).
+
+**Loop-readiness:** 🔨 PURE BUILD. Algorithm improvements are deterministic, fitness/spec changes are pure-function refactors, validation criterion is empirical and binary (converges or doesn't). No operator judgment required mid-loop.
 
 <!-- Closed phases only: newest first. -->
 
