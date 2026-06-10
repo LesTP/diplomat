@@ -25,6 +25,7 @@ def test_round_trip_preserves_nested_defaults_and_ranges(tmp_path: Path) -> None
         requires_logrolling=True,
         priority_collision="soft",
         asymmetric_batna_fractions={"alpha": 0.65},
+        target_weights={"pareto_count": 2.0, "game_mode": 0.3},
         game_mode="mixed",
         seed=99,
     )
@@ -64,8 +65,18 @@ def test_load_applies_defaults(tmp_path: Path) -> None:
     assert spec.requires_logrolling is False
     assert spec.priority_collision == "none"
     assert spec.asymmetric_batna_fractions == {}
+    assert spec.target_weights == {}
     assert spec.game_mode == "mixed"
     assert spec.seed == 0
+
+
+def test_validation_rejects_invalid_target_weight() -> None:
+    with pytest.raises(ValueError, match="must be non-negative"):
+        ScenarioSpec(
+            factions=["alpha"],
+            issues=[IssueSpec(name="Tariffs", outcomes=["Strict", "Relaxed"])],
+            target_weights={"pareto_count": -0.1},
+        )
 
 
 def test_validation_rejects_invalid_faction_fraction() -> None:

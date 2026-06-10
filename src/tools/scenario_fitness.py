@@ -14,6 +14,9 @@ from tests.self_play.verify_scenario_optimum import (
     find_priority_issues,
 )
 
+_CATEGORICAL_TARGETS = {"requires_logrolling", "priority_collision", "game_mode"}
+_DEFAULT_CATEGORICAL_TARGET_WEIGHT = 0.3
+
 
 @dataclass
 class FitnessResult:
@@ -23,10 +26,10 @@ class FitnessResult:
     per_target_distance: dict[str, float]
 
     def satisfies(self, tolerance: float) -> bool:
-        """Return True when every target is within the supplied tolerance."""
+        """Return True when the weighted total distance stays within tolerance."""
         if tolerance < 0.0:
             raise ValueError("tolerance must be non-negative")
-        return all(distance <= tolerance for distance in self.per_target_distance.values())
+        return self.total_distance <= tolerance
 
 
 def _max_possible_scores(analysis: dict[str, Any]) -> dict[str, float]:
@@ -65,6 +68,14 @@ def _priority_collision_level(analysis: dict[str, Any]) -> str:
     if len(set(faction_priorities)) == 1:
         return "hard"
     return "soft"
+
+
+def _target_weight(spec: Any, target_name: str) -> float:
+    if target_name in spec.target_weights:
+        return spec.target_weights[target_name]
+    if target_name in _CATEGORICAL_TARGETS:
+        return _DEFAULT_CATEGORICAL_TARGET_WEIGHT
+    return 1.0
 
 
 def compute_fitness(analysis: dict[str, Any], spec: Any) -> FitnessResult:
@@ -147,5 +158,8 @@ def compute_fitness(analysis: dict[str, Any], spec: Any) -> FitnessResult:
             actual_fraction - target_fraction
         )
 
-    total_distance = sum(per_target_distance.values())
+    total_distance = sum(
+        _target_weight(spec, target_name) * distance
+        for target_name, distance in per_target_distance.items()
+    )
     return FitnessResult(total_distance=total_distance, per_target_distance=per_target_distance)

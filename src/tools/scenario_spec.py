@@ -83,6 +83,15 @@ def _validate_probability(value: Any, *, label: str) -> float:
     return probability
 
 
+def _validate_weight(value: Any, *, label: str) -> float:
+    if not isinstance(value, (int, float)):
+        raise ValueError(f"{label} must be a number")
+    weight = float(value)
+    if weight < 0.0:
+        raise ValueError(f"{label} must be non-negative")
+    return weight
+
+
 @dataclass
 class IssueSpec:
     name: str
@@ -118,6 +127,7 @@ class ScenarioSpec:
     requires_logrolling: bool = False
     priority_collision: str = _DEFAULT_PRIORITY_COLLISION
     asymmetric_batna_fractions: dict[str, float] = field(default_factory=dict)
+    target_weights: dict[str, float] = field(default_factory=dict)
     game_mode: str = _DEFAULT_GAME_MODE
     seed: int = _DEFAULT_SEED
 
@@ -171,6 +181,12 @@ class ScenarioSpec:
             )
         self.asymmetric_batna_fractions = validated_fractions
 
+        validated_weights: dict[str, float] = {}
+        for target_name, value in self.target_weights.items():
+            target = _validate_nonempty_str(target_name, label="target_weights key")
+            validated_weights[target] = _validate_weight(value, label=f"target_weights[{target}]")
+        self.target_weights = validated_weights
+
     def to_dict(self) -> dict[str, Any]:
         data = asdict(self)
         data["score_range"] = list(self.score_range)
@@ -196,6 +212,7 @@ class ScenarioSpec:
             requires_logrolling=data.get("requires_logrolling", False),
             priority_collision=data.get("priority_collision", _DEFAULT_PRIORITY_COLLISION),
             asymmetric_batna_fractions=dict(data.get("asymmetric_batna_fractions", {})),
+            target_weights=dict(data.get("target_weights", {})),
             game_mode=data.get("game_mode", _DEFAULT_GAME_MODE),
             seed=data.get("seed", _DEFAULT_SEED),
         )

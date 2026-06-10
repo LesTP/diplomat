@@ -693,3 +693,18 @@ Phase 35 closed 7 steps. All 🔨 pure build — no live LLM spend during build 
 **Files updated:** `CLI_REFERENCE.md`, `NEXT_STEPS.md` §8, `ARCHITECTURE.md` (Implementation Sequence row 17, Testing Status), `DEVPLAN.md` (this close).
 
 **Closes:** Phase 35. **Queues:** Run 14a-14f ablation matrix (see `NEXT_STEPS.md` §10) + operator follow-up: author `multi_pareto_v1/` proof-of-concept scenario using the new builder (B.1 spec authorship is a design-judgment call, not loop-suitable).
+
+## 2026-06-10 - Phase 36 Step 36.2: Weighted fitness budget
+
+Extended `src/tools/scenario_spec.py` with `target_weights` on `ScenarioSpec`, including non-negative validation plus JSON round-trip support. Updated `src/tools/scenario_fitness.py` so `FitnessResult.total_distance` is the weighted sum of per-target distances, categorical targets (`requires_logrolling`, `priority_collision`, `game_mode`) default to weight `0.3` when unspecified, and `FitnessResult.satisfies()` now checks the weighted total budget instead of per-target thresholds.
+
+Added tests to cover round-trip/default hydration for `target_weights`, invalid negative weights, weighted-distance arithmetic, the categorical default-weight path, and total-budget satisfaction semantics.
+
+Contract changes:
+- `src/tools/scenario_spec.py` - `target_weights` field, validation, JSON I/O.
+- `src/tools/scenario_fitness.py` - weighted total distance and total-budget `satisfies()`.
+- `tests/test_scenario_spec.py` - round-trip, defaults, and invalid-weight coverage.
+- `tests/test_scenario_fitness.py` - weighted arithmetic and budget semantics coverage.
+- `DEVPLAN.md` - marked Step 36.2 complete.
+
+Focused verification: `python3 -m pytest tests/test_scenario_spec.py tests/test_scenario_fitness.py tests/test_scenario_builder.py -q` --- `17 passed`.

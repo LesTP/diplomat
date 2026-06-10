@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 from tools.scenario_fitness import FitnessResult, compute_fitness
 from tools.scenario_spec import IssueSpec, ScenarioSpec
 
@@ -130,12 +132,29 @@ class TestComputeFitness:
         assert result.per_target_distance["pareto_count"] == 0.0
         assert result.per_target_distance["priority_collision"] == 0.0
 
-    def test_satisfies_uses_per_target_thresholds(self) -> None:
+    def test_uses_target_weights_for_total_distance(self) -> None:
         analysis = _multi_pareto_analysis()
         spec = _multi_pareto_spec()
         spec.pareto_count_target = 4
+        spec.target_weights = {"pareto_count": 2.0}
 
         result = compute_fitness(analysis, spec)
 
         assert result.per_target_distance["pareto_count"] == 0.25
-        assert not result.satisfies(0.10)
+        assert result.total_distance == pytest.approx(0.5)
+
+    def test_uses_default_weight_for_categorical_targets(self) -> None:
+        analysis = _multi_pareto_analysis()
+        spec = _multi_pareto_spec()
+        spec.game_mode = "competitive"
+
+        result = compute_fitness(analysis, spec)
+
+        assert result.per_target_distance["game_mode"] == 1.0
+        assert result.total_distance == pytest.approx(0.3)
+
+    def test_satisfies_uses_total_budget(self) -> None:
+        result = FitnessResult(total_distance=0.29, per_target_distance={"game_mode": 1.0})
+
+        assert result.satisfies(0.30)
+        assert not result.satisfies(0.28)
