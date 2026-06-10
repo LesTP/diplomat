@@ -10,12 +10,19 @@ from __future__ import annotations
 
 import copy
 import random
+from pathlib import Path
 from dataclasses import dataclass
 from typing import Any
 
 from tests.self_play.verify_scenario_optimum import enumerate_deals, find_pareto_frontier
 
-from tools.scenario_compiler import DEFAULT_BATNA_FRACTION, force_batna_targets
+from tools.scenario_compiler import (
+    DEFAULT_BATNA_FRACTION,
+    force_batna_targets,
+    generate_persona,
+    save_analysis,
+    save_persona,
+)
 from tools.scenario_fitness import compute_fitness
 from tools.scenario_spec import ScenarioSpec
 
@@ -154,3 +161,41 @@ def _search_loop(
                 return analysis
 
     raise RuntimeError("scenario search failed to produce an acceptable candidate")
+
+
+def _save_search_outputs(
+    analysis: dict[str, Any],
+    output_dir: Path,
+    scenario_title: str,
+) -> tuple[Path, dict[str, Path]]:
+    """Persist the canonical scenario analysis and per-faction persona files."""
+    analysis_path = save_analysis(analysis, output_dir)
+    persona_paths: dict[str, Path] = {}
+    for faction_id in analysis["factions"]:
+        persona_text = generate_persona(faction_id, analysis, scenario_title)
+        persona_paths[faction_id] = save_persona(faction_id, persona_text, output_dir)
+    return analysis_path, persona_paths
+
+
+def build_and_save_scenario(
+    spec: ScenarioSpec,
+    output_dir: str | Path,
+    scenario_title: str = "a reverse-engineered negotiation",
+    *,
+    max_restarts: int = 1000,
+    max_local_moves: int = 200,
+    seed: int | None = None,
+) -> tuple[dict[str, Any], Path, dict[str, Path]]:
+    """Search for a matching scenario and save the emitted artifacts."""
+    analysis = _search_loop(
+        spec,
+        max_restarts=max_restarts,
+        max_local_moves=max_local_moves,
+        seed=seed,
+    )
+    analysis_path, persona_paths = _save_search_outputs(
+        analysis,
+        Path(output_dir),
+        scenario_title,
+    )
+    return analysis, analysis_path, persona_paths

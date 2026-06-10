@@ -638,3 +638,17 @@ Contract changes:
 The new builder starts from seeded random scoring tables, forces BATNAs through the existing compiler calibration helper, then performs greedy single-cell improvements with plateau-triggered restarts until it finds an analysis that satisfies the 10% fitness tolerance and the expected Pareto-frontier size. The focused verification set passed cleanly, including the new builder tests plus the existing spec, fitness, and compiler coverage.
 
 Focused verification: `python3 -m pytest tests/test_scenario_compiler.py tests/test_scenario_builder.py tests/test_scenario_fitness.py tests/test_scenario_spec.py -q` --- `41 passed`.
+
+## 2026-06-10 - Phase 35 Step 35.4: Scenario output emission via compiler helpers
+
+### Step 35.4: Scenario output emission via compiler helpers
+Mode: Build
+Outcome: Passed
+Contract changes:
+- `src/tools/scenario_builder.py` - added `_save_search_outputs()` and `build_and_save_scenario()` to persist `scenario_analysis.json` plus per-faction persona files through the existing compiler helpers.
+- `tests/test_scenario_builder.py` - added emission coverage that saves a canonical analysis, reloads the JSON through the verifier pipeline, and loads the persona via `FileBasedPersona`.
+- `DEVPLAN.md` - marked Step 35.4 complete.
+
+The builder now has a small output-emission path that writes the verified analysis with `save_analysis()` and each faction persona with `generate_persona()` + `save_persona()`. The new test uses a monkeypatched search result so it can validate the saved JSON and persona files in isolation, including the round-context stripping behavior of `FileBasedPersona` and the verifier's Pareto-frontier read path.
+
+Focused verification: `python3 -m pytest tests/test_scenario_builder.py tests/test_scenario_compiler.py tests/test_scenario_fitness.py tests/test_scenario_spec.py` --- `42 passed`.
