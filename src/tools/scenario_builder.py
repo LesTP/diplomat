@@ -26,7 +26,7 @@ from tools.scenario_compiler import (
     save_persona,
 )
 from tools.scenario_fitness import compute_fitness
-from tools.scenario_spec import ScenarioSpec
+from tools.scenario_spec import ScenarioSpec, load_spec
 
 
 @dataclass(frozen=True)
@@ -141,7 +141,6 @@ def _search_loop(
         if _candidate_is_acceptable(spec, analysis):
             return analysis
 
-        plateau_moves = 0
         for _ in range(max_local_moves):
             candidate_scoring, candidate_analysis, candidate_distance = _best_single_cell_flip(
                 spec,
@@ -149,15 +148,11 @@ def _search_loop(
                 fitness.total_distance,
             )
             if candidate_scoring is None or candidate_analysis is None:
-                plateau_moves += 1
-                if plateau_moves >= 10:
-                    break
-                continue
+                break
 
             scoring = candidate_scoring
             analysis = candidate_analysis
             fitness = compute_fitness(analysis, spec)
-            plateau_moves = 0
 
             if _candidate_is_acceptable(spec, analysis):
                 return analysis
@@ -237,8 +232,6 @@ def _run(args: argparse.Namespace) -> None:
     if not spec_path.is_file():
         print(f"ERROR: spec file not found: {spec_path}", file=sys.stderr)
         sys.exit(1)
-
-    from tools.scenario_spec import load_spec
 
     spec = load_spec(spec_path)
     output_dir = Path(args.output_dir)
