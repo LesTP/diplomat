@@ -1,7 +1,7 @@
 ---
 phase: 35
-blocked: false
-state: review
+blocked: true
+state: close
 steps_remaining: 0
 ---
 
