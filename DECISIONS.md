@@ -356,3 +356,11 @@ Priority: Routine
 Decision: Phase 35's `scenario_builder.py` emits empty strings for `logrolling` and `deception_tactics` fields in generated personas. LLM narrative authorship of these fields is deferred to operator follow-up (or a future phase that extends the LLM compiler path).
 Rationale: These fields are interpretive narrative, not derivable from scoring tables alone. Attempting LLM generation in the same phase conflates the constraint-satisfaction algorithm (pure, testable) with an LLM authoring step (non-deterministic, requires evaluation). Separating them keeps Phase 35 🔨 PURE BUILD with binary test signal.
 Revisit if: A phase explicitly targets narrative quality of generated scenarios and needs integrated LLM authorship rather than post-processing.
+
+D-54: Phase 36 scenario-search algorithm improvements
+Date: 2026-06-10 | Status: Open
+Priority: Important
+Decision: Phase 36 improves `scenario_builder` search in three orthogonal directions: (a) soft weighted-sum satisfaction replacing strict per-target AND, (b) simulated annealing in the local-move loop to escape plateaus, and (c) biased initialization seeding categorical constraints. These three improvements are implemented in the same phase; LLM-guided proposal is deferred.
+Rationale: The strict AND satisfaction (`satisfies(0.10)` requiring every target within tolerance) produces no gradient for categorical targets (logrolling, priority_collision), causing the greedy hill-climb to get stuck in the 6-constraint operator spec. Weighted soft constraints give the optimizer a signal; SA acceptance allows escaping local optima; biased initialization reduces the restarts needed to find a good starting point. Together they are sufficient for 3×3×3 specs — no LLM dependency required, keeping the phase 🔨 PURE BUILD with deterministic test signal.
+Revisit if: The improved search still fails on richer specs (4+ factions, 4+ issues), at which point LLM-guided scoring-table proposal becomes the next lever.
+

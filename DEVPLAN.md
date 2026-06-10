@@ -1,7 +1,7 @@
 ---
 phase: 36
 blocked: false
-state: plan
+state: execute
 steps_remaining: 0
 ---
 
