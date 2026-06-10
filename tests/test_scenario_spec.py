@@ -1,0 +1,86 @@
+"""Tests for reverse scenario builder specs."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+
+from tools.scenario_spec import IssueSpec, ScenarioSpec, dump_spec, load_spec
+
+
+def test_round_trip_preserves_nested_defaults_and_ranges(tmp_path: Path) -> None:
+    spec = ScenarioSpec(
+        factions=["alpha", "beta"],
+        issues=[
+            IssueSpec(name="Tariffs", outcomes=["Strict", "Relaxed"], description="Trade barriers"),
+            IssueSpec(name="Labor", outcomes=["Strict", "Relaxed"], description="Worker protections"),
+        ],
+        score_range=(2, 9),
+        pareto_count_target=(2, 4),
+        pareto_distribution_spread=1.25,
+        batna_clearing_count_target=3,
+        batna_to_pareto_gap_pct=0.15,
+        requires_logrolling=True,
+        priority_collision="soft",
+        asymmetric_batna_fractions={"alpha": 0.65},
+        game_mode="mixed",
+        seed=99,
+    )
+
+    path = dump_spec(spec, tmp_path / "spec.json")
+    loaded = load_spec(path)
+
+    assert loaded == spec
+    assert loaded.issues[0] == IssueSpec(
+        name="Tariffs",
+        outcomes=["Strict", "Relaxed"],
+        description="Trade barriers",
+    )
+
+
+def test_load_applies_defaults(tmp_path: Path) -> None:
+    path = tmp_path / "spec.json"
+    path.write_text(
+        json.dumps(
+            {
+                "factions": ["alpha"],
+                "issues": [
+                    {"name": "Tariffs", "outcomes": ["Strict", "Relaxed"]},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    spec = load_spec(path)
+
+    assert spec.score_range == (1, 10)
+    assert spec.pareto_count_target == 1
+    assert spec.pareto_distribution_spread == 0.0
+    assert spec.batna_clearing_count_target == 1
+    assert spec.batna_to_pareto_gap_pct == 0.10
+    assert spec.requires_logrolling is False
+    assert spec.priority_collision == "none"
+    assert spec.asymmetric_batna_fractions == {}
+    assert spec.game_mode == "mixed"
+    assert spec.seed == 0
+
+
+def test_validation_rejects_invalid_faction_fraction() -> None:
+    with pytest.raises(ValueError, match="must name a faction"):
+        ScenarioSpec(
+            factions=["alpha"],
+            issues=[IssueSpec(name="Tariffs", outcomes=["Strict", "Relaxed"])],
+            asymmetric_batna_fractions={"beta": 0.6},
+        )
+
+
+def test_validation_rejects_invalid_score_range() -> None:
+    with pytest.raises(ValueError, match="score_range"):
+        ScenarioSpec(
+            factions=["alpha"],
+            issues=[IssueSpec(name="Tariffs", outcomes=["Strict", "Relaxed"])],
+            score_range=(10, 1),
+        )

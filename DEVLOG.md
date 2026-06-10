@@ -600,3 +600,27 @@ Phase 34 closed 6 steps. All 🔨 pure build, no live LLM spend during build (Dr
 **Key finding from smoke (Step 34.4):** Bare mode cost ~$0.02 for a 4-round game vs ~$1 projected (~50× cheaper). The Run 14a-14f ablation matrix (~36 runs) is achievable at ~$10-20 total instead of ~$60-100. The no-deal result (all factions at BATNA) is the expected bare-mode outcome — without the Analyst surfacing Pareto trades, agents have no mechanism to discover joint gains.
 
 **Closes:** Phase 34. **Queues:** Run 13b (coached game with `/revise:` edit modes) + Run 14a-14f (ablation matrix) in `NEXT_STEPS.md` §4 and §10.
+
+## 2026-06-10 - Phase 35 Step 35.1: ScenarioSpec dataclass + JSON loader
+
+Added `src/tools/scenario_spec.py` with `IssueSpec` and `ScenarioSpec` dataclasses plus `load_spec()` / `dump_spec()` JSON helpers for the reverse scenario builder phase. The loader now applies predictable defaults for the score range, BATNA/Pareto targets, collision mode, game mode, and seed while validating faction/issue uniqueness, tuple-or-int target shapes, and per-faction asymmetric BATNA fractions. Added `tests/test_scenario_spec.py` coverage for nested round-trip equality, default-value hydration, and validation failures.
+
+Contract changes:
+- `src/tools/scenario_spec.py` - new spec model and JSON I/O.
+- `tests/test_scenario_spec.py` - round-trip, defaults, and validation coverage.
+- `DEVPLAN.md` - marked Step 35.1 complete.
+
+Focused verification: `python3 -m pytest tests/test_scenario_spec.py tests/test_scenario_compiler.py` --- `36 passed`.
+
+## 2026-06-10 - Phase 35 Step 35.2: Scenario fitness scoring
+
+Added `src/tools/scenario_fitness.py` with `FitnessResult` and `compute_fitness(analysis, spec)` to score candidate analyses against `ScenarioSpec` targets using the existing verifier helpers for deal enumeration, Pareto frontier detection, BATNA checks, and priority detection. The fitness result now reports normalized per-target distances for Pareto count, Pareto spread, BATNA-clearing count, BATNA-to-Pareto gap, logrolling, priority collision, game mode, and asymmetric BATNA fractions.
+
+Added `tests/test_scenario_fitness.py` with two fixture-based scenarios: a Water Rights beta-squeezed single-frontier case and a compact multi-Pareto case. Both cover zero-distance matches and tolerance behavior for mismatched Pareto counts.
+
+Contract changes:
+- `src/tools/scenario_fitness.py` - new fitness scorer and normalized per-target distances.
+- `tests/test_scenario_fitness.py` - single-frontier and multi-Pareto regression coverage.
+- `DEVPLAN.md` - marked Step 35.2 complete.
+
+Focused verification: `python3 -m pytest tests/test_scenario_compiler.py tests/test_scenario_fitness.py tests/test_scenario_spec.py -q` --- `39 passed`.
