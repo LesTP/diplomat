@@ -652,3 +652,31 @@ Contract changes:
 The builder now has a small output-emission path that writes the verified analysis with `save_analysis()` and each faction persona with `generate_persona()` + `save_persona()`. The new test uses a monkeypatched search result so it can validate the saved JSON and persona files in isolation, including the round-context stripping behavior of `FileBasedPersona` and the verifier's Pareto-frontier read path.
 
 Focused verification: `python3 -m pytest tests/test_scenario_builder.py tests/test_scenario_compiler.py tests/test_scenario_fitness.py tests/test_scenario_spec.py` --- `42 passed`.
+
+## 2026-06-10 — Phase 35 close: Reverse Scenario Builder
+
+Phase 35 closed 7 steps. All 🔨 pure build — no live LLM spend during build (deterministic search algorithm + existing pure-function verifier throughout). No scope expansion; no production pipeline changes (tool is design-time only).
+
+**What was built:**
+
+- **Step 35.1 (`ScenarioSpec` + JSON loader):** `src/tools/scenario_spec.py` — `IssueSpec` and `ScenarioSpec` dataclasses with `load_spec()` / `dump_spec()` JSON helpers. Validates faction/issue uniqueness, tuple-or-int target shapes, per-faction asymmetric BATNA fractions, and applies predictable defaults. `tests/test_scenario_spec.py` — round-trip equality, default hydration, and validation failure coverage.
+
+- **Step 35.2 (fitness scorer):** `src/tools/scenario_fitness.py` — `FitnessResult` and `compute_fitness(analysis, spec)` scoring candidate analyses against `ScenarioSpec` targets. Reuses `enumerate_deals`, `find_pareto_frontier`, `faction_score`, `beats_batna`, `find_priority_issues` from the existing verifier as pure imports. Normalized per-target L1 distances for Pareto count, Pareto spread, BATNA-clearing count, BATNA-to-Pareto gap, logrolling, priority collision, game mode, and asymmetric BATNA fractions. `tests/test_scenario_fitness.py` — Water Rights β-squeezed single-frontier fixture and compact multi-Pareto inline fixture.
+
+- **Step 35.3 (hill-climb sampler):** `src/tools/scenario_builder.py` — `_search_loop(spec, max_restarts, max_local_moves, seed)`. Seeded random scoring table initialization, greedy single-cell flip descent, plateau-triggered restarts, acceptance on `satisfies(tolerance=0.10)` + Pareto count match. BATNAs forced deterministically via `max_possible_score` + `asymmetric_batna_fractions`. `tests/test_scenario_builder.py` — deterministic-seed reproducibility and known-feasible convergence tests.
+
+- **Step 35.4 (output emission):** `build_and_save_scenario()` and `_save_search_outputs()` in `scenario_builder.py` persist `scenario_analysis.json` + per-faction `.txt` personas via the existing compiler helpers (`save_analysis`, `generate_persona`, `save_persona`). `logrolling` and `deception_tactics` emitted as stubs. New test validates emitted JSON loads into `FileBasedPersona` and the verifier pipeline.
+
+- **Step 35.5 (CLI entry point + `--verify`):** `main()` + `_run(args)` in `scenario_builder.py` mirroring `scenario_compiler.py` style. Flags: `--spec`, `--output-dir`, `--title`, `--seed`, `--max-iterations`, `--verify`. `--verify` re-runs `verify_scenario_optimum.main()` on the emitted JSON and exits non-zero on FAIL. Smoke-tested against the multi-Pareto spec.
+
+- **Step 35.6 (doc updates):** `CLI_REFERENCE.md` — new `tools.scenario_builder` section with all flags and a working example. `NEXT_STEPS.md` §8 — collapsed TODO. `ARCHITECTURE.md` — Implementation Sequence row 17 added (Scenario Builder, Phase 35 complete); Testing Status updated to 426 tests.
+
+- **Step 35.7 (phase close):** This entry. DEVPLAN closed (Phase 35 section compressed to summary, Phase 34 moved under history divider). ARCHITECTURE.md already current from step 35.6.
+
+**Test delta:** 414 (Phase 34 baseline) → 426 (Phase 35 complete). 12 new tests: spec round-trip + validation (3), fitness convergence (4), builder determinism + convergence + emission (5).
+
+**Files created:** `src/tools/scenario_spec.py`, `src/tools/scenario_fitness.py`, `src/tools/scenario_builder.py`, `tests/test_scenario_spec.py`, `tests/test_scenario_fitness.py`, `tests/test_scenario_builder.py`.
+
+**Files updated:** `CLI_REFERENCE.md`, `NEXT_STEPS.md` §8, `ARCHITECTURE.md` (Implementation Sequence row 17, Testing Status), `DEVPLAN.md` (this close).
+
+**Closes:** Phase 35. **Queues:** Run 14a-14f ablation matrix (see `NEXT_STEPS.md` §10) + operator follow-up: author `multi_pareto_v1/` proof-of-concept scenario using the new builder (B.1 spec authorship is a design-judgment call, not loop-suitable).
