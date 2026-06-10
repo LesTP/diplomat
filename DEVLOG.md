@@ -624,3 +624,17 @@ Contract changes:
 - `DEVPLAN.md` - marked Step 35.2 complete.
 
 Focused verification: `python3 -m pytest tests/test_scenario_compiler.py tests/test_scenario_fitness.py tests/test_scenario_spec.py -q` --- `39 passed`.
+
+## 2026-06-10 - Phase 35 Step 35.3: Hill-climb sampler with random restarts
+
+### Step 35.3: Hill-climb sampler with random restarts
+Mode: Build
+Outcome: Passed
+Contract changes:
+- `src/tools/scenario_builder.py` - added the reverse-search loop, candidate analysis assembly, greedy single-cell flip selection, and acceptance checks against the fitness scorer and verifier frontier.
+- `tests/test_scenario_builder.py` - added determinism and known-feasible convergence coverage for `_search_loop()`.
+- `DEVPLAN.md` - marked Step 35.3 complete.
+
+The new builder starts from seeded random scoring tables, forces BATNAs through the existing compiler calibration helper, then performs greedy single-cell improvements with plateau-triggered restarts until it finds an analysis that satisfies the 10% fitness tolerance and the expected Pareto-frontier size. The focused verification set passed cleanly, including the new builder tests plus the existing spec, fitness, and compiler coverage.
+
+Focused verification: `python3 -m pytest tests/test_scenario_compiler.py tests/test_scenario_builder.py tests/test_scenario_fitness.py tests/test_scenario_spec.py -q` --- `41 passed`.
