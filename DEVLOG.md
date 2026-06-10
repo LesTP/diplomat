@@ -601,6 +601,19 @@ Phase 34 closed 6 steps. All 🔨 pure build, no live LLM spend during build (Dr
 
 **Closes:** Phase 34. **Queues:** Run 13b (coached game with `/revise:` edit modes) + Run 14a-14f (ablation matrix) in `NEXT_STEPS.md` §4 and §10.
 
+### Step 36.1: Instrument the search loop
+Mode: Build
+Outcome: Passed
+Contract changes:
+- `src/tools/scenario_builder.py` - added restart-level structured JSON logging behind `--debug-search`, threaded the flag through `_search_loop()` / `build_and_save_scenario()` / `_run()`, and kept CLI callers compatible when they omit the new namespace field.
+- `tests/test_scenario_builder.py` - added a deterministic schema-stability test for the restart log payload.
+- `CLI_REFERENCE.md` - documented `--debug-search` and the JSON restart log output.
+- `DEVPLAN.md` - marked Step 36.1 complete.
+
+The scenario builder now emits one JSON record per restart when `--debug-search` is enabled. Each record carries the restart index, starting and ending total fitness distance, the exit reason, and the per-target distances at exit. The CLI remains silent by default, and older `Namespace`-based test helpers still work because `_run()` treats the flag as optional.
+
+Focused verification: `.venv/bin/python -m pytest tests/test_scenario_builder.py tests/test_scenario_fitness.py tests/test_scenario_spec.py` --- `14 passed`.
+
 ## 2026-06-10 - Phase 35 Step 35.1: ScenarioSpec dataclass + JSON loader
 
 Added `src/tools/scenario_spec.py` with `IssueSpec` and `ScenarioSpec` dataclasses plus `load_spec()` / `dump_spec()` JSON helpers for the reverse scenario builder phase. The loader now applies predictable defaults for the score range, BATNA/Pareto targets, collision mode, game mode, and seed while validating faction/issue uniqueness, tuple-or-int target shapes, and per-faction asymmetric BATNA fractions. Added `tests/test_scenario_spec.py` coverage for nested round-trip equality, default-value hydration, and validation failures.

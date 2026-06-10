@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import argparse
 import copy
+import json
+import logging
 import random
 import sys
 from pathlib import Path
@@ -27,6 +29,9 @@ from tools.scenario_compiler import (
 )
 from tools.scenario_fitness import compute_fitness
 from tools.scenario_spec import ScenarioSpec, load_spec
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -89,6 +94,32 @@ def _candidate_is_acceptable(spec: ScenarioSpec, analysis: dict[str, Any]) -> bo
     return _target_pareto_count_matches(spec, len(frontier))
 
 
+def _log_search_restart(
+    *,
+    restart_index: int,
+    start_fitness: Any,
+    end_fitness: Any,
+    exit_reason: str,
+    debug_search: bool,
+) -> None:
+    if not debug_search:
+        return
+
+    logger.info(
+        json.dumps(
+            {
+                "event": "scenario_builder.search_restart",
+                "restart_index": restart_index,
+                "start_total_distance": start_fitness.total_distance,
+                "end_total_distance": end_fitness.total_distance,
+                "exit_reason": exit_reason,
+                "per_target_distance": end_fitness.per_target_distance,
+            },
+            sort_keys=True,
+        )
+    )
+
+
 def _all_cells(spec: ScenarioSpec) -> list[_Cell]:
     cells: list[_Cell] = []
     for faction in spec.factions:
@@ -129,25 +160,36 @@ def _search_loop(
     max_restarts: int = 1000,
     max_local_moves: int = 200,
     seed: int | None = None,
+    debug_search: bool = False,
 ) -> dict[str, Any]:
     """Search scoring-table space with random restarts and greedy local flips."""
     rng = random.Random(spec.seed if seed is None else seed)
 
-    for _restart in range(max_restarts):
+    for restart_index in range(max_restarts):
         scoring = _random_scoring_table(spec, rng)
         analysis = _analysis_from_scoring_table(spec, scoring)
-        fitness = compute_fitness(analysis, spec)
+        start_fitness = compute_fitness(analysis, spec)
+        fitness = start_fitness
 
         if _candidate_is_acceptable(spec, analysis):
+            _log_search_restart(
+                restart_index=restart_index,
+                start_fitness=start_fitness,
+                end_fitness=fitness,
+                exit_reason="accepted",
+                debug_search=debug_search,
+            )
             return analysis
 
+        exit_reason = "budget_exhausted"
         for _ in range(max_local_moves):
-            candidate_scoring, candidate_analysis, candidate_distance = _best_single_cell_flip(
+            candidate_scoring, candidate_analysis, _candidate_distance = _best_single_cell_flip(
                 spec,
                 scoring,
                 fitness.total_distance,
             )
             if candidate_scoring is None or candidate_analysis is None:
+                exit_reason = "plateau"
                 break
 
             scoring = candidate_scoring
@@ -155,7 +197,22 @@ def _search_loop(
             fitness = compute_fitness(analysis, spec)
 
             if _candidate_is_acceptable(spec, analysis):
+                _log_search_restart(
+                    restart_index=restart_index,
+                    start_fitness=start_fitness,
+                    end_fitness=fitness,
+                    exit_reason="accepted",
+                    debug_search=debug_search,
+                )
                 return analysis
+
+        _log_search_restart(
+            restart_index=restart_index,
+            start_fitness=start_fitness,
+            end_fitness=fitness,
+            exit_reason=exit_reason,
+            debug_search=debug_search,
+        )
 
     raise RuntimeError("scenario search failed to produce an acceptable candidate")
 
@@ -182,6 +239,7 @@ def build_and_save_scenario(
     max_restarts: int = 1000,
     max_local_moves: int = 200,
     seed: int | None = None,
+    debug_search: bool = False,
 ) -> tuple[dict[str, Any], Path, dict[str, Path]]:
     """Search for a matching scenario and save the emitted artifacts."""
     analysis = _search_loop(
@@ -189,6 +247,7 @@ def build_and_save_scenario(
         max_restarts=max_restarts,
         max_local_moves=max_local_moves,
         seed=seed,
+        debug_search=debug_search,
     )
     analysis_path, persona_paths = _save_search_outputs(
         analysis,
@@ -210,6 +269,11 @@ def _parse_args() -> argparse.Namespace:
         help="Scenario title used in persona text",
     )
     parser.add_argument("--seed", type=int, default=None, help="Random seed override")
+    parser.add_argument(
+        "--debug-search",
+        action="store_true",
+        help="Emit structured restart logs while searching",
+    )
     parser.add_argument(
         "--max-iterations",
         type=int,
@@ -233,6 +297,11 @@ def _run(args: argparse.Namespace) -> None:
         print(f"ERROR: spec file not found: {spec_path}", file=sys.stderr)
         sys.exit(1)
 
+    debug_search = getattr(args, "debug_search", False)
+
+    if debug_search:
+        logging.basicConfig(level=logging.INFO, format="%(message)s")
+
     spec = load_spec(spec_path)
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -250,6 +319,7 @@ def _run(args: argparse.Namespace) -> None:
             scenario_title=args.title,
             max_restarts=args.max_iterations,
             seed=args.seed,
+            debug_search=debug_search,
         )
     except RuntimeError as exc:
         print(f"\nERROR: {exc}", file=sys.stderr)

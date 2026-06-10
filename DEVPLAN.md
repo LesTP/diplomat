@@ -71,7 +71,7 @@ steps_remaining: 0
 
 **Steps.**
 
-- [ ] **36.1 — Instrument the search loop.** Add structured logging to `_search_loop` in `src/tools/scenario_builder.py`. Per-restart: log starting fitness, ending fitness, restart-exit reason (`accepted` / `plateau` / `budget_exhausted`), per-target distances at exit. New `--debug-search` CLI flag in `_parse_args` enables verbose progress output (default off — silent for normal runs). Add 1 unit test asserting log records have a stable schema across runs. Existing tests continue to pass.
+- [x] **36.1 — Instrument the search loop.** Add structured logging to `_search_loop` in `src/tools/scenario_builder.py`. Per-restart: log starting fitness, ending fitness, restart-exit reason (`accepted` / `plateau` / `budget_exhausted`), per-target distances at exit. New `--debug-search` CLI flag in `_parse_args` enables verbose progress output (default off — silent for normal runs). Add 1 unit test asserting log records have a stable schema across runs. Existing tests continue to pass.
 
 - [ ] **36.2 — Soft constraints with per-target weights.** Extend `ScenarioSpec` with optional `target_weights: dict[str, float]` (default `{}`); when unset, all targets weight 1.0. Update `compute_fitness` in `src/tools/scenario_fitness.py` so `total_distance = sum(weight[k] * distance[k])` and `satisfies(tolerance)` becomes `sum(weighted distances) <= tolerance` (soft total budget) rather than per-target AND. Categorical targets (`requires_logrolling`, `priority_collision`, `game_mode`) get default weight `0.3` so a single categorical mismatch doesn't bust the budget. Add tests for: weighted-distance arithmetic, default weights, total-budget satisfaction.
 

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import copy
 import json
+import logging
 from pathlib import Path
 
 import pytest
@@ -79,6 +81,59 @@ class TestSearchLoop:
         assert fitness.satisfies(0.10)
         assert len(frontier) == 3
         assert analysis["factions"] == ["alpha", "beta"]
+
+    def test_debug_search_emits_stable_restart_schema(
+        self, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        spec = _feasible_spec()
+        scoring = {
+            "alpha": {
+                "allocation": {"A": 10, "B": 1},
+                "payment": {"A": 1, "B": 10},
+            },
+            "beta": {
+                "allocation": {"A": 1, "B": 9},
+                "payment": {"A": 10, "B": 1},
+            },
+        }
+
+        monkeypatch.setattr(
+            "tools.scenario_builder._random_scoring_table",
+            lambda *args, **kwargs: copy.deepcopy(scoring),
+        )
+        monkeypatch.setattr("tools.scenario_builder._candidate_is_acceptable", lambda *a, **k: False)
+        monkeypatch.setattr(
+            "tools.scenario_builder._best_single_cell_flip",
+            lambda spec, scoring, current_distance: (None, None, current_distance),
+        )
+        caplog.set_level(logging.INFO, logger="tools.scenario_builder")
+
+        def collect_schema() -> list[list[str]]:
+            return [
+                sorted(json.loads(record.getMessage()).keys())
+                for record in caplog.records
+                if record.name == "tools.scenario_builder"
+            ]
+
+        with pytest.raises(RuntimeError):
+            _search_loop(spec, max_restarts=1, max_local_moves=1, seed=23, debug_search=True)
+        first_schema = collect_schema()
+        caplog.clear()
+
+        with pytest.raises(RuntimeError):
+            _search_loop(spec, max_restarts=1, max_local_moves=1, seed=23, debug_search=True)
+        second_schema = collect_schema()
+
+        assert first_schema == second_schema == [
+            [
+                "end_total_distance",
+                "event",
+                "exit_reason",
+                "per_target_distance",
+                "restart_index",
+                "start_total_distance",
+            ]
+        ]
 
 
 class TestBuildAndSaveScenario:

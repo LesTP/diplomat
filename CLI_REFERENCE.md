@@ -317,6 +317,10 @@ file declaring desired outcome-shape properties; the tool searches scoring-table
 space via random-restart hill-climb and emits a `scenario_analysis.json` +
 per-faction `.txt` persona directory compatible with `run_simulation.py`.
 
+Pass `--debug-search` to emit one JSON restart record per search restart while
+the builder runs. The log includes the restart index, starting and ending total
+fitness distance, the exit reason, and the per-target distances at exit.
+
 No LLM calls — pure combinatorial search. `logrolling` and `deception_tactics`
 fields are emitted as stubs; fill them by hand or by running
 `tools.scenario_compiler` over the generated tables.
@@ -335,6 +339,7 @@ python -m tools.scenario_builder \
     --output-dir /tmp/scenario_test \
     --seed 42 \
     --max-iterations 2000 \
+    --debug-search \
     --verify
 ```
 
@@ -345,6 +350,7 @@ python -m tools.scenario_builder \
 | `--title` | `"a reverse-engineered negotiation"` | Scenario title used in persona text headers |
 | `--seed` | `None` (from spec's `seed` field) | Override the spec's random seed |
 | `--max-iterations` | `1000` | Maximum hill-climb restarts before declaring failure |
+| `--debug-search` | `false` | Emit structured JSON restart logs while searching |
 | `--verify` | `false` | After emission, run `verify_scenario_optimum` on the result; exit non-zero if it reports FAIL |
 
 **Spec schema** (`ScenarioSpec` JSON):
@@ -633,3 +639,4 @@ procedure to validate the Diplomat bot on the Raspberry Pi after code changes.
 | 2026-05-30 | Documented `tools/service.sh` (the actual bot-lifecycle mechanism — nohup-based wrapper around `src/main.py`). Updated `tools/inspect_ledger.py` entry to match the new flag-driven version (`--selfplay`, `--path`, `--show`). Updated by-purpose quick index to route "run the bot" at `service.sh`. |
 | 2026-06-07 | Phase 33: added `tools/classify_edit_log.py` entry (bulk edit-log classifier); added "classify the review-gate edit log" row to quick index. |
 | 2026-06-10 | Phase 35: added `tools.scenario_builder` section (constraint-driven scenario generator; `--spec`, `--output-dir`, `--title`, `--seed`, `--max-iterations`, `--verify`); added quick-index row. |
+| 2026-06-10 | Phase 36 Step 36.1: added `--debug-search` to `tools.scenario_builder` and documented its JSON restart logs. |
