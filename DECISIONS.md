@@ -335,3 +335,24 @@ Priority: Important
 Decision: Phase 34 will implement bare-prompt ablation as an all-bare or all-full game-level toggle only. Mixed bare/full factions in the same game stay out of scope, and the implementation remains self-play/ablation only rather than wiring production defaults.
 Rationale: The experiment’s question is whether the harness contributes at the game level. Keeping the toggle per-game avoids confounding the comparison with mixed-mode interactions and preserves a clean baseline against the existing full harness.
 Revisit if: A later experiment explicitly needs faction-level mixed-mode ablation or production exposure.
+
+D-51: Random-restart hill-climb as scenario search algorithm
+Date: 2026-06-10 | Status: Open
+Priority: Routine
+Decision: Phase 35 `scenario_builder.py` uses random-restart hill-climb (single-cell score-table flips, plateau-triggered restarts) as the search algorithm.
+Rationale: The fitness landscape over integer scoring tables is discrete and relatively low-dimensional (≤4 factions × ≤4 issues × score range 1–10). Random-restart hill-climb is simple to implement, fully deterministic under a seed, and adequate for this domain. Simulated annealing or genetic algorithms add implementation complexity without clear payoff on a table this small.
+Revisit if: Larger scenarios (6+ factions, 6+ issues) produce unacceptably long search times with hill-climb, indicating a need for a better-than-random global strategy.
+
+D-52: Reuse verify_scenario_optimum.py pure functions without refactoring
+Date: 2026-06-10 | Status: Open
+Priority: Routine
+Decision: Phase 35 imports `enumerate_deals`, `find_pareto_frontier`, `faction_score`, `beats_batna`, and `find_priority_issues` directly from `tests/self_play/verify_scenario_optimum.py` rather than moving them to a shared library.
+Rationale: These functions are pure (no I/O, no dependencies), already tested in place, and their home in the test tree is appropriate — they validate game outcomes. Moving them to `src/` would be premature abstraction and would force a test-infrastructure change. The fitness module simply imports from `tests/`.
+Revisit if: A third consumer needs the same functions, at which point extracting to a shared utility module is justified.
+
+D-53: Logrolling and deception_tactics emitted as stubs in Phase 35
+Date: 2026-06-10 | Status: Open
+Priority: Routine
+Decision: Phase 35's `scenario_builder.py` emits empty strings for `logrolling` and `deception_tactics` fields in generated personas. LLM narrative authorship of these fields is deferred to operator follow-up (or a future phase that extends the LLM compiler path).
+Rationale: These fields are interpretive narrative, not derivable from scoring tables alone. Attempting LLM generation in the same phase conflates the constraint-satisfaction algorithm (pure, testable) with an LLM authoring step (non-deterministic, requires evaluation). Separating them keeps Phase 35 🔨 PURE BUILD with binary test signal.
+Revisit if: A phase explicitly targets narrative quality of generated scenarios and needs integrated LLM authorship rather than post-processing.

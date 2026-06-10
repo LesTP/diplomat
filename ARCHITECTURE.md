@@ -133,6 +133,7 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 | 14 | Scenario Compiler | Pre-game tool. Narrative → scored personas. Not a pipeline module — operator runs it before game start. | Phase 18 complete |
 | 15 | Pipeline | Per-agent capability surface extracted from Orchestrator: persistence, extraction, coaching dispatch, round advancement, reconciliation/analysis, response generation, and query APIs. | Phase 22 complete |
 | 16 | Flow | Scheduling strategies that drive one or more Pipelines, starting with event-driven production and round-stepped self-play. | Phase 22 complete |
+| 17 | Scenario Builder | Constraint-driven reverse scenario generator. Operator writes a `ScenarioSpec`; tool searches scoring-table space via hill-climb and emits `scenario_analysis.json` + per-faction `.txt` personas. Not a pipeline module — design tool only. | Phase 35 in progress |
 
 ## Testing Status
 

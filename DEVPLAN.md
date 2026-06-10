@@ -1,7 +1,7 @@
 ---
-phase: 34
-blocked: true
-state: close
+phase: 35
+blocked: false
+state: execute
 steps_remaining: 0
 ---
 
@@ -53,9 +53,62 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 34 closed 2026-06-08. See `DEVLOG.md` Phase 34 close for the build summary.
-- **Focus** — Run 13b and Run 14a-14f remain queued in `NEXT_STEPS.md` for post-close validation and ablation runs.
-- **Blocked/Broken** — `blocked: true`.
+- **Phase** — Phase 35 queued — Reverse Scenario Builder (`tools/scenario_builder.py`). Phase 34 closed 2026-06-08; see `DEVLOG.md` Phase 34 close for that build summary.
+- **Focus** — Build a programmatic constraint-driven scenario generator that targets outcome-shape properties (multi-Pareto frontier, distribution spread, BATNA gap, logrolling, asymmetric BATNAs) and emits the existing `scenario_analysis.json` + persona `.txt` shape. Phase A (tool build) is pure 🔨 build, fully loop-suitable. Phase B (proof-of-concept `multi_pareto_v1/` scenario) is operator-driven post-close work, parallel to Run 14a-14f.
+- **Why now** — Run 14 confirmed scenarios behave **binary** (no-deal floor or single Pareto deal, alpha 16 / beta 18 / gamma 20 on every closing run). `RESEARCH_NOTES.md` Note 1 traces this to Water Rights being "scale-1" on every harness-relevant axis. The reverse builder is the cheapest validation path for the scaling thesis and the prerequisite for spectrum-producing scenarios that can discriminate individual agents.
+- **Blocked/Broken** — none. `blocked: false`.
+
+## Phase 35: Reverse Scenario Builder — In Progress
+
+**Goal.** Ship `src/tools/scenario_builder.py`: a constraint-driven reverse scenario generator. Operator writes a `ScenarioSpec` (target Pareto count, distribution spread, BATNA-clearing count, BATNA-to-Pareto gap, logrolling requirement, priority collision, asymmetric BATNAs); tool searches scoring-table space via random-restart hill-climb; validates each candidate via the existing `tests/self_play/verify_scenario_optimum.py` library (pure functions, no refactor needed); emits the same `scenario_analysis.json` + per-faction `.txt` persona shape produced by `src/tools/scenario_compiler.py`. Phase scope = tool + tests only. Using the tool to produce the first proof-of-concept scenario is operator follow-up.
+
+**Out of scope (operator follow-up after close).**
+- Authoring `multi_pareto_v1/` proof-of-concept scenario (B.1 spec authorship is a design-judgment call).
+- LLM narrative wrap for `logrolling` / `deception_tactics` text — emitted as stubs by Phase 35.
+- §2 pressure mechanisms (round-cost decay etc.) — separate phase; needs compiler + `PERSONA_TEMPLATE` extension, not just scoring-table design.
+- Live self-play smoke on a generated scenario.
+
+**Steps.**
+
+- [ ] **35.1 — `ScenarioSpec` dataclass + JSON loader.** Add `src/tools/scenario_spec.py` with `ScenarioSpec`, `IssueSpec`, and `load_spec(path)` / `dump_spec(spec, path)`. Fields: `factions`, `issues`, `score_range` (default `(1, 10)`), `pareto_count_target` (int or `(min, max)` tuple), `pareto_distribution_spread` (float, min stdev of per-faction max-min across Pareto deals), `batna_clearing_count_target`, `batna_to_pareto_gap_pct`, `requires_logrolling` (bool), `priority_collision` (`"none" | "soft" | "hard"`), `asymmetric_batna_fractions` (per-faction floats, default symmetric 0.50), `game_mode` (`"cooperative" | "competitive" | "mixed"`), `seed` (int). Add unit tests covering spec validation, JSON round-trip, default-value handling.
+
+- [ ] **35.2 — Fitness function on top of existing verifier.** Add `src/tools/scenario_fitness.py` with `compute_fitness(analysis, spec) -> FitnessResult` returning per-target L1 distances. Reuse `enumerate_deals`, `find_pareto_frontier`, `faction_score`, `beats_batna`, `find_priority_issues` from `tests/self_play/verify_scenario_optimum.py` (`:26-105`) — pure functions, just import. `FitnessResult` exposes `total_distance`, `per_target_distance`, and `satisfies(tolerance)` boolean. Unit tests on hand-built scoring tables with known Pareto counts (use Water Rights β-squeezed as a known-1-Pareto fixture; build a known-multi-Pareto fixture inline).
+
+- [ ] **35.3 — Hill-climb sampler with random restarts.** Add `_search_loop(spec, max_restarts=1000, max_local_moves=200, seed=None)` to `src/tools/scenario_builder.py`. Each restart: initialize random scoring table in `spec.score_range`; loop local single-cell flips that reduce `total_distance`; restart on plateau (10 moves without improvement). Accept first analysis where `satisfies(tolerance=0.10)` AND `verify_scenario_optimum.find_pareto_frontier` returns the expected count. BATNAs computed deterministically via `max_possible_score` + `asymmetric_batna_fractions` (reuse `src/tools/scenario_compiler.py:343, :404`). Unit test: deterministic seed → identical output across runs; convergence on a known-feasible spec within budget.
+
+- [ ] **35.4 — Output emission via existing compiler helpers.** Wire the search output through `save_analysis` (`src/tools/scenario_compiler.py:501`) for `scenario_analysis.json` and `generate_persona` + `save_persona` (`:431, :511`) for per-faction `.txt` files. `logrolling` and `deception_tactics` emitted as empty / stub strings — operator can hand-author or run the LLM compiler over the generated tables to fill them. Unit test: emitted JSON loads cleanly into the existing `FileBasedPersona` + `verify_scenario_optimum` pipeline.
+
+- [ ] **35.5 — CLI entry point with `--verify` integration.** Add `main()` + `_run(args)` to `src/tools/scenario_builder.py` mirroring `scenario_compiler.py:586`. Flags: `--spec` (path to JSON spec), `--output-dir`, `--title`, `--seed`, `--max-iterations`, `--verify` (re-runs `verify_scenario_optimum.main(...)` on the emitted JSON and exits non-zero on FAIL). Add to `pyproject.toml` console_scripts if needed. Smoke test: `python -m tools.scenario_builder --spec test_specs/multi_pareto.json --output-dir /tmp/test_scenario --verify` produces a passing scenario directory.
+
+- [ ] **35.6 — Doc updates.** Update `CLI_REFERENCE.md` with a new `tools.scenario_builder` section (flags, working example, links to spec schema). Add a "Phase 35 → tool built" note to `NEXT_STEPS.md` §8 (collapse the TODO; move the §8 detail into closed-tier or appendix). Add a one-line entry under "What this is" in this file's Cold Start Summary if a new always-loaded gotcha emerges. Update `ARCHITECTURE.md` Implementation Sequence table if the tool warrants a row.
+
+- [ ] **35.7 — Phase close.** Append Phase 35 close entry to `DEVLOG.md` summarizing what shipped (file list, test count delta, design decisions worth promoting). Update `ARCHITECTURE.md` status if applicable. Move Phase 34's `## Phase 34:` heading down under the `<!-- history -->` divider per the established pattern (newest-closed-first above the divider).
+
+**Files to create.**
+- `p:\shared\diplomat\src\tools\scenario_spec.py`
+- `p:\shared\diplomat\src\tools\scenario_fitness.py`
+- `p:\shared\diplomat\src\tools\scenario_builder.py`
+- `p:\shared\diplomat\tests\test_scenario_spec.py`
+- `p:\shared\diplomat\tests\test_scenario_fitness.py`
+- `p:\shared\diplomat\tests\test_scenario_builder.py`
+
+**Files to update.**
+- `p:\shared\diplomat\CLI_REFERENCE.md` (step 35.6)
+- `p:\shared\diplomat\NEXT_STEPS.md` §8 (step 35.6)
+- `p:\shared\diplomat\ARCHITECTURE.md` (step 35.6 / 35.7 — Implementation Sequence row + status)
+- `p:\shared\diplomat\DEVLOG.md` (step 35.7)
+
+**Files reused without modification.**
+- `p:\shared\diplomat\tests\self_play\verify_scenario_optimum.py` — `enumerate_deals`, `find_pareto_frontier`, `faction_score`, `beats_batna`, `find_priority_issues`, `is_pareto_dominated` (`:26-105`).
+- `p:\shared\diplomat\src\tools\scenario_compiler.py` — `max_possible_score` (`:343`), `force_batna_targets` (`:404`), `generate_persona` (`:431`), `save_persona` (`:511`), `save_analysis` (`:501`), `PERSONA_TEMPLATE` (`:199`), `SCENARIO_ANALYSIS_SCHEMA` (`:36`).
+
+**Validation criteria for phase close.**
+1. All new unit tests pass (deterministic seed reproducibility, fitness convergence on known-feasible specs, JSON round-trip).
+2. Full diplomat test suite remains green (current baseline: 414 tests post-Phase 34).
+3. Smoke run: `python -m tools.scenario_builder --spec <known-feasible spec> --verify` succeeds end-to-end and `verify_scenario_optimum.py` reports PASS on the emitted JSON with Pareto count matching the spec target within tolerance.
+4. CLI_REFERENCE.md documents the new tool with at least one working example.
+
+**Loop-readiness:** 🔨 PURE BUILD per `NEXT_STEPS.md` taxonomy. Search algorithm is deterministic, validator is an existing pure-function library, interface is fully specified, test signal is binary (tests pass = step done). No operator judgment required mid-loop.
 
 <!-- Closed phases only: newest first. -->
 
