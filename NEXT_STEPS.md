@@ -517,9 +517,11 @@ baseline, §1.8 cross-scenario) are higher-leverage and cheaper to run first.
 
 ---
 
-## 8. `[C]` ✓ Reverse scenario builder (outcome-shape → scenario) — Phase 35 built
+## 8. `[C]` ✓ Reverse scenario builder (outcome-shape → scenario) — Phase 36 built
 
 **Status:** Phase 35 closed 2026-06-10. `src/tools/scenario_builder.py` ships with `ScenarioSpec` + `IssueSpec` dataclasses (`src/tools/scenario_spec.py`), fitness scoring (`src/tools/scenario_fitness.py`), random-restart hill-climb search, output emission via existing compiler helpers, and `--verify` integration. See `CLI_REFERENCE.md` `tools.scenario_builder` for flags and spec schema. Operator follow-up: author `multi_pareto_v1/` proof-of-concept scenario using the tool.
+
+**Phase 36 closed 2026-06-11.** Success criterion met: `joint_space_mission_v1/spec.json` converges in 3.6s (well within the 5-min budget). Four algorithm improvements shipped: structured restart logging (`--debug-search`), soft weighted fitness (`target_weights` spec field — default weight 1.0; categorical targets default 0.3), simulated annealing in the local-move loop, and bias initialization toward categorical constraints. Validation traced a `pareto_distribution_spread` metric-semantics mismatch in the operator's spec; fixed via `target_weights: {pareto_distribution_spread: 0.0}` and queued the correct metric as Phase 37. Deferred from Phase 36: `pareto_outcome_diversity` metric (inter-deal winner diversity); LLM-guided proposal for larger-than-3×3×3 search spaces.
 
 **Scope (original):** Inverse of the existing forward pipeline. Operator specifies desired
 outcome-distribution properties; tool generates issues / outcomes / scoring

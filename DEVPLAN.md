@@ -84,7 +84,7 @@ steps_remaining: 0
 
   See "## Phase 37: Add `pareto_outcome_diversity` metric — Queued" below for the follow-up phase that closes this metric-semantics gap.
 
-- [ ] **36.6 — Doc updates.** Update `CLI_REFERENCE.md` `tools.scenario_builder` section with the new `--debug-search` flag, `target_weights` spec field, and example invocation. Append a paragraph to the `NEXT_STEPS.md` §8 entry noting Phase 36's success criterion and what's still deferred. Update `ARCHITECTURE.md` Implementation Sequence row for scenario_builder with Phase 36 status.
+- [x] **36.6 — Doc updates.** Update `CLI_REFERENCE.md` `tools.scenario_builder` section with the new `--debug-search` flag, `target_weights` spec field, and example invocation. Append a paragraph to the `NEXT_STEPS.md` §8 entry noting Phase 36's success criterion and what's still deferred. Update `ARCHITECTURE.md` Implementation Sequence row for scenario_builder with Phase 36 status.
 
 - [ ] **36.7 — Phase close.** Append Phase 36 close entry to `DEVLOG.md` summarizing what shipped (file list, test count delta, validation outcome on the operator spec). Move Phase 35's heading down under the `<!-- history -->` divider per the established pattern.
 

@@ -374,7 +374,8 @@ python -m tools.scenario_builder \
   "priority_collision": "soft",
   "asymmetric_batna_fractions": {"alpha": 0.65, "beta": 0.45},
   "game_mode": "mixed",
-  "seed": 42
+  "seed": 42,
+  "target_weights": {"pareto_distribution_spread": 0.0}
 }
 ```
 
@@ -392,6 +393,9 @@ python -m tools.scenario_builder \
 | `asymmetric_batna_fractions` | dict[str, float] | `{}` | Per-faction BATNA fraction overrides; unspecified factions use `0.50` |
 | `game_mode` | `"cooperative"` \| `"competitive"` \| `"mixed"` | `"mixed"` | Recorded in emitted analysis; no effect on search |
 | `seed` | int | `0` | Random seed for reproducibility; overridden by `--seed` flag |
+| `target_weights` | dict[str, float] | `{}` | Per-target weight overrides for `compute_fitness`. Default weight 1.0 for all targets; set to `0.0` to disable a misspecified or unneeded target without removing it from the spec. Categorical targets (`requires_logrolling`, `priority_collision`, `game_mode`) default to weight `0.3`. |
+
+Note: `pareto_distribution_spread` and `pareto_outcome_diversity` (Phase 37) measure *different* properties. `pareto_distribution_spread` measures per-faction frontier-range stdev (uniformity of each faction's scoring range across Pareto deals — an intra-faction-uniformity property). `pareto_outcome_diversity` (queued) measures whether different Pareto deals favor *different factions* (inter-deal diversity). Use the correct field for the design intent; they can be set independently.
 
 ---
 
@@ -640,3 +644,4 @@ procedure to validate the Diplomat bot on the Raspberry Pi after code changes.
 | 2026-06-07 | Phase 33: added `tools/classify_edit_log.py` entry (bulk edit-log classifier); added "classify the review-gate edit log" row to quick index. |
 | 2026-06-10 | Phase 35: added `tools.scenario_builder` section (constraint-driven scenario generator; `--spec`, `--output-dir`, `--title`, `--seed`, `--max-iterations`, `--verify`); added quick-index row. |
 | 2026-06-10 | Phase 36 Step 36.1: added `--debug-search` to `tools.scenario_builder` and documented its JSON restart logs. |
+| 2026-06-11 | Phase 36 Step 36.6: added `target_weights` spec field to schema and field table; added metric-semantics note distinguishing `pareto_distribution_spread` (intra-faction uniformity) from `pareto_outcome_diversity` (queued Phase 37, inter-deal diversity). |

@@ -750,3 +750,14 @@ Iter 148 ran step 36.5 validation (1000 restarts, 3m27s) and reported scenario s
 
 **Process gap noted.** Step 36.5 of the Phase 36 plan said `if the spec still fails, document the lowest-distance candidate the tool found + per-target distances in DEVLOG.md and adjust either the search or document the spec as infeasible.'' Iter 148 exited reporting the failure but did not run with --debug-search, did not capture per-target distances, and did not write to DEVLOG. Worker stayed in scope (didn't invent a remediation outside the spec) but the documented fallback path wasn't followed. Plan instructions could be more explicit: `on failure, re-run with --debug-search, capture the per-target distance from the lowest-total-distance restart, write a DEVLOG entry naming the bottleneck target, then exit.''
 
+
+
+## 2026-06-11 - Phase 36.6 doc updates
+
+Updated three reference docs to reflect Phase 36 algorithm improvements:
+
+- **CLI_REFERENCE.md**: Added `target_weights` field to the `ScenarioSpec` JSON example and spec field table (dict[str,float], default `{}`, weight 1.0 for continuous targets, 0.3 default for categorical). Added metric-semantics clarification note distinguishing `pareto_distribution_spread` (per-faction frontier-range stdev, an intra-faction-uniformity property) from the forthcoming `pareto_outcome_diversity` (inter-deal winner diversity, Phase 37). Added Phase 36.6 changelog entry.
+- **NEXT_STEPS.md §8**: Updated heading to "Phase 36 built"; appended Phase 36 success-criterion paragraph summarizing the four algorithm improvements, the 3.6s validation result, the metric-semantics finding, and what's deferred (pareto_outcome_diversity metric, LLM-guided proposal for larger search spaces).
+- **ARCHITECTURE.md**: Updated Implementation Sequence row 17 from "Phase 35 complete" to "Phase 36 complete" (description updated to mention simulated-annealing); updated Testing Status unit-test count from 426 to 435 with a breakdown of the 9 new Phase 36 tests.
+
+Tests: 435 passed, 1 skipped.
