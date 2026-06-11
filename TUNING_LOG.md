@@ -1553,6 +1553,45 @@ Wall clock per run: ~16-17 min. Estimated cost per run: ~$0.60-0.75 (sonnet Gene
 
 Cost-instrumentation gap noted: per-run cost is NOT captured in the result JSON (`metadata.cost_usd: None`), nor in the selfplay ledger (`data/selfplay_cost_ledger.jsonl` is stale). Estimate above is back-of-envelope from token counts and pricing. Worth a small utility phase to fix (Phase 38.5 / Phase 39 candidate).
 
+### Run 14e transcript inspection (2026-06-11) — strategic refusal, not harness failure
+
+**Method.** Extracted R3 + R4 `round_responses` for each faction from all 3 sonnet-full result JSONs. Pattern-matched final-position-of-record per faction per issue.
+
+**Headline.** All 3 runs fail on `payment_structure` only — `water_release_volume` and `long_term_infrastructure` converge to High + JFD across the board. Per-run R4 final positions:
+
+| Run | alpha (R4) | beta (R4) | gamma (R4) |
+|---|---|---|---|
+| 14e-1 | **Low** + Heavy-Downstream | High + **Token** | High + **Token** |
+| 14e-2 | High + Heavy-Downstream | High + **Token** | High + **Shared** |
+| 14e-3 | High + Heavy-Downstream | High + **Token** | High + **Token** (truncated R4) |
+
+Alpha holds Heavy-Downstream (their #1 payment preference, scoring 10). Beta+gamma refuse it and hold Token/Shared (their #1 preferences, scoring 7 and 5). 14e-1 escalates further: alpha reverts to Low water when gamma refuses Heavy-Downstream, producing the worst no-deal of the three.
+
+**The transcripts show explicit coalition formation, not anchoring failure.** Selected verbatim quotes:
+
+- **Beta, 14e-3 R3:** "If we cannot reach this framework in the next round, Beta will need to reassess whether any deal beats our BATNA. Federal drought aid and crop insurance are available. **I would rather have a deal — but not at any price.**"
+- **Gamma, 14e-3 R3:** "Beta, you've been consistent and credible throughout. I'm aligned with you on Volume and Infrastructure. **I'm asking you to hold firm on those two issues while I bridge the payment gap.**"
+- **Alpha, 14e-1 R4:** "If Heavy-Downstream payment is confirmed by all parties, Alpha will commit to releasing High volume. If it is not confirmed, Alpha's proposal stands as Low volume with Heavy-Downstream payment — which reflects Alpha's actual economic position and BATNA."
+
+**Re-framing.** Sonnet agents are **negotiating strategically** — beta+gamma form a credible coalition against alpha's Heavy-Downstream demand, both factions treat their BATNAs as survivable, and alpha holds firm too. The Pareto-optimal deal (alpha 16 / beta 18 / gamma 20) requires beta+gamma to accept their #2 payment choice (Heavy-Downstream) in exchange for #1 outcomes on water + infrastructure. **Sonnet refuses that trade 3/3 of the time. gpt-mini accepted it 2/3 of the time.**
+
+**Why sonnet refuses where gpt-mini accepts** — three candidate mechanisms (not mutually exclusive):
+
+1. **Sonnet weighs persona principles more heavily.** Beta's "not at any price," gamma's "bridge the payment gap" coalition appeal — normative framings. Sonnet may operationalize the persona's "honor your faction's priorities" rule more strictly.
+2. **Sonnet is better at coalition reasoning.** Gamma explicitly identifies beta as a co-aligned faction and recruits them. Stronger long-context modeling makes this kind of strategic move more accessible.
+3. **Sonnet treats BATNA as more credible.** Beta's "federal drought aid and crop insurance are available" line shows sonnet beta reasoning about fallback as a real option rather than a worst case to be avoided.
+
+All three mechanisms point to **higher negotiation skill**, not lower. The scenario design rewards cooperative concession; sonnet's strategic capability is misaligned with that incentive structure on this specific scenario.
+
+**What this changes about earlier conclusions:**
+
+- **Earlier framing "the harness has a model-class fit problem"** (Finding #3 in the Cross-cell synthesis below) is **incorrect on the mechanism, correct on the outcome**. The harness fires for sonnet, intel is produced, reconciliation works — sonnet's failure to converge is not because the harness fails to reach it. It's because sonnet's strategic reasoning *uses* the harness intel to make a sound but uncooperative decision. Finding #3 retained for outcome accuracy; mechanism revised here.
+- **Per-module ablation (Project-direction option 2) is now lower priority.** No single module is the bottleneck.
+- **Phase 38 pressure mechanisms gain the strongest motivation yet.** Round-cost decay would make beta+gamma's coalition costly to maintain — every round at BATNA subtracts points, eventually flipping the math so accepting Heavy-Downstream beats holding out. Asymmetric clocks would force one faction to commit earlier. Both should drive sonnet toward convergence by *changing the strategic landscape*, not by suppressing strategic behavior.
+- **The cost-economics recommendation "cheap+harness is the production default" needs the qualifier "on scenarios with a unique cooperative-Pareto."** For multi-Pareto or richer scenarios, sonnet's strategic capability likely flips from liability to asset.
+
+**Highest-information cheap follow-up:** Re-run sonnet+full on a pressure-augmented Water Rights β-squeezed variant (now feasible — Phase 38 just landed pressure schema). ~$2 for 3 runs. Expected outcome if hypothesis is right: pressure-induced BATNA decay drives beta+gamma to accept Heavy-Downstream as their best remaining option; close rate climbs from 0/3 to 2-3/3. If pressure does not change the outcome, the strategic-refusal pattern is robust to the small-bundle pressure mechanisms and Phase 39 (exogenous events) becomes more relevant.
+
 ### Cross-cell synthesis (post-14e — campaign complete)
 
 | Tier | Model | Full close-rate | Bare close-rate | Δ (full − bare) |
@@ -1567,9 +1606,9 @@ Cost-instrumentation gap noted: per-run cost is NOT captured in the result JSON 
 
 2. **Model strength does NOT substitute for harness on this scenario.** Bare close-rate is non-monotonic in model tier: weak 0/3, mid 1/3, strong 0/3. Mid-bare's 1/3 is the one outlier; both weak-bare and strong-bare are floored. (Unchanged from post-14d.)
 
-3. **The harness has a model-class fit problem.** Sonnet-full = 0/3 — *worse* than weak-full and mid-full, both at 2/3. This is the surprise finding from 14e and inverts the original "harness compensates for weak model" reading. At this scenario, the harness configuration works well for OpenAI Generators (nano, mid-mini) and **fails to rescue Anthropic's sonnet** despite sonnet engaging substantively (27 promises tracked in 14e-1, similar in 14e-2/3 — vs zero in 14d-bare). The fail mode is *non-convergence at the final round*, not silence: agents stay anchored to their priority positions through R4.
+3. **The harness has a model-class fit problem** — *retained for outcome accuracy; the MECHANISM is revised by the post-14e transcript inspection above*. Sonnet-full = 0/3 — *worse* than weak-full and mid-full, both at 2/3. What the transcripts actually show: sonnet's harness fires fully (intel produced, reconciliation works, 27 promises tracked in 14e-1); sonnet then *uses* that intel to make a strategically sound but uncooperative decision (beta+gamma form a credible coalition against alpha's Heavy-Downstream demand and prefer their BATNAs to conceding). Sonnet's higher capability produces strategic refusal where gpt-mini's lower capability produces reflexive cooperation. The harness is not failing to reach sonnet — sonnet is succeeding at a different objective than the scenario rewards. See the transcript-inspection subsection above for verbatim quotes and three candidate mechanisms.
 
-4. **Bare mode is bottlenecked by the absence of structural reasoning** for OpenAI Generators (`14b` vs `14a`, `14c-bare` vs `14c-full`). For Anthropic-Generator runs the harness-vs-bare distinction collapses (sonnet-full = sonnet-bare = 0/3) — the harness contribution that's load-bearing for OpenAI isn't reaching sonnet at all.
+4. **Bare mode is bottlenecked by the absence of structural reasoning** for OpenAI Generators (`14b` vs `14a`, `14c-bare` vs `14c-full`). For Anthropic-Generator runs the harness-vs-bare distinction collapses on outcome (sonnet-full = sonnet-bare = 0/3) — but only because sonnet's strategic-refusal behavior produces the same no-deal outcome whether it has harness intel or not. The harness IS reaching sonnet in full mode; sonnet just doesn't *use* the intel toward closing the deal.
 
 **Caveat (per `RESEARCH_NOTES.md` Note 1):** all findings are on a **scale-1 scenario**. At richer scenarios (more factions, more issues, longer horizons, deception), the picture may shift dramatically. The sonnet-full=0/3 result specifically may invert at scale — sonnet's longer-context handling might help where nano/mid would fail. Cannot extrapolate from this campaign alone; needs Phase 41/42 (scale-matrix verification) + a follow-up ablation campaign on richer scenarios.
 
@@ -1614,10 +1653,7 @@ For this scenario configuration, the recommendation is unambiguous: **cheap + ha
 
 ### Follow-up questions in priority order (post-14e)
 
-1. **Why does sonnet+full fail when nano+full and mid+full succeed?** Highest-priority investigation. Three concrete hypotheses to test via transcript inspection:
-   - **(a) Harness intel mismatch.** The analyst's per-faction intelligence reports are produced by openai-mini (commodity tier). Those reports may summarize sonnet's verbose drafts incorrectly, leading sonnet to act on bad intel. **Test:** run sonnet+full with sonnet (not openai-mini) for analyst module too. ~$10 for 3 runs.
-   - **(b) Sonnet response-style anchoring.** Sonnet may interpret the persona's "don't accept first reasonable framework" rule more strongly than gpt-mini does, leading to harder anchoring on opening positions. **Test:** soften the persona rule for sonnet specifically, re-run. ~$2 for 3 runs.
-   - **(c) Mid-game commitment instability.** Run 10 showed gpt-4.1-mini's R3→R4 defection pattern. Sonnet may have its own R3→R4 instability mode — inspect 14e transcripts for analogous patterns. **Test:** zero LLM cost — just analysis.
+1. **Why does sonnet+full fail when nano+full and mid+full succeed?** **Answered (2026-06-11) by transcript inspection** — sonnet exhibits strategic refusal: beta+gamma form a credible coalition against alpha's Heavy-Downstream demand and prefer BATNAs to conceding their #1 payment choice. Three candidate mechanisms (persona-rule weighting, coalition reasoning, BATNA credibility) all point to higher capability, not lower. See the Run 14e transcript inspection subsection above.
 2. **Does the load-bearing-harness finding generalize beyond this scenario?** Per `RESEARCH_NOTES.md` Note 1 — needs Phase 41/42 + new richer scenarios + re-ablation. The 14e=0/3 result makes this MORE important, not less: if richer scenarios show sonnet+full succeeding where simpler scenarios show it failing, that's a different story than "sonnet has a harness-fit problem."
 3. **Which harness modules are doing the work?** Per-module ablation (Phase 35 candidate) to identify whether intel quality, state tracking, or reconciliation is the load-bearing piece. Pairs well with hypothesis (a) above — testing module-by-module with sonnet might localize the failure.
 4. **Will Phase 38 pressure mechanisms change the picture?** Round-cost decay + asymmetric clocks + penalty floor create concession pressure independent of model. If sonnet+full+pressure reaches a deal where sonnet+full alone doesn't, that's a clean win for the pressure thesis and gives operators a knob to make scenarios more sonnet-friendly. **Test:** re-run 14e with the Phase 38 schema after authoring a pressure-augmented variant of Water Rights β-squeezed.
@@ -1630,15 +1666,14 @@ All four options from the original Phase 34 close are now informed:
 | Option | Status post-14e |
 |---|---|
 | 1. Continue building harness features (Tier 2/3) | **Partially supported.** Harness adds clear value for OpenAI tiers; sonnet result complicates the "always invest in harness" framing. |
-| 2. Per-module ablation (Phase 35 candidate) | **Promoted to high priority.** Needed to test hypothesis (a) above and understand WHY the harness composes well with OpenAI but not Anthropic. |
+| 2. Per-module ablation (Phase 35 candidate) | **Demoted (2026-06-11).** Transcript inspection ruled out harness-module failure as the mechanism. Per-module ablation would still test scale-N harness contribution per Note 1, but is no longer the leading hypothesis for the 14e=0/3 result. |
 | 3. Pivot to "Diplomat-lite" minimal-harness | **Refuted.** Bare-mode close rates (0/3, 1/3, 0/3) are catastrophic vs full-mode (2/3, 2/3, 0/3). Harness IS load-bearing for OpenAI. Sonnet failing both ways doesn't refute that. |
 | 4. Validate scaling thesis first (Phase 41/42 + new scenarios) | **Strongly promoted.** Scale-1 scenario showed a counter-intuitive result; richer scenarios are necessary to know whether the pattern persists, inverts, or compounds. |
 
-**Recommended next-phase ordering:**
-- **Phase 38 already closed** (pressure mechanisms small bundle, 2026-06-11 in parallel with Run 14e). Author a pressure-augmented Water Rights β-squeezed variant and re-test sonnet+full+pressure as a cheap follow-up (~$2).
-- **Hypothesis (c) transcript inspection** is zero-cost and high-information — should happen first.
-- **Hypothesis (a) sonnet-everywhere test** is ~$10 — worth firing if (c) doesn't explain the failure.
-- **Phase 41 (scale-matrix verification)** is independent and can run any time — enables the richer-scenario ablation that decides between options 1 and 4 at scale.
+**Recommended next-phase ordering (post-transcript-inspection):**
+- **Sonnet+full+pressure re-test** is now the single highest-leverage next experiment (~$2 for 3 runs). Phase 38 just landed pressure schema. Author a pressure-augmented Water Rights β-squeezed variant; re-run cells 14e-1/2/3 with `round_cost` decay enabled. Expected outcome if the strategic-refusal interpretation is correct: BATNA erodes round-over-round, beta+gamma's coalition becomes uneconomic, close rate climbs from 0/3 toward 2-3/3. If pressure doesn't help, the mechanism is something else and Phase 39 (exogenous events) gains weight.
+- **Hypothesis (c) further transcript inspection** — also zero-cost. Compare 14e R3→R4 transitions against Run 10's gpt-4.1-mini R3→R4 defection pattern. Different shape (refusal vs defection) but worth pattern-matching.
+- **Phase 41 (scale-matrix verification)** is independent and still enables the richer-scenario ablation needed to test whether sonnet's strategic capability flips from liability to asset at scale.
 
 **Results files (Run 14e):**
 - `tests/self_play/results/run14_full_claudesonnet46_beta_squeezed_{1,2,3}.json`
