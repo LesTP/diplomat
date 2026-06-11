@@ -394,8 +394,16 @@ python -m tools.scenario_builder \
 | `game_mode` | `"cooperative"` \| `"competitive"` \| `"mixed"` | `"mixed"` | Recorded in emitted analysis; no effect on search |
 | `seed` | int | `0` | Random seed for reproducibility; overridden by `--seed` flag |
 | `target_weights` | dict[str, float] | `{}` | Per-target weight overrides for `compute_fitness`. Default weight 1.0 for all targets; set to `0.0` to disable a misspecified or unneeded target without removing it from the spec. Categorical targets (`requires_logrolling`, `priority_collision`, `game_mode`) default to weight `0.3`. |
+| `pareto_outcome_diversity` | float (0–1) | `0.0` | Min fraction of Pareto-optimal deals that favor a *distinct* faction (inter-deal diversity). Computed as `distinct_winners / min(frontier_size, n_factions)`. Default `0.0` = no constraint. Set to e.g. `0.66` to require most deals favor different factions. |
 
-Note: `pareto_distribution_spread` and `pareto_outcome_diversity` (Phase 37) measure *different* properties. `pareto_distribution_spread` measures per-faction frontier-range stdev (uniformity of each faction's scoring range across Pareto deals — an intra-faction-uniformity property). `pareto_outcome_diversity` (queued) measures whether different Pareto deals favor *different factions* (inter-deal diversity). Use the correct field for the design intent; they can be set independently.
+**Metric semantics — `pareto_distribution_spread` vs `pareto_outcome_diversity`:**
+
+These two metrics measure *different* properties and can be set independently. Confusing them is a common authoring mistake:
+
+- `pareto_distribution_spread` — measures **intra-faction uniformity**: the stdev of each faction's max–min score range across Pareto deals. A high value means each faction's possible outcomes span a wide range (no faction is stuck at one score level across all deals). This does *not* tell you whether different deals favor different factions.
+- `pareto_outcome_diversity` — measures **inter-deal diversity**: the fraction of Pareto-optimal deals where a *distinct* faction scores highest. Formula: `distinct_winners / min(frontier_size, n_factions)`. A value of `1.0` means every Pareto deal has a different winner faction; `0.0` means one faction wins every deal. Use this when you want the scenario to produce deals that visibly favor different factions.
+
+Example: if your intent is "each Pareto deal should favor a different faction," set `pareto_outcome_diversity: 0.66` (not `pareto_distribution_spread`). The latter measures score-range uniformity, not winner diversity.
 
 ---
 
@@ -645,3 +653,4 @@ procedure to validate the Diplomat bot on the Raspberry Pi after code changes.
 | 2026-06-10 | Phase 35: added `tools.scenario_builder` section (constraint-driven scenario generator; `--spec`, `--output-dir`, `--title`, `--seed`, `--max-iterations`, `--verify`); added quick-index row. |
 | 2026-06-10 | Phase 36 Step 36.1: added `--debug-search` to `tools.scenario_builder` and documented its JSON restart logs. |
 | 2026-06-11 | Phase 36 Step 36.6: added `target_weights` spec field to schema and field table; added metric-semantics note distinguishing `pareto_distribution_spread` (intra-faction uniformity) from `pareto_outcome_diversity` (queued Phase 37, inter-deal diversity). |
+| 2026-06-11 | Phase 37 Step 37.6: added `pareto_outcome_diversity` spec field (`float 0–1`, default `0.0`); expanded metric-semantics note into a full cross-reference block explaining what each metric measures and when to use each. |

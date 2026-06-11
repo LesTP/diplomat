@@ -770,3 +770,7 @@ Ran `python3 -m tools.scenario_builder --spec tests/self_play/scenarios/joint_sp
 Full test suite: 440 passed, 1 skipped (up from 435 pre-phase — the 5 new tests from 37.3 are confirmed green).
 
 Next step: 37.6 doc update to `CLI_REFERENCE.md`.
+
+## 2026-06-11 — Phase 37 Step 37.6: CLI_REFERENCE.md doc update
+
+Added `pareto_outcome_diversity` to the `ScenarioSpec` fields table in `CLI_REFERENCE.md` with full description (`float 0–1`, default `0.0`, formula `distinct_winners / min(frontier_size, n_factions)`). Expanded the existing metric-semantics note into a structured cross-reference block that explains both metrics side by side: what each measures, the key distinction (intra-faction-uniformity vs inter-deal-diversity), and a concrete example of when to use each. Removed the "(queued)" marker from the prior draft note.
