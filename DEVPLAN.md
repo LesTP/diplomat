@@ -1,6 +1,6 @@
 ---
 phase: 37
-blocked: false
+blocked: true
 state: close
 steps_remaining: 0
 ---
@@ -54,7 +54,7 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 37 Complete. Awaiting human audit before next phase. 440 tests passing.
+- **Phase** — Phase 37 complete; see `DEVLOG.md` Phase 37 close. 440 tests passing.
 - **Phase B (proof-of-concept scenario):** Joint Space Mission scenario authoring unblocked. v1 spec produces 3 Pareto-optimal deals with distinct distributions (balanced consensus / alpha+gamma win / beta wins). Next operator session: run the LLM scenario compiler over the generated `scenario_analysis.json` to produce narrative + persona prose, then optionally smoke at flash-lite.
 - **Queued operator-driven work:** Run 14a-14f bare-prompt ablation matrix (`NEXT_STEPS.md` §10); Run 13b coached re-test (`NEXT_STEPS.md` §4).
 

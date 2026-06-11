@@ -3024,6 +3024,20 @@ Added `pareto_outcome_diversity` to the `ScenarioSpec` fields table in `CLI_REFE
 
 ## 2026-06-11 — Phase 37 Close
 
+## 2026-06-11 — Phase 37 Step 37.3
+
+Mode: Build
+Outcome: Added and validated the Phase 37 unit-test coverage for `pareto_outcome_diversity` in `tests/test_scenario_fitness.py`. The suite now pins the low-diversity, distinct-winner, mixed-target, default-zero/no-constraint, total-distance-weighting, and categorical-default-weight behaviors for scenario fitness scoring.
+Contract changes: None
+
+Validation: `python3 -m pytest tests/test_scenario_fitness.py` — 9 passed.
+
+Notes: The environment does not provide a `python` shim, so validation used `python3`.
+
+## 2026-06-11 — Phase 37 review: pareto_outcome_diversity validation passed
+
+Reviewed the committed Phase 37 changes against the phase-review checklist. Focused validation passed for `tests/test_scenario_fitness.py` and `tests/test_scenario_spec.py` (`15 passed`). No must-fix or should-fix findings; Phase 37 remains ready for close.
+
 ### Phase 37: Add `pareto_outcome_diversity` metric — Complete
 Mode: Build
 Steps: 37.1–37.7 (7 steps)
