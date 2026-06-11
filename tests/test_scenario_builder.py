@@ -7,13 +7,21 @@ import asyncio
 import copy
 import json
 import logging
+import random
 from pathlib import Path
 
 import pytest
 
 from modules.persona import FileBasedPersona
-from tools.scenario_builder import _run, _search_loop, build_and_save_scenario
-from tools.scenario_fitness import compute_fitness
+from tools.scenario_builder import (
+    _anneal_local,
+    _analysis_from_scoring_table,
+    _random_scoring_table,
+    _run,
+    _search_loop,
+    build_and_save_scenario,
+)
+from tools.scenario_fitness import FitnessResult, compute_fitness
 from tools.scenario_spec import IssueSpec, ScenarioSpec, dump_spec
 
 from tests.self_play.verify_scenario_optimum import enumerate_deals, find_pareto_frontier
@@ -134,6 +142,62 @@ class TestSearchLoop:
                 "start_total_distance",
             ]
         ]
+
+
+class TestAnnealLocal:
+    def test_is_deterministic_for_seed(self) -> None:
+        spec = _feasible_spec()
+        rng_init = random.Random(7)
+        scoring = _random_scoring_table(spec, rng_init)
+        analysis = _analysis_from_scoring_table(spec, scoring)
+        fitness = compute_fitness(analysis, spec)
+
+        first, _, _, _ = _anneal_local(
+            spec, copy.deepcopy(scoring), analysis, fitness,
+            max_local_moves=30, rng=random.Random(42)
+        )
+        second, _, _, _ = _anneal_local(
+            spec, copy.deepcopy(scoring), analysis, fitness,
+            max_local_moves=30, rng=random.Random(42)
+        )
+        assert first == second
+
+    def test_accepts_uphill_move_on_plateau_trap(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """SA accepts uphill moves: escapes a trap where all neighbors are worse."""
+        spec = _feasible_spec()
+        initial_scoring = _random_scoring_table(spec, random.Random(5))
+        analysis = _analysis_from_scoring_table(spec, initial_scoring)
+        start_distance = 0.50
+        start_fitness = FitnessResult(
+            total_distance=start_distance,
+            per_target_distance={"pareto_count": start_distance},
+        )
+        # Every candidate is slightly worse — greedy would be permanently stuck.
+        always_worse = FitnessResult(
+            total_distance=start_distance + 0.05,
+            per_target_distance={"pareto_count": start_distance + 0.05},
+        )
+        monkeypatch.setattr("tools.scenario_builder.compute_fitness", lambda *a: always_worse)
+
+        # With T=1.0 at start, exp(-0.05/1.0) ≈ 0.951 per-move acceptance prob.
+        # P(all 30 rejected) ≈ 0.049^30 ≈ 10^-42 — effectively zero.
+        final_scoring, _, _, _ = _anneal_local(
+            spec, copy.deepcopy(initial_scoring), analysis, start_fitness,
+            max_local_moves=30, rng=random.Random(123)
+        )
+        assert final_scoring != initial_scoring
+
+    def test_converges_on_feasible_spec(self) -> None:
+        """_anneal_local (via _search_loop) converges on the 2×2×2 fixture."""
+        spec = _feasible_spec()
+        analysis = _search_loop(spec, max_restarts=500, max_local_moves=150, seed=23)
+        fitness = compute_fitness(analysis, spec)
+        frontier = find_pareto_frontier(analysis, enumerate_deals(analysis))
+
+        assert fitness.satisfies(0.10)
+        assert len(frontier) == 3
 
 
 class TestBuildAndSaveScenario:

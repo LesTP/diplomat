@@ -708,3 +708,13 @@ Contract changes:
 - `DEVPLAN.md` - marked Step 36.2 complete.
 
 Focused verification: `python3 -m pytest tests/test_scenario_spec.py tests/test_scenario_fitness.py tests/test_scenario_builder.py -q` --- `17 passed`.
+
+## 2026-06-11 — Phase 36 Step 36.3: Simulated Annealing
+
+Replaced the greedy inner-loop (best-first single-cell flip) with simulated annealing (`_anneal_local` helper in `src/tools/scenario_builder.py`). Temperature cools geometrically from T=1.0 to T=0.01 over `max_local_moves` steps; worse candidates accepted with probability `exp(-Δ/T)`. `_search_loop` now calls `_anneal_local` per restart instead of the greedy loop.
+
+Files changed:
+- `src/tools/scenario_builder.py` — added `import math`, imported `FitnessResult`, added `_anneal_local`, updated `_search_loop`.
+- `tests/test_scenario_builder.py` — added `TestAnnealLocal` (3 tests: deterministic-for-seed, plateau-trap uphill acceptance, convergence on 2×2×2 fixture).
+
+Test results: `433 passed, 1 skipped` (full suite). 3 new tests for 36.3.

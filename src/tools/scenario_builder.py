@@ -12,6 +12,7 @@ import argparse
 import copy
 import json
 import logging
+import math
 import random
 import sys
 from pathlib import Path
@@ -27,7 +28,7 @@ from tools.scenario_compiler import (
     save_analysis,
     save_persona,
 )
-from tools.scenario_fitness import compute_fitness
+from tools.scenario_fitness import FitnessResult, compute_fitness
 from tools.scenario_spec import ScenarioSpec, load_spec
 
 
@@ -155,6 +156,55 @@ def _best_single_cell_flip(
     return best_scoring, best_analysis, best_distance
 
 
+def _anneal_local(
+    spec: ScenarioSpec,
+    scoring: dict[str, dict[str, dict[str, int]]],
+    analysis: dict[str, Any],
+    fitness: FitnessResult,
+    max_local_moves: int,
+    rng: random.Random,
+) -> tuple[dict[str, dict[str, dict[str, int]]], dict[str, Any], FitnessResult, str]:
+    """Simulated annealing over single-cell flips.
+
+    Temperature cools geometrically from T_start=1.0 to T_end=0.01 over
+    max_local_moves steps. Better candidates are always accepted; worse
+    candidates are accepted with probability exp(-Δdistance / T).
+
+    Returns (scoring, analysis, fitness, exit_reason) where exit_reason is
+    "accepted" when the candidate satisfies the spec, or "budget_exhausted".
+    """
+    T_START = 1.0
+    T_END = 0.01
+    cells = _all_cells(spec)
+    values = list(_score_range(spec))
+    n_steps = max(max_local_moves - 1, 1)
+
+    for step in range(max_local_moves):
+        T = T_START * (T_END / T_START) ** (step / n_steps)
+
+        cell = rng.choice(cells)
+        current_value = scoring[cell.faction][cell.issue][cell.outcome]
+        other_values = [v for v in values if v != current_value]
+        if not other_values:
+            continue
+        new_value = rng.choice(other_values)
+
+        candidate_scoring = copy.deepcopy(scoring)
+        candidate_scoring[cell.faction][cell.issue][cell.outcome] = new_value
+        candidate_analysis = _analysis_from_scoring_table(spec, candidate_scoring)
+        candidate_fitness = compute_fitness(candidate_analysis, spec)
+
+        delta = candidate_fitness.total_distance - fitness.total_distance
+        if delta < 0 or rng.random() < math.exp(-delta / T):
+            scoring = candidate_scoring
+            analysis = candidate_analysis
+            fitness = candidate_fitness
+            if _candidate_is_acceptable(spec, analysis):
+                return scoring, analysis, fitness, "accepted"
+
+    return scoring, analysis, fitness, "budget_exhausted"
+
+
 def _search_loop(
     spec: ScenarioSpec,
     max_restarts: int = 1000,
@@ -162,7 +212,7 @@ def _search_loop(
     seed: int | None = None,
     debug_search: bool = False,
 ) -> dict[str, Any]:
-    """Search scoring-table space with random restarts and greedy local flips."""
+    """Search scoring-table space with random restarts and simulated annealing."""
     rng = random.Random(spec.seed if seed is None else seed)
 
     for restart_index in range(max_restarts):
@@ -181,30 +231,19 @@ def _search_loop(
             )
             return analysis
 
-        exit_reason = "budget_exhausted"
-        for _ in range(max_local_moves):
-            candidate_scoring, candidate_analysis, _candidate_distance = _best_single_cell_flip(
-                spec,
-                scoring,
-                fitness.total_distance,
+        scoring, analysis, fitness, exit_reason = _anneal_local(
+            spec, scoring, analysis, fitness, max_local_moves, rng
+        )
+
+        if exit_reason == "accepted":
+            _log_search_restart(
+                restart_index=restart_index,
+                start_fitness=start_fitness,
+                end_fitness=fitness,
+                exit_reason="accepted",
+                debug_search=debug_search,
             )
-            if candidate_scoring is None or candidate_analysis is None:
-                exit_reason = "plateau"
-                break
-
-            scoring = candidate_scoring
-            analysis = candidate_analysis
-            fitness = compute_fitness(analysis, spec)
-
-            if _candidate_is_acceptable(spec, analysis):
-                _log_search_restart(
-                    restart_index=restart_index,
-                    start_fitness=start_fitness,
-                    end_fitness=fitness,
-                    exit_reason="accepted",
-                    debug_search=debug_search,
-                )
-                return analysis
+            return analysis
 
         _log_search_restart(
             restart_index=restart_index,
