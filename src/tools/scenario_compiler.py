@@ -467,6 +467,128 @@ def force_batna_targets(
     return updated
 
 
+# ---------------------------------------------------------------------------
+# Narrative fill (prose fields for reverse-builder-generated scenarios)
+# ---------------------------------------------------------------------------
+
+FILL_NARRATIVE_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["logrolling", "deception_tactics"],
+    "properties": {
+        "logrolling": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": (
+                "3-5 plain-language descriptions of mutually beneficial trades "
+                "available in this scenario. Reference issue names and outcome "
+                "labels exactly as they appear in the scoring tables."
+            ),
+        },
+        "deception_tactics": {
+            "type": "object",
+            "description": (
+                "Per-faction strategic instruction sentences for persona prompts. "
+                "Each ~1-2 sentences describing what the faction will claim early "
+                "to trade later for their true priority."
+            ),
+            "additionalProperties": {"type": "string"},
+        },
+    },
+}
+
+FILL_NARRATIVE_SYSTEM_PROMPT = (
+    "You are filling in narrative fields for a multi-party negotiation scenario "
+    "whose scoring tables, BATNAs, and issue structure are already fixed. "
+    "Generate ONLY the requested logrolling descriptions and per-faction deception "
+    "tactics. Use the exact issue names and outcome labels from the scoring tables. "
+    "Return ONLY valid JSON conforming to the supplied schema."
+)
+
+
+def build_fill_narrative_user_prompt(
+    analysis: dict[str, Any],
+    scenario_title: str,
+    domain_context: str = "",
+) -> str:
+    """Build the user prompt for fill_narrative from scoring tables and issue structure."""
+    parts = [f"Scenario title: {scenario_title}"]
+    if domain_context:
+        parts += ["", domain_context.strip()]
+    parts += [
+        "",
+        f"Factions: {', '.join(analysis['factions'])}",
+        f"Game mode: {analysis.get('game_mode', 'mixed')}",
+        "",
+        "Issues and outcomes:",
+    ]
+    for issue in analysis["issues"]:
+        parts.append(f"  - {issue['name']}: {', '.join(issue['outcomes'])}")
+    parts += [
+        "",
+        "Private scoring tables (faction -> issue -> outcome -> points):",
+        json.dumps(analysis["scoring"], indent=2),
+        "",
+        f"BATNAs: {json.dumps(analysis['batna'])}",
+        "",
+        "Generate logrolling trades and per-faction deception tactics that match "
+        "these exact priorities. Each deception tactic should describe what the "
+        "faction will claim or anchor on early in the negotiation, designed to "
+        "trade later for what they actually value most.",
+    ]
+    return "\n".join(parts)
+
+
+async def fill_narrative(
+    analysis: dict[str, Any],
+    scenario_title: str,
+    llm_client: Any,
+    llm_config: dict[str, Any],
+    tier: str = "commodity",
+    *,
+    domain_context: str = "",
+) -> dict[str, Any]:
+    """Fill logrolling and deception_tactics fields in an existing analysis via LLM.
+
+    The reverse scenario builder emits stub logrolling/deception_tactics.
+    This function overlays the prose fields via one LLM call. Scoring tables,
+    BATNAs, issues, and factions are preserved unchanged.
+
+    Parameters
+    ----------
+    analysis : dict
+        Scenario analysis with scoring tables, BATNAs, and issue structure set.
+    scenario_title : str
+        Human-readable title for the scenario.
+    llm_client, llm_config, tier
+        Injected toolkit-compatible LLM client and config.
+    domain_context : str
+        Optional operator-authored domain framing included in the LLM prompt.
+    """
+    from toolkit.structured_llm import structured_call
+
+    result = await structured_call(
+        llm_client,
+        llm_config,
+        tier,
+        schema=FILL_NARRATIVE_SCHEMA,
+        system_prompt=FILL_NARRATIVE_SYSTEM_PROMPT,
+        user_prompt=build_fill_narrative_user_prompt(
+            analysis, scenario_title, domain_context
+        ),
+        max_retries=2,
+        purpose="narrative_fill",
+    )
+
+    if not result.success:
+        raise ValueError(f"Narrative fill failed: {result.error}")
+
+    updated = copy.deepcopy(analysis)
+    updated["logrolling"] = result.data["logrolling"]
+    updated["deception_tactics"] = result.data["deception_tactics"]
+    return updated
+
+
 def generate_persona(
     faction_id: str,
     analysis: dict[str, Any],

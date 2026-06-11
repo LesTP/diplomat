@@ -299,3 +299,124 @@ class TestParseBatnaFractionsJson:
         import pytest
         with pytest.raises(ValueError, match="alpha"):
             parse_batna_fractions_json('{"alpha":1.0}')
+
+
+# ---------------------------------------------------------------------------
+# fill_narrative tests
+# ---------------------------------------------------------------------------
+
+def _make_result(success: bool, data: dict | None = None, error: str | None = None):
+    class _R:
+        pass
+    r = _R()
+    r.success = success
+    r.data = data
+    r.error = error
+    return r
+
+
+class TestBuildFillNarrativeUserPrompt:
+    def test_includes_title_factions_issues(self) -> None:
+        from tools.scenario_compiler import build_fill_narrative_user_prompt
+        prompt = build_fill_narrative_user_prompt(_SAMPLE_ANALYSIS, "Trade Deal")
+        assert "Trade Deal" in prompt
+        assert "alpha" in prompt
+        assert "Tariffs" in prompt
+
+    def test_includes_domain_context_when_provided(self) -> None:
+        from tools.scenario_compiler import build_fill_narrative_user_prompt
+        prompt = build_fill_narrative_user_prompt(
+            _SAMPLE_ANALYSIS, "Trade Deal", domain_context="Domain: Custom framing."
+        )
+        assert "Domain: Custom framing." in prompt
+
+    def test_omits_domain_context_section_when_empty(self) -> None:
+        from tools.scenario_compiler import build_fill_narrative_user_prompt
+        prompt = build_fill_narrative_user_prompt(_SAMPLE_ANALYSIS, "Trade Deal")
+        assert "Domain:" not in prompt
+
+
+class TestFillNarrative:
+    def test_merges_logrolling_and_deception(self, monkeypatch: object) -> None:
+        import asyncio
+        from tools.scenario_compiler import fill_narrative
+
+        new_logrolling = ["Alpha trades Labor for Gamma's Environment support"]
+        new_deception = {
+            "alpha": "Anchor on Environment early",
+            "beta": "Claim Tariffs are critical",
+            "gamma": "Pretend Labor matters",
+        }
+
+        async def fake_sc(*args, **kwargs):
+            return _make_result(True, {"logrolling": new_logrolling, "deception_tactics": new_deception})
+
+        monkeypatch.setattr("toolkit.structured_llm.structured_call", fake_sc)
+
+        result = asyncio.run(
+            fill_narrative(_SAMPLE_ANALYSIS, "Test", llm_client=None, llm_config={})
+        )
+        assert result["logrolling"] == new_logrolling
+        assert result["deception_tactics"] == new_deception
+
+    def test_does_not_mutate_input(self, monkeypatch: object) -> None:
+        import asyncio
+        import copy
+        from tools.scenario_compiler import fill_narrative
+
+        original = copy.deepcopy(_SAMPLE_ANALYSIS)
+
+        async def fake_sc(*args, **kwargs):
+            return _make_result(True, {"logrolling": ["new"], "deception_tactics": {"alpha": "x"}})
+
+        monkeypatch.setattr("toolkit.structured_llm.structured_call", fake_sc)
+        asyncio.run(fill_narrative(_SAMPLE_ANALYSIS, "T", llm_client=None, llm_config={}))
+        assert _SAMPLE_ANALYSIS == original
+
+    def test_preserves_scoring_batna_factions_issues(self, monkeypatch: object) -> None:
+        import asyncio
+        from tools.scenario_compiler import fill_narrative
+
+        async def fake_sc(*args, **kwargs):
+            return _make_result(True, {"logrolling": [], "deception_tactics": {}})
+
+        monkeypatch.setattr("toolkit.structured_llm.structured_call", fake_sc)
+
+        result = asyncio.run(
+            fill_narrative(_SAMPLE_ANALYSIS, "T", llm_client=None, llm_config={})
+        )
+        assert result["scoring"] == _SAMPLE_ANALYSIS["scoring"]
+        assert result["batna"] == _SAMPLE_ANALYSIS["batna"]
+        assert result["factions"] == _SAMPLE_ANALYSIS["factions"]
+        assert result["issues"] == _SAMPLE_ANALYSIS["issues"]
+
+    def test_raises_on_llm_failure(self, monkeypatch: object) -> None:
+        import asyncio
+        import pytest
+        from tools.scenario_compiler import fill_narrative
+
+        async def fake_sc(*args, **kwargs):
+            return _make_result(False, error="timeout")
+
+        monkeypatch.setattr("toolkit.structured_llm.structured_call", fake_sc)
+
+        with pytest.raises(ValueError, match="Narrative fill failed"):
+            asyncio.run(fill_narrative(_SAMPLE_ANALYSIS, "T", llm_client=None, llm_config={}))
+
+    def test_domain_context_appears_in_prompt(self, monkeypatch: object) -> None:
+        import asyncio
+        from tools.scenario_compiler import fill_narrative
+
+        captured: dict = {}
+
+        async def fake_sc(*args, **kwargs):
+            captured.update(kwargs)
+            return _make_result(True, {"logrolling": [], "deception_tactics": {}})
+
+        monkeypatch.setattr("toolkit.structured_llm.structured_call", fake_sc)
+        asyncio.run(fill_narrative(
+            _SAMPLE_ANALYSIS, "T",
+            llm_client=None, llm_config={},
+            domain_context="Domain: Space agencies participate.",
+        ))
+        assert "Domain: Space agencies participate." in captured["user_prompt"]
