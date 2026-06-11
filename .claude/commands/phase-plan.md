@@ -14,10 +14,10 @@ We are entering Discuss mode to plan the next phase.
    - Explore — define the decision to be made and set a time box
 4. If this is the first phase of a module, update the module's Status in
    ARCHITECTURE.md's Implementation Sequence table to "In progress"
-5. Update DEVPLAN with the phase plan. Steps must follow the checkbox
-   format documented in the DEVPLAN top-of-file comment block ("PHASE
-   PLAN FORMAT") — `- [ ] N.X — description`, one bullet per step.
-   Plain bullets are silently ignored by the state machine.
+5. Update DEVPLAN with the phase plan. Steps are unchecked checkboxes
+   (`- [ ] N.X — description`, one per step), per the PHASE PLAN FORMAT
+   block at the top of DEVPLAN. The state machine reads checkboxes to
+   size the EXECUTE budget.
 6. Log scope decisions to DECISIONS.md
 7. Commit
 

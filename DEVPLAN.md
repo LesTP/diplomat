@@ -18,7 +18,7 @@ steps_remaining:
      `steps_remaining` is managed by the state machine at runtime — do NOT
      pre-populate.
 
-     PHASE PLAN FORMAT (PLAN action writes this shape):
+     PHASE PLAN FORMAT (the PLAN action writes this shape into DEVPLAN):
 
        ## Phase N: <title> — In Progress
 
@@ -29,14 +29,13 @@ steps_remaining:
        - [ ] N.3 — <doc update step>
        - [ ] N.4 — <phase close step>
 
-     The state machine counts unchecked checkboxes via `grep -c '^- \[ \]'`
-     inside the `## Phase N` section to know how many EXECUTE iterations
-     remain. Plain bullets (`- N.X ...`) count as zero work — the loop
-     auto-transitions straight to REVIEW with nothing built (recurred at
-     Phase 38 iter 165, fix landed 2026-06-11). This format example is
-     above any `## Phase N` header, so sed extraction never sees its
-     literal `- [ ]` lines; the HTML comment also keeps it invisible
-     when rendered. -->
+     Each checkbox is one EXECUTE iteration. The state machine sizes the
+     remaining work by counting `^- \[ \]` lines inside the `## Phase N`
+     section. Read from `tools/state_machine.sh:count_unchecked`.
+
+     This example block sits above any `## Phase N` header (outside the
+     sed-extraction range) and inside an HTML comment (so it doesn't
+     render). -->
 
 ## Cold Start Summary
 
