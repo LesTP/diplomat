@@ -654,6 +654,16 @@ Contract changes:
 
 This step was doc-only. No code or test changes were needed. The next action is Phase 38 review.
 
-## 2026-06-11 — Phase 38 close: pressure mechanisms small bundle complete
+## 2026-06-11 - Phase 38 close: pressure mechanisms small bundle complete
 
 Phase 38 closed after the pressure small bundle shipped end to end: `pressure` now carries round-cost decay, asymmetric clocks, penalty floor, and pressure-profile metadata; persona rendering and the final-round marker are pressure-aware; verifier coverage is in place. Close verification passed on the focused phase slice (`python3 -m pytest -q tests/test_persona.py tests/test_scenario_pressure.py tests/test_scenario_compiler.py tests/test_scenario_spec.py` — `61 passed`). `DEVPLAN.md` now shows Phase 38 as complete with a DEVLOG reference.
+
+## 2026-06-11 - Phase 39 step 39.2: scenario compiler fill-narrative CLI
+
+Extended `tools.scenario_compiler` with `--fill-narrative-only <analysis_path>` and `--domain-context-file <path>`, plus a `--scenario-title` alias that preserves the existing `--title` flag. The CLI now skips forward scenario analysis when fill-only mode is set, loads an existing `scenario_analysis.json`, threads optional domain framing into `fill_narrative()`, and re-renders personas in place. Added parser coverage and a fill-only integration test that rewrites a copied joint-space fixture back to the checked-in analysis output shape while asserting the domain context prompt payload. Focused verification passed: `python3 -m pytest -q tests/test_scenario_compiler.py` (`44 passed`).
+
+### Step 39.3: fill-narrative integration and temp helper removal
+Mode: Build
+Outcome: Verified the fill-narrative-only integration path against the checked-in joint-space fixture, confirmed the copied analysis rewrites back to the expected prose payload, and removed the temporary `tools/_temp_fill_narrative.py` helper now that the permanent CLI path covers the use case.
+Contract changes: none
+The existing integration test in `tests/test_scenario_compiler.py` already exercised the scenario-compiler fill-only path by stubbing the LLM response, resetting `scenario_analysis.json` to logrolling/deception stubs in a temp copy, and asserting the rewritten analysis plus regenerated persona output matched the checked-in fixture content. Focused verification passed with the repo venv: `./.venv/bin/python -m pytest -q tests/test_scenario_compiler.py` (`44 passed`). With that coverage in place, the temporary helper script was deleted.

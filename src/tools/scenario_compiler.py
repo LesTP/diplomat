@@ -706,8 +706,17 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--scenario",
         type=str,
-        required=True,
+        required=False,
         help="Path to scenario description (text/markdown file)",
+    )
+    parser.add_argument(
+        "--fill-narrative-only",
+        type=str,
+        default=None,
+        help=(
+            "Path to an existing scenario_analysis.json to enrich with "
+            "logrolling and deception_tactics. Skips forward analysis."
+        ),
     )
     parser.add_argument(
         "--faction",
@@ -722,10 +731,21 @@ def _parse_args() -> argparse.Namespace:
         help="Output directory (default: same as scenario file)",
     )
     parser.add_argument(
+        "--scenario-title",
         "--title",
+        dest="scenario_title",
         type=str,
         default="a multi-party negotiation",
         help="Scenario title for persona headers",
+    )
+    parser.add_argument(
+        "--domain-context-file",
+        type=str,
+        default=None,
+        help=(
+            "Optional text file with operator-authored domain framing for "
+            "fill-narrative mode."
+        ),
     )
     parser.add_argument(
         "--batna-fraction",
@@ -762,13 +782,42 @@ def _parse_args() -> argparse.Namespace:
 
 
 async def _run(args: argparse.Namespace) -> None:
-    scenario_path = Path(args.scenario)
-    if not scenario_path.is_file():
+    scenario_path = Path(args.scenario) if args.scenario else None
+    analysis_only_path = (
+        Path(args.fill_narrative_only) if args.fill_narrative_only else None
+    )
+    if scenario_path is None and analysis_only_path is None:
+        print(
+            "ERROR: either --scenario or --fill-narrative-only is required",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    if scenario_path is not None and not scenario_path.is_file():
         print(f"ERROR: scenario file not found: {scenario_path}", file=sys.stderr)
         sys.exit(1)
+    if analysis_only_path is not None and not analysis_only_path.is_file():
+        print(
+            f"ERROR: analysis file not found: {analysis_only_path}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
-    scenario_text = scenario_path.read_text(encoding="utf-8")
-    output_dir = Path(args.output_dir) if args.output_dir else scenario_path.parent
+    scenario_text = scenario_path.read_text(encoding="utf-8") if scenario_path else ""
+    output_dir = (
+        Path(args.output_dir)
+        if args.output_dir
+        else (analysis_only_path.parent if analysis_only_path else scenario_path.parent)
+    )
+    domain_context = ""
+    if args.domain_context_file:
+        domain_context_path = Path(args.domain_context_file)
+        if not domain_context_path.is_file():
+            print(
+                f"ERROR: domain context file not found: {domain_context_path}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        domain_context = domain_context_path.read_text(encoding="utf-8")
 
     # Build LLM client
     _project_root = Path(__file__).resolve().parent.parent
@@ -790,36 +839,54 @@ async def _run(args: argparse.Namespace) -> None:
         print("ERROR: toolkit not importable.", file=sys.stderr)
         sys.exit(1)
 
-    try:
-        batna_fractions = (
-            parse_batna_fractions_json(args.batna_fractions)
-            if args.batna_fractions
-            else None
-        )
-    except ValueError as exc:
-        print(f"ERROR: {exc}", file=sys.stderr)
-        sys.exit(1)
+    batna_fractions = None
+    if analysis_only_path is None:
+        try:
+            batna_fractions = (
+                parse_batna_fractions_json(args.batna_fractions)
+                if args.batna_fractions
+                else None
+            )
+        except ValueError as exc:
+            print(f"ERROR: {exc}", file=sys.stderr)
+            sys.exit(1)
 
-    print(f"Analyzing scenario: {scenario_path.name}")
-    if batna_fractions:
-        print(f"  BATNA scalar fallback: {args.batna_fraction:.0%} of max score")
-        print(f"  BATNA per-faction targets: {batna_fractions}")
-    else:
-        print(f"  BATNA target fraction: {args.batna_fraction:.0%} of each faction's max score")
-    analysis = await analyze_scenario(
-        scenario_text, llm_client, llm_config,
-        tier="commodity",
-        batna_fraction=args.batna_fraction,
-        batna_fractions=batna_fractions,
-    )
-
-    if args.force_batna_fraction:
-        analysis = force_batna_targets(
+    if analysis_only_path is not None:
+        print(f"Filling narrative fields: {analysis_only_path.name}")
+        analysis = json.loads(analysis_only_path.read_text(encoding="utf-8"))
+        analysis = await fill_narrative(
             analysis,
-            target_fraction=args.batna_fraction,
-            target_fractions=batna_fractions,
+            args.scenario_title,
+            llm_client,
+            llm_config,
+            tier="commodity",
+            domain_context=domain_context,
         )
-        print("  Forced BATNAs to requested fraction targets")
+    else:
+        print(f"Analyzing scenario: {scenario_path.name}")
+        if batna_fractions:
+            print(f"  BATNA scalar fallback: {args.batna_fraction:.0%} of max score")
+            print(f"  BATNA per-faction targets: {batna_fractions}")
+        else:
+            print(
+                f"  BATNA target fraction: {args.batna_fraction:.0%} of each faction's max score"
+            )
+        analysis = await analyze_scenario(
+            scenario_text,
+            llm_client,
+            llm_config,
+            tier="commodity",
+            batna_fraction=args.batna_fraction,
+            batna_fractions=batna_fractions,
+        )
+
+        if args.force_batna_fraction:
+            analysis = force_batna_targets(
+                analysis,
+                target_fraction=args.batna_fraction,
+                target_fractions=batna_fractions,
+            )
+            print("  Forced BATNAs to requested fraction targets")
 
     analysis_path = save_analysis(analysis, output_dir)
     print(f"Analysis saved: {analysis_path}")
@@ -842,7 +909,7 @@ async def _run(args: argparse.Namespace) -> None:
         if faction_id not in analysis["scoring"]:
             print(f"WARNING: faction '{faction_id}' not in analysis, skipping")
             continue
-        persona = generate_persona(faction_id, analysis, args.title)
+        persona = generate_persona(faction_id, analysis, args.scenario_title)
         path = save_persona(faction_id, persona, output_dir)
         print(f"Persona saved: {path}")
 

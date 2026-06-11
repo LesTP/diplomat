@@ -185,6 +185,45 @@ class TestBuildCompilerSystemPrompt:
             build_compiler_system_prompt(batna_fraction=-0.1)
 
 
+class TestParseArgs:
+    def test_supports_fill_narrative_only_and_domain_context(self, monkeypatch: object) -> None:
+        import sys
+        from tools.scenario_compiler import _parse_args
+
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "scenario_compiler",
+                "--fill-narrative-only",
+                "analysis.json",
+                "--domain-context-file",
+                "context.txt",
+                "--scenario-title",
+                "Joint Space Mission",
+            ],
+        )
+
+        args = _parse_args()
+        assert args.fill_narrative_only == "analysis.json"
+        assert args.domain_context_file == "context.txt"
+        assert args.scenario_title == "Joint Space Mission"
+
+    def test_title_alias_still_works(self, monkeypatch: object) -> None:
+        import sys
+        from tools.scenario_compiler import _parse_args
+
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            ["scenario_compiler", "--scenario", "scenario.md", "--title", "Legacy Title"],
+        )
+
+        args = _parse_args()
+        assert args.scenario == "scenario.md"
+        assert args.scenario_title == "Legacy Title"
+
+
 class TestMaxPossibleScore:
     def test_sums_max_outcome_per_issue(self) -> None:
         # alpha: max(8,5,1) + max(1,3,5) + max(3,5,4) = 8 + 5 + 5 = 18
@@ -420,3 +459,71 @@ class TestFillNarrative:
             domain_context="Domain: Space agencies participate.",
         ))
         assert "Domain: Space agencies participate." in captured["user_prompt"]
+
+
+class TestFillNarrativeCli:
+    def test_fill_narrative_only_rewrites_fixture_analysis(
+        self, tmp_path: Path, monkeypatch: object
+    ) -> None:
+        import asyncio
+        import json
+        import shutil
+        from argparse import Namespace
+        from tools.scenario_compiler import _run
+
+        fixture_dir = Path("tests/self_play/scenarios/joint_space_mission_v1")
+        working_dir = tmp_path / "joint_space_mission_v1"
+        working_dir.mkdir()
+        for source in fixture_dir.iterdir():
+            if source.is_file():
+                shutil.copy2(source, working_dir / source.name)
+
+        expected = json.loads((fixture_dir / "scenario_analysis.json").read_text(encoding="utf-8"))
+        stubbed = json.loads((working_dir / "scenario_analysis.json").read_text(encoding="utf-8"))
+        stubbed["logrolling"] = []
+        stubbed["deception_tactics"] = {}
+        (working_dir / "scenario_analysis.json").write_text(
+            json.dumps(stubbed, indent=2, sort_keys=True),
+            encoding="utf-8",
+        )
+
+        domain_context_file = tmp_path / "domain_context.txt"
+        domain_context_file.write_text(
+            "Domain: Joint Space Mission. Three space agencies are negotiating.",
+            encoding="utf-8",
+        )
+
+        captured: dict[str, object] = {}
+
+        async def fake_sc(*args, **kwargs):
+            captured.update(kwargs)
+            return _make_result(
+                True,
+                {
+                    "logrolling": expected["logrolling"],
+                    "deception_tactics": expected["deception_tactics"],
+                },
+            )
+
+        monkeypatch.setattr("toolkit.structured_llm.structured_call", fake_sc)
+
+        args = Namespace(
+            scenario=None,
+            fill_narrative_only=str(working_dir / "scenario_analysis.json"),
+            faction=None,
+            output_dir=None,
+            scenario_title="Joint Space Mission",
+            domain_context_file=str(domain_context_file),
+            batna_fraction=DEFAULT_BATNA_FRACTION,
+            batna_fractions=None,
+            force_batna_fraction=False,
+        )
+
+        asyncio.run(_run(args))
+
+        updated = json.loads((working_dir / "scenario_analysis.json").read_text(encoding="utf-8"))
+        assert updated == expected
+        assert "Scenario title: Joint Space Mission" in captured["user_prompt"]
+        assert "Domain: Joint Space Mission. Three space agencies are negotiating." in captured["user_prompt"]
+        assert (working_dir / "alpha.txt").is_file()
+        assert "DECEPTION TACTIC" in (working_dir / "alpha.txt").read_text(encoding="utf-8")

@@ -2,7 +2,7 @@
 phase: 39
 blocked: false
 state: execute
-steps_remaining:
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -81,9 +81,9 @@ steps_remaining:
 **Goal.** Promote the one-off `tools/_temp_fill_narrative.py` capability into a permanent `--fill-narrative <existing_analysis>` mode of `tools.scenario_compiler`. Reverse-builder-generated scenarios emit `scenario_analysis.json` with stub `logrolling: []` and `deception_tactics: {}` (Phase 35-37 scope); fill-narrative populates those prose fields via one LLM call and re-renders personas. Read from `tests/self_play/scenarios/joint_space_mission_v1/` for the first scenario that exercised the manual version on 2026-06-11.
 
 **Steps.**
-- [ ] 39.1 — Add `fill_narrative(analysis, scenario_title, llm_client, llm_config, tier, *, domain_context: str = "") -> dict` async function to `src/tools/scenario_compiler.py`. Builds prompt from scoring tables + BATNAs + issue list, calls `structured_call` with a `{logrolling: list[str], deception_tactics: dict[faction, str]}` schema, merges fields into the analysis dict, returns updated dict. Unit test in `tests/test_scenario_compiler.py` covers the merge behavior + schema validation using a fake LLM client.
-- [ ] 39.2 — Extend `scenario_compiler` CLI with `--fill-narrative-only <analysis_path>` flag. When set, skip the forward narrative-to-analysis path and just call `fill_narrative` against the existing analysis. Add `--domain-context-file <path>` optional flag for passing operator-authored domain framing (e.g., the NASA/ESA/commercial framing used for Joint Space Mission). Existing flags (`--output-dir`, `--scenario-title`, `--faction`, `--batna-fraction`) continue to work.
-- [ ] 39.3 — Integration test: regenerate `tests/self_play/scenarios/joint_space_mission_v1/scenario_analysis.json` with logrolling+deception reset to stubs, run `python -m tools.scenario_compiler --fill-narrative-only ... --domain-context-file ...`, confirm output matches the prose content currently in the file. Remove `tools/_temp_fill_narrative.py` once integration test passes.
+- [x] 39.1 — Add `fill_narrative(analysis, scenario_title, llm_client, llm_config, tier, *, domain_context: str = "") -> dict` async function to `src/tools/scenario_compiler.py`. Builds prompt from scoring tables + BATNAs + issue list, calls `structured_call` with a `{logrolling: list[str], deception_tactics: dict[faction, str]}` schema, merges fields into the analysis dict, returns updated dict. Unit test in `tests/test_scenario_compiler.py` covers the merge behavior + schema validation using a fake LLM client.
+- [x] 39.2 — Extend `scenario_compiler` CLI with `--fill-narrative-only <analysis_path>` flag. When set, skip the forward narrative-to-analysis path and just call `fill_narrative` against the existing analysis. Add `--domain-context-file <path>` optional flag for passing operator-authored domain framing (e.g., the NASA/ESA/commercial framing used for Joint Space Mission). Existing flags (`--output-dir`, `--scenario-title`, `--faction`, `--batna-fraction`) continue to work.
+- [x] 39.3 — Integration test: regenerate `tests/self_play/scenarios/joint_space_mission_v1/scenario_analysis.json` with logrolling+deception reset to stubs, run `python -m tools.scenario_compiler --fill-narrative-only ... --domain-context-file ...`, confirm output matches the prose content currently in the file. Remove `tools/_temp_fill_narrative.py` once integration test passes.
 - [ ] 39.4 — Doc updates: `CLI_REFERENCE.md` (new `--fill-narrative-only` and `--domain-context-file` flags with worked example), `ASSESSMENT.md` §4.5 (add fill-narrative step to the reverse-builder workflow diagram), `NEXT_STEPS.md` §8 (mark fill-narrative item as closed; reference the new CLI mode).
 - [ ] 39.5 — Phase close: append DEVLOG entry summarizing what shipped, file/test counts, archive Phase 38 to DEVLOG_archive per the established pattern.
 
