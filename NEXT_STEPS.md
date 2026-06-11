@@ -28,7 +28,7 @@
 > order; the per-section detail (§1.6 through §9) keeps the historical
 > numbering for stable cross-references.
 
-> **State as of 2026-06-08:** Phases 20–34 closed. Runs 9 + 10 + 13 closed.
+> **State as of 2026-06-11:** Phases 20–36 closed. **Phase 37 in progress** (`pareto_outcome_diversity` metric — closes the metric-semantics gap surfaced during Phase 36.5 validation). Runs 9 + 10 + 13 closed.
 > **Run 14 ablation campaign in progress** — cells 14a (mid full, 2/3
 > deals), 14b (mid bare, 1/3 deals), 14c (weak full+bare, 2/3 + 0/3)
 > complete. Cells 14d (strong bare) + 14e (strong full) pending —
@@ -39,6 +39,10 @@
 > in close-rate not deal quality (every closing run finds the same
 > Pareto-optimal deal). Findings caveated by scenario being "scale-1"
 > on every harness-relevant axis — see `RESEARCH_NOTES.md` Note 1.
+>
+> **Reverse scenario builder lineage:** Phase 35 shipped the tool; Phase 36 added soft-weighted fitness + simulated annealing + biased init; Phase 37 (in progress) adds `pareto_outcome_diversity`; Phase 38/41/42 queued for pressure-mechanisms and larger-search-space verification — see Tier 2 table + §2 + §8 below.
+>
+> **Clankmates integration:** primary work is currently under toolkit (`toolkit/clankmates_client` per `CLANKMATES_CLIENT_PLAN.md`). Diplomat-side `ClankmatesTransport` is gated on that primitive landing; §5 captures the diplomat-side scope for when it does.
 
 ---
 
@@ -72,13 +76,15 @@ cross-references.
 
 | Item | Tags | Loop | Where | Notes |
 |---|---|---|---|---|
-| **Game pressure beyond BATNA + divorce scenario** | `[C]` | 🔀 | §2 | Run 10 confirmed BATNA is refusal-strengthening; round-cost decay + exogenous events are the missing concession-eliciting mechanisms. Works with current Stage 1 round model (extra rounds, not multi-pass). |
-| **Reverse scenario builder** | `[C]` | ✓ built | §8 | Phase 35 closed. `tools.scenario_builder` ships `ScenarioSpec` + hill-climb search + `--verify`. Operator follow-up: author `multi_pareto_v1/` proof-of-concept scenario. |
+| **Reverse scenario builder evolution** (outcome diversity, pressure, scale) | `[C]` | mixed | §8 | Phase 35/36 shipped the tool. **Phase 37 in progress** (`pareto_outcome_diversity` metric). **Phase 38 queued** (pressure mechanisms small bundle: round-cost decay + penalty floor + asymmetric clocks — see §2). **Phase 41/42 queued** (scale-matrix verification + algorithm fixes for 4+ factions / 4+ issues). Phase 39 (exogenous events) and Phase 40 (cascade scoring) deferred. |
+| **Game pressure beyond BATNA** (round-cost decay, asymmetric clocks, penalty floor) | `[C]` | 🔨 | §2 | **Phase 38 queued** — small bundle of three structural mechanisms that share schema + persona-template surface. Run 10 confirmed BATNA is refusal-strengthening; round-cost decay is the missing concession-eliciting mechanism. Builder mostly passes new schema fields through unchanged; pipeline does the heavy lifting (renderer, round-context, verifier). |
+| **Scale matrix verification** (4+ factions, 4+ issues) | `[C][X]` | 🔨 | §8 | **Phase 41 queued** (cheap instrumentation — run builder at 3×3×4, 4×4×4, etc. with fixed simple spec; measure convergence rate + wall-clock). **Phase 42 queued** (algorithm fixes for whichever shapes Phase 41 reveals as broken). Strategically valuable: enables richer scenarios for next-round ablation against the Note 1 thesis. |
 | **Pareto-frontier annotation in analyst output** | `[C][B]` | 🔀 | §2 TODOs | Analyst surfaces threats/leverage; add Pareto-compromise opportunities. Schema + prompt change. |
 | **Surplus-distribution diagnosis** | `[C]` | 👁 | Backlog | Cross-scenario investigation of "why does gamma extract 52-55% of surplus?" Likely game-theoretic; if confirmed, a scenario-design lever. |
 | **Identify-the-blocker tool** | `[C][X]` | 🔀 | (loop-readiness) | Pre-game LLM analyst pass over scoring tables to predict squeeze target. Lower priority post-Run 10 but still a useful scenario-design aid. |
 | **ASSESSMENT §3.4 persuasion-shifts / concession-curve signatures** | `[C]` | 👁 | (loop-readiness) | Needs LLM-judge over transcripts. Higher cost; defer until other Tier 2 items land. |
 | **Reconciliation live validation** | `[C]` | 👁 | Backlog | Status transitions + inconsistency flagging untested in live runs. Run 10 B' and α-squeezed defection are natural inspection targets. |
+| **Divorce scenario design** (§2 showcase) | `[C]` | 👁 | §2 | Hand-author after Phase 38 lands. Natural showcase for all three small-bundle pressure mechanisms; defers exogenous events until Phase 39 is on the table. |
 
 ### Tier 3 — `[B]` prompt tuning & strategy
 
@@ -99,9 +105,19 @@ cross-references.
 
 If working down the tiers, the immediate decision is which Tier 1 item to do first. Recommended order:
 
-1. **Run 14a-14f bare-prompt ablation (§10)** — Phase 34 built the plumbing; the experimental runs answer the foundational design-bet question. Cheap (~$60-100 across 36 runs) and the result drives everything else.
+1. **Run 14d-14e bare-prompt ablation finish (§10)** — cells 14a-c done. 14d (strong bare) is the next decisive run; 14e (strong full) conditional. Result drives the foundational "is the harness load-bearing" call.
 2. **Pricing audit (§6)** — best done before Tier 3 §7 so per-role decisions have a firm cost baseline.
-3. **Game-platform exploration (§5)** — gated on operator + partner alignment; explore Discord alongside Clankmates while the partner decision is pending.
+3. **Game-platform exploration (§5)** — toolkit-side `clankmates_client` is the gating dependency; diplomat-side `ClankmatesTransport` waits on it. Discord remains a hedge candidate.
+
+### Sequencing within Tier 2 (operator-queued post-Phase-37)
+
+All three queued phases share the `tools.scenario_builder` codebase but are independent of each other; can be dispatched in any order once Phase 37 closes. Suggested order by leverage:
+
+1. **Phase 38 — pressure mechanisms small bundle** (round-cost decay + penalty floor + asymmetric clocks). High leverage: directly addresses the Run 8/10 "agents sit at BATNA" finding and enables the divorce scenario. Builder is mostly pass-through; pipeline does the work.
+2. **Phase 41 — scale matrix verification** (cheap instrumentation). Reveals which shapes work and which need algorithm fixes. Low cost, high information; can run before or after Phase 38 since they touch different parts of the code.
+3. **Phase 42 — algorithm fixes for shapes Phase 41 reveals as broken**. Scope conditional on Phase 41 findings. Strategic value: enables 4+ faction / 4+ issue scenarios needed for the next round of ablation experiments against the Note 1 thesis.
+4. **Phase 39 (deferred) — exogenous events** (mid-round shocks that recompute scoring). Larger phase — needs round-aware verifier and dynamic round-context. Pursue when the small-bundle pressure mechanisms (Phase 38) prove insufficient for the concession-curve behavior we want.
+5. **Phase 40 (indefinitely deferred) — cascade scoring** (cross-game state). Wait for a real use case (tournament play, reputation experiments).
 
 ### Cross-tier dependencies worth knowing
 
@@ -196,22 +212,30 @@ on the table untouched.
 The fix is structural, not prompt-tuning. Need mechanisms that create real
 incentive to negotiate.
 
-### Pressure mechanisms to add
+### Phase split (2026-06-11)
+
+The five pressure mechanisms below split into phases by build cost:
+
+- **Phase 38 (queued) — small bundle:** mechanisms 1 (round-cost decay), 3 (asymmetric clocks), 4 (penalty floor). All three add a `pressure` sub-object to `scenario_analysis.json`, share persona-template + round-context renderer work, and have deterministic scoring tweaks. Reverse builder mostly passes the fields through (operator-supplied values, not search targets). Phase scope: schema + renderer + verifier round-awareness + small-bundle integration test.
+- **Phase 39 (deferred) — exogenous events:** mechanism 2. Needs round-aware verifier with BATNA recomputation, dynamic round-context that applies score deltas at each round. ~1.5x Phase 38 size. Pursue when small-bundle pressure proves insufficient for the concession-curve behavior we want.
+- **Phase 40 (indefinitely deferred) — cascade scoring:** mechanism 5. Cross-game state model; sequential-game harness; persisted state across games. Whole new harness shape. Wait for a real use case (tournament play, reputation experiments).
+
+### Pressure mechanisms
 
 1. **Round-cost decay** — every round without a deal subtracts points from
    everyone. Models lawyer fees in divorce, status quo costs in trade disputes.
-   Builds urgency without explicit endgame talk.
+   Builds urgency without explicit endgame talk. **Phase 38.**
 2. **Exogenous events per round** — e.g. "Round 3: drought reduces water
    supply 30%" — recomputes BATNAs mid-game and forces position revision.
    Inject as moderator round-update messages between rounds (existing
-   `round_updates` mechanism in `RoundSteppedFlow`).
+   `round_updates` mechanism in `RoundSteppedFlow`). **Phase 39 (deferred).**
 3. **Asymmetric clocks** — one faction has a hard deadline (election, market
    close, covenant expiring); others can wait. Creates structural urgency for
-   one player only.
+   one player only. **Phase 38.**
 4. **Penalty floor below BATNA** — "no deal" doesn't equal BATNA; it equals
-   BATNA *minus* a regret cost (reputation, sunk fees).
+   BATNA *minus* a regret cost (reputation, sunk fees). **Phase 38.**
 5. **Cascade scoring** — points awarded not on the deal itself but on what
-   the deal *enables* in a later phase.
+   the deal *enables* in a later phase. **Phase 40 (indefinitely deferred).**
 
 ### Endgame clarity
 
@@ -223,34 +247,33 @@ on table = 14 points. Walking away costs you 3 points.`
 
 That's loss aversion made explicit.
 
-### TODOs
+### TODOs (rolled into Phase 38 unless noted)
 
-- [ ] Extend scenario compiler to extract: round-events table, decay rates,
-      asymmetric deadlines, penalty floors. Add to `PERSONA_TEMPLATE` and
-      `build_round_context`.
+- [ ] Extend scenario schema + compiler to carry the small-bundle pressure fields. Add to `PERSONA_TEMPLATE` and `build_round_context`. [Phase 38]
 - [ ] Build `verify_scenario_pressure.py` alongside `verify_scenario_optimum.py`
       that confirms BATNAs are under pressure — e.g. "by round 3, expected
-      scores at BATNA fall by ≥X%."
+      scores at BATNA fall by ≥X%." [Phase 38]
 - [ ] Add "pressure profile" metadata to each scenario: low/med/high time
-      pressure, low/med/high external shock, etc.
+      pressure, low/med/high external shock, etc. [Phase 38]
 - [ ] Strengthen FINAL ROUND marker: include current best on-table score and
-      delta vs BATNA.
-- [ ] **Design and run a divorce scenario.** Natural showcase for all five
-      pressure mechanisms:
+      delta vs BATNA. [Phase 38]
+- [ ] **Design and run a divorce scenario.** Natural showcase for the
+      small-bundle pressure mechanisms (round-cost decay = lawyer fees;
+      asymmetric BATNAs = one party has exit option; penalty floor below
+      BATNA = reputation cost of acrimony). Operator-driven design work
+      after Phase 38 closes:
   - Shared assets (house, savings, business) — divisible
   - Indivisible goods (kids — joint custody is real Pareto territory)
   - Ongoing relationship — cost of acrimony is real
   - Lawyer fees scale linearly with time → built-in round decay
-  - External pressure (kids' school year, mortgage due)
+  - External pressure (kids' school year, mortgage due) — needs Phase 39 if dynamic; otherwise hand-author as initial conditions
   - Multiple game modes embedded: zero-sum on money, integrative on
     parenting, mixed on the house
-  - Asymmetric BATNAs (one party may have an exit option — new job, family
-    support)
 - [ ] **Pareto-frontier annotation in analyst output.** Schema change build;
       prompt change needs Layer 2 supervised validation. Add a "compromise
       opportunities" field that enumerates deals beating all known BATNAs.
       Currently the analyst identifies leverage and threats; this would surface
-      the Pareto-optimal deals explicitly.
+      the Pareto-optimal deals explicitly. Independent of Phase 38; could be its own small phase.
 
 ---
 
@@ -358,12 +381,15 @@ strategy library, A/B test per-faction.
 
 ## 5. `[X]` Game-platform exploration (Clankmates / Discord / fallback)
 
-**Status 2026-06-02.** Both candidate platforms are theoretical right now.
-Clankmates is blocked on the operator's partners committing to it.
-Discord is a hedge that should be researched in parallel — it has documented
-APIs, a large bot ecosystem, and no partner dependency. Until one of these
-becomes concrete, this section stays exploratory: don't build a
-`ClankmatesTransport` or `DiscordTransport` until there's a real game to ship.
+**Status 2026-06-11.** Clankmates is no longer purely theoretical —
+toolkit-side `clankmates_client` is the active primitive (`CLANKMATES_CLIENT_PLAN.md`).
+Diplomat-side `ClankmatesTransport` is gated on that toolkit primitive landing.
+Discord remains a hedge candidate, untouched.
+
+Until the toolkit primitive is ready, this section stays exploratory — the
+diplomat-side `ClankmatesTransport` would be a thin adapter on top of
+`toolkit.clankmates_client`, similar to how `TelegramBotTransport` wraps
+`toolkit.telegram_client`.
 
 ### Why this is on the backlog rather than queued
 
@@ -517,50 +543,47 @@ baseline, §1.8 cross-scenario) are higher-leverage and cheaper to run first.
 
 ---
 
-## 8. `[C]` ✓ Reverse scenario builder (outcome-shape → scenario) — Phase 36 built
+## 8. `[C]` Reverse scenario builder — evolution (Phase 37 / 41 / 42)
 
-**Status:** Phase 35 closed 2026-06-10. `src/tools/scenario_builder.py` ships with `ScenarioSpec` + `IssueSpec` dataclasses (`src/tools/scenario_spec.py`), fitness scoring (`src/tools/scenario_fitness.py`), random-restart hill-climb search, output emission via existing compiler helpers, and `--verify` integration. See `CLI_REFERENCE.md` `tools.scenario_builder` for flags and spec schema. Operator follow-up: author `multi_pareto_v1/` proof-of-concept scenario using the tool.
+**Status (2026-06-11).** Phase 35 shipped the tool; Phase 36 added soft-weighted fitness + simulated annealing + biased init; **Phase 37 in progress** (`pareto_outcome_diversity` metric); Phase 38 (pressure mechanisms, see §2), Phase 41 (scale-matrix verification), Phase 42 (algorithm fixes from Phase 41 findings) are the queued continuation. Canonical implementation: `src/tools/scenario_builder.py`, `src/tools/scenario_spec.py`, `src/tools/scenario_fitness.py`. CLI flags: `CLI_REFERENCE.md` `tools.scenario_builder`. Conceptual overview: `ASSESSMENT.md` §4.5. First operator spec: `tests/self_play/scenarios/joint_space_mission_v1/spec.json` (converges in ~4 seconds, produces 3 distinct Pareto deals + 2 logrolling-quality deals).
 
-**Phase 36 closed 2026-06-11.** Success criterion met: `joint_space_mission_v1/spec.json` converges in 3.6s (well within the 5-min budget). Four algorithm improvements shipped: structured restart logging (`--debug-search`), soft weighted fitness (`target_weights` spec field — default weight 1.0; categorical targets default 0.3), simulated annealing in the local-move loop, and bias initialization toward categorical constraints. Validation traced a `pareto_distribution_spread` metric-semantics mismatch in the operator's spec; fixed via `target_weights: {pareto_distribution_spread: 0.0}` and queued the correct metric as Phase 37. Deferred from Phase 36: `pareto_outcome_diversity` metric (inter-deal winner diversity); LLM-guided proposal for larger-than-3×3×3 search spaces.
+### Phase 37 — `pareto_outcome_diversity` (in progress)
 
-**Scope (original):** Inverse of the existing forward pipeline. Operator specifies desired
-outcome-distribution properties; tool generates issues / outcomes / scoring
-tables / BATNAs that satisfy them.
+Closes the metric-semantics gap surfaced during Phase 36.5 validation. The existing `pareto_distribution_spread` measures per-faction frontier-range stdev (uniformity), not "Pareto deals favor different factions" as the spec author intended. Phase 37 adds the latter as a separate target. Both metrics stay; CLI docs gain explicit "this measures X, not Y" guidance to prevent future misreads. Plan in `DEVPLAN.md` Phase 37.
 
-**Forward (what we have):**
-- `scenario_compiler.py` — narrative → scored personas (`structured_call` to LLM)
-- `verify_scenario_optimum.py` — scenario → enumerate deals, report Pareto frontier, BATNA-clearing count, logrolling quality
+### Phase 41 — scale-matrix verification (queued, cheap instrumentation)
 
-**Reverse (what we need):**
-- Operator specifies properties of the *desired* outcome distribution:
-  - "Pareto-optimal deal must score ≥ 50% above BATNA for every faction"
-  - "Deadlock outcome must score ≥ 30% below BATNA"
-  - "At least one issue requires logrolling — no single-issue dominance"
-  - "Naive split (equal shares) must underperform vs negotiated optimum by ≥ 20%"
-  - Number of factions, issues, outcomes-per-issue
-- Tool generates: scoring tables + BATNAs + (optionally) suggested narrative
-  cover story that justifies the structure
-- Output passes `verify_scenario_optimum.py` automatically (round-trip validation)
+Validated at 3×3×3 (27-deal space). 4+ factions / 4+ issues / 4+ outcomes-per-issue may need search-algorithm work — currently unmeasured. Phase 41 writes a `tools/scenario_builder_scale_probe.py` (or pytest parametrize) that runs the builder against a fixed simple spec at each shape (3×3×3, 3×3×4, 3×4×4, 4×3×3, 4×4×4, 5×3×3, etc.) and reports convergence rate + wall-clock + per-target distance breakdown when it fails. ~4-5 steps; no algorithmic changes. Reveals which shapes are feasible empirically.
 
-**Why this matters:** This is the missing piece for per-role model experiments
-(§7) and for making negotiation skill visible in transcripts. Run 8's Water
-Rights had to be hand-patched to create pressure; the compiler's defaults
-under-pressure scenarios. With a reverse builder, we could request
-*"give me a 3-faction / 3-issue scenario where the Pareto-optimal score is
-2× the BATNA but only 1 of 27 deals achieves it"* — and get a scenario where
-skill matters.
+Combinatorial reference (per `ASSESSMENT.md` §4.5 + the operator-side discussion 2026-06-11):
 
-**Approach (rough):**
-1. Define a `ScenarioConstraints` dataclass with the properties above
-2. Search algorithm: candidate generator + scoring-table sampler + `verify_scenario_optimum`-style validator
-   - Random sampling + reject-non-matching (slow but simple)
-   - Or LLM-guided generation with `structured_call`
-   - Or combinatorial search over small parameter spaces
-3. Output: scoring tables + BATNAs in same format as `scenario_compiler` output
-4. Optional: LLM "narrativizer" to wrap the scoring tables in a plausible cover story
+| Shape | Deals | Cells | Current-algo est. time per restart |
+|---|---|---|---|
+| 3×3×3 | 27 | 27 | ~0.2s (validated) |
+| 4×4×4 | 256 | 64 | ~6-10s (predicted) |
+| 5×5×5 | 3125 | 125 | minutes (likely untenable) |
 
-**Why not now:** Best done after the divorce scenario (§2) because
-hand-authoring one such scenario surfaces the constraint vocabulary.
+### Phase 42 — algorithm fixes for shapes Phase 41 reveals as broken (queued, conditional)
+
+Scope determined by Phase 41 findings. Likely candidates:
+
+| Symptom | Probable fix |
+|---|---|
+| Fitness eval too slow at 4×4×4+ | Cached per-cell fitness deltas (only recompute changed sub-trees) |
+| Hill-climb stuck in local minima | Multi-cell flips, larger neighborhood per move |
+| Annealing schedule miscalibrated | Adaptive temperature based on observed acceptance rate |
+| Random init too far from feasible at larger scale | LLM-guided proposal (`structured_call` from spec text; deferred from Phase 36) |
+| Spec genuinely hard at scale | Operator-side: loosen targets or accept range knobs for more fields |
+
+### Strategic value of Phase 41/42
+
+Note 1 (`RESEARCH_NOTES.md`) predicts harness contribution grows with scenario complexity along five axes — *context exhaustion* (more issues) and *relationship complexity* (more factions) are exactly what Phase 41/42 unlocks. Validating the builder at larger scales is the prerequisite for the next round of bare-vs-full ablation experiments (the Run 14 successor that tests Note 1's thesis with richer scenarios).
+
+### Out of scope for this section
+
+- **Pressure mechanisms** — see §2 (Phase 38/39/40 split).
+- **LLM narrative wrap** — operator runs `tools.scenario_compiler` over the builder's emitted scoring tables to fill `logrolling` + `deception_tactics` + scenario title. Hand-author also works.
+- **Cascade scoring** — needs cross-game state (Phase 40, indefinitely deferred).
 
 ---
 
