@@ -14,6 +14,10 @@
     "beta",
     "gamma"
   ],
+  "pressure_profile": {
+    "external_shock": "low",
+    "time_pressure": "medium"
+  },
   "game_mode": "mixed",
   "issues": [
     {

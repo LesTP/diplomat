@@ -29,6 +29,7 @@ def test_round_trip_preserves_nested_defaults_and_ranges(tmp_path: Path) -> None
             "asymmetric_clocks": {"alpha": 3},
             "penalty_floor_offset": 2.0,
         },
+        pressure_profile={"time_pressure": "medium", "external_shock": "low"},
         asymmetric_batna_fractions={"alpha": 0.65},
         target_weights={"pareto_count": 2.0, "game_mode": 0.3},
         game_mode="mixed",
@@ -47,6 +48,7 @@ def test_round_trip_preserves_nested_defaults_and_ranges(tmp_path: Path) -> None
     assert loaded.pressure.round_cost_decay == 1.5
     assert loaded.pressure.asymmetric_clocks == {"alpha": 3}
     assert loaded.pressure.penalty_floor_offset == 2.0
+    assert loaded.pressure_profile == {"time_pressure": "medium", "external_shock": "low"}
 
 
 def test_load_applies_defaults(tmp_path: Path) -> None:
@@ -76,6 +78,7 @@ def test_load_applies_defaults(tmp_path: Path) -> None:
     assert spec.pressure.round_cost_decay == 0.0
     assert spec.pressure.asymmetric_clocks == {}
     assert spec.pressure.penalty_floor_offset == 0.0
+    assert spec.pressure_profile == {"time_pressure": "low", "external_shock": "low"}
     assert spec.asymmetric_batna_fractions == {}
     assert spec.target_weights == {}
     assert spec.game_mode == "mixed"
@@ -124,4 +127,13 @@ def test_validation_rejects_invalid_pressure_clock_faction() -> None:
             factions=["alpha"],
             issues=[IssueSpec(name="Tariffs", outcomes=["Strict", "Relaxed"])],
             pressure={"asymmetric_clocks": {"beta": 3}},
+        )
+
+
+def test_validation_rejects_invalid_pressure_profile_value() -> None:
+    with pytest.raises(ValueError, match="pressure_profile.time_pressure"):
+        ScenarioSpec(
+            factions=["alpha"],
+            issues=[IssueSpec(name="Tariffs", outcomes=["Strict", "Relaxed"])],
+            pressure_profile={"time_pressure": "urgent", "external_shock": "low"},
         )

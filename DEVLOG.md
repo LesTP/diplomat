@@ -624,3 +624,17 @@ Threaded pressure through the shared persona round-context renderer in `src/modu
 ## 2026-06-11 - Phase 38 step 38.3: pressure verifier and fixture-backed tests
 
 Added `tests/self_play/verify_scenario_pressure.py` to verify deadline-driven BATNA pressure: it checks per-faction effective-BATNA decay, requires surfaced deadlines when `priority_collision` is active, and synthesizes the deadline round as a final-round / accept-or-bust context. Added a fixture-backed regression in `tests/self_play/fixtures/pressure/pressure_good.json` plus `tests/test_scenario_pressure.py` covering the passing profile, the low-drop failure mode, and the deadline-context rendering. Focused regression slice passed: `20 passed`; direct CLI smoke on the new verifier passed against the fixture.
+
+## 2026-06-11 - Phase 38 step 38.4: pressure_profile metadata and final-round marker
+
+### Step 38.4: pressure_profile metadata and final-round marker
+Mode: Build
+Outcome: Added `pressure_profile` metadata to the scenario spec/model and committed scenario analysis fixtures, then strengthened the shared final-round context so it can say `No deal = N points (your BATNA). Current best offer = M points. Walking away costs you M-N points.` when the caller supplies a current-best value.
+Contract changes:
+- `src/tools/scenario_spec.py` - added `pressure_profile` validation/defaults/round-trip support.
+- `src/tools/scenario_compiler.py` - extended the scenario analysis schema with required `pressure_profile` metadata and passed `current_best_offer` into the round-context renderer.
+- `src/modules/persona/__init__.py` - added optional `current_best_offer` handling and the final-round BATNA-vs-best-offer wording.
+- `tests/self_play/verify_scenario_pressure.py` - verified the final-round context includes the new comparison text.
+- `tests/test_persona.py`, `tests/test_scenario_compiler.py`, `tests/test_scenario_spec.py`, `tests/self_play/fake_llm_client.py` - updated coverage and fixture shapes.
+- `tests/self_play/scenarios/*.json`, `tests/self_play/scenarios/joint_space_mission_v1/spec.json` - committed `pressure_profile` metadata for the checked-in scenarios/spec.
+Focused verification: `python3 -m pytest -q tests/test_persona.py tests/test_scenario_compiler.py tests/test_scenario_spec.py tests/test_scenario_pressure.py` --- `61 passed`; JSON load check on touched scenario files passed.

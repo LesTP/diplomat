@@ -13,12 +13,14 @@ _DEFAULT_BATNA_CLEARING_COUNT_TARGET = 1
 _DEFAULT_BATNA_TO_PARETO_GAP_PCT = 0.10
 _DEFAULT_ROUND_COST_DECAY = 0.0
 _DEFAULT_PENALTY_FLOOR_OFFSET = 0.0
+_DEFAULT_PRESSURE_PROFILE = {"time_pressure": "low", "external_shock": "low"}
 _DEFAULT_GAME_MODE = "mixed"
 _DEFAULT_PRIORITY_COLLISION = "none"
 _DEFAULT_SEED = 0
 
 _PRIORITY_COLLISION_VALUES = {"none", "soft", "hard"}
 _GAME_MODE_VALUES = {"cooperative", "competitive", "mixed"}
+_PRESSURE_PROFILE_VALUES = {"low", "medium", "high"}
 
 
 def _validate_nonempty_str(value: Any, *, label: str) -> str:
@@ -101,6 +103,23 @@ def _validate_non_negative_number(value: Any, *, label: str) -> float:
     if number < 0.0:
         raise ValueError(f"{label} must be non-negative")
     return number
+
+
+def _validate_pressure_profile(value: Any) -> dict[str, str]:
+    if not isinstance(value, dict):
+        raise ValueError("pressure_profile must be an object")
+
+    validated: dict[str, str] = {}
+    for key in ("time_pressure", "external_shock"):
+        raw = value.get(key, _DEFAULT_PRESSURE_PROFILE[key])
+        validated_value = _validate_nonempty_str(raw, label=f"pressure_profile.{key}")
+        if validated_value not in _PRESSURE_PROFILE_VALUES:
+            raise ValueError(
+                f"pressure_profile.{key} must be one of: low, medium, high"
+            )
+        validated[key] = validated_value
+
+    return validated
 
 
 @dataclass
@@ -187,6 +206,7 @@ class ScenarioSpec:
     requires_logrolling: bool = False
     priority_collision: str = _DEFAULT_PRIORITY_COLLISION
     pressure: PressureSpec = field(default_factory=PressureSpec)
+    pressure_profile: dict[str, str] = field(default_factory=lambda: dict(_DEFAULT_PRESSURE_PROFILE))
     asymmetric_batna_fractions: dict[str, float] = field(default_factory=dict)
     target_weights: dict[str, float] = field(default_factory=dict)
     game_mode: str = _DEFAULT_GAME_MODE
@@ -238,6 +258,7 @@ class ScenarioSpec:
         if not isinstance(self.pressure, PressureSpec):
             raise ValueError("pressure must be a PressureSpec")
         self.pressure.validate_factions(self.factions)
+        self.pressure_profile = _validate_pressure_profile(self.pressure_profile)
 
         validated_fractions: dict[str, float] = {}
         for faction_id, value in self.asymmetric_batna_fractions.items():
@@ -283,6 +304,7 @@ class ScenarioSpec:
             requires_logrolling=data.get("requires_logrolling", False),
             priority_collision=data.get("priority_collision", _DEFAULT_PRIORITY_COLLISION),
             pressure=PressureSpec.from_dict(data.get("pressure", {})),
+            pressure_profile=dict(data.get("pressure_profile", _DEFAULT_PRESSURE_PROFILE)),
             asymmetric_batna_fractions=dict(data.get("asymmetric_batna_fractions", {})),
             target_weights=dict(data.get("target_weights", {})),
             game_mode=data.get("game_mode", _DEFAULT_GAME_MODE),

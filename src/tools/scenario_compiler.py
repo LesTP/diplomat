@@ -47,6 +47,7 @@ SCENARIO_ANALYSIS_SCHEMA: dict[str, Any] = {
         "logrolling",
         "game_mode",
         "pressure",
+        "pressure_profile",
     ],
     "properties": {
         "factions": {
@@ -123,6 +124,23 @@ SCENARIO_ANALYSIS_SCHEMA: dict[str, Any] = {
                     "type": "number",
                     "minimum": 0,
                     "description": "Penalty deducted below BATNA when no deal is reached",
+                },
+            },
+        },
+        "pressure_profile": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["time_pressure", "external_shock"],
+            "properties": {
+                "time_pressure": {
+                    "type": "string",
+                    "enum": ["low", "medium", "high"],
+                    "description": "Relative time pressure rating for the scenario",
+                },
+                "external_shock": {
+                    "type": "string",
+                    "enum": ["low", "medium", "high"],
+                    "description": "Placeholder external shock rating for the scenario",
                 },
             },
         },
@@ -516,6 +534,7 @@ def generate_persona(
         priority_collision=str(analysis.get("priority_collision") or "none"),
         faction_id=faction_id,
         base_batna=batna,
+        current_best_offer=best_deal,
     )
 
     return PERSONA_TEMPLATE.format(

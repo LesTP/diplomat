@@ -233,9 +233,13 @@ async def test_build_round_context_final_round_emits_warning(tmp_path):
         coaching_context=CoachingContext(
             priorities=[], constraints=[], watch_items=[], tone_notes=[]
         ),
+        base_batna=11,
+        current_best_offer=18,
     )
     assert "### FINAL ROUND" in context_rr
-    assert "This is the last round" in context_rr
+    assert "No deal = 11 points (your BATNA)." in context_rr
+    assert "Current best offer = 18 points." in context_rr
+    assert "Walking away costs you 7 points." in context_rr
     assert "PENULTIMATE ROUND" not in context_rr
 
     # Via total_rounds derivation (round 4 of 4 → 0 remaining).
@@ -246,6 +250,8 @@ async def test_build_round_context_final_round_emits_warning(tmp_path):
             priorities=[], constraints=[], watch_items=[], tone_notes=[]
         ),
         total_rounds=4,
+        base_batna=11,
+        current_best_offer=18,
     )
     assert "### FINAL ROUND" in context_tr
 
@@ -286,12 +292,16 @@ async def test_build_round_context_renders_pressure_and_deadlines(tmp_path):
         priority_collision="soft",
         faction_id="alpha",
         base_batna=18,
+        current_best_offer=24,
     )
 
     assert "### Pressure" in context
     assert "Round cost decay: 1.5 points per round" in context
     assert "Penalty floor offset: 2 points" in context
     assert "### FINAL ROUND" in context
+    assert "No deal = 18 points (your BATNA)." in context
+    assert "Current best offer = 24 points." in context
+    assert "Walking away costs you 6 points." in context
     assert "Effective BATNA this round: 11.5 points" in context
     assert "### Opponent Deadlines" in context
     assert "- beta: round 2" in context

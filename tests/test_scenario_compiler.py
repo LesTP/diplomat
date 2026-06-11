@@ -127,12 +127,18 @@ class TestSchema:
         assert "deception_tactics" in SCENARIO_ANALYSIS_SCHEMA["properties"]
         assert "logrolling" in SCENARIO_ANALYSIS_SCHEMA["properties"]
         assert "pressure" in SCENARIO_ANALYSIS_SCHEMA["properties"]
+        assert "pressure_profile" in SCENARIO_ANALYSIS_SCHEMA["properties"]
         assert "pressure" in SCENARIO_ANALYSIS_SCHEMA["required"]
         pressure = SCENARIO_ANALYSIS_SCHEMA["properties"]["pressure"]
         assert pressure["required"] == [
             "round_cost_decay",
             "asymmetric_clocks",
             "penalty_floor_offset",
+        ]
+        pressure_profile = SCENARIO_ANALYSIS_SCHEMA["properties"]["pressure_profile"]
+        assert pressure_profile["required"] == [
+            "time_pressure",
+            "external_shock",
         ]
 
 

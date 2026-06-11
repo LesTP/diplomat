@@ -47,6 +47,7 @@ def deadline_context(
     pressure = analysis["pressure"]
     deadline = pressure["asymmetric_clocks"][faction_id]
     base_batna = float(analysis["batna"][faction_id])
+    current_best_offer = float(max_possible_score(analysis, faction_id))
     return render_round_context_section(
         round_number=deadline,
         rounds_remaining=0,
@@ -61,6 +62,7 @@ def deadline_context(
         priority_collision=str(analysis.get("priority_collision") or "none"),
         faction_id=faction_id,
         base_batna=base_batna,
+        current_best_offer=current_best_offer,
     )
 
 
@@ -141,7 +143,11 @@ def verify_pressure_profile(
             )
 
         context = deadline_context(analysis, faction_id)
-        if "### FINAL ROUND" not in context or "Effective BATNA" not in context:
+        if (
+            "### FINAL ROUND" not in context
+            or "Current best offer" not in context
+            or "No deal =" not in context
+        ):
             failures.append(
                 f"{faction_id}: deadline round does not render an accept-or-bust final-round context"
             )

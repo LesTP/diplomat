@@ -43,6 +43,7 @@ class FileBasedPersona:
         priority_collision: str = "none",
         faction_id: str | None = None,
         base_batna: float | int | None = None,
+        current_best_offer: float | int | None = None,
     ) -> str:
         return render_round_context_section(
             round_number=round_number,
@@ -53,6 +54,7 @@ class FileBasedPersona:
             priority_collision=priority_collision,
             faction_id=faction_id,
             base_batna=base_batna,
+            current_best_offer=current_best_offer,
         )
 
 
@@ -162,6 +164,41 @@ def _format_effective_batna_line(
     )
 
 
+def _format_final_round_lines(
+    *,
+    base_batna: float | int | None,
+    current_best_offer: float | int | None,
+    round_number: int,
+    pressure: Mapping[str, Any] | None,
+    rounds_remaining: int | None,
+    total_rounds: int | None,
+) -> list[str]:
+    if base_batna is None and current_best_offer is None:
+        return []
+
+    lines: list[str] = []
+    if base_batna is not None:
+        lines.append(f"No deal = {_format_number(base_batna)} points (your BATNA).")
+    if current_best_offer is not None:
+        lines.append(f"Current best offer = {_format_number(current_best_offer)} points.")
+    if base_batna is not None and current_best_offer is not None:
+        lines.append(
+            f"Walking away costs you {_format_number(current_best_offer - base_batna)} points."
+        )
+
+    if pressure:
+        effective_batna_line = _format_effective_batna_line(
+            base_batna=base_batna,
+            round_number=round_number,
+            pressure=pressure,
+            rounds_remaining=rounds_remaining,
+            total_rounds=total_rounds,
+        )
+        if effective_batna_line:
+            lines.append(effective_batna_line)
+    return lines
+
+
 def render_round_context_section(
     *,
     round_number: int,
@@ -172,6 +209,7 @@ def render_round_context_section(
     priority_collision: str = "none",
     faction_id: str | None = None,
     base_batna: float | int | None = None,
+    current_best_offer: float | int | None = None,
 ) -> str:
     # If total_rounds is given, derive rounds_remaining authoritatively from it.
     if total_rounds is not None:
@@ -199,26 +237,35 @@ def render_round_context_section(
 
     # Endgame reminder fires only in the last two rounds (penultimate + final).
     if effective_remaining is not None and effective_remaining <= 1:
-        effective_batna_line = _format_effective_batna_line(
-            base_batna=base_batna,
-            round_number=round_number,
-            pressure=pressure,
-            rounds_remaining=effective_remaining,
-            total_rounds=total_rounds,
-        )
         if effective_remaining == 0:
             sections.extend(
                 [
                     "### FINAL ROUND",
                     "This is the last round. Your standing offer at the end of this round "
-                    "is what gets scored against your private table. State your final "
-                    "proposal clearly. There are no more chances to adjust.",
+                    "is what gets scored against your private table. No deal = your "
+                    "BATNA; compare the current best offer against that baseline and "
+                    "state your final proposal clearly. There are no more chances to "
+                    "adjust.",
                 ]
             )
-            if effective_batna_line:
-                sections.append(effective_batna_line)
+            final_round_lines = _format_final_round_lines(
+                base_batna=base_batna,
+                current_best_offer=current_best_offer,
+                round_number=round_number,
+                pressure=pressure,
+                rounds_remaining=effective_remaining,
+                total_rounds=total_rounds,
+            )
+            sections.extend(final_round_lines)
             sections.append("")
         else:  # effective_remaining == 1
+            effective_batna_line = _format_effective_batna_line(
+                base_batna=base_batna,
+                round_number=round_number,
+                pressure=pressure,
+                rounds_remaining=effective_remaining,
+                total_rounds=total_rounds,
+            )
             sections.extend(
                 [
                     "### PENULTIMATE ROUND",
