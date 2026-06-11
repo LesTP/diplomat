@@ -723,3 +723,19 @@ Added `pareto_outcome_diversity` scoring to `compute_fitness()` in `src/tools/sc
 Updated `tests/test_scenario_fitness.py` to cover the new output key plus low-diversity, high-diversity, mixed-target, and default-zero behaviors. Verified with `python3 -m pytest tests/test_scenario_fitness.py tests/test_scenario_spec.py tests/test_scenario_builder.py` (`26 passed`).
 
 Next step: 37.2 add `pareto_outcome_diversity` to `ScenarioSpec` in `src/tools/scenario_spec.py`.
+
+## 2026-06-11 - Phase 37 Step 37.2: ScenarioSpec field plumbing
+
+### Step 37.2: ScenarioSpec field plumbing
+Mode: Build
+Outcome: Passed
+Contract changes:
+- `src/tools/scenario_spec.py` - added `pareto_outcome_diversity: float = 0.0` to `ScenarioSpec`, validated it with the existing probability check, and threaded the field through `from_dict()`.
+- `tests/test_scenario_spec.py` - added default-load coverage for the new field and a validation check for out-of-range values.
+- `DEVPLAN.md` - marked Step 37.2 complete.
+
+The spec schema now carries the new metric explicitly instead of relying on ad hoc attribute attachment. That keeps reverse-scenario specs round-trippable through JSON and enforces the intended `[0.0, 1.0]` range at construction time.
+
+Focused verification: `python3 -m pytest -q tests/test_scenario_spec.py tests/test_scenario_fitness.py` (`15 passed`).
+
+Next step: 37.3 add the focused `tests/test_scenario_fitness.py` cases listed in the phase plan.

@@ -60,6 +60,7 @@ def test_load_applies_defaults(tmp_path: Path) -> None:
     assert spec.score_range == (1, 10)
     assert spec.pareto_count_target == 1
     assert spec.pareto_distribution_spread == 0.0
+    assert spec.pareto_outcome_diversity == 0.0
     assert spec.batna_clearing_count_target == 1
     assert spec.batna_to_pareto_gap_pct == 0.10
     assert spec.requires_logrolling is False
@@ -76,6 +77,15 @@ def test_validation_rejects_invalid_target_weight() -> None:
             factions=["alpha"],
             issues=[IssueSpec(name="Tariffs", outcomes=["Strict", "Relaxed"])],
             target_weights={"pareto_count": -0.1},
+        )
+
+
+def test_validation_rejects_invalid_pareto_outcome_diversity() -> None:
+    with pytest.raises(ValueError, match="pareto_outcome_diversity"):
+        ScenarioSpec(
+            factions=["alpha"],
+            issues=[IssueSpec(name="Tariffs", outcomes=["Strict", "Relaxed"])],
+            pareto_outcome_diversity=1.1,
         )
 
 

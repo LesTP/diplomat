@@ -122,6 +122,7 @@ class ScenarioSpec:
     score_range: tuple[int, int] = _DEFAULT_SCORE_RANGE
     pareto_count_target: int | tuple[int, int] = _DEFAULT_PARETO_COUNT_TARGET
     pareto_distribution_spread: float = 0.0
+    pareto_outcome_diversity: float = 0.0
     batna_clearing_count_target: int = _DEFAULT_BATNA_CLEARING_COUNT_TARGET
     batna_to_pareto_gap_pct: float = _DEFAULT_BATNA_TO_PARETO_GAP_PCT
     requires_logrolling: bool = False
@@ -153,6 +154,9 @@ class ScenarioSpec:
         )
         if not isinstance(self.pareto_distribution_spread, (int, float)) or self.pareto_distribution_spread < 0:
             raise ValueError("pareto_distribution_spread must be a non-negative number")
+        self.pareto_outcome_diversity = _validate_probability(
+            self.pareto_outcome_diversity, label="pareto_outcome_diversity"
+        )
         if not isinstance(self.batna_clearing_count_target, int) or self.batna_clearing_count_target < 0:
             raise ValueError("batna_clearing_count_target must be a non-negative integer")
         self.batna_to_pareto_gap_pct = _validate_probability(
@@ -203,6 +207,7 @@ class ScenarioSpec:
             score_range=tuple(data.get("score_range", _DEFAULT_SCORE_RANGE)),
             pareto_count_target=data.get("pareto_count_target", _DEFAULT_PARETO_COUNT_TARGET),
             pareto_distribution_spread=data.get("pareto_distribution_spread", 0.0),
+            pareto_outcome_diversity=data.get("pareto_outcome_diversity", 0.0),
             batna_clearing_count_target=data.get(
                 "batna_clearing_count_target", _DEFAULT_BATNA_CLEARING_COUNT_TARGET
             ),
