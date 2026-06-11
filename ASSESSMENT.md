@@ -210,10 +210,113 @@ have:
    makes "wait for a better offer" not strictly dominant — round
    decay, asymmetric deadlines, exogenous events.
 
-The reverse scenario builder (`NEXT_STEPS.md` §8) is the systematic
-answer to "give me a scenario with these properties." Until it's built,
-hand-patching (raising BATNAs in `--analysis-json` to create
-pressure) is the manual workaround.
+The reverse scenario builder (§4.5) is the systematic answer to "give me
+a scenario with these properties." Hand-patching (raising BATNAs in
+`--analysis-json` to create pressure) remains the workaround for properties
+the builder doesn't yet cover.
+
+---
+
+## 4.5. The reverse scenario builder — operationalizing §4
+
+`tools.scenario_builder` (shipped Phase 35; search improvements Phase 36)
+generates a scenario file from a target outcome-shape specification.
+Operator writes a `ScenarioSpec` JSON describing what properties the
+scenario should have; the tool searches scoring-table space and emits the
+same `scenario_analysis.json` + per-faction `.txt` personas the rest of the
+pipeline consumes. Read from `CLI_REFERENCE.md` for the full CLI surface.
+
+### Why it exists
+
+The §4 properties are easy to *recognize* in a finished scenario and easy
+to *fail to produce* when authoring one. Two existing paths each have a
+gap:
+
+- **`tools.scenario_compiler` (forward, LLM-driven)** — takes a narrative
+  and asks an LLM to invent a coherent scoring table. Coherence is enforced
+  by the prompt; no §4 property is structurally guaranteed. Runs 1-10 used
+  this path; Run 8 needed hand-patching to create BATNA pressure.
+- **Hand-authored scoring tables** — full control, but each scenario takes
+  ~30 minutes of careful design and the §4 properties have to be re-verified
+  by `tests.self_play.verify_scenario_optimum` after each tweak.
+
+The reverse builder inverts the relationship: operator specifies the
+properties, tool searches scoring-table space until it finds a candidate
+that has them. The §4 properties become typed spec fields.
+
+### What it produces
+
+A scenario directory matching the existing pipeline contract:
+
+- `scenario_analysis.json` — factions, issues, outcomes, scoring, BATNAs,
+  `game_mode`. Same schema, same downstream consumers (self-play,
+  `FileBasedPersona`, verifier).
+- `<faction>.txt` per faction — rendered from `PERSONA_TEMPLATE`.
+- `logrolling` and `deception_tactics` fields emitted as stubs. Operator
+  hand-authors them or pipes the generated tables through
+  `tools.scenario_compiler` to LLM-author them.
+
+### Spec fields ↔ §4 properties
+
+| §4 property | `ScenarioSpec` field | What it controls |
+|---|---|---|
+| BATNA-Pareto gap | `batna_to_pareto_gap_pct` | Minimum (Pareto - BATNA) / max_score across factions |
+| Logrolling opportunity | `requires_logrolling` | True → at least one Pareto deal where every faction clears 75% of max |
+| Pareto landscape shape | `pareto_count_target` | Number of distinct Pareto-optimal deals (1 = single answer; range = coordination problem) |
+| Acceptable-deal space | `batna_clearing_count_target` | Number of voluntary (BATNA-clearing) deals overall |
+| Skill discrimination | `pareto_outcome_diversity` *(Phase 37, queued)* | Pareto deals favor different factions |
+| Frontier uniformity | `pareto_distribution_spread` | Per-faction range stdev across the frontier — fairness-audit metric, distinct from skill discrimination |
+| Asymmetric BATNAs | `asymmetric_batna_fractions` | Per-faction BATNA = fraction × max-possible-score |
+| Priority structure | `priority_collision` | `none` (clean logrolling) / `soft` (forces compromise) / `hard` (single contested issue) |
+| Game mode | `game_mode` | `cooperative` / `competitive` / `mixed` — flows into persona template |
+| Pressure mechanisms | *(not yet)* | Round-cost decay, exogenous events, asymmetric deadlines — sit outside the scoring schema; see `NEXT_STEPS.md` §2 |
+
+Targets that aren't strictly required can be downweighted or disabled via
+`target_weights: {<field>: <weight>}`. The default is 1.0 for continuous
+targets, 0.3 for categorical (logrolling presence, priority collision,
+game mode); set 0.0 to drop a target from the fitness sum.
+
+### Sample workflow
+
+```
+python -m tools.scenario_builder \
+  --spec tests/self_play/scenarios/joint_space_mission_v1/spec.json \
+  --output-dir tests/self_play/scenarios/joint_space_mission_v1/ \
+  --title "Joint Space Mission" \
+  --seed 42 \
+  --verify
+```
+
+`--verify` re-runs `tests.self_play.verify_scenario_optimum` on the emitted
+JSON and exits non-zero on FAIL. `--debug-search` emits per-restart fitness
+records when a spec doesn't converge in expected time.
+
+### What it doesn't (yet) do
+
+- **Pressure mechanisms.** Round-cost decay, exogenous events, asymmetric
+  deadlines all sit outside `scenario_analysis.json` and require compiler
+  + `PERSONA_TEMPLATE` extension. `NEXT_STEPS.md` §2.
+- **LLM narrative wrap.** Logrolling text, deception tactics, scenario
+  title are emitted as stubs. Operator fills.
+- **Larger search spaces.** Validated at 3 factions × 3 issues × 3
+  outcomes (27-deal space) in ~4 seconds. 4+ factions or 4+ issues per
+  faction may need search-algorithm work (LLM-guided proposal seeding,
+  larger neighborhoods).
+- **Skill-discrimination targeting.** `pareto_outcome_diversity` is queued
+  as Phase 37 — the existing `pareto_distribution_spread` measures
+  per-faction frontier-range uniformity, not "different deals favor
+  different factions." Both metrics are useful; they answer different
+  questions.
+
+### Status
+
+Built and validated 2026-06-11. First operator spec
+(`tests/self_play/scenarios/joint_space_mission_v1/spec.json`) converges
+in ~4 seconds and produces 3 distinct Pareto-optimal deals plus 2
+logrolling-quality deals — the multi-Pareto spectrum that motivated the
+tool. Phase B (LLM-author personas, optional self-play smoke) is the
+immediate operator follow-up; the scenario is regenerable from the
+committed spec at any time.
 
 ---
 
