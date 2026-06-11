@@ -16,7 +16,27 @@ steps_remaining:
      See WORKER_SPEC.md for state-machine semantics.
 
      `steps_remaining` is managed by the state machine at runtime — do NOT
-     pre-populate. -->
+     pre-populate.
+
+     PHASE PLAN FORMAT (PLAN action writes this shape):
+
+       ## Phase N: <title> — In Progress
+
+       **Goal.** <one paragraph>
+       **Steps.**
+       - [ ] N.1 — <first build step>
+       - [ ] N.2 — <second build step>
+       - [ ] N.3 — <doc update step>
+       - [ ] N.4 — <phase close step>
+
+     The state machine counts unchecked checkboxes via `grep -c '^- \[ \]'`
+     inside the `## Phase N` section to know how many EXECUTE iterations
+     remain. Plain bullets (`- N.X ...`) count as zero work — the loop
+     auto-transitions straight to REVIEW with nothing built (recurred at
+     Phase 38 iter 165, fix landed 2026-06-11). This format example is
+     above any `## Phase N` header, so sed extraction never sees its
+     literal `- [ ]` lines; the HTML comment also keeps it invisible
+     when rendered. -->
 
 ## Cold Start Summary
 
