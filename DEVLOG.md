@@ -710,3 +710,16 @@ Phase 37 planned. Regime: Build. 7 steps defined in DEVPLAN.
 **Goal:** Add `pareto_outcome_diversity` metric to `scenario_fitness.py` + `ScenarioSpec` — measures distinct winner fraction across Pareto frontier (inter-deal diversity), distinct from `pareto_distribution_spread` (per-faction frontier-range stdev, an intra-faction uniformity metric).
 
 **Step list:** 37.1 add computation to `compute_fitness()`; 37.2 add field to `ScenarioSpec`; 37.3 unit tests; 37.4 update `joint_space_mission_v1/spec.json`; 37.5 validate; 37.6 `CLI_REFERENCE.md` doc; 37.7 phase close.
+
+## 2026-06-11 - Phase 37 Step 37.1: Pareto outcome diversity metric
+
+### Step 37.1: Pareto outcome diversity metric
+Mode: Build
+Outcome: Passed
+Contract changes: none
+
+Added `pareto_outcome_diversity` scoring to `compute_fitness()` in `src/tools/scenario_fitness.py`. The new metric counts one deterministic winner per Pareto-frontier deal, deduplicates those winners across the frontier, and normalizes by `min(frontier_size, n_factions)`. A `0.0` target is treated as "no constraint" so existing specs stay neutral until the field is explicitly set.
+
+Updated `tests/test_scenario_fitness.py` to cover the new output key plus low-diversity, high-diversity, mixed-target, and default-zero behaviors. Verified with `python3 -m pytest tests/test_scenario_fitness.py tests/test_scenario_spec.py tests/test_scenario_builder.py` (`26 passed`).
+
+Next step: 37.2 add `pareto_outcome_diversity` to `ScenarioSpec` in `src/tools/scenario_spec.py`.

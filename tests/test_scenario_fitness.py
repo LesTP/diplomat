@@ -86,6 +86,30 @@ def _multi_pareto_analysis() -> dict[str, object]:
     }
 
 
+def _low_diversity_analysis() -> dict[str, object]:
+    return {
+        "factions": ["alpha", "beta"],
+        "game_mode": "mixed",
+        "issues": [
+            {"name": "allocation", "outcomes": ["A", "B"], "description": "Allocation"},
+            {"name": "payment", "outcomes": ["A", "B"], "description": "Payment"},
+        ],
+        "scoring": {
+            "alpha": {
+                "allocation": {"A": 10, "B": 9},
+                "payment": {"A": 10, "B": 9},
+            },
+            "beta": {
+                "allocation": {"A": 1, "B": 2},
+                "payment": {"A": 1, "B": 2},
+            },
+        },
+        "batna": {"alpha": 10, "beta": 2},
+        "deception_tactics": {"alpha": "", "beta": ""},
+        "logrolling": [],
+    }
+
+
 def _multi_pareto_spec() -> ScenarioSpec:
     return ScenarioSpec(
         factions=["alpha", "beta"],
@@ -112,6 +136,7 @@ class TestComputeFitness:
         assert result.total_distance == 0.0
         assert result.per_target_distance == {
             "pareto_count": 0.0,
+            "pareto_outcome_diversity": 0.0,
             "pareto_distribution_spread": 0.0,
             "batna_clearing_count": 0.0,
             "batna_to_pareto_gap_pct": 0.0,
@@ -152,6 +177,41 @@ class TestComputeFitness:
 
         assert result.per_target_distance["game_mode"] == 1.0
         assert result.total_distance == pytest.approx(0.3)
+
+    def test_scores_pareto_outcome_diversity_for_low_diversity_frontier(self) -> None:
+        analysis = _low_diversity_analysis()
+        spec = _multi_pareto_spec()
+        spec.pareto_outcome_diversity = 0.5
+
+        result = compute_fitness(analysis, spec)
+
+        assert result.per_target_distance["pareto_outcome_diversity"] == 0.0
+
+    def test_scores_pareto_outcome_diversity_for_distinct_frontier_winners(self) -> None:
+        analysis = _multi_pareto_analysis()
+        spec = _multi_pareto_spec()
+        spec.pareto_outcome_diversity = 1.0
+
+        result = compute_fitness(analysis, spec)
+
+        assert result.per_target_distance["pareto_outcome_diversity"] == 0.0
+
+    def test_scores_pareto_outcome_diversity_for_mixed_target(self) -> None:
+        analysis = _low_diversity_analysis()
+        spec = _multi_pareto_spec()
+        spec.pareto_outcome_diversity = 0.75
+
+        result = compute_fitness(analysis, spec)
+
+        assert result.per_target_distance["pareto_outcome_diversity"] == pytest.approx(0.25)
+
+    def test_ignores_pareto_outcome_diversity_when_target_is_zero(self) -> None:
+        analysis = _multi_pareto_analysis()
+        spec = _multi_pareto_spec()
+
+        result = compute_fitness(analysis, spec)
+
+        assert result.per_target_distance["pareto_outcome_diversity"] == 0.0
 
     def test_satisfies_uses_total_budget(self) -> None:
         result = FitnessResult(total_distance=0.29, per_target_distance={"game_mode": 1.0})

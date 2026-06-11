@@ -97,6 +97,22 @@ def compute_fitness(analysis: dict[str, Any], spec: Any) -> FitnessResult:
         observed_pareto_count, spec.pareto_count_target
     )
 
+    distinct_winners: set[str] = set()
+    for _, scores in frontier:
+        if not scores:
+            continue
+        distinct_winners.add(max(scores, key=scores.get))
+    winner_denominator = min(len(frontier), len(factions))
+    observed_outcome_diversity = (
+        len(distinct_winners) / winner_denominator if winner_denominator > 0 else 0.0
+    )
+    target_outcome_diversity = getattr(spec, "pareto_outcome_diversity", 0.0)
+    per_target_distance["pareto_outcome_diversity"] = (
+        _normalized_distance(observed_outcome_diversity, target_outcome_diversity)
+        if target_outcome_diversity > 0.0
+        else 0.0
+    )
+
     frontier_ranges: list[float] = []
     for faction in factions:
         scores = [scores[faction] for _, scores in frontier]
