@@ -1692,7 +1692,7 @@ All four options from the original Phase 34 close are now informed:
 
 Fired 2026-06-11 to test the Note 1 thesis prediction emerging from Run 14e transcript inspection: **"sonnet may be the right model for richer scenarios; sonnet's failure on Water Rights beta-squeezed may invert on multi-Pareto scenarios."** Two single-cell calibration runs on `joint_space_mission_v1` (3 distinct Pareto deals, pareto_outcome_diversity=0.66, symmetric BATNAs).
 
-### Calibration cells
+### Calibration cells (initial n=1, 2026-06-11)
 
 | Cell | Model | Outcome | Surplus | Deal |
 |---|---|---|---|---|
@@ -1701,46 +1701,94 @@ Fired 2026-06-11 to test the Note 1 thesis prediction emerging from Run 14e tran
 
 Sonnet's deal: alpha=19 (+8 vs BATNA), beta=18 (+9), gamma=22 (+10). The "balanced consensus" Pareto point — every faction at >=86% of max, highest-logrolling-quality deal on the frontier.
 
-### Headline finding: the pattern from Run 14 INVERTS
+### Run 15 expansion (n=3 + gemini probe, 2026-06-11)
 
-| Model | Water Rights beta-squeezed (1 Pareto) | Joint Space Mission v1 (3 Pareto) |
-|---|---|---|
-| gpt-5.4-mini full | **2/3 deals** | **0/1** (calibration) |
-| claude-sonnet-4-6 full | **0/3** | **1/1** (calibration) |
+| Cell | Model | n | Close rate | Cost | Wall (per run) |
+|---|---|---|---|---|---|
+| 15-mid | gpt-5.4-mini full | 3 | **0/3** | ~$1.50 | ~12 min |
+| 15-sonnet | claude-sonnet-4-6 full | 3 | **3/3** | ~$6 | ~16-17 min |
+| 15-gemini | gemini-2.5-flash-lite full | 1 | **0/1** | ~$0.05 | ~5 min |
 
-This is the cleanest possible empirical support for the post-14e hypothesis:
+**Zero variance within each cell.** Every sonnet run found the *identical* Pareto deal (Exploration-Priority / Joint-Build / Equal-Thirds, same scores 19/18/22). Every gpt-mini run failed identically (alpha=11/beta=9/gamma=12 at BATNA, same pareto_efficiency 0.542). This is itself a notable data point — either temp=0 determinism, strong attractors per model class, or coincidence at small n.
 
-- On a scenario with **one cooperative Pareto** that requires asymmetric concession, **gpt-mini's reflexive cooperation wins** (finds the deal) and **sonnet's strategic refusal loses** (beta+gamma coalition rejects the trade).
-- On a scenario with **multiple Pareto options favoring different factions**, **sonnet's strategic reasoning wins** (navigates the multi-option landscape and identifies a balanced point) and **gpt-mini's reflexive cooperation loses** (no clear "obvious" target to converge on without asymmetric pressure).
+**Sonnet found the SAME Pareto deal 3/3 times** — not different deals across runs. The multi-Pareto landscape (3 distinct Pareto deals available) didn't produce skill-discrimination via *outcome diversity* — sonnet converged on the balanced-consensus point every time. The original goal of "different agents pick different deals" did NOT materialize from a multi-Pareto scenario alone.
 
-Single-run calibration so n=1 per cell - noise is real but the magnitude (1.0 vs 0.0 surplus_share at the headline cells) is much larger than noise. Expansion to 3-run cells is the natural follow-up.
+### Transcript inspection (post-expansion, 2026-06-11)
 
-### Implications
+Inspected R3 + R4 messages from all 4 gpt-mini runs (1 calibration + 3 expansion) and the 1 gemini run to identify failure modes. Findings sharpened the earlier framing significantly.
 
-1. **Note 1 thesis validated empirically.** RESEARCH_NOTES.md Note 1 predicted harness contribution would grow with scenario complexity. Run 15 calibration extends that: **model-class fit also depends on scenario complexity**. The "right" model for a scenario depends on whether the scenario rewards cooperation or strategic reasoning.
+**gemini-2.5-flash-lite failure mode (n=1):**
 
-2. **The Water Rights conclusion needs scoping.** "Cheap+harness is the production default" holds on cooperative-Pareto scenarios. On multi-Pareto scenarios, strong models with strategic-reasoning capability deliver where cheap models fail.
+1. **Identity-tracking failure.** Gamma's final R4 sentence: *"We urge both Beta and Gamma to accept this proposal..."* — Gamma asking itself to accept its own proposal. The model lost faction identity across the 4-round context.
+2. **R3→R4 position defection** (same pattern as gpt-4.1-mini Run 10). Near-convergence opportunity at R3 (alpha conceded Gamma-Lead on hardware, all three trending toward Equal-Thirds funding) was killed at R4 when alpha simultaneously pulled back on hardware AND abandoned Equal-Thirds for Government-Heavy.
+3. **Zero promises post-reconciliation.** `final_state.promises` shows 0/0/0 — the reconciler merged everything as "duplicate / superseded" because positions kept shifting. Promise count was 2/6/2 mid-game per the run summary; reconciliation collapsed it.
+4. **Short messages.** R1 messages ~620 chars (alpha+beta), ~120 chars (gamma) — much shorter than gpt-mini or sonnet runs. Under-engagement contributed to the failure.
 
-3. **Scenario design is now visibly a first-class lever.** Operators selecting a scenario implicitly select which model class will perform best. This was suspected from Run 8 (Run 7 deception success vs Run 8 BATNA-floor failure across model classes); Run 15 makes it explicit.
+**gpt-5.4-mini failure mode (n=3):**
 
-4. **The reverse builder paid off.** The first scenario produced by the constraint-driven tool (Phase 35-37) immediately surfaced an empirical finding that the existing Water Rights scenario family could not. Multi-Pareto / multi-property scenario engineering is a working primitive.
+| Run | hardware R4 | funding R4 | mission R4 | Concession trajectory |
+|---|---|---|---|---|
+| mid-1 | **Joint-Build** unanimous | alpha:Government-Heavy / beta+gamma:Equal-Thirds | alpha+gamma:Exploration / beta:Science | gamma made Commercial→Exploration big concession in R3→R4 |
+| mid-2 | **Joint-Build** unanimous | **Equal-Thirds** unanimous | alpha:Exploration / beta+gamma:Science | gamma made Commercial→Science big concession |
+| mid-3 | **Joint-Build** unanimous | **Equal-Thirds** unanimous | alpha:Exploration / gamma:Commercial / beta:"Science OR Commercial" (hedged) | alpha made Government-Heavy→Equal-Thirds concession |
 
-### Recommended next runs
+1. **Identity tracking: CLEAN.** No self-referential urging across any of the 3 runs. Mid-tier OpenAI keeps faction identity across the context window.
+2. **Convergence on 2 of 3 issues every run.** `hardware_lead = Joint-Build` is unanimous in all 3 runs. `funding_split = Equal-Thirds` is unanimous in 2 of 3.
+3. **Convergence failure is `mission_objective` only** — parallel to Water Rights' payment_structure failure mode.
+4. **Substantive R3→R4 concessions in the RIGHT direction.** Gamma conceded Commercial→Exploration (toward alpha) in run 1, Commercial→Science (toward beta) in run 2; alpha conceded Government-Heavy→Equal-Thirds in run 3. These are real strategic moves, not gemini-style position drift.
+5. **No R3→R4 defection pattern.** Positions move toward convergence or hold; they don't bounce around.
+6. **Run mid-3 beta hedged with "Science-Priority OR Commercial-Tech-Demo"** in the final-round binding statement — a failure to commit (one instance across the 3 runs).
 
-| Order | Run | Cost | Purpose |
+**The two failure modes are categorically different:**
+
+| Model | Failure mode |
+|---|---|
+| gemini-flash-lite | **Low-tier quality failure** — identity confusion + R3→R4 position drift + 0 promises post-reconciliation. The model isn't capable enough to play coherently. |
+| gpt-5.4-mini | **Substantive negotiation failure** — converges on 2/3 issues, makes correct-direction concessions, can't close the last 1-issue gap. Mid-tier "stuck-but-engaged" pattern, structurally similar to sonnet-on-Water-Rights. |
+| claude-sonnet-4-6 | **Success** — converges on all 3 issues. Found a balanced deal where beta+gamma both accept alpha's preferred mission in exchange for Joint-Build + Equal-Thirds going their way. |
+
+### Headline observation — revised post-inspection
+
+The naive matrix reading was "the pattern from Run 14 inverts": gpt-mini wins Water Rights, sonnet wins jsm1. **Transcript inspection makes the picture more nuanced:**
+
+- **Both gpt-mini and sonnet do substantive negotiation on jsm1**, converging on 2 of 3 issues. The 0/3 vs 3/3 close-rate gap between mid and sonnet on jsm1 came down to sonnet's ability to **coordinate beta+gamma's move toward alpha's preferred mission** in exchange for the other 2 issues going their way. Mid-tier OpenAI got most of the way there but couldn't make that final coordination move.
+- **Same model, opposite outcomes across scenarios** (sonnet 0/3 Water Rights vs 3/3 jsm1) is now interpretable: sonnet's capability **lets it optimize its strategy for whatever the scenario rewards**. On Water Rights (single Pareto, requires asymmetric concession), sonnet's strategic reasoning rejected the trade. On jsm1 (multi-Pareto, multiple acceptable options), sonnet found a Pareto deal where everyone gets something they want.
+- **Gemini-flash-lite's 0/1 doesn't fit the same comparison frame.** Its failure is a quality-floor problem, not a strategy / model-class issue. To get a fair Google data point we need a more capable Gemini.
+
+The earlier "inversion of the Run 14 pattern" framing was directionally right but the mechanism is more specific than "sonnet handles complexity better." The right framing is closer to "**sonnet's capability lets it find scenario-appropriate strategies; mid-tier and weaker models lock into one mode of negotiation that succeeds or fails depending on whether it fits the scenario.**"
+
+### Implications — revised post-inspection
+
+1. **Model-class fit depends on scenario rewards, not just model capability or scenario complexity.** Sonnet's strategic capability is an asset on multi-Pareto scenarios (where coordinated trades pay off) and a liability on single-Pareto cooperative scenarios (where reflexive concession is needed). This is *consistent with* the RESEARCH_NOTES.md Note 1 thesis (harness contribution grows with complexity) but more specific.
+
+2. **Mid-tier OpenAI lands close-but-not-quite on jsm1.** Converges on 2/3 issues; can't get the third. With slight scenario tuning (lower coordination cost on the mission issue?) or with pressure mechanisms (Phase 38) that force concession, mid-tier could plausibly close. Worth testing.
+
+3. **Gemini-flash-lite is below the capability floor for this scenario.** Single run shows identity confusion + position drift — basic generation-quality issues. The flash-lite result doesn't tell us about Google-vs-OpenAI/Anthropic; it tells us flash-lite isn't capable enough to be in this comparison.
+
+4. **The "multi-Pareto produces outcome diversity" hypothesis didn't pan out.** Sonnet found the SAME Pareto deal 3/3 runs — the balanced-consensus point with highest logrolling quality. The scenario has multiple Pareto deals available but agents (at least sonnet) converge on one strong attractor. The original "different agents pick different deals" goal needs different scenario design — maybe scenarios where the consensus deal is *not* dramatically better than the alternatives.
+
+5. **The scenario+persona pipeline works end-to-end.** Reverse builder (Phase 35-37) → LLM-fill narrative → personas → self-play with no manual intervention. Phase 39 queued to promote the one-off fill script.
+
+### Proposed next tests (post-inspection)
+
+| Test | Cost | Wall | Isolates |
 |---|---|---|---|
-| 1 | 15a (gpt-5.4-mini full, +2 runs to reach n=3) | ~$1.00 | Confirm gpt-mini 0/3 isn't a noise artifact |
-| 2 | 15b (claude-sonnet-4-6 full, +2 runs to reach n=3) | ~$4.00 | Confirm sonnet finds Pareto reliably; check whether different runs find different Pareto points (the 0.66-diversity payoff) |
-| 3 (conditional) | 15c (gpt-4.1-nano full, 3 runs) | ~$0.30 | If 15a confirms gpt-mini failure, test weak tier - it may fail similarly or surprise us |
-| 4 (conditional) | 15-bare (both tiers, bare mode, 3 runs each) | ~$1.50 | Test whether the harness contribution at multi-Pareto differs from the Water Rights pattern |
+| **N1** claude-haiku-4-5 full × 1 | ~$0.30 | ~8 min | Does another Anthropic model close jsm1, or is it sonnet-specific? Cheapest single-experiment distinguisher. |
+| **N2** gemini-2.5-flash full × 1 | ~$1 | ~12-15 min | Does more-capable Gemini reach gpt-mini's "stuck-but-engaged" level, sonnet's "close it" level, or stay at flash-lite's quality floor? Fair Google data point. |
+| **N3** gpt-4.1-nano full × 1 | ~$0.15 | ~5 min | Does weak-tier OpenAI fail like flash-lite (low quality) or like gpt-mini (substantive-but-stuck)? Tells us where the OpenAI capability floor for this scenario sits. |
+| **N4** Re-test 15-mid × 3 with `pressure_profile` engaged (Phase 38 mechanisms) | ~$1.50 | ~36 min | Does adding round-cost decay push mid-tier OpenAI over the convergence threshold on the one stuck issue? Cleanest test of Phase 38's value on a scenario where mid is *almost* closing. |
+| **N5** Author jsm1-v2 with smaller logrolling-quality spread between Pareto deals | $0 build + ~$5 test | ~70 min | Probe whether the "sonnet picks same Pareto every time" result is a property of THIS spec (balanced-consensus point is too attractive) or a general property of sonnet. |
+
+Ranking by information-per-dollar: **N1 → N2 → N3 → N4 → N5**. N1 isolates Anthropic-vs-others; N2 fixes the unfair Google comparison; N4 directly tests Phase 38's value with the cleanest available signal (mid is *almost* closing on jsm1, pressure may finish the job).
 
 ### Process notes
 
-- **The scenario+persona pipeline now works end-to-end:** reverse builder produces scoring tables + stubs (Phase 35-37) -> LLM-fill produces logrolling + deception_tactics (one-off `tools/_temp_fill_narrative.py` script; should be hardened into a `tools.scenario_compiler --fill-narrative` mode as a follow-up phase) -> personas re-rendered automatically -> `run_simulation --analysis-json --scenario <md>` consumes the result with no other changes.
+- **The scenario+persona pipeline works end-to-end:** reverse builder produces scoring tables + stubs (Phase 35-37) → LLM-fill produces logrolling + deception_tactics (one-off `tools/_temp_fill_narrative.py` script; Phase 39 promotes this to a `tools.scenario_compiler --fill-narrative` mode) → personas re-rendered automatically → `run_simulation --analysis-json --scenario <md>` consumes the result with no other changes.
 - **The scenario .md file** (`tests/self_play/scenarios/joint_space_mission.md`) is the moderator's seed message at game start; required by `run_simulation`. Authored by operator with NASA-style/ESA-style/commercial framing matching the LLM-fill domain context.
-- **`tools/_temp_fill_narrative.py`** is the working scratch script that produced the deception_tactics for this run. Capability is reusable for any reverse-builder scenario; worth promoting to a permanent tool (small phase, ~3-4 steps: extend `tools.scenario_compiler` with `--fill-narrative <existing_analysis>` mode + tests + doc updates).
+- **`tools/_temp_run_jsm1_calib.sh`** is the working dispatcher script for Run 15 cells. Equivalent of `tools/ablation.sh` but for `joint_space_mission_v1`. Should be folded into a generalized `ablation.sh --scenario <dir>` mode as a small future cleanup.
 
-### Results files (Run 15 calibration)
+### Results files (Run 15, full set)
 
-- `tests/self_play/results/run15_calib_gpt54mini_jsm1_1.json`
-- `tests/self_play/results/run15_calib_claudesonnet46_jsm1_1.json`
+- `tests/self_play/results/run15_calib_gpt54mini_jsm1_{1,2,3}.json`
+- `tests/self_play/results/run15_calib_claudesonnet46_jsm1_{1,2,3}.json`
+- `tests/self_play/results/run15_calib_gemini25flashlite_jsm1_1.json`
