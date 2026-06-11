@@ -17,6 +17,7 @@ from tools.scenario_builder import (
     _anneal_local,
     _analysis_from_scoring_table,
     _random_scoring_table,
+    _seed_scoring_table,
     _run,
     _search_loop,
     build_and_save_scenario,
@@ -24,7 +25,11 @@ from tools.scenario_builder import (
 from tools.scenario_fitness import FitnessResult, compute_fitness
 from tools.scenario_spec import IssueSpec, ScenarioSpec, dump_spec
 
-from tests.self_play.verify_scenario_optimum import enumerate_deals, find_pareto_frontier
+from tests.self_play.verify_scenario_optimum import (
+    enumerate_deals,
+    find_pareto_frontier,
+    find_priority_issues,
+)
 
 
 def _feasible_spec() -> ScenarioSpec:
@@ -43,6 +48,27 @@ def _feasible_spec() -> ScenarioSpec:
         asymmetric_batna_fractions={"alpha": 0.5, "beta": 10 / 19},
         game_mode="mixed",
         seed=17,
+    )
+
+
+def _biased_spec() -> ScenarioSpec:
+    return ScenarioSpec(
+        factions=["alpha", "beta", "gamma"],
+        issues=[
+            IssueSpec(name="mission_objective", outcomes=["Science-Priority", "Exploration-Priority", "Commercial-Tech-Demo"]),
+            IssueSpec(name="hardware_lead", outcomes=["Alpha-Lead", "Joint-Build", "Gamma-Lead"]),
+            IssueSpec(name="funding_split", outcomes=["Equal-Thirds", "Commercial-Heavy", "Government-Heavy"]),
+        ],
+        score_range=(1, 10),
+        pareto_count_target=(3, 5),
+        pareto_distribution_spread=0.35,
+        batna_clearing_count_target=10,
+        batna_to_pareto_gap_pct=0.45,
+        requires_logrolling=True,
+        priority_collision="soft",
+        asymmetric_batna_fractions={"alpha": 0.5, "beta": 0.5, "gamma": 0.5},
+        game_mode="mixed",
+        seed=42,
     )
 
 
@@ -142,6 +168,44 @@ class TestSearchLoop:
                 "start_total_distance",
             ]
         ]
+
+    def test_seeded_tables_bias_soft_collision_and_logrolling(self) -> None:
+        spec = _biased_spec()
+        scoring = _seed_scoring_table(spec, random.Random(42))
+        analysis = _analysis_from_scoring_table(spec, scoring)
+        priorities = find_priority_issues(analysis)
+        priority_issues = [priorities[faction][0] for faction in spec.factions]
+        max_scores = {
+            faction: sum(max(scoring[faction][issue.name].values()) for issue in spec.issues)
+            for faction in spec.factions
+        }
+
+        assert any(priority_issues.count(issue) >= 2 for issue in set(priority_issues))
+        assert any(
+            all(
+                sum(scoring[faction][issue["name"]][deal[issue["name"]]] for issue in analysis["issues"])
+                >= 0.8 * max_scores[faction]
+                for faction in spec.factions
+            )
+            for deal in enumerate_deals(analysis)
+        )
+
+    def test_seeded_tables_start_with_lower_average_fitness_than_random(self) -> None:
+        spec = _biased_spec()
+        seeded_total = 0.0
+        random_total = 0.0
+
+        for seed in range(50):
+            seeded_scoring = _seed_scoring_table(spec, random.Random(seed))
+            random_scoring = _random_scoring_table(spec, random.Random(seed))
+            seeded_total += compute_fitness(
+                _analysis_from_scoring_table(spec, seeded_scoring), spec
+            ).total_distance
+            random_total += compute_fitness(
+                _analysis_from_scoring_table(spec, random_scoring), spec
+            ).total_distance
+
+        assert seeded_total / 50 < random_total / 50
 
 
 class TestAnnealLocal:

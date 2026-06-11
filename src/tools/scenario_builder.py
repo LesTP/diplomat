@@ -59,6 +59,64 @@ def _random_scoring_table(spec: ScenarioSpec, rng: random.Random) -> dict[str, d
     return scoring
 
 
+def _seed_scoring_table(spec: ScenarioSpec, rng: random.Random) -> dict[str, dict[str, dict[str, int]]]:
+    """Seed a random table with soft categorical and logrolling hints."""
+    scoring = _random_scoring_table(spec, rng)
+    values = list(_score_range(spec))
+    low = values[0]
+    high = values[-1]
+    planted_floor = max(low, math.ceil(0.8 * high))
+    issue_lookup = {issue.name: issue for issue in spec.issues}
+
+    planted_deal = {issue.name: rng.choice(issue.outcomes) for issue in spec.issues}
+    if spec.requires_logrolling:
+        planted_cap = max(low, planted_floor - 1)
+        for faction in spec.factions:
+            for issue in spec.issues:
+                outcomes = scoring[faction][issue.name]
+                planted_outcome = planted_deal[issue.name]
+                for outcome in issue.outcomes:
+                    if outcome == planted_outcome:
+                        outcomes[outcome] = max(outcomes[outcome], planted_floor)
+                    else:
+                        outcomes[outcome] = min(outcomes[outcome], planted_cap)
+
+    if spec.priority_collision == "soft" and len(spec.factions) >= 2:
+        consensus_issue = rng.choice(spec.issues)
+        shared_count = min(2, len(spec.factions))
+        shared_factions = set(rng.sample(spec.factions, k=shared_count))
+        remaining_factions = [faction for faction in spec.factions if faction not in shared_factions]
+        remaining_issues = [issue for issue in spec.issues if issue.name != consensus_issue.name]
+        if not remaining_issues:
+            remaining_issues = list(spec.issues)
+
+        issue_assignment: dict[str, str] = {
+            faction: consensus_issue.name for faction in shared_factions
+        }
+        for index, faction in enumerate(remaining_factions):
+            issue_assignment[faction] = remaining_issues[index % len(remaining_issues)].name
+
+        priority_cap = max(low, high - 1)
+        for faction, issue_name in issue_assignment.items():
+            issue = issue_lookup[issue_name]
+            issue_scores = scoring[faction][issue_name]
+            priority_outcome = rng.choice(issue.outcomes)
+            for outcome in issue.outcomes:
+                if outcome == priority_outcome:
+                    issue_scores[outcome] = high
+                else:
+                    issue_scores[outcome] = min(issue_scores[outcome], priority_cap)
+
+            for other_issue in spec.issues:
+                if other_issue.name == issue_name:
+                    continue
+                other_scores = scoring[faction][other_issue.name]
+                for outcome in other_issue.outcomes:
+                    other_scores[outcome] = min(other_scores[outcome], priority_cap)
+
+    return scoring
+
+
 def _analysis_from_scoring_table(
     spec: ScenarioSpec,
     scoring: dict[str, dict[str, dict[str, int]]],
@@ -216,7 +274,7 @@ def _search_loop(
     rng = random.Random(spec.seed if seed is None else seed)
 
     for restart_index in range(max_restarts):
-        scoring = _random_scoring_table(spec, rng)
+        scoring = _seed_scoring_table(spec, rng)
         analysis = _analysis_from_scoring_table(spec, scoring)
         start_fitness = compute_fitness(analysis, spec)
         fitness = start_fitness

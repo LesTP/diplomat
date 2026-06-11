@@ -718,3 +718,17 @@ Files changed:
 - `tests/test_scenario_builder.py` — added `TestAnnealLocal` (3 tests: deterministic-for-seed, plateau-trap uphill acceptance, convergence on 2×2×2 fixture).
 
 Test results: `433 passed, 1 skipped` (full suite). 3 new tests for 36.3.
+
+## 2026-06-11 - Phase 36 Step 36.4: Smarter random initialization
+
+### Step 36.4: Smarter random initialization
+Mode: Build
+Outcome: Passed
+Contract changes:
+- `src/tools/scenario_builder.py` - added `_seed_scoring_table(spec, rng)` to bias random starts toward soft priority collisions and planted logrolling deals, and switched `_search_loop()` to use the seeded initializer.
+- `tests/test_scenario_builder.py` - added coverage for the seeded structure bias and a 50-seed average fitness comparison against uniform random starts.
+- `DEVPLAN.md` - marked Step 36.4 complete.
+
+The builder now keeps the random restart baseline but seeds each restart with two structure hints when the spec asks for them: a shared consensus issue for `priority_collision="soft"` and a planted deal where every faction clears 80% of its max score when `requires_logrolling` is enabled. The rest of the table remains randomized, so the search still has room to explore while starting from materially better candidates.
+
+Focused verification: `python3 -m pytest -q tests/test_scenario_builder.py tests/test_scenario_fitness.py tests/test_scenario_spec.py` --- `22 passed`.
