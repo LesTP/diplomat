@@ -1535,31 +1535,47 @@ Fired 2026-06-11 over ~25 minutes wall clock total. **0/3 deals — every run en
 
 Cost: ~$0.50 total (12 GEN-only calls per game × 3 games × sonnet pricing). Wall clock: ~8 min per run (sonnet's slower response time vs gpt-mini, but with no harness LLM calls the count stays low).
 
-### Run 14e — claude-sonnet-4-6 (strong tier), full — QUEUED (operator-gated, FIRE NEXT)
+### Run 14e — claude-sonnet-4-6 (strong tier), full — COMPLETE
 
-Now definitely the next critical run per 14d's 0/3 outcome. Expected cost ~$15-30 total for 3 runs. The headline crossover test: does the full harness rescue sonnet to the same 2-3/3 close-rate that nano-full and mid-full achieved, or does sonnet-full also fail (revealing a deeper scenario-level bottleneck)?
+Fired 2026-06-11 over ~50 minutes wall clock total (3 runs sequentially, ~16-17 min/run). **0/3 deals — every run ended at the BATNA floor.** Identical to 14d (sonnet-bare).
 
-### Cross-cell synthesis (post-14d)
+| Run | Outcome | alpha | beta | gamma | `surplus_share` | `pareto_eff` |
+|---|---|---|---|---|---|---|
+| 14e-1 | NO DEAL | 9 (BATNA) | 15 (BATNA) | 11 (BATNA) | 0.000 | 0.648 |
+| 14e-2 | NO DEAL | 9 (BATNA) | 15 (BATNA) | 11 (BATNA) | 0.000 | 0.648 |
+| 14e-3 | NO DEAL | 9 (BATNA) | 15 (BATNA) | 11 (BATNA) | 0.000 | 0.648 |
+
+But unlike 14d (sonnet-bare), substantive engagement DID happen — promises tracked: 14e-1 (9/9/9), 14e-2 (?/?/?), 14e-3 (3/8/6). Transcripts show all three agents proposing concrete deals through the final round. The fail mode is **non-convergence at the final round**, not silence.
+
+Example from 14e-3 final round (scorer reasoning): "Alpha proposes Low volume...with Heavy-Downstream payment...Gamma supports Token payment. Since no unanimous agreement exists on water_release_volume and payment_structure, no deal is reached." Alpha pushes their priority (Heavy-Downstream payment); gamma pushes theirs (Token); neither concedes; converging deal never materializes.
+
+Wall clock per run: ~16-17 min. Estimated cost per run: ~$0.60-0.75 (sonnet Generator + openai-mini harness modules). Run 14e total: ~$2 across 3 runs. **6-15× cheaper than the original $15-30 estimate** because only the Generator was sonnet — extraction/analyst/adversarial/reconciliation/scorer all defaulted to openai-mini commodity tier.
+
+Cost-instrumentation gap noted: per-run cost is NOT captured in the result JSON (`metadata.cost_usd: None`), nor in the selfplay ledger (`data/selfplay_cost_ledger.jsonl` is stale). Estimate above is back-of-envelope from token counts and pricing. Worth a small utility phase to fix (Phase 38.5 / Phase 39 candidate).
+
+### Cross-cell synthesis (post-14e — campaign complete)
 
 | Tier | Model | Full close-rate | Bare close-rate | Δ (full − bare) |
 |---|---|---|---|---|
 | Weak | `gpt-4.1-nano` | 2/3 | 0/3 | **+67%** |
 | Mid | `gpt-5.4-mini` | 2/3 | 1/3 | +33% |
-| **Strong** | **`claude-sonnet-4-6`** | **(pending 14e)** | **0/3** | **(pending)** |
+| **Strong** | **`claude-sonnet-4-6`** | **0/3** | **0/3** | **0%** |
 
-**Three findings updated (15 runs landed):**
+**Four findings (campaign complete, 18 runs landed):**
 
-1. **Harness contribution is in close-rate, not deal quality.** Every closing run (across both tiers, both modes) found the **identical Pareto-optimal deal**: alpha 16 / beta 18 / gamma 20, deltas `[+7, +3, +9]`. The scenario has one right answer; the model either finds it or fails entirely. The harness affects whether the model reaches that answer, not which answer it reaches. (Unchanged from pre-14d.)
+1. **Harness contribution is in close-rate, not deal quality.** Every closing run (across both tiers, both modes) found the **identical Pareto-optimal deal**: alpha 16 / beta 18 / gamma 20, deltas `[+7, +3, +9]`. The scenario has one right answer; the model either finds it or fails entirely. (Unchanged from pre-14e.)
 
-2. **Model strength does NOT substitute for harness on this scenario.** This is the major revision from the pre-14d reading. Bare close-rate is non-monotonic in model tier: weak 0/3, mid 1/3, strong 0/3. The mid-bare 1/3 is the outlier (one lucky run); strong-bare is back at zero. **The previous "harness substitutes for ~1+ tier" reading does not hold at the strong tier.** What's left: harness adds value at every tier; without harness, even the strongest model cannot reliably navigate this scenario to a Pareto deal.
+2. **Model strength does NOT substitute for harness on this scenario.** Bare close-rate is non-monotonic in model tier: weak 0/3, mid 1/3, strong 0/3. Mid-bare's 1/3 is the one outlier; both weak-bare and strong-bare are floored. (Unchanged from post-14d.)
 
-3. **Bare mode is bottlenecked by the absence of structural reasoning, not by raw model capability.** The candidate bottleneck modules: analyst (per-faction intelligence reports), state manager (cross-round commitment tracking), reconciliation (promise lifecycle). Bare mode strips all three; the agent gets persona + raw transcript + generation only. The fact that sonnet — a model with strong long-context recall — still can't compensate suggests the bottleneck is **organization** of information, not **availability** of it.
+3. **The harness has a model-class fit problem.** Sonnet-full = 0/3 — *worse* than weak-full and mid-full, both at 2/3. This is the surprise finding from 14e and inverts the original "harness compensates for weak model" reading. At this scenario, the harness configuration works well for OpenAI Generators (nano, mid-mini) and **fails to rescue Anthropic's sonnet** despite sonnet engaging substantively (27 promises tracked in 14e-1, similar in 14e-2/3 — vs zero in 14d-bare). The fail mode is *non-convergence at the final round*, not silence: agents stay anchored to their priority positions through R4.
 
-**One important caveat** (per `RESEARCH_NOTES.md` Note 1): this is all on a **scale-1 scenario** — 3 factions, 3 issues, 4 rounds, ~4% context utilization, no deception, synchronous, unique Pareto optimum. Findings are about *this scenario shape*, not about harnesses in general. Note 1's prediction (harness contribution grows with scenario complexity) makes the strong-bare 0/3 result *less* surprising in that frame: at scale-1 the harness should still help with the modest coordination problem, and it does; at scale-N the gap should widen further. Run 14d is consistent with the thesis.
+4. **Bare mode is bottlenecked by the absence of structural reasoning** for OpenAI Generators (`14b` vs `14a`, `14c-bare` vs `14c-full`). For Anthropic-Generator runs the harness-vs-bare distinction collapses (sonnet-full = sonnet-bare = 0/3) — the harness contribution that's load-bearing for OpenAI isn't reaching sonnet at all.
 
-### Plain-language progress matrix (post-14d)
+**Caveat (per `RESEARCH_NOTES.md` Note 1):** all findings are on a **scale-1 scenario**. At richer scenarios (more factions, more issues, longer horizons, deception), the picture may shift dramatically. The sonnet-full=0/3 result specifically may invert at scale — sonnet's longer-context handling might help where nano/mid would fail. Cannot extrapolate from this campaign alone; needs Phase 41/42 (scale-matrix verification) + a follow-up ablation campaign on richer scenarios.
 
-Three views of the campaign so far for non-technical / first-time readers. The detail tables above remain canonical; this section is a navigation aid.
+### Plain-language progress matrix (post-14e)
+
+Final cell-by-cell view for non-technical / first-time readers. The detail tables above remain canonical.
 
 **Per-cell — what each run measured:**
 
@@ -1570,65 +1586,67 @@ Three views of the campaign so far for non-technical / first-time readers. The d
 | 14c-full | Cheap OpenAI + full harness | Can scaffolding lift a 10× cheaper model to mid-tier performance? | **2/3** (66%) | ~$0.15 | ~10 min/run |
 | 14c-bare | Cheap OpenAI, raw model only | What does the cheapest model achieve alone? | **0/3** (0%) | ~$0.15 | ~4 min/run |
 | 14d | Strong Anthropic, raw model only | Does raw model strength substitute for the harness? | **0/3** (0%) | ~$0.50 | ~8 min/run |
-| 14e *(pending)* | Strong Anthropic + full harness | Does the harness rescue sonnet, or does the scenario have a 2/3 ceiling regardless of tier? | TBD | ~$15-30 | ~25-40 min/run |
+| 14e | Strong Anthropic + full harness | Does the harness rescue sonnet, or does the scenario have a 2/3 ceiling? | **0/3** (0%) | ~$2.00 | ~16-17 min/run |
 
-When closing, **every** run found the *identical* Pareto-optimal deal (alpha 16 / beta 18 / gamma 20). Cells differ only in close rate, never in deal quality. The scenario has one right answer; close rate measures whether the agents can find it.
+When closing, **every** run found the *identical* Pareto-optimal deal (alpha 16 / beta 18 / gamma 20). Cells differ only in close rate, never in deal quality.
 
 **Pairwise — what the comparisons tell us:**
 
 | Comparison | What we learn | Result | Implication |
 |---|---|---|---|
-| Harness lift per tier (X-full vs X-bare) | How much does scaffolding help at this model tier? | weak +67%, mid +33%, strong ??? | Harness always helps; 14e closes this row. |
-| Cheap+full vs mid+full (14c-full vs 14a) | Does harness erase a 10× model-cost gap? | Both 2/3 | **Yes** — harness lets a cheap model match a mid model here. |
-| Cheap+full vs mid+bare (14c-full vs 14b) | Is "cheap model + scaffolding" better than "mid model alone"? | 2/3 vs 1/3 | **Yes** — speaks to "make cheap models good enough" positioning. |
-| Bare-mode tier ladder (14c-bare → 14b → 14d) | Does close rate scale with model strength when there's no harness? | weak 0/3, mid 1/3, strong 0/3 | **Non-monotonic.** Sonnet-bare ≈ nano-bare. Raw model strength doesn't substitute for structured reasoning here. |
-| Strong-bare vs cheap+full (14d vs 14c-full) | Is "buy the bigger model" enough, or do we still need scaffolding? | 0/3 vs 2/3 | **Cheap+scaffolding wins decisively.** "Pay for model not infra" doesn't hold. |
-| Strong-bare vs strong-full (14d vs 14e, pending) | Will the harness rescue sonnet too, or hit a ceiling? | TBD | Headline crossover test of the campaign. |
+| Harness lift per tier (X-full vs X-bare) | How much does scaffolding help at this model tier? | weak +67%, mid +33%, **strong 0%** | Harness lifts OpenAI tiers materially; for sonnet, the lift collapses to zero. |
+| Cheap+full vs mid+full (14c-full vs 14a) | Does harness erase a 10× model-cost gap? | Both 2/3 | **Yes** — harness lets a cheap OpenAI model match a mid OpenAI model. |
+| Cheap+full vs mid+bare (14c-full vs 14b) | Is "cheap model + scaffolding" better than "mid model alone"? | 2/3 vs 1/3 | **Yes** — supports "make cheap models good enough" positioning, for OpenAI. |
+| Strong-full vs cheap+full / mid+full (14e vs 14c-full / 14a) | Does the most expensive model + harness outperform cheaper alternatives? | 0/3 vs 2/3 / 2/3 | **NO — inverted.** Sonnet+full is *worse* than nano+full and mid+full. Harness doesn't compose with sonnet on this scenario. |
+| Strong-full vs strong-bare (14e vs 14d) | Does the harness add anything for sonnet? | 0/3 vs 0/3 | **No measurable lift** at the strong tier. Sonnet stays at BATNA floor with or without the harness. |
+| Bare-mode tier ladder | Does close rate scale with model strength when there's no harness? | weak 0/3, mid 1/3, strong 0/3 | **Non-monotonic.** Mid-bare's 1/3 likely noise; strong-bare back at zero. |
 
-**Implied unit economics (back-of-envelope, pending 14e):**
+**Implied unit economics (final):**
 
-| Configuration | $/deal-attempt | Implied $/closed-deal at observed close rate |
+| Configuration | $/deal-attempt | $/closed-deal at observed close rate |
 |---|---|---|
 | cheap + full (14c-full) | ~$0.05 | ~$0.075 (2/3 close rate) |
 | mid + full (14a) | ~$1.20 | ~$1.80 (2/3 close rate) |
-| strong + full (14e projected if 2/3) | ~$5-10 | ~$7-15 (assumed 2/3) |
+| strong + full (14e) | ~$0.65 | **∞ (0 deals closed)** |
 | strong + bare (14d) | ~$0.17 | **∞ (0 deals closed)** |
 
-If close rates hold, cheap+harness is **24-100× cheaper per closed deal** than the strong tier — Phase B / production-economics implication is that the production default should be cheap+harness, with strong models reserved for situations where the harness can't compensate (which we don't yet know how to identify).
+For this scenario configuration, the recommendation is unambiguous: **cheap + harness is the production default.** Strong models with our current harness configuration are strictly worse — same zero deals, ~13× the cost.
 
-### Follow-up questions in priority order (post-14d)
+### Follow-up questions in priority order (post-14e)
 
-1. **Will 14e hit 3/3 or stay at the 2/3 ceiling that nano-full and mid-full both hit?** Tells us whether close rate is bounded by the scenario or by what each model can do with the harness. Highest leverage per dollar; pending operator dispatch.
-2. **Does the load-bearing-harness finding generalize beyond this scenario?** RESEARCH_NOTES.md Note 1 predicts the gap *widens* at richer scenarios (more factions, more issues, longer horizons, deception). Needs Phase 41/42 (scale matrix) + a follow-up ablation campaign on the richer scenarios the upgraded builder can produce.
-3. **Which harness modules are doing the work?** Bare strips all of: extraction, analyst, divergence, reconciliation, adversarial, coaching. Per-module ablation (Phase 35 candidate from §10 TODOs) would isolate whether it's specifically the analyst intel, the state-manager tracking, or the stack collectively.
-4. **Why is mid-bare (1/3) > strong-bare (0/3)?** Non-monotonic curve is unexpected. Three plausible explanations: (a) noise — 3 runs per cell is small; (b) sonnet's longer/more deliberative drafts cross some working-memory threshold differently than gpt-mini's terser style; (c) Anthropic's self-correction failure modes differ from OpenAI's in ways that hurt without external reconciliation. A wider-sample re-run of mid-bare and strong-bare (e.g., 5-10 runs each) would resolve (a); the others need transcript inspection.
-5. **Does cheap+harness beat strong+harness in cost-per-deal?** See unit-economics table above. Likely yes by 24-100×.
-6. **Is the "every closing run finds identical Pareto deal" property robust to scenario shape?** This is the cleanest evidence the scenario has a unique-right-answer structure. Multi-Pareto scenarios (`joint_space_mission_v1`, soon) will produce a different pattern — different deals favoring different factions. Once those land in ablation, the "close rate vs deal quality" distinction becomes a real two-dimensional signal.
+1. **Why does sonnet+full fail when nano+full and mid+full succeed?** Highest-priority investigation. Three concrete hypotheses to test via transcript inspection:
+   - **(a) Harness intel mismatch.** The analyst's per-faction intelligence reports are produced by openai-mini (commodity tier). Those reports may summarize sonnet's verbose drafts incorrectly, leading sonnet to act on bad intel. **Test:** run sonnet+full with sonnet (not openai-mini) for analyst module too. ~$10 for 3 runs.
+   - **(b) Sonnet response-style anchoring.** Sonnet may interpret the persona's "don't accept first reasonable framework" rule more strongly than gpt-mini does, leading to harder anchoring on opening positions. **Test:** soften the persona rule for sonnet specifically, re-run. ~$2 for 3 runs.
+   - **(c) Mid-game commitment instability.** Run 10 showed gpt-4.1-mini's R3→R4 defection pattern. Sonnet may have its own R3→R4 instability mode — inspect 14e transcripts for analogous patterns. **Test:** zero LLM cost — just analysis.
+2. **Does the load-bearing-harness finding generalize beyond this scenario?** Per `RESEARCH_NOTES.md` Note 1 — needs Phase 41/42 + new richer scenarios + re-ablation. The 14e=0/3 result makes this MORE important, not less: if richer scenarios show sonnet+full succeeding where simpler scenarios show it failing, that's a different story than "sonnet has a harness-fit problem."
+3. **Which harness modules are doing the work?** Per-module ablation (Phase 35 candidate) to identify whether intel quality, state tracking, or reconciliation is the load-bearing piece. Pairs well with hypothesis (a) above — testing module-by-module with sonnet might localize the failure.
+4. **Will Phase 38 pressure mechanisms change the picture?** Round-cost decay + asymmetric clocks + penalty floor create concession pressure independent of model. If sonnet+full+pressure reaches a deal where sonnet+full alone doesn't, that's a clean win for the pressure thesis and gives operators a knob to make scenarios more sonnet-friendly. **Test:** re-run 14e with the Phase 38 schema after authoring a pressure-augmented variant of Water Rights β-squeezed.
+5. **Does the cost-economics conclusion (cheap+harness is the production default) hold beyond Water Rights?** Same Phase 41/42 + richer-scenario question, with cost-per-deal as the metric.
 
-### Recommended next runs (post-14d)
+### Project-direction decision (post-14e — NOW LIVE)
 
-**14e (sonnet full, 3 runs, ~$15-30)** — **now the critical run.** 14d's 0/3 fires the "≤1/3 → fire 14e" conditional from the original sequencing plan. Expected outcomes:
+All four options from the original Phase 34 close are now informed:
 
-| 14e outcome | Implication |
+| Option | Status post-14e |
 |---|---|
-| **3/3** | Harness completely rescues sonnet; "harness substitutes for missing structural reasoning at every tier." Clean win for the design bet. |
-| **2/3** | Same close-rate ceiling as mid-full and nano-full; the scenario has a 2/3 ceiling regardless of model tier when harness is present. Harness matters; model strength doesn't ratchet close-rate above the scenario ceiling. |
-| **0-1/3** | Scenario-level degeneracy at sonnet (unlikely — mid-full got 2/3 on it). Worth investigating: was the scenario hand-tuned in some way that disadvantages sonnet's reasoning patterns? |
+| 1. Continue building harness features (Tier 2/3) | **Partially supported.** Harness adds clear value for OpenAI tiers; sonnet result complicates the "always invest in harness" framing. |
+| 2. Per-module ablation (Phase 35 candidate) | **Promoted to high priority.** Needed to test hypothesis (a) above and understand WHY the harness composes well with OpenAI but not Anthropic. |
+| 3. Pivot to "Diplomat-lite" minimal-harness | **Refuted.** Bare-mode close rates (0/3, 1/3, 0/3) are catastrophic vs full-mode (2/3, 2/3, 0/3). Harness IS load-bearing for OpenAI. Sonnet failing both ways doesn't refute that. |
+| 4. Validate scaling thesis first (Phase 41/42 + new scenarios) | **Strongly promoted.** Scale-1 scenario showed a counter-intuitive result; richer scenarios are necessary to know whether the pattern persists, inverts, or compounds. |
 
-**After 14e: project-direction decision.** Per `NEXT_STEPS.md` §10 TODOs, four options remain on the table:
-1. Continue building harness features (Tier 2/3 NEXT_STEPS work) — the natural read if 14e is 2-3/3.
-2. Per-module ablation (Phase 35 candidate) — find which modules matter most.
-3. Pivot to "Diplomat-lite" — minimal-harness reference — only viable if 14e is 0/3 too.
-4. **(Per `RESEARCH_NOTES.md` Note 1)** Validate scaling thesis first: §8 reverse builder (done) + game-theoretic scenarios + re-ablation. Run 14d already strengthens the Note 1 framing.
+**Recommended next-phase ordering:**
+- **Phase 38 already closed** (pressure mechanisms small bundle, 2026-06-11 in parallel with Run 14e). Author a pressure-augmented Water Rights β-squeezed variant and re-test sonnet+full+pressure as a cheap follow-up (~$2).
+- **Hypothesis (c) transcript inspection** is zero-cost and high-information — should happen first.
+- **Hypothesis (a) sonnet-everywhere test** is ~$10 — worth firing if (c) doesn't explain the failure.
+- **Phase 41 (scale-matrix verification)** is independent and can run any time — enables the richer-scenario ablation that decides between options 1 and 4 at scale.
 
-Given 14d's strong support for harness-load-bearing, options 1 and 4 are the most live. Option 4 specifically becomes a Tier 2 §8 / Phase 41-42 sequence (scale-matrix verification + new scenarios for re-ablation).
+**Results files (Run 14e):**
+- `tests/self_play/results/run14_full_claudesonnet46_beta_squeezed_{1,2,3}.json`
 
-**Results files (Run 14d):**
-- `tests/self_play/results/run14_bare_claudesonnet46_beta_squeezed_{1,2,3}.json`
-
-**Results files (post-rescore, full campaign so far):**
+**Results files (full campaign):**
 - `tests/self_play/results/run14_full_gpt54mini_beta_squeezed_{1,2,3}.json`
 - `tests/self_play/results/run14_bare_gpt54mini_beta_squeezed_{1,2,3}.json`
 - `tests/self_play/results/run14_full_gpt41nano_beta_squeezed_{1,2,3}.json`
 - `tests/self_play/results/run14_bare_gpt41nano_beta_squeezed_{1,2,3}.json`
 - `tests/self_play/results/run14_bare_claudesonnet46_beta_squeezed_{1,2,3}.json`
+- `tests/self_play/results/run14_full_claudesonnet46_beta_squeezed_{1,2,3}.json`
