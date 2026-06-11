@@ -761,3 +761,22 @@ Updated three reference docs to reflect Phase 36 algorithm improvements:
 - **ARCHITECTURE.md**: Updated Implementation Sequence row 17 from "Phase 35 complete" to "Phase 36 complete" (description updated to mention simulated-annealing); updated Testing Status unit-test count from 426 to 435 with a breakdown of the 9 new Phase 36 tests.
 
 Tests: 435 passed, 1 skipped.
+
+## 2026-06-11 — Phase 36 close
+
+**Shipped:** Four algorithm improvements to `tools.scenario_builder` that enable convergence on realistic 3-faction × 3-issue × 3-outcome specs with multi-constraint targets.
+
+- **36.1 (structured logging):** `--debug-search` flag; per-restart structured log records (start/end fitness, exit reason, per-target distances at exit). 1 new test.
+- **36.2 (weighted fitness):** `target_weights: dict[str,float]` field on `ScenarioSpec`; `FitnessResult.total_distance` is now a weighted sum; `satisfies()` uses soft total-budget check instead of per-target AND; categorical targets default to weight 0.3. 5 new tests.
+- **36.3 (simulated annealing):** `_anneal_local` helper replaces greedy best-flip loop; temperature cools geometrically T=1.0→0.01 over `max_local_moves`; accepts uphill moves with probability exp(−Δ/T). 3 new tests.
+- **36.4 (seeded initialization):** `_seed_scoring_table(spec, rng)` biases random restarts toward soft priority-collision structure and planted logrolling deals when the spec requests them. 2 new tests (structure bias + 50-seed average fitness comparison).
+- **36.5 (operator-driven validation):** Investigation of constant `pareto_distribution_spread` failure revealed metric-semantics mismatch (see DEVLOG 2026-06-11 Phase 36.5 entry). Spec fixed with `target_weights: {pareto_distribution_spread: 0.0}`; re-validation **PASSED in 3.6s** — emits 3 Pareto-optimal deals with distinct per-faction distributions (balanced consensus / alpha+gamma win / beta wins) + 2 logrolling-ideal deals.
+- **36.6 (doc updates):** `CLI_REFERENCE.md` — `target_weights` field docs + metric-semantics note; `NEXT_STEPS.md` §8 — Phase 36 success-criterion paragraph; `ARCHITECTURE.md` — row 17 updated to Phase 36 complete, test count 426→435.
+- **36.7 (this entry):** DEVPLAN Phase 36 section compressed to summary; Phase 35 moved under history divider.
+
+**Test delta:** 426 (Phase 35 baseline) → 435 (Phase 36 complete). 9 new tests across `tests/test_scenario_builder.py`, `tests/test_scenario_fitness.py`, `tests/test_scenario_spec.py`.
+
+**Files modified:** `src/tools/scenario_builder.py`, `src/tools/scenario_fitness.py`, `src/tools/scenario_spec.py`, `tests/test_scenario_builder.py`, `tests/test_scenario_fitness.py`, `tests/test_scenario_spec.py`, `CLI_REFERENCE.md`, `NEXT_STEPS.md`, `ARCHITECTURE.md`, `DEVLOG.md`, `DEVPLAN.md`.
+**Spec fixed:** `tests/self_play/scenarios/joint_space_mission_v1/spec.json` (added `target_weights: {pareto_distribution_spread: 0.0}`).
+
+**Closes:** Phase 36. **Queues (operator-gated):** Phase 37 — add `pareto_outcome_diversity` metric to close the metric-semantics gap surfaced in 36.5; Phase B — run LLM scenario compiler over `joint_space_mission_v1/spec.json` output to produce narrative + persona prose.

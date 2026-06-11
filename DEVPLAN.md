@@ -1,7 +1,7 @@
 ---
 phase: 36
 blocked: false
-state: execute
+state: review
 steps_remaining: 0
 ---
 
@@ -53,11 +53,11 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 36 In Progress (4 algorithm steps shipped; 36.5 validation passed via spec-side fix on 2026-06-11). Steps 36.6 (doc updates) and 36.7 (phase close) remaining — loop-suitable, unblocked for autonomous completion.
+- **Phase** — Phase 36 Complete (awaiting operator audit). All 7 steps shipped; 435 tests passing.
 - **Phase 37 queued (operator-gated):** Add `pareto_outcome_diversity` metric that measures "do different Pareto deals favor different factions" — the property the spec author intended when writing `pareto_distribution_spread: 0.35` (which actually measures per-faction frontier-range stdev uniformity, a different concept). Operator unblocks after auditing Phase 36 close.
 - **Phase B (proof-of-concept scenario):** Joint Space Mission scenario authoring unblocked. v1 spec produces 3 Pareto-optimal deals with distinct distributions (balanced consensus / alpha+gamma win / beta wins). Next operator session: run the LLM scenario compiler over the generated `scenario_analysis.json` to produce narrative + persona prose, then optionally smoke at flash-lite.
 - **Queued operator-driven work:** Run 14a-14f bare-prompt ablation matrix (`NEXT_STEPS.md` §10); Run 13b coached re-test (`NEXT_STEPS.md` §4).
-- **Blocked/Broken** — none. `blocked: false` — loop dispatched for Phase 36.6 + 36.7.
+- **Blocked/Broken** — awaiting operator audit of Phase 36 close.
 
 ## Phase 36: Scenario Builder Search Improvements — In Progress
 
@@ -86,7 +86,7 @@ steps_remaining: 0
 
 - [x] **36.6 — Doc updates.** Update `CLI_REFERENCE.md` `tools.scenario_builder` section with the new `--debug-search` flag, `target_weights` spec field, and example invocation. Append a paragraph to the `NEXT_STEPS.md` §8 entry noting Phase 36's success criterion and what's still deferred. Update `ARCHITECTURE.md` Implementation Sequence row for scenario_builder with Phase 36 status.
 
-- [ ] **36.7 — Phase close.** Append Phase 36 close entry to `DEVLOG.md` summarizing what shipped (file list, test count delta, validation outcome on the operator spec). Move Phase 35's heading down under the `<!-- history -->` divider per the established pattern.
+- [x] **36.7 — Phase close.** Append Phase 36 close entry to `DEVLOG.md` summarizing what shipped (file list, test count delta, validation outcome on the operator spec). Move Phase 35's heading down under the `<!-- history -->` divider per the established pattern.
 
 **Files to modify.**
 - `p:\shared\diplomat\src\tools\scenario_builder.py` (steps 36.1, 36.3, 36.4)
@@ -135,6 +135,12 @@ steps_remaining: 0
 **Loop-readiness:** 🔨 PURE BUILD. New metric is deterministic, spec field is additive, validation is empirical. Operator gate (`blocked: true`) is to audit Phase 36 close before queuing.
 
 <!-- Closed phases only: newest first. -->
+
+<!-- history -->
+
+## Phase 36: Scenario Builder Search Improvements — Complete
+
+Closed 2026-06-11. Shipped four algorithm improvements to `src/tools/scenario_builder.py`: structured per-restart logging + `--debug-search` flag (36.1), weighted fitness budget + `target_weights: dict[str,float]` on `ScenarioSpec` with categorical-default weight 0.3 (36.2), simulated annealing `_anneal_local` replacing greedy flip loop (36.3), seeded initialization biased toward spec-requested categorical structure (36.4). Validation on `tests/self_play/scenarios/joint_space_mission_v1/spec.json` PASSED in 3.6s after operator investigation revealed a misspecified `pareto_distribution_spread` target; spec fixed with `target_weights: {pareto_distribution_spread: 0.0}` (36.5). 9 new tests; 426→435 total. Reference docs updated in 36.6; DEVLOG close in 36.7. See `DEVLOG.md` Phase 36 close. Phase 37 queued (operator-gated): add `pareto_outcome_diversity` metric.
 
 <!-- history -->
 
