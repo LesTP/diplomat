@@ -133,13 +133,13 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 | 14 | Scenario Compiler | Pre-game tool. Narrative → scored personas. Not a pipeline module — operator runs it before game start. | Phase 18 complete |
 | 15 | Pipeline | Per-agent capability surface extracted from Orchestrator: persistence, extraction, coaching dispatch, round advancement, reconciliation/analysis, response generation, and query APIs. | Phase 22 complete |
 | 16 | Flow | Scheduling strategies that drive one or more Pipelines, starting with event-driven production and round-stepped self-play. | Phase 22 complete |
-| 17 | Scenario Builder | Constraint-driven reverse scenario generator. Operator writes a `ScenarioSpec`; tool searches scoring-table space via simulated-annealing hill-climb and emits `scenario_analysis.json` + per-faction `.txt` personas. Not a pipeline module — design tool only. | Phase 36 complete |
+| 17 | Scenario Builder | Constraint-driven reverse scenario generator. Operator writes a `ScenarioSpec`; tool searches scoring-table space via simulated-annealing hill-climb and emits `scenario_analysis.json` + per-faction `.txt` personas. Not a pipeline module — design tool only. | Phase 37 complete |
 
 ## Testing Status
 
 | Layer | Status |
 |-------|--------|
-| Unit and regression tests | Complete — 435 tests after Phase 36 (Phase 36 added 9 tests: debug-search logging schema, weighted fitness, soft constraint satisfaction, annealing convergence/uphill-acceptance, seeded initialization; 1 replay test is flaky in full-suite ordering, passes in isolation) |
+| Unit and regression tests | Complete — 440 tests after Phase 37 (Phase 37 added 5 tests: pareto_outcome_diversity low-diversity, high-diversity, mixed, default-zero-no-constraint, and ScenarioSpec field validation; 1 replay test is flaky in full-suite ordering, passes in isolation) |
 | Pipeline integration | Complete — 23 fake-backed Orchestrator integration tests (Phase 18 path coverage added Phase 20) |
 | Transcript replay | Complete — 2 transcript fixtures, 5 replay tests |
 | Prompt regression | Complete — 6 starter scenarios (4 extraction free, 2 generation require live LLM) |
