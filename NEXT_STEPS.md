@@ -617,22 +617,22 @@ Note 1 (`RESEARCH_NOTES.md`) predicts harness contribution grows with scenario c
 | 1 | 14a | gpt-5.4-mini, full (3) | ~$3-4 actual | ✓ **Done.** 2/3 deals, mean δ +12.7, identical Pareto when closing. |
 | 2 | 14b | gpt-5.4-mini, bare (3) | ~$0.50 actual | ✓ **Done.** 1/3 deals, same Pareto when closing. |
 | 3 | 14c | gpt-4.1-nano, full + bare (3+3) | ~$0.30 actual | ✓ **Done.** Full 2/3, bare 0/3. Strongest harness lift in the campaign so far. |
-| 4 | 14d | claude-sonnet-4-6, bare (3) | ~$0.50 | **Queued.** Fire first of the sonnet cells — cheap, decisive about whether bare-mode bottleneck is scenario or model. |
-| 5 | 14e | claude-sonnet-4-6, full (3) | ~$15-30 | **Conditional.** Fire only if 14d shows ≤1/3 close-rate (= bare mode still bottlenecked at strong tier, need full mode to confirm tier ceiling). Skip if 14d ≥2/3 (model strength already saturating; full vs bare unlikely to differ). |
+| 4 | 14d | claude-sonnet-4-6, bare (3) | ~$0.50 actual | ✓ **Done 2026-06-11.** **0/3 deals — every run at BATNA floor.** Hits the "≤1/3 → fire 14e" conditional row exactly. Strong-model-bare is no better than weak-bare; model strength does NOT substitute for harness here. Strong support for Note 1 thesis. |
+| 5 | 14e | claude-sonnet-4-6, full (3) | ~$15-30 | **FIRE NEXT** (per 14d 0/3 outcome). Now the critical run — confirms whether full harness rescues sonnet to mid/nano-full's 2/3 ceiling, or whether the scenario itself has a sonnet-specific ceiling. |
 
-**Cross-cell read so far (canonical narrative in `TUNING_LOG.md` Run 14 campaign entry):**
+**Cross-cell read (post-14d, canonical narrative in `TUNING_LOG.md` Run 14 campaign entry):**
 
 | Tier | Model | Full close | Bare close | Δ |
 |---|---|---|---|---|
 | Weak | `gpt-4.1-nano` | 2/3 | 0/3 | +67% |
 | Mid | `gpt-5.4-mini` | 2/3 | 1/3 | +33% |
-| Strong | `claude-sonnet-4-6` | pending | pending | pending |
+| **Strong** | **`claude-sonnet-4-6`** | **(pending 14e)** | **0/3** | **(pending)** |
 
-**Headline findings (all caveated by `RESEARCH_NOTES.md` Note 1: scenario is "scale-1" on every harness-relevant axis; results may not extrapolate to richer configurations):**
+**Headline findings (post-14d — finding #2 revised; all still caveated by `RESEARCH_NOTES.md` Note 1 scale-1 limitation):**
 
-1. **Harness contribution is in close-rate, not deal quality.** Every closing run found the *identical* Pareto-optimal deal (alpha 16 / beta 18 / gamma 20, deltas `[+7, +3, +9]`). Scenario has one right answer; harness affects whether the model gets to it.
-2. **Harness substitutes for ~1+ model tier.** `nano-full` (2/3) matches `mid-full` (2/3); `nano-full` > `mid-bare` (1/3). At this scenario, harness contribution exceeds the ~10× cost differential between nano and mid.
-3. **Bare mode degrades steeply with weaker models.** Mid bare 1/3, weak bare 0/3. 14d will determine whether strong-bare follows the monotonic trend (2-3/3) or whether bare is scenario-bottlenecked regardless of model.
+1. **Harness contribution is in close-rate, not deal quality.** Every closing run found the *identical* Pareto-optimal deal (alpha 16 / beta 18 / gamma 20, deltas `[+7, +3, +9]`). Scenario has one right answer; harness affects whether the model gets to it. (Unchanged.)
+2. **Model strength does NOT substitute for harness on this scenario.** Revised. Bare close-rate is non-monotonic in model tier: weak 0/3, mid 1/3, strong 0/3. Sonnet-bare fails as completely as nano-bare. The pre-14d reading ("harness substitutes for ~1+ model tier") does NOT hold at the strong tier.
+3. **Bare mode is bottlenecked by organization, not availability.** Sonnet has strong long-context recall; the raw transcript IS in its attention. The fact that it still can't close the deal suggests the bottleneck is *structured reasoning support* (analyst per-faction intel, state manager cross-round tracking, reconciliation) rather than information access.
 
 Run-by-run sequencing per `RUN_PROTOCOL.md`: define inputs → verify scenario → probe providers → dry-run plumbing → live → verify output → document.
 
