@@ -620,3 +620,7 @@ Extended `ScenarioSpec` with a nested `PressureSpec` carrying `round_cost_decay`
 ## 2026-06-11 - Phase 38 step 38.2: persona pressure rendering and deadlines
 
 Threaded pressure through the shared persona round-context renderer in `src/modules/persona/__init__.py` and reused it from `tools.scenario_compiler.generate_persona()`. Added pressure summary lines, pressure-aware final-round BATNA wording, and opponent deadlines when `priority_collision != "none"` so both runtime round contexts and generated persona files expose the same time-pressure language. Reverse-builder analyses now carry `priority_collision` so the deadline guidance survives spec-driven scenario generation. Focused regression slice passed: `117 passed`.
+
+## 2026-06-11 - Phase 38 step 38.3: pressure verifier and fixture-backed tests
+
+Added `tests/self_play/verify_scenario_pressure.py` to verify deadline-driven BATNA pressure: it checks per-faction effective-BATNA decay, requires surfaced deadlines when `priority_collision` is active, and synthesizes the deadline round as a final-round / accept-or-bust context. Added a fixture-backed regression in `tests/self_play/fixtures/pressure/pressure_good.json` plus `tests/test_scenario_pressure.py` covering the passing profile, the low-drop failure mode, and the deadline-context rendering. Focused regression slice passed: `20 passed`; direct CLI smoke on the new verifier passed against the fixture.

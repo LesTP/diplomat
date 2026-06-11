@@ -1,0 +1,114 @@
+{
+  "factions": [
+    "alpha",
+    "beta",
+    "gamma"
+  ],
+  "issues": [
+    {
+      "name": "Tariffs",
+      "outcomes": [
+        "Strict",
+        "Moderate",
+        "Relaxed"
+      ],
+      "description": "Trade barriers"
+    },
+    {
+      "name": "Labor",
+      "outcomes": [
+        "Strict",
+        "Moderate",
+        "Relaxed"
+      ],
+      "description": "Worker protections"
+    },
+    {
+      "name": "Environment",
+      "outcomes": [
+        "Strict",
+        "Moderate",
+        "Relaxed"
+      ],
+      "description": "Emissions rules"
+    }
+  ],
+  "scoring": {
+    "alpha": {
+      "Tariffs": {
+        "Strict": 8,
+        "Moderate": 5,
+        "Relaxed": 1
+      },
+      "Labor": {
+        "Strict": 1,
+        "Moderate": 3,
+        "Relaxed": 5
+      },
+      "Environment": {
+        "Strict": 3,
+        "Moderate": 5,
+        "Relaxed": 4
+      }
+    },
+    "beta": {
+      "Tariffs": {
+        "Strict": 2,
+        "Moderate": 4,
+        "Relaxed": 6
+      },
+      "Labor": {
+        "Strict": 8,
+        "Moderate": 5,
+        "Relaxed": 1
+      },
+      "Environment": {
+        "Strict": 4,
+        "Moderate": 5,
+        "Relaxed": 3
+      }
+    },
+    "gamma": {
+      "Tariffs": {
+        "Strict": 3,
+        "Moderate": 5,
+        "Relaxed": 6
+      },
+      "Labor": {
+        "Strict": 4,
+        "Moderate": 5,
+        "Relaxed": 3
+      },
+      "Environment": {
+        "Strict": 8,
+        "Moderate": 5,
+        "Relaxed": 1
+      }
+    }
+  },
+  "batna": {
+    "alpha": 6,
+    "beta": 6,
+    "gamma": 6
+  },
+  "priority_collision": "soft",
+  "deception_tactics": {
+    "alpha": "Overstate interest in Environment to create a tradeable concession",
+    "beta": "Claim Tariffs are critical, then concede for Labor gains",
+    "gamma": "Pretend Labor is essential, trade it for Environment"
+  },
+  "logrolling": [
+    "Alpha gets Strict Tariffs, Beta gets Strict Labor — both benefit",
+    "Gamma gets Strict Environment, concedes on Tariffs to Alpha"
+  ],
+  "game_mode": "mixed",
+  "pressure": {
+    "round_cost_decay": 1.5,
+    "asymmetric_clocks": {
+      "alpha": 4,
+      "beta": 2,
+      "gamma": 3
+    },
+    "penalty_floor_offset": 2.0
+  }
+}
