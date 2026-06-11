@@ -1,7 +1,7 @@
 ## Phase 38: Pressure mechanisms small bundle - Complete
 phase: 39
 blocked: false
-state: review
+state: close
 steps_remaining: 0
 ---
 
