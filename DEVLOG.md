@@ -653,3 +653,7 @@ Contract changes:
 - `DEVPLAN.md` - Step 38.5 checked off.
 
 This step was doc-only. No code or test changes were needed. The next action is Phase 38 review.
+
+## 2026-06-11 — Phase 38 close: pressure mechanisms small bundle complete
+
+Phase 38 closed after the pressure small bundle shipped end to end: `pressure` now carries round-cost decay, asymmetric clocks, penalty floor, and pressure-profile metadata; persona rendering and the final-round marker are pressure-aware; verifier coverage is in place. Close verification passed on the focused phase slice (`python3 -m pytest -q tests/test_persona.py tests/test_scenario_pressure.py tests/test_scenario_compiler.py tests/test_scenario_spec.py` — `61 passed`). `DEVPLAN.md` now shows Phase 38 as complete with a DEVLOG reference.
