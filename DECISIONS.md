@@ -337,28 +337,28 @@ Rationale: The experiment’s question is whether the harness contributes at the
 Revisit if: A later experiment explicitly needs faction-level mixed-mode ablation or production exposure.
 
 D-51: Random-restart hill-climb as scenario search algorithm
-Date: 2026-06-10 | Status: Open
+Date: 2026-06-10 | Status: Closed (Phase 35 complete 2026-06-10; superseded by D-54 SA improvements)
 Priority: Routine
 Decision: Phase 35 `scenario_builder.py` uses random-restart hill-climb (single-cell score-table flips, plateau-triggered restarts) as the search algorithm.
 Rationale: The fitness landscape over integer scoring tables is discrete and relatively low-dimensional (≤4 factions × ≤4 issues × score range 1–10). Random-restart hill-climb is simple to implement, fully deterministic under a seed, and adequate for this domain. Simulated annealing or genetic algorithms add implementation complexity without clear payoff on a table this small.
 Revisit if: Larger scenarios (6+ factions, 6+ issues) produce unacceptably long search times with hill-climb, indicating a need for a better-than-random global strategy.
 
 D-52: Reuse verify_scenario_optimum.py pure functions without refactoring
-Date: 2026-06-10 | Status: Open
+Date: 2026-06-10 | Status: Closed (Phase 35 complete 2026-06-10; unchanged in Phase 36)
 Priority: Routine
 Decision: Phase 35 imports `enumerate_deals`, `find_pareto_frontier`, `faction_score`, `beats_batna`, and `find_priority_issues` directly from `tests/self_play/verify_scenario_optimum.py` rather than moving them to a shared library.
 Rationale: These functions are pure (no I/O, no dependencies), already tested in place, and their home in the test tree is appropriate — they validate game outcomes. Moving them to `src/` would be premature abstraction and would force a test-infrastructure change. The fitness module simply imports from `tests/`.
 Revisit if: A third consumer needs the same functions, at which point extracting to a shared utility module is justified.
 
 D-53: Logrolling and deception_tactics emitted as stubs in Phase 35
-Date: 2026-06-10 | Status: Open
+Date: 2026-06-10 | Status: Closed (Phase 35 complete 2026-06-10; stub approach still in place)
 Priority: Routine
 Decision: Phase 35's `scenario_builder.py` emits empty strings for `logrolling` and `deception_tactics` fields in generated personas. LLM narrative authorship of these fields is deferred to operator follow-up (or a future phase that extends the LLM compiler path).
 Rationale: These fields are interpretive narrative, not derivable from scoring tables alone. Attempting LLM generation in the same phase conflates the constraint-satisfaction algorithm (pure, testable) with an LLM authoring step (non-deterministic, requires evaluation). Separating them keeps Phase 35 🔨 PURE BUILD with binary test signal.
 Revisit if: A phase explicitly targets narrative quality of generated scenarios and needs integrated LLM authorship rather than post-processing.
 
 D-54: Phase 36 scenario-search algorithm improvements
-Date: 2026-06-10 | Status: Open
+Date: 2026-06-10 | Status: Closed (Phase 36 complete 2026-06-11; validation PASSED in 3.6s)
 Priority: Important
 Decision: Phase 36 improves `scenario_builder` search in three orthogonal directions: (a) soft weighted-sum satisfaction replacing strict per-target AND, (b) simulated annealing in the local-move loop to escape plateaus, and (c) biased initialization seeding categorical constraints. These three improvements are implemented in the same phase; LLM-guided proposal is deferred.
 Rationale: The strict AND satisfaction (`satisfies(0.10)` requiring every target within tolerance) produces no gradient for categorical targets (logrolling, priority_collision), causing the greedy hill-climb to get stuck in the 6-constraint operator spec. Weighted soft constraints give the optimizer a signal; SA acceptance allows escaping local optima; biased initialization reduces the restarts needed to find a good starting point. Together they are sufficient for 3×3×3 specs — no LLM dependency required, keeping the phase 🔨 PURE BUILD with deterministic test signal.
