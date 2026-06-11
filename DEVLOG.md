@@ -732,3 +732,21 @@ Contract changes:
 The builder now keeps the random restart baseline but seeds each restart with two structure hints when the spec asks for them: a shared consensus issue for `priority_collision="soft"` and a planted deal where every faction clears 80% of its max score when `requires_logrolling` is enabled. The rest of the table remains randomized, so the search still has room to explore while starting from materially better candidates.
 
 Focused verification: `python3 -m pytest -q tests/test_scenario_builder.py tests/test_scenario_fitness.py tests/test_scenario_spec.py` --- `22 passed`.
+
+
+## 2026-06-11 - Phase 36.5 validation outcome (operator-driven)
+
+Iter 148 ran step 36.5 validation (1000 restarts, 3m27s) and reported scenario search failed to produce an acceptable candidate. Per the Phase 36 plan, a failure was supposed to be followed by either a search-side adjustment or an `infeasible'' declaration plus DEVLOG documentation; the worker exited cleanly but did not produce that documentation. The operator picked up the investigation manually.
+
+**Method.** Ran python -m tools.scenario_builder --spec tests/self_play/scenarios/joint_space_mission_v1/spec.json --output-dir <tmp> --seed 42 --max-iterations 20 --debug-search to capture per-restart structured logs.
+
+**Finding.** All 20 restarts converged to identical pareto_distribution_spread distance of  .1214045207910317. The other 9 of 10 targets were perfectly satisfied (distance = 0) on at least one restart. Best total distance:  .126 vs tolerance  .10 --- a 25% overshoot driven entirely by the single misspecified target.
+
+**Root cause.** The spec author (operator, 2026-06-10) wrote pareto_distribution_spread: 0.35 intending `Pareto deals visibly favor different factions.'' The metric as implemented in src/tools/scenario_fitness.py measures pstdev of per-faction frontier-range (max - min) values in absolute score-point units --- i.e., `per-faction score-ranges are uniform across the frontier.'' These are different concepts; the metric is correctly named for what it does, but it doesn't serve the design intent the author had in mind. The constant-across-restarts observed value also indicates the bias-init from step 36.4 produces topologically similar frontiers, so single-cell flips can't reshape this property.
+
+**Fix.** Added 	arget_weights: {pareto_distribution_spread: 0.0} to 	ests/self_play/scenarios/joint_space_mission_v1/spec.json, dropping the misspecified gate. Re-validation: VERIFY PASSED in 3.6 seconds. Tool emits 3 Pareto-optimal deals with distinct distributions (sum=76 balanced consensus, sum=72 alpha+gamma win, sum=64 beta wins) plus 2 deals where every faction clears 75% of max --- exactly the multi-Pareto spectrum the operator wanted for Phase B.
+
+**Follow-up.** Phase 37 queued (operator-gated) to add pareto_outcome_diversity --- a new metric that captures the intended `deals favor different factions'' property. The existing pareto_distribution_spread stays as-is; Phase 37 adds clarifying docs to prevent future spec authors from making the same misread.
+
+**Process gap noted.** Step 36.5 of the Phase 36 plan said `if the spec still fails, document the lowest-distance candidate the tool found + per-target distances in DEVLOG.md and adjust either the search or document the spec as infeasible.'' Iter 148 exited reporting the failure but did not run with --debug-search, did not capture per-target distances, and did not write to DEVLOG. Worker stayed in scope (didn't invent a remediation outside the spec) but the documented fallback path wasn't followed. Plan instructions could be more explicit: `on failure, re-run with --debug-search, capture the per-target distance from the lowest-total-distance restart, write a DEVLOG entry naming the bottleneck target, then exit.''
+

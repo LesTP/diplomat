@@ -53,10 +53,11 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 36 queued — Scenario Builder Search Improvements. Phase 35 shipped the builder but empirical operator probes (2026-06-10) showed the random-restart hill-climb does not converge on realistic 3-faction × 3-issue × 3-outcome specs with 5-6 simultaneous strict constraints in reasonable budget. Phase 36 adds soft constraints, simulated annealing, smarter initialization, and instrumentation. Success criterion = converging on the operator-authored `tests/self_play/scenarios/joint_space_mission_v1/spec.json` within a 5-minute budget.
-- **Deferred — Phase B (proof-of-concept scenario):** Joint Space Mission scenario authoring (`tests/self_play/scenarios/joint_space_mission_v1/`) deferred pending Phase 36 close. Spec already authored and committed as the Phase 36 success criterion. Operator design choices captured: domain = Joint Space Mission, factions = alpha (NASA-style) / beta (ESA-style) / gamma (commercial), 3 issues (mission_objective, hardware_lead, funding_split), target 3-5 distinct Pareto deals with distribution spread ≥0.35, symmetric BATNAs at 0.50, soft priority collision, seed=42. Live self-play smoke (~$0.30) as final check before any ablation run.
+- **Phase** — Phase 36 In Progress (4 algorithm steps shipped; 36.5 validation passed via spec-side fix on 2026-06-11). Steps 36.6 (doc updates) and 36.7 (phase close) remaining — loop-suitable, unblocked for autonomous completion.
+- **Phase 37 queued (operator-gated):** Add `pareto_outcome_diversity` metric that measures "do different Pareto deals favor different factions" — the property the spec author intended when writing `pareto_distribution_spread: 0.35` (which actually measures per-faction frontier-range stdev uniformity, a different concept). Operator unblocks after auditing Phase 36 close.
+- **Phase B (proof-of-concept scenario):** Joint Space Mission scenario authoring unblocked. v1 spec produces 3 Pareto-optimal deals with distinct distributions (balanced consensus / alpha+gamma win / beta wins). Next operator session: run the LLM scenario compiler over the generated `scenario_analysis.json` to produce narrative + persona prose, then optionally smoke at flash-lite.
 - **Queued operator-driven work:** Run 14a-14f bare-prompt ablation matrix (`NEXT_STEPS.md` §10); Run 13b coached re-test (`NEXT_STEPS.md` §4).
-- **Blocked/Broken** — none. `blocked: false` — Phase 36 ready for loop dispatch.
+- **Blocked/Broken** — none. `blocked: false` — loop dispatched for Phase 36.6 + 36.7.
 
 ## Phase 36: Scenario Builder Search Improvements — In Progress
 
@@ -79,7 +80,9 @@ steps_remaining: 0
 
 - [x] **36.4 — Smarter random initialization.** Bias initial scoring tables toward target categorical constraints. If `spec.priority_collision == "soft"` is requested, initialize so at least 2 of N factions share a priority issue (pick one shared "consensus issue" and bias those factions' scoring there). If `spec.requires_logrolling == True`, plant one deal where every faction is at ≥80% of their score-range max. Initialization helper isolated in `_seed_scoring_table(spec, rng)`. Tests: seeded tables start with lower fitness than uniform random on average across 50 seeds.
 
-- [ ] **36.5 — Validate on the operator spec.** Run `python -m tools.scenario_builder --spec tests/self_play/scenarios/joint_space_mission_v1/spec.json --output-dir <tmp> --seed 42 --max-iterations 1000 --verify` end-to-end. Required outcome: completes within 5 minutes wall-clock on dev hardware, emits passing `scenario_analysis.json`, `verify_scenario_optimum` reports PASS. If the spec still fails, document the lowest-distance candidate the tool found + per-target distances in `DEVLOG.md` and adjust either the search (more iterations / different initialization) or document the spec as infeasible for current tooling and queue a phase to add LLM-guided proposal.
+- [x] **36.5 — Validate on the operator spec.** First attempt (codex iter 148, 1000 restarts, 3m27s) failed: `scenario search failed to produce an acceptable candidate`. Operator-driven `--debug-search` investigation (2026-06-11) traced the failure to a single misspecified target: `pareto_distribution_spread: 0.35` used a metric value the author misread (the field measures per-faction frontier-range stdev in score-point units, not "Pareto deals favor different factions" as intended). All 20 probe restarts hit identical `pareto_distribution_spread` distance of 0.1214, with the other 9 of 10 targets perfectly satisfied. Spec fix: added `target_weights: {pareto_distribution_spread: 0.0}` to drop the misspecified gate. Re-validation passed in **3.6s** — emits 3 Pareto-optimal deals with distinct per-faction distributions (balanced consensus / alpha+gamma win / beta wins) plus 2 logrolling-ideal deals. The intent behind the misspecified target is queued as Phase 37 (add `pareto_outcome_diversity` metric).
+
+  See "## Phase 37: Add `pareto_outcome_diversity` metric — Queued" below for the follow-up phase that closes this metric-semantics gap.
 
 - [ ] **36.6 — Doc updates.** Update `CLI_REFERENCE.md` `tools.scenario_builder` section with the new `--debug-search` flag, `target_weights` spec field, and example invocation. Append a paragraph to the `NEXT_STEPS.md` §8 entry noting Phase 36's success criterion and what's still deferred. Update `ARCHITECTURE.md` Implementation Sequence row for scenario_builder with Phase 36 status.
 
@@ -104,6 +107,32 @@ steps_remaining: 0
 4. DEVLOG.md Phase 36 close entry documents validation outcome (PASS or — if spec still infeasible — the lowest-distance candidate + per-target distances + recommended follow-up).
 
 **Loop-readiness:** 🔨 PURE BUILD. Algorithm improvements are deterministic, fitness/spec changes are pure-function refactors, validation criterion is empirical and binary (converges or doesn't). No operator judgment required mid-loop.
+
+## Phase 37: Add `pareto_outcome_diversity` metric — Queued (operator-gated)
+
+**Goal.** Add a fitness target that measures what the Phase B spec author intended when they wrote `pareto_distribution_spread: 0.35`: "do different Pareto-optimal deals favor different factions?" The existing `pareto_distribution_spread` measures per-faction frontier-range stdev (an *intra-faction-uniformity* property), not *inter-deal-diversity*. They are different concepts; the existing metric is correctly named for what it does, but it doesn't serve the operator's design intent.
+
+**Why now.** Phase 36.5 investigation showed the metric-naming gap is real and recurring (operator misread the field name during Phase B spec authoring; the loop validation surfaced it). Without a metric that captures inter-deal diversity, the operator has no fitness-side knob to demand "Pareto deals visibly favor different factions" \u2014 it has to be hand-eyeballed from `verify_scenario_optimum` output. Phase 37 closes that gap with a single new target.
+
+**Scope.**
+1. Add `pareto_outcome_diversity` to `compute_fitness` in `src/tools/scenario_fitness.py`. Candidate definition: for each Pareto deal, identify the "winner" faction (highest score); then count distinct winners across the frontier, normalized by `min(frontier_size, n_factions)`. A frontier where every deal favors a different faction → diversity = 1.0; all deals favor the same faction → diversity = 1/n_factions. Alternative formulations to consider during step 1: entropy of winner distribution, average pairwise L2 distance between per-faction score vectors across frontier deals.
+2. Add `pareto_outcome_diversity: float = 0.0` field to `ScenarioSpec` in `src/tools/scenario_spec.py`. Default 0.0 means "no diversity constraint" (no behavior change for existing specs).
+3. Update `tests/test_scenario_fitness.py` with hand-built fixtures: all-same-winner frontier (low diversity), distinct-winner frontier (high diversity), mixed.
+4. Update `tests/self_play/scenarios/joint_space_mission_v1/spec.json` to use the new metric \u2014 target `pareto_outcome_diversity = 0.66` (= 2 distinct winners out of 3 factions, matching what the current Phase 36 output naturally produces).
+5. Validate: re-run `scenario_builder --verify` on the updated spec; confirm convergence within the same ~5s budget.
+6. Doc updates: clarify in `CLI_REFERENCE.md` that `pareto_distribution_spread` and `pareto_outcome_diversity` measure *different* properties; cross-reference in the spec field docs to prevent the same misread happening to future spec authors.
+7. Phase close per `.claude/commands/phase-complete.md`.
+
+**Out of scope.**
+- Renaming or removing `pareto_distribution_spread` \u2014 the metric is well-defined and useful for its actual purpose (uniformity of per-faction frontier ranges, e.g., for fairness audits). Document, don't delete.
+- Bigger metric refactors (e.g., adding an entropy-of-distribution-shape target, or a per-deal coalition-favorability metric). Defer to a future phase if needed.
+
+**Validation criteria for phase close.**
+1. New metric implemented + unit tested. Full diplomat test suite remains green.
+2. Updated `joint_space_mission_v1/spec.json` validates cleanly with `--verify`.
+3. CLI_REFERENCE.md documents both metrics with explicit "this measures X, not Y" guidance.
+
+**Loop-readiness:** 🔨 PURE BUILD. New metric is deterministic, spec field is additive, validation is empirical. Operator gate (`blocked: true`) is to audit Phase 36 close before queuing.
 
 <!-- Closed phases only: newest first. -->
 

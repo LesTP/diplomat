@@ -19,7 +19,7 @@
   ],
   "score_range": [1, 10],
   "pareto_count_target": [3, 5],
-  "pareto_distribution_spread": 0.35,
+  "pareto_distribution_spread": 0.0,
   "batna_clearing_count_target": 10,
   "batna_to_pareto_gap_pct": 0.45,
   "requires_logrolling": true,
@@ -28,6 +28,9 @@
     "alpha": 0.50,
     "beta": 0.50,
     "gamma": 0.50
+  },
+  "target_weights": {
+    "pareto_distribution_spread": 0.0
   },
   "game_mode": "mixed",
   "seed": 42
