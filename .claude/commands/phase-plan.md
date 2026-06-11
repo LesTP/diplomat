@@ -14,7 +14,14 @@ We are entering Discuss mode to plan the next phase.
    - Explore — define the decision to be made and set a time box
 4. If this is the first phase of a module, update the module's Status in
    ARCHITECTURE.md's Implementation Sequence table to "In progress"
-5. Update DEVPLAN with the phase plan
+5. Update DEVPLAN with the phase plan. **Steps MUST be unchecked
+   checkboxes in the format `- [ ] <phase>.<n> — <description>`** — one
+   bullet per step, leading `- [ ]` (dash, space, opening bracket, space,
+   closing bracket, space). The state machine counts these checkboxes via
+   `grep -c '^- \[ \]'` inside the `## Phase N` section to know how many
+   EXECUTE iterations remain; plain bullets (`- 38.1 ...`) count as zero
+   work and auto-transition the loop straight to REVIEW. See Phase 35/36/37
+   plan blocks for worked examples.
 6. Log scope decisions to DECISIONS.md
 7. Commit
 

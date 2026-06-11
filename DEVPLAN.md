@@ -1,8 +1,8 @@
 ---
 phase: 38
 blocked: false
-state: close
-steps_remaining: 0
+state: execute
+steps_remaining:
 ---
 
 # Diplomat — Development Plan
@@ -54,21 +54,21 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 37 complete; Phase 38 planned (pressure mechanisms small bundle); 440 tests passing.
+- **Phase** — Phase 37 complete; **Phase 38 in progress** (pressure mechanisms small bundle). Initial PLAN iter (165) wrote bullet-format steps which the state machine couldn't see as unchecked work; iters 166/167 auto-transitioned through REVIEW/CLOSE without executing. Steps converted to checkbox format 2026-06-11; state reset to `execute`; ready for loop dispatch. 440 tests passing as of Phase 37 close.
 - **Phase B (proof-of-concept scenario):** Joint Space Mission scenario authoring unblocked. v1 spec produces 3 Pareto-optimal deals with distinct distributions (balanced consensus / alpha+gamma win / beta wins). Next operator session: run the LLM scenario compiler over the generated `scenario_analysis.json` to produce narrative + persona prose, then optionally smoke at flash-lite.
 - **Queued operator-driven work:** Run 14a-14f bare-prompt ablation matrix (`NEXT_STEPS.md` §10); Run 13b coached re-test (`NEXT_STEPS.md` §4).
 
-## Phase 38: Pressure mechanisms small bundle — Planned
+## Phase 38: Pressure mechanisms small bundle - In Progress
 
 **Regime:** Build.
 **Scope:** Add `pressure` plumbing for round-cost decay, asymmetric clocks, and penalty floor across scenario spec/compiler, persona/round-context rendering, and verifier/tests. Keep exogenous events and cascade scoring deferred.
 **Outcome:** `scenario_analysis.json` and personas can express time pressure, and the final-round marker shows the current best on-table score versus BATNA.
 **Steps:**
-- 38.1 Extend `ScenarioSpec` and the scenario compiler schema to carry the `pressure` object and its small-bundle fields.
-- 38.2 Thread pressure through the persona template and `build_round_context()` / final-round marker text.
-- 38.3 Add `verify_scenario_pressure.py` plus fixture-backed tests for BATNA-pressure behavior.
-- 38.4 Add pressure profile metadata and strengthen the final-round marker with current-best-vs-BATNA wording.
-- 38.5 Doc update: `ARCHITECTURE.md`, `CLI_REFERENCE.md` if interfaces change, and any other touched reference doc.
+- [ ] 38.1 — Extend `ScenarioSpec` and the scenario compiler schema to carry the `pressure` object and its small-bundle fields (round-cost decay, asymmetric clocks per faction, penalty floor offset). Add unit tests for the new fields' validation + JSON round-trip.
+- [ ] 38.2 — Thread pressure through the persona template and `build_round_context()` / final-round marker text. Effective BATNA at round N = BATNA - (N-1) * round_cost - regret_offset; persona shows opponent deadlines if `priority_collision != "none"` style information sharing applies.
+- [ ] 38.3 — Add `verify_scenario_pressure.py` plus fixture-backed tests for BATNA-pressure behavior (effective-BATNA at round N falls by ≥X%, asymmetric deadline forces accept-or-bust on the deadlined faction).
+- [ ] 38.4 — Add `pressure_profile` metadata to each scenario (low/med/high time pressure, low/med/high external shock placeholder) and strengthen the final-round marker with current-best-vs-BATNA wording ("no deal = N pts (your BATNA); current best offer = M pts; walking away costs you M-N pts").
+- [ ] 38.5 — Doc update: `ARCHITECTURE.md` (pressure mechanisms in scenario schema row), `CLI_REFERENCE.md` if interfaces change, `ASSESSMENT.md` §4.5 (pressure mechanisms row in the spec-fields-to-properties table), `NEXT_STEPS.md` §2 (mark Phase 38 closed), `DEVLOG.md` (close entry).
 
 <!-- Closed phases only: newest first. -->
 
