@@ -610,3 +610,7 @@ Phase 34 closed 6 steps. All 🔨 pure build, no live LLM spend during build (Dr
 **Key finding from smoke (Step 34.4):** Bare mode cost ~$0.02 for a 4-round game vs ~$1 projected (~50× cheaper). The Run 14a-14f ablation matrix (~36 runs) is achievable at ~$10-20 total instead of ~$60-100. The no-deal result (all factions at BATNA) is the expected bare-mode outcome — without the Analyst surfacing Pareto trades, agents have no mechanism to discover joint gains.
 
 **Closes:** Phase 34. **Queues:** Run 13b (coached game with `/revise:` edit modes) + Run 14a-14f (ablation matrix) in `NEXT_STEPS.md` §4 and §10.
+
+## 2026-06-11 — Phase 37 review: pareto_outcome_diversity validation passed
+
+Reviewed the committed Phase 37 changes against the phase-review checklist. Focused validation passed for `tests/test_scenario_fitness.py` and `tests/test_scenario_spec.py` (`15 passed`). No must-fix or should-fix findings; Phase 37 remains ready for close.
