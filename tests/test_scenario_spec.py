@@ -24,6 +24,11 @@ def test_round_trip_preserves_nested_defaults_and_ranges(tmp_path: Path) -> None
         batna_to_pareto_gap_pct=0.15,
         requires_logrolling=True,
         priority_collision="soft",
+        pressure={
+            "round_cost_decay": 1.5,
+            "asymmetric_clocks": {"alpha": 3},
+            "penalty_floor_offset": 2.0,
+        },
         asymmetric_batna_fractions={"alpha": 0.65},
         target_weights={"pareto_count": 2.0, "game_mode": 0.3},
         game_mode="mixed",
@@ -39,6 +44,9 @@ def test_round_trip_preserves_nested_defaults_and_ranges(tmp_path: Path) -> None
         outcomes=["Strict", "Relaxed"],
         description="Trade barriers",
     )
+    assert loaded.pressure.round_cost_decay == 1.5
+    assert loaded.pressure.asymmetric_clocks == {"alpha": 3}
+    assert loaded.pressure.penalty_floor_offset == 2.0
 
 
 def test_load_applies_defaults(tmp_path: Path) -> None:
@@ -65,6 +73,9 @@ def test_load_applies_defaults(tmp_path: Path) -> None:
     assert spec.batna_to_pareto_gap_pct == 0.10
     assert spec.requires_logrolling is False
     assert spec.priority_collision == "none"
+    assert spec.pressure.round_cost_decay == 0.0
+    assert spec.pressure.asymmetric_clocks == {}
+    assert spec.pressure.penalty_floor_offset == 0.0
     assert spec.asymmetric_batna_fractions == {}
     assert spec.target_weights == {}
     assert spec.game_mode == "mixed"
@@ -104,4 +115,13 @@ def test_validation_rejects_invalid_score_range() -> None:
             factions=["alpha"],
             issues=[IssueSpec(name="Tariffs", outcomes=["Strict", "Relaxed"])],
             score_range=(10, 1),
+        )
+
+
+def test_validation_rejects_invalid_pressure_clock_faction() -> None:
+    with pytest.raises(ValueError, match="asymmetric_clocks keys must name a faction"):
+        ScenarioSpec(
+            factions=["alpha"],
+            issues=[IssueSpec(name="Tariffs", outcomes=["Strict", "Relaxed"])],
+            pressure={"asymmetric_clocks": {"beta": 3}},
         )

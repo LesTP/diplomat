@@ -93,6 +93,11 @@ def _emittable_analysis() -> dict[str, object]:
         "batna": {"alpha": 10, "beta": 10},
         "deception_tactics": {"alpha": "", "beta": ""},
         "logrolling": [],
+        "pressure": {
+            "round_cost_decay": 0.0,
+            "asymmetric_clocks": {},
+            "penalty_floor_offset": 0.0,
+        },
     }
 
 

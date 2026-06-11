@@ -11,6 +11,8 @@ _DEFAULT_SCORE_RANGE = (1, 10)
 _DEFAULT_PARETO_COUNT_TARGET = 1
 _DEFAULT_BATNA_CLEARING_COUNT_TARGET = 1
 _DEFAULT_BATNA_TO_PARETO_GAP_PCT = 0.10
+_DEFAULT_ROUND_COST_DECAY = 0.0
+_DEFAULT_PENALTY_FLOOR_OFFSET = 0.0
 _DEFAULT_GAME_MODE = "mixed"
 _DEFAULT_PRIORITY_COLLISION = "none"
 _DEFAULT_SEED = 0
@@ -92,6 +94,15 @@ def _validate_weight(value: Any, *, label: str) -> float:
     return weight
 
 
+def _validate_non_negative_number(value: Any, *, label: str) -> float:
+    if not isinstance(value, (int, float)):
+        raise ValueError(f"{label} must be a number")
+    number = float(value)
+    if number < 0.0:
+        raise ValueError(f"{label} must be non-negative")
+    return number
+
+
 @dataclass
 class IssueSpec:
     name: str
@@ -116,6 +127,54 @@ class IssueSpec:
 
 
 @dataclass
+class PressureSpec:
+    round_cost_decay: float = _DEFAULT_ROUND_COST_DECAY
+    asymmetric_clocks: dict[str, int] = field(default_factory=dict)
+    penalty_floor_offset: float = _DEFAULT_PENALTY_FLOOR_OFFSET
+
+    def __post_init__(self) -> None:
+        self.round_cost_decay = _validate_non_negative_number(
+            self.round_cost_decay, label="round_cost_decay"
+        )
+        self.penalty_floor_offset = _validate_non_negative_number(
+            self.penalty_floor_offset, label="penalty_floor_offset"
+        )
+
+        validated_clocks: dict[str, int] = {}
+        for faction_id, value in self.asymmetric_clocks.items():
+            faction = _validate_nonempty_str(
+                faction_id, label="asymmetric_clocks key"
+            )
+            if not isinstance(value, int) or value <= 0:
+                raise ValueError(
+                    f"asymmetric_clocks[{faction}] must be a positive integer"
+                )
+            validated_clocks[faction] = value
+        self.asymmetric_clocks = validated_clocks
+
+    def validate_factions(self, factions: list[str]) -> None:
+        invalid = sorted(faction for faction in self.asymmetric_clocks if faction not in factions)
+        if invalid:
+            raise ValueError(
+                "asymmetric_clocks keys must name a faction in factions: "
+                + ", ".join(invalid)
+            )
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "PressureSpec":
+        return cls(
+            round_cost_decay=data.get("round_cost_decay", _DEFAULT_ROUND_COST_DECAY),
+            asymmetric_clocks=dict(data.get("asymmetric_clocks", {})),
+            penalty_floor_offset=data.get(
+                "penalty_floor_offset", _DEFAULT_PENALTY_FLOOR_OFFSET
+            ),
+        )
+
+
+@dataclass
 class ScenarioSpec:
     factions: list[str]
     issues: list[IssueSpec]
@@ -127,6 +186,7 @@ class ScenarioSpec:
     batna_to_pareto_gap_pct: float = _DEFAULT_BATNA_TO_PARETO_GAP_PCT
     requires_logrolling: bool = False
     priority_collision: str = _DEFAULT_PRIORITY_COLLISION
+    pressure: PressureSpec = field(default_factory=PressureSpec)
     asymmetric_batna_fractions: dict[str, float] = field(default_factory=dict)
     target_weights: dict[str, float] = field(default_factory=dict)
     game_mode: str = _DEFAULT_GAME_MODE
@@ -173,6 +233,12 @@ class ScenarioSpec:
         if not isinstance(self.seed, int):
             raise ValueError("seed must be an integer")
 
+        if isinstance(self.pressure, dict):
+            self.pressure = PressureSpec.from_dict(self.pressure)
+        if not isinstance(self.pressure, PressureSpec):
+            raise ValueError("pressure must be a PressureSpec")
+        self.pressure.validate_factions(self.factions)
+
         validated_fractions: dict[str, float] = {}
         for faction_id, value in self.asymmetric_batna_fractions.items():
             faction = _validate_nonempty_str(faction_id, label="asymmetric_batna_fractions key")
@@ -216,6 +282,7 @@ class ScenarioSpec:
             ),
             requires_logrolling=data.get("requires_logrolling", False),
             priority_collision=data.get("priority_collision", _DEFAULT_PRIORITY_COLLISION),
+            pressure=PressureSpec.from_dict(data.get("pressure", {})),
             asymmetric_batna_fractions=dict(data.get("asymmetric_batna_fractions", {})),
             target_weights=dict(data.get("target_weights", {})),
             game_mode=data.get("game_mode", _DEFAULT_GAME_MODE),

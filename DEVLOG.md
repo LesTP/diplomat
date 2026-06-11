@@ -612,3 +612,7 @@ Planned Phase 38 as a Build phase to add round-cost decay, asymmetric clocks, an
 ## 2026-06-11 - Phase 38 review: plan-only state, no code findings
 
 Reviewed the current Phase 38 state after the planning commit. No implementation changes were present in the tree yet, so there were no code-level must-fix or should-fix findings to apply. The plan scope still matches the small pressure bundle described in DEVPLAN.
+
+## 2026-06-11 - Phase 38 step 38.1: pressure schema and spec round-trip
+
+Extended `ScenarioSpec` with a nested `PressureSpec` carrying `round_cost_decay`, `asymmetric_clocks`, and `penalty_floor_offset`, and threaded the pressure object through reverse-builder analysis output plus the compiler schema. Updated the deterministic fixture/tests in `tests/test_scenario_spec.py`, `tests/test_scenario_compiler.py`, `tests/test_scenario_builder.py`, and `tests/self_play/fake_llm_client.py` to match the new `pressure` object. Focused regression slice passed: `51 passed`.

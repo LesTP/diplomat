@@ -2,7 +2,7 @@
 phase: 38
 blocked: false
 state: execute
-steps_remaining:
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -83,7 +83,7 @@ steps_remaining:
 **Scope:** Add `pressure` plumbing for round-cost decay, asymmetric clocks, and penalty floor across scenario spec/compiler, persona/round-context rendering, and verifier/tests. Keep exogenous events and cascade scoring deferred.
 **Outcome:** `scenario_analysis.json` and personas can express time pressure, and the final-round marker shows the current best on-table score versus BATNA.
 **Steps:**
-- [ ] 38.1 — Extend `ScenarioSpec` and the scenario compiler schema to carry the `pressure` object and its small-bundle fields (round-cost decay, asymmetric clocks per faction, penalty floor offset). Add unit tests for the new fields' validation + JSON round-trip.
+- [x] 38.1 — Extend `ScenarioSpec` and the scenario compiler schema to carry the `pressure` object and its small-bundle fields (round-cost decay, asymmetric clocks per faction, penalty floor offset). Add unit tests for the new fields' validation + JSON round-trip.
 - [ ] 38.2 — Thread pressure through the persona template and `build_round_context()` / final-round marker text. Effective BATNA at round N = BATNA - (N-1) * round_cost - regret_offset; persona shows opponent deadlines if `priority_collision != "none"` style information sharing applies.
 - [ ] 38.3 — Add `verify_scenario_pressure.py` plus fixture-backed tests for BATNA-pressure behavior (effective-BATNA at round N falls by ≥X%, asymmetric deadline forces accept-or-bust on the deadlined faction).
 - [ ] 38.4 — Add `pressure_profile` metadata to each scenario (low/med/high time pressure, low/med/high external shock placeholder) and strengthen the final-round marker with current-best-vs-BATNA wording ("no deal = N pts (your BATNA); current best offer = M pts; walking away costs you M-N pts").

@@ -36,7 +36,16 @@ from typing import Any
 SCENARIO_ANALYSIS_SCHEMA: dict[str, Any] = {
     "type": "object",
     "additionalProperties": False,
-    "required": ["factions", "issues", "scoring", "batna", "deception_tactics", "logrolling", "game_mode"],
+    "required": [
+        "factions",
+        "issues",
+        "scoring",
+        "batna",
+        "deception_tactics",
+        "logrolling",
+        "game_mode",
+        "pressure",
+    ],
     "properties": {
         "factions": {
             "type": "array",
@@ -89,6 +98,31 @@ SCENARIO_ANALYSIS_SCHEMA: dict[str, Any] = {
             "type": "string",
             "enum": ["cooperative", "competitive", "mixed"],
             "description": "Whether the scenario rewards cooperation, competition, or both",
+        },
+        "pressure": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["round_cost_decay", "asymmetric_clocks", "penalty_floor_offset"],
+            "properties": {
+                "round_cost_decay": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Per-round score decay applied when no deal is reached",
+                },
+                "asymmetric_clocks": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "integer",
+                        "minimum": 1,
+                    },
+                    "description": "Faction-specific round deadlines or clocks",
+                },
+                "penalty_floor_offset": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Penalty deducted below BATNA when no deal is reached",
+                },
+            },
         },
     },
 }

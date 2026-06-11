@@ -183,6 +183,11 @@ def _compile_response() -> str:
             },
             "logrolling": ["dryrun: stub trade"],
             "game_mode": "competitive",
+            "pressure": {
+                "round_cost_decay": 0.0,
+                "asymmetric_clocks": {},
+                "penalty_floor_offset": 0.0,
+            },
         }
     )
 

@@ -40,6 +40,11 @@ _SAMPLE_ANALYSIS = {
         "Alpha gets Strict Tariffs, Beta gets Strict Labor — both benefit",
         "Gamma gets Strict Environment, concedes on Tariffs to Alpha",
     ],
+    "pressure": {
+        "round_cost_decay": 0.0,
+        "asymmetric_clocks": {},
+        "penalty_floor_offset": 0.0,
+    },
 }
 
 
@@ -111,6 +116,14 @@ class TestSchema:
         assert "batna" in SCENARIO_ANALYSIS_SCHEMA["properties"]
         assert "deception_tactics" in SCENARIO_ANALYSIS_SCHEMA["properties"]
         assert "logrolling" in SCENARIO_ANALYSIS_SCHEMA["properties"]
+        assert "pressure" in SCENARIO_ANALYSIS_SCHEMA["properties"]
+        assert "pressure" in SCENARIO_ANALYSIS_SCHEMA["required"]
+        pressure = SCENARIO_ANALYSIS_SCHEMA["properties"]["pressure"]
+        assert pressure["required"] == [
+            "round_cost_decay",
+            "asymmetric_clocks",
+            "penalty_floor_offset",
+        ]
 
 
 class TestBuildCompilerSystemPrompt:
