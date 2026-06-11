@@ -762,3 +762,11 @@ Added `pareto_outcome_diversity: 0.66` to the `joint_space_mission_v1` scenario 
 This keeps the scenario aligned with the Phase 37 intent: the new metric measures whether distinct Pareto-optimal deals favor different factions, while the old spread metric continues to represent intra-faction frontier-range uniformity.
 
 Next step: 37.5 validate the updated spec with `scenario_builder --verify` and run the relevant test suite.
+
+## 2026-06-11 — Phase 37.5: Validation
+
+Ran `python3 -m tools.scenario_builder --spec tests/self_play/scenarios/joint_space_mission_v1/spec.json --verify` — VERIFY PASSED. Updated spec with `pareto_outcome_diversity: 0.66` validates cleanly; the 3 Pareto-optimal deals with distinct faction distributions satisfy the constraint.
+
+Full test suite: 440 passed, 1 skipped (up from 435 pre-phase — the 5 new tests from 37.3 are confirmed green).
+
+Next step: 37.6 doc update to `CLI_REFERENCE.md`.
