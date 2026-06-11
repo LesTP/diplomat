@@ -364,3 +364,9 @@ Decision: Phase 36 improves `scenario_builder` search in three orthogonal direct
 Rationale: The strict AND satisfaction (`satisfies(0.10)` requiring every target within tolerance) produces no gradient for categorical targets (logrolling, priority_collision), causing the greedy hill-climb to get stuck in the 6-constraint operator spec. Weighted soft constraints give the optimizer a signal; SA acceptance allows escaping local optima; biased initialization reduces the restarts needed to find a good starting point. Together they are sufficient for 3×3×3 specs — no LLM dependency required, keeping the phase 🔨 PURE BUILD with deterministic test signal.
 Revisit if: The improved search still fails on richer specs (4+ factions, 4+ issues), at which point LLM-guided scoring-table proposal becomes the next lever.
 
+D-55: Phase 38 pressure mechanisms stay in a small Build bundle
+Date: 2026-06-11 | Status: Open
+Priority: Important
+Decision: Group round-cost decay, asymmetric clocks, and penalty floor into one build phase. Keep exogenous events and cascade scoring out of the bundle.
+Rationale: The three mechanisms share the same pressure schema, persona rendering, and verifier surface, so bundling them minimizes repeated edits while keeping the phase testable. Exogenous events require round-aware BATNA recomputation and a different verifier shape, so they remain deferred.
+Revisit if: the shared pressure surface proves larger than expected or Phase 38 starts to blur into the deferred mechanisms.

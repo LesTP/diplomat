@@ -604,3 +604,7 @@ Phase 34 closed 6 steps. All 🔨 pure build, no live LLM spend during build (Dr
 ## 2026-06-11 — Phase 37 close: pareto_outcome_diversity complete
 
 Phase 37 closed with `pareto_outcome_diversity` added to the scenario fitness scorer and `ScenarioSpec`, plus 440 passing tests after validation. Step/review detail was archived to `DEVLOG_archive.md`.
+
+## 2026-06-11 - Phase 38 plan: pressure mechanisms small bundle
+
+Planned Phase 38 as a Build phase to add round-cost decay, asymmetric clocks, and penalty floor to the scenario pressure surface. Scoped exogenous events and cascade scoring as deferred. Draft steps: schema/compiler plumbing, persona/round-context rendering, pressure verifier/tests, final-round marker wording, and doc updates.

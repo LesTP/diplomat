@@ -1,7 +1,7 @@
 ---
-phase: 37
-blocked: true
-state: close
+phase: 38
+blocked: false
+state: execute
 steps_remaining: 0
 ---
 
@@ -54,9 +54,21 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 37 complete; see `DEVLOG.md` Phase 37 close. 440 tests passing.
+- **Phase** — Phase 37 complete; Phase 38 planned (pressure mechanisms small bundle); 440 tests passing.
 - **Phase B (proof-of-concept scenario):** Joint Space Mission scenario authoring unblocked. v1 spec produces 3 Pareto-optimal deals with distinct distributions (balanced consensus / alpha+gamma win / beta wins). Next operator session: run the LLM scenario compiler over the generated `scenario_analysis.json` to produce narrative + persona prose, then optionally smoke at flash-lite.
 - **Queued operator-driven work:** Run 14a-14f bare-prompt ablation matrix (`NEXT_STEPS.md` §10); Run 13b coached re-test (`NEXT_STEPS.md` §4).
+
+## Phase 38: Pressure mechanisms small bundle — Planned
+
+**Regime:** Build.
+**Scope:** Add `pressure` plumbing for round-cost decay, asymmetric clocks, and penalty floor across scenario spec/compiler, persona/round-context rendering, and verifier/tests. Keep exogenous events and cascade scoring deferred.
+**Outcome:** `scenario_analysis.json` and personas can express time pressure, and the final-round marker shows the current best on-table score versus BATNA.
+**Steps:**
+- 38.1 Extend `ScenarioSpec` and the scenario compiler schema to carry the `pressure` object and its small-bundle fields.
+- 38.2 Thread pressure through the persona template and `build_round_context()` / final-round marker text.
+- 38.3 Add `verify_scenario_pressure.py` plus fixture-backed tests for BATNA-pressure behavior.
+- 38.4 Add pressure profile metadata and strengthen the final-round marker with current-best-vs-BATNA wording.
+- 38.5 Doc update: `ARCHITECTURE.md`, `CLI_REFERENCE.md` if interfaces change, and any other touched reference doc.
 
 <!-- Closed phases only: newest first. -->
 
