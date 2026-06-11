@@ -638,3 +638,7 @@ Contract changes:
 - `tests/test_persona.py`, `tests/test_scenario_compiler.py`, `tests/test_scenario_spec.py`, `tests/self_play/fake_llm_client.py` - updated coverage and fixture shapes.
 - `tests/self_play/scenarios/*.json`, `tests/self_play/scenarios/joint_space_mission_v1/spec.json` - committed `pressure_profile` metadata for the checked-in scenarios/spec.
 Focused verification: `python3 -m pytest -q tests/test_persona.py tests/test_scenario_compiler.py tests/test_scenario_spec.py tests/test_scenario_pressure.py` --- `61 passed`; JSON load check on touched scenario files passed.
+
+## 2026-06-11 - Phase 38 step 38.4 follow-up: verified final-round summary and pressure fixture metadata
+
+Verified the step 38.4 follow-up edits in the live tree: `src/modules/persona/__init__.py` now emits the combined final-round summary line (`No deal = N pts (your BATNA); current best offer = M pts; walking away costs you M-N pts`) ahead of the existing detail lines, `tests/self_play/fixtures/pressure/pressure_good.json` now carries `pressure_profile`, and the matching tests assert both changes. Focused regression slice passed again after the edits: `python3 -m pytest tests/test_persona.py tests/test_scenario_pressure.py tests/test_scenario_compiler.py` and the direct pressure verifier smoke both passed.

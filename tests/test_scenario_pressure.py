@@ -21,6 +21,10 @@ def test_pressure_verifier_passes_on_fixture() -> None:
     report, failures = verify_pressure_profile(analysis, min_drop_pct=0.20)
 
     assert failures == []
+    assert analysis["pressure_profile"] == {
+        "time_pressure": "medium",
+        "external_shock": "low",
+    }
     assert any("priority_collision=soft" in line for line in report)
     assert any("alpha→round 4" in line for line in report)
 

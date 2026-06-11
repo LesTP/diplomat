@@ -177,6 +177,13 @@ def _format_final_round_lines(
         return []
 
     lines: list[str] = []
+    if base_batna is not None and current_best_offer is not None:
+        lines.append(
+            "No deal = "
+            f"{_format_number(base_batna)} pts (your BATNA); "
+            f"current best offer = {_format_number(current_best_offer)} pts; "
+            f"walking away costs you {_format_number(current_best_offer - base_batna)} pts."
+        )
     if base_batna is not None:
         lines.append(f"No deal = {_format_number(base_batna)} points (your BATNA).")
     if current_best_offer is not None:

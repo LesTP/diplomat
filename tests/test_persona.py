@@ -237,6 +237,10 @@ async def test_build_round_context_final_round_emits_warning(tmp_path):
         current_best_offer=18,
     )
     assert "### FINAL ROUND" in context_rr
+    assert (
+        "No deal = 11 pts (your BATNA); current best offer = 18 pts; walking away costs you 7 pts."
+        in context_rr
+    )
     assert "No deal = 11 points (your BATNA)." in context_rr
     assert "Current best offer = 18 points." in context_rr
     assert "Walking away costs you 7 points." in context_rr
@@ -254,6 +258,10 @@ async def test_build_round_context_final_round_emits_warning(tmp_path):
         current_best_offer=18,
     )
     assert "### FINAL ROUND" in context_tr
+    assert (
+        "No deal = 11 pts (your BATNA); current best offer = 18 pts; walking away costs you 7 pts."
+        in context_tr
+    )
 
 
 @pytest.mark.asyncio

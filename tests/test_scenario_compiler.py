@@ -32,6 +32,7 @@ _SAMPLE_ANALYSIS = {
     },
     "batna": {"alpha": 6, "beta": 6, "gamma": 6},
     "priority_collision": "soft",
+    "pressure_profile": {"time_pressure": "medium", "external_shock": "low"},
     "deception_tactics": {
         "alpha": "Overstate interest in Environment to create a tradeable concession",
         "beta": "Claim Tariffs are critical, then concede for Labor gains",
