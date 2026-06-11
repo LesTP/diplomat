@@ -749,3 +749,16 @@ The spec schema now carries the new metric explicitly instead of relying on ad h
 Focused verification: `python3 -m pytest -q tests/test_scenario_spec.py tests/test_scenario_fitness.py` (`15 passed`).
 
 Next step: 37.3 add the focused `tests/test_scenario_fitness.py` cases listed in the phase plan.
+
+## 2026-06-11 - Phase 37 Step 37.4: Joint Space Mission spec target update
+
+### Step 37.4: Joint Space Mission spec target update
+Mode: Build
+Outcome: Updated
+Contract changes: `tests/self_play/scenarios/joint_space_mission_v1/spec.json`
+
+Added `pareto_outcome_diversity: 0.66` to the `joint_space_mission_v1` scenario spec so the reverse builder now has an explicit inter-deal diversity target alongside the existing `pareto_distribution_spread` setting.
+
+This keeps the scenario aligned with the Phase 37 intent: the new metric measures whether distinct Pareto-optimal deals favor different factions, while the old spread metric continues to represent intra-faction frontier-range uniformity.
+
+Next step: 37.5 validate the updated spec with `scenario_builder --verify` and run the relevant test suite.

@@ -20,6 +20,7 @@
   "score_range": [1, 10],
   "pareto_count_target": [3, 5],
   "pareto_distribution_spread": 0.0,
+  "pareto_outcome_diversity": 0.66,
   "batna_clearing_count_target": 10,
   "batna_to_pareto_gap_pct": 0.45,
   "requires_logrolling": true,

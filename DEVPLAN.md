@@ -70,7 +70,7 @@ steps_remaining: 0
 - [x] 37.1 Add `pareto_outcome_diversity` computation to `compute_fitness()` in `src/tools/scenario_fitness.py` (distinct-winner-fraction: `distinct_winners / min(frontier_size, n_factions)`)
 - [x] 37.2 Add `pareto_outcome_diversity: float = 0.0` field to `ScenarioSpec` in `src/tools/scenario_spec.py` (default 0.0 = no constraint; validate `[0.0, 1.0]`)
 - [x] 37.3 Add unit tests in `tests/test_scenario_fitness.py`: all-same-winner (low diversity), distinct-winner (high diversity), mixed, default-zero-no-constraint
-- [ ] 37.4 Update `tests/self_play/scenarios/joint_space_mission_v1/spec.json` — add `pareto_outcome_diversity: 0.66`
+- [x] 37.4 Update `tests/self_play/scenarios/joint_space_mission_v1/spec.json` — add `pareto_outcome_diversity: 0.66`
 - [ ] 37.5 Validate: run `scenario_builder --verify` on updated spec + full test suite green
 - [ ] 37.6 Doc update: `CLI_REFERENCE.md` — document `pareto_outcome_diversity`; add "measures X not Y" cross-reference for both metrics
 - [ ] 37.7 Phase close
