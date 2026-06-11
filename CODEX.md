@@ -46,7 +46,7 @@ cat ARCH_module.md && echo '---SPLIT---' && cat src/modules/module/impl.py
 - **Combine source + test reads**: `cat src/foo.py && echo '---' && cat tests/test_foo.py`
 - **Fresh reads before edits** — re-read immediately before editing, not at iteration start
 - **Megareads can fragment context.** Single `cat`/`sed` commands producing >40k chars of output sometimes trigger an internal "let me reorient" moment where the temptation is to re-call `state_machine.sh`. **Don't dispatch — peek.** Use `bash tools/state_machine.sh --peek` to re-validate state mid-action without burning budget. Reserve the bare `bash tools/state_machine.sh` (dispatch) for the top of each LOOP iteration, paired with the action it returns. See `WORKER_SPEC.md` §3 "Loop discipline" — iter 53 lost its final step before `--peek` existed; iter 102 burned a full 6-step budget on defensive dispatches and is the reason `--peek` was added.
-- **Only call dispatch when you are about to write code or commit. Anything else is `--peek`.** This covers post-megaread reorientation AND pre-batch preflight. Anti-pattern from iter 105: chaining `bash tools/state_machine.sh && cat WORKER_SPEC.md && cat DEVPLAN.md && cat .claude/commands/*.md` to "ping the controller before loading docs" — the dispatch decrements budget but the work that follows is just context loading, not the kind of action state_machine handed off. **Same bug recurred at iter 138 and 139** with the variant `bash tools/state_machine.sh && cat CODEX.md` then `bash tools/state_machine.sh && cat WORKER_SPEC.md && cat DEVPLAN.md` — both iterations exited with `STEPS_COMPLETED: 0`. **See "⚠️ ONE DISPATCH PER ITERATION" section below for the explicit anti-pattern + correct pattern.** Load the docs first, then dispatch right before you write code.
+- **Only call dispatch when you are about to write code or commit. Anything else is `--peek`.** See "Dispatch vs peek" below for the shape. Past failure modes that motivated this rule and `--peek`'s introduction: iters 102, 105, 138, 139 — each lost their iteration to a duplicate dispatch chained inside a context-load command.
 - **Scope recursive greps narrowly — never include `.` at the repo root.** The repo contains very large files that will blow the context window if matched: `DEVLOG_archive.md` (~194KB), `TUNING_LOG.md` (~107KB), `diplomat-testing-doc.md` (~67KB), `NEXT_STEPS.md` (~62KB), `DEVLOG.md` (~46KB), plus multi-MB self-play result JSONs in `tests/self_play/results/` (some >3MB) and multi-MB iteration logs in `logs/loop/`. A single `grep -RIn 'foo' .` can stream 30+MB into the codex process and trigger a SIGKILL (OOM / response-size limit) — this killed iter 103 mid-action.
   - **Default:** `grep -RIn 'foo' src tests` (source + tests only).
   - **Need ARCH docs:** `grep -n 'foo' ARCH_*.md` (glob, not recursive).
@@ -168,51 +168,29 @@ LOOP:
   8. goto LOOP
 ```
 
-### ⚠️ ONE DISPATCH PER ITERATION
+### Dispatch vs peek
 
-**Step 1 of LOOP is the ONLY time you may call `bash tools/state_machine.sh` (dispatch) in an iteration.** Every subsequent state-machine call in the same iteration MUST use `--peek`. The state machine decrements the step budget on every dispatch — a second dispatch burns the budget that was reserved for your actual work, and the iteration exits with `STEPS_COMPLETED: 0`.
+`bash tools/state_machine.sh` (dispatch) — advances the state machine and decrements the step budget. Run once per iteration, immediately before the work the action calls for. Read from step 1 of LOOP above.
 
-This bug has now wasted iters **102, 105, 138, 139**. Read the patterns below before composing your first shell command:
+`bash tools/state_machine.sh --peek` (peek) — reports the same `ACTION:` and `NEXT:` without advancing state or decrementing budget. Run as often as needed for re-orientation: after a megaread, mid-action, before a preflight check.
 
-**WRONG (iter 138, 139, 105, 102):** chaining dispatch with a context load —
-
-```bash
-# At iteration top:
-$ bash tools/state_machine.sh                                          # 1st dispatch: ACTION=EXECUTE
-
-# Then in the SAME iteration:
-$ bash tools/state_machine.sh && cat CODEX.md                          # 2nd dispatch: budget exhausted → ACTION=EXIT
-# OR:
-$ bash tools/state_machine.sh && cat WORKER_SPEC.md && cat DEVPLAN.md  # also 2nd dispatch — same outcome
-# Result: STEPS_COMPLETED: 0, no commit, iteration wasted.
-```
-
-The ampersand-chain pattern is the trap. Even though it *feels* like "check state, then load context," the shell runs `bash tools/state_machine.sh` FIRST and that single call drains the budget. The subsequent `cat` happens but its output is irrelevant — the iteration is already over.
-
-**RIGHT:** load context first, dispatch when about to act, peek for re-orientation —
+Shape:
 
 ```bash
-# Step 1 (LOOP) — dispatch ONCE, capture the action:
-$ bash tools/state_machine.sh
+$ bash tools/state_machine.sh                                             # dispatch ONCE, at top
 ACTION: EXECUTE
 NEXT: execute
 
-# NOW load context (no dispatch — plain reads):
 $ cat CODEX.md && echo '---SPLIT---' && cat WORKER_SPEC.md && echo '---SPLIT---' && cat DEVPLAN.md
 
-# Re-validate state mid-work without burning budget (use --peek freely):
-$ bash tools/state_machine.sh --peek
+$ bash tools/state_machine.sh --peek                                      # peek freely, no cost
 
-# Do the work — edit files, run tests, commit:
-$ ...
+$ ...edit, test, commit...
 
-# Step 7 (LOOP) — write next state:
 $ sed -i "s/^state:.*/state: $NEXT/" DEVPLAN.md
 ```
 
-**Rule of thumb:** Dispatch (`bash tools/state_machine.sh`) means **"I am about to write code or commit RIGHT NOW."** Anything else — reading docs, exploring source, post-megaread reorientation, preflight checks — is either no state-machine call at all, or `--peek`.
-
-**Mechanical check before any shell command:** If your command line contains `bash tools/state_machine.sh` (without `--peek`) AND you have already called it once this iteration, **delete the dispatch** and rerun with just the rest. If the rest is just a `cat`, you don't need the state-machine call at all.
+Shell-chain trap: `bash tools/state_machine.sh && cat CODEX.md` runs dispatch FIRST, then the `cat`. The chain looks like "check state, then load context" but it's just a plain dispatch followed by reads. A second such chain in the same iteration dispatches twice.
 
 **CRITICAL — state-write command (step 7).** Copy-paste this **exactly**:
 
