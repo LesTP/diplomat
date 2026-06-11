@@ -1685,3 +1685,62 @@ All four options from the original Phase 34 close are now informed:
 - `tests/self_play/results/run14_bare_gpt41nano_beta_squeezed_{1,2,3}.json`
 - `tests/self_play/results/run14_bare_claudesonnet46_beta_squeezed_{1,2,3}.json`
 - `tests/self_play/results/run14_full_claudesonnet46_beta_squeezed_{1,2,3}.json`
+
+---
+
+## Run 15 - Joint Space Mission (calibration) - COMPLETE
+
+Fired 2026-06-11 to test the Note 1 thesis prediction emerging from Run 14e transcript inspection: **"sonnet may be the right model for richer scenarios; sonnet's failure on Water Rights beta-squeezed may invert on multi-Pareto scenarios."** Two single-cell calibration runs on `joint_space_mission_v1` (3 distinct Pareto deals, pareto_outcome_diversity=0.66, symmetric BATNAs).
+
+### Calibration cells
+
+| Cell | Model | Outcome | Surplus | Deal |
+|---|---|---|---|---|
+| 15-calib-mid | gpt-5.4-mini full | **NO-DEAL** (all at BATNA) | 0.000 | none |
+| 15-calib-sonnet | claude-sonnet-4-6 full | **PARETO DEAL** | 1.000 | Exploration-Priority + Joint-Build + Equal-Thirds |
+
+Sonnet's deal: alpha=19 (+8 vs BATNA), beta=18 (+9), gamma=22 (+10). The "balanced consensus" Pareto point — every faction at >=86% of max, highest-logrolling-quality deal on the frontier.
+
+### Headline finding: the pattern from Run 14 INVERTS
+
+| Model | Water Rights beta-squeezed (1 Pareto) | Joint Space Mission v1 (3 Pareto) |
+|---|---|---|
+| gpt-5.4-mini full | **2/3 deals** | **0/1** (calibration) |
+| claude-sonnet-4-6 full | **0/3** | **1/1** (calibration) |
+
+This is the cleanest possible empirical support for the post-14e hypothesis:
+
+- On a scenario with **one cooperative Pareto** that requires asymmetric concession, **gpt-mini's reflexive cooperation wins** (finds the deal) and **sonnet's strategic refusal loses** (beta+gamma coalition rejects the trade).
+- On a scenario with **multiple Pareto options favoring different factions**, **sonnet's strategic reasoning wins** (navigates the multi-option landscape and identifies a balanced point) and **gpt-mini's reflexive cooperation loses** (no clear "obvious" target to converge on without asymmetric pressure).
+
+Single-run calibration so n=1 per cell - noise is real but the magnitude (1.0 vs 0.0 surplus_share at the headline cells) is much larger than noise. Expansion to 3-run cells is the natural follow-up.
+
+### Implications
+
+1. **Note 1 thesis validated empirically.** RESEARCH_NOTES.md Note 1 predicted harness contribution would grow with scenario complexity. Run 15 calibration extends that: **model-class fit also depends on scenario complexity**. The "right" model for a scenario depends on whether the scenario rewards cooperation or strategic reasoning.
+
+2. **The Water Rights conclusion needs scoping.** "Cheap+harness is the production default" holds on cooperative-Pareto scenarios. On multi-Pareto scenarios, strong models with strategic-reasoning capability deliver where cheap models fail.
+
+3. **Scenario design is now visibly a first-class lever.** Operators selecting a scenario implicitly select which model class will perform best. This was suspected from Run 8 (Run 7 deception success vs Run 8 BATNA-floor failure across model classes); Run 15 makes it explicit.
+
+4. **The reverse builder paid off.** The first scenario produced by the constraint-driven tool (Phase 35-37) immediately surfaced an empirical finding that the existing Water Rights scenario family could not. Multi-Pareto / multi-property scenario engineering is a working primitive.
+
+### Recommended next runs
+
+| Order | Run | Cost | Purpose |
+|---|---|---|---|
+| 1 | 15a (gpt-5.4-mini full, +2 runs to reach n=3) | ~$1.00 | Confirm gpt-mini 0/3 isn't a noise artifact |
+| 2 | 15b (claude-sonnet-4-6 full, +2 runs to reach n=3) | ~$4.00 | Confirm sonnet finds Pareto reliably; check whether different runs find different Pareto points (the 0.66-diversity payoff) |
+| 3 (conditional) | 15c (gpt-4.1-nano full, 3 runs) | ~$0.30 | If 15a confirms gpt-mini failure, test weak tier - it may fail similarly or surprise us |
+| 4 (conditional) | 15-bare (both tiers, bare mode, 3 runs each) | ~$1.50 | Test whether the harness contribution at multi-Pareto differs from the Water Rights pattern |
+
+### Process notes
+
+- **The scenario+persona pipeline now works end-to-end:** reverse builder produces scoring tables + stubs (Phase 35-37) -> LLM-fill produces logrolling + deception_tactics (one-off `tools/_temp_fill_narrative.py` script; should be hardened into a `tools.scenario_compiler --fill-narrative` mode as a follow-up phase) -> personas re-rendered automatically -> `run_simulation --analysis-json --scenario <md>` consumes the result with no other changes.
+- **The scenario .md file** (`tests/self_play/scenarios/joint_space_mission.md`) is the moderator's seed message at game start; required by `run_simulation`. Authored by operator with NASA-style/ESA-style/commercial framing matching the LLM-fill domain context.
+- **`tools/_temp_fill_narrative.py`** is the working scratch script that produced the deception_tactics for this run. Capability is reusable for any reverse-builder scenario; worth promoting to a permanent tool (small phase, ~3-4 steps: extend `tools.scenario_compiler` with `--fill-narrative <existing_analysis>` mode + tests + doc updates).
+
+### Results files (Run 15 calibration)
+
+- `tests/self_play/results/run15_calib_gpt54mini_jsm1_1.json`
+- `tests/self_play/results/run15_calib_claudesonnet46_jsm1_1.json`

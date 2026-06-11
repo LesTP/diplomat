@@ -1,0 +1,113 @@
+{
+  "batna": {
+    "alpha": 11,
+    "beta": 9,
+    "gamma": 12
+  },
+  "deception_tactics": {
+    "alpha": "Overstate commitment to Exploration-Priority mission_objective early to anchor on a high-value objective, then trade mission focus for a Government-Heavy funding_split later.",
+    "beta": "Emphasize preference for hardware_lead as Joint-Build to appear flexible on mission_objective, positioning to leverage funding_split concessions from Alpha and Gamma.",
+    "gamma": "Open strongly for Commercial-Tech-Demo mission_objective to signal priority, but remain flexible on hardware_lead to negotiate for funding_split closer to Equal-Thirds or Government-Heavy."
+  },
+  "factions": [
+    "alpha",
+    "beta",
+    "gamma"
+  ],
+  "game_mode": "mixed",
+  "issues": [
+    {
+      "description": "Primary purpose of the joint mission.",
+      "name": "mission_objective",
+      "outcomes": [
+        "Science-Priority",
+        "Exploration-Priority",
+        "Commercial-Tech-Demo"
+      ]
+    },
+    {
+      "description": "Which agency leads design and integration of the primary spacecraft.",
+      "name": "hardware_lead",
+      "outcomes": [
+        "Alpha-Lead",
+        "Joint-Build",
+        "Gamma-Lead"
+      ]
+    },
+    {
+      "description": "How the mission's total cost is divided across the three agencies.",
+      "name": "funding_split",
+      "outcomes": [
+        "Equal-Thirds",
+        "Commercial-Heavy",
+        "Government-Heavy"
+      ]
+    }
+  ],
+  "logrolling": [
+    "Alpha can concede on hardware_lead by supporting Joint-Build or Gamma-Lead in exchange for Beta or Gamma agreeing to a Government-Heavy funding_split, which Alpha strongly prefers.",
+    "Beta can trade support for Exploration-Priority mission_objective to Alpha in exchange for Alpha accepting a Commercial-Heavy funding_split that Beta prefers.",
+    "Gamma can offer to lead hardware_lead with Joint-Build, which it prefers, if Alpha supports Commercial-Tech-Demo mission_objective that Gamma values more than Alpha does.",
+    "Alpha's preference for Exploration-Priority mission_objective can be traded to Beta for Beta's support on Government-Heavy funding_split, benefiting Alpha's funding priorities.",
+    "Beta's support for Equal-Thirds funding_split can be exchanged with Gamma's concession to favor Science-Priority mission_objective, benefiting Beta's consistent moderate scoring across objectives."
+  ],
+  "pressure": {
+    "asymmetric_clocks": {},
+    "penalty_floor_offset": 0.0,
+    "round_cost_decay": 0.0
+  },
+  "priority_collision": "soft",
+  "scoring": {
+    "alpha": {
+      "funding_split": {
+        "Commercial-Heavy": 3,
+        "Equal-Thirds": 7,
+        "Government-Heavy": 10
+      },
+      "hardware_lead": {
+        "Alpha-Lead": 2,
+        "Gamma-Lead": 1,
+        "Joint-Build": 2
+      },
+      "mission_objective": {
+        "Commercial-Tech-Demo": 1,
+        "Exploration-Priority": 10,
+        "Science-Priority": 6
+      }
+    },
+    "beta": {
+      "funding_split": {
+        "Commercial-Heavy": 7,
+        "Equal-Thirds": 9,
+        "Government-Heavy": 2
+      },
+      "hardware_lead": {
+        "Alpha-Lead": 5,
+        "Gamma-Lead": 2,
+        "Joint-Build": 7
+      },
+      "mission_objective": {
+        "Commercial-Tech-Demo": 2,
+        "Exploration-Priority": 2,
+        "Science-Priority": 2
+      }
+    },
+    "gamma": {
+      "funding_split": {
+        "Commercial-Heavy": 1,
+        "Equal-Thirds": 9,
+        "Government-Heavy": 9
+      },
+      "hardware_lead": {
+        "Alpha-Lead": 3,
+        "Gamma-Lead": 2,
+        "Joint-Build": 8
+      },
+      "mission_objective": {
+        "Commercial-Tech-Demo": 4,
+        "Exploration-Priority": 5,
+        "Science-Priority": 7
+      }
+    }
+  }
+}
