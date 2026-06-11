@@ -700,3 +700,13 @@ Tests: 435 passed, 1 skipped.
 **Spec fixed:** `tests/self_play/scenarios/joint_space_mission_v1/spec.json` (added `target_weights: {pareto_distribution_spread: 0.0}`).
 
 **Closes:** Phase 36. **Queues (operator-gated):** Phase 37 — add `pareto_outcome_diversity` metric to close the metric-semantics gap surfaced in 36.5; Phase B — run LLM scenario compiler over `joint_space_mission_v1/spec.json` output to produce narrative + persona prose.
+
+---
+
+### Phase 37 Plan — 2026-06-11
+
+Phase 37 planned. Regime: Build. 7 steps defined in DEVPLAN.
+
+**Goal:** Add `pareto_outcome_diversity` metric to `scenario_fitness.py` + `ScenarioSpec` — measures distinct winner fraction across Pareto frontier (inter-deal diversity), distinct from `pareto_distribution_spread` (per-faction frontier-range stdev, an intra-faction uniformity metric).
+
+**Step list:** 37.1 add computation to `compute_fitness()`; 37.2 add field to `ScenarioSpec`; 37.3 unit tests; 37.4 update `joint_space_mission_v1/spec.json`; 37.5 validate; 37.6 `CLI_REFERENCE.md` doc; 37.7 phase close.

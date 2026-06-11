@@ -1,7 +1,7 @@
 ---
-phase: 36
-blocked: true
-state: close
+phase: 37
+blocked: false
+state: execute
 steps_remaining: 0
 ---
 
@@ -54,26 +54,26 @@ steps_remaining: 0
 
 ## Current Status
 
-- **Phase** — Phase 36 Complete (awaiting operator audit). All 7 steps shipped; 435 tests passing.
-- **Phase 37 queued (operator-gated):** Add `pareto_outcome_diversity` metric that measures "do different Pareto deals favor different factions" — the property the spec author intended when writing `pareto_distribution_spread: 0.35` (which actually measures per-faction frontier-range stdev uniformity, a different concept). Operator unblocks after auditing Phase 36 close.
+- **Phase** — Phase 37 In Progress. Planning complete; steps 37.1–37.7 defined. 435 tests passing (pre-phase).
 - **Phase B (proof-of-concept scenario):** Joint Space Mission scenario authoring unblocked. v1 spec produces 3 Pareto-optimal deals with distinct distributions (balanced consensus / alpha+gamma win / beta wins). Next operator session: run the LLM scenario compiler over the generated `scenario_analysis.json` to produce narrative + persona prose, then optionally smoke at flash-lite.
 - **Queued operator-driven work:** Run 14a-14f bare-prompt ablation matrix (`NEXT_STEPS.md` §10); Run 13b coached re-test (`NEXT_STEPS.md` §4).
-- **Blocked/Broken** — awaiting operator audit of Phase 36 close.
 
-## Phase 37: Add `pareto_outcome_diversity` metric — Queued (operator-gated)
+## Phase 37: Add `pareto_outcome_diversity` metric — In Progress
 
 **Goal.** Add a fitness target that measures what the Phase B spec author intended when they wrote `pareto_distribution_spread: 0.35`: "do different Pareto-optimal deals favor different factions?" The existing `pareto_distribution_spread` measures per-faction frontier-range stdev (an *intra-faction-uniformity* property), not *inter-deal-diversity*. They are different concepts; the existing metric is correctly named for what it does, but it doesn't serve the operator's design intent.
 
 **Why now.** Phase 36.5 investigation showed the metric-naming gap is real and recurring (operator misread the field name during Phase B spec authoring; the loop validation surfaced it). Without a metric that captures inter-deal diversity, the operator has no fitness-side knob to demand "Pareto deals visibly favor different factions" \u2014 it has to be hand-eyeballed from `verify_scenario_optimum` output. Phase 37 closes that gap with a single new target.
 
-**Scope.**
-1. Add `pareto_outcome_diversity` to `compute_fitness` in `src/tools/scenario_fitness.py`. Candidate definition: for each Pareto deal, identify the "winner" faction (highest score); then count distinct winners across the frontier, normalized by `min(frontier_size, n_factions)`. A frontier where every deal favors a different faction → diversity = 1.0; all deals favor the same faction → diversity = 1/n_factions. Alternative formulations to consider during step 1: entropy of winner distribution, average pairwise L2 distance between per-faction score vectors across frontier deals.
-2. Add `pareto_outcome_diversity: float = 0.0` field to `ScenarioSpec` in `src/tools/scenario_spec.py`. Default 0.0 means "no diversity constraint" (no behavior change for existing specs).
-3. Update `tests/test_scenario_fitness.py` with hand-built fixtures: all-same-winner frontier (low diversity), distinct-winner frontier (high diversity), mixed.
-4. Update `tests/self_play/scenarios/joint_space_mission_v1/spec.json` to use the new metric \u2014 target `pareto_outcome_diversity = 0.66` (= 2 distinct winners out of 3 factions, matching what the current Phase 36 output naturally produces).
-5. Validate: re-run `scenario_builder --verify` on the updated spec; confirm convergence within the same ~5s budget.
-6. Doc updates: clarify in `CLI_REFERENCE.md` that `pareto_distribution_spread` and `pareto_outcome_diversity` measure *different* properties; cross-reference in the spec field docs to prevent the same misread happening to future spec authors.
-7. Phase close per `.claude/commands/phase-complete.md`.
+**Regime:** Build — deterministic metric + additive spec field + tests.
+
+**Steps:**
+- [ ] 37.1 Add `pareto_outcome_diversity` computation to `compute_fitness()` in `src/tools/scenario_fitness.py` (distinct-winner-fraction: `distinct_winners / min(frontier_size, n_factions)`)
+- [ ] 37.2 Add `pareto_outcome_diversity: float = 0.0` field to `ScenarioSpec` in `src/tools/scenario_spec.py` (default 0.0 = no constraint; validate `[0.0, 1.0]`)
+- [ ] 37.3 Add unit tests in `tests/test_scenario_fitness.py`: all-same-winner (low diversity), distinct-winner (high diversity), mixed, default-zero-no-constraint
+- [ ] 37.4 Update `tests/self_play/scenarios/joint_space_mission_v1/spec.json` — add `pareto_outcome_diversity: 0.66`
+- [ ] 37.5 Validate: run `scenario_builder --verify` on updated spec + full test suite green
+- [ ] 37.6 Doc update: `CLI_REFERENCE.md` — document `pareto_outcome_diversity`; add "measures X not Y" cross-reference for both metrics
+- [ ] 37.7 Phase close
 
 **Out of scope.**
 - Renaming or removing `pareto_distribution_spread` \u2014 the metric is well-defined and useful for its actual purpose (uniformity of per-faction frontier ranges, e.g., for fairness audits). Document, don't delete.
