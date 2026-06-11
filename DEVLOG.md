@@ -642,3 +642,14 @@ Focused verification: `python3 -m pytest -q tests/test_persona.py tests/test_sce
 ## 2026-06-11 - Phase 38 step 38.4 follow-up: verified final-round summary and pressure fixture metadata
 
 Verified the step 38.4 follow-up edits in the live tree: `src/modules/persona/__init__.py` now emits the combined final-round summary line (`No deal = N pts (your BATNA); current best offer = M pts; walking away costs you M-N pts`) ahead of the existing detail lines, `tests/self_play/fixtures/pressure/pressure_good.json` now carries `pressure_profile`, and the matching tests assert both changes. Focused regression slice passed again after the edits: `python3 -m pytest tests/test_persona.py tests/test_scenario_pressure.py tests/test_scenario_compiler.py` and the direct pressure verifier smoke both passed.
+
+### Step 38.5: doc update and phase-close prep
+Mode: Build
+Outcome: Updated the phase-close docs to mark Phase 38 closed, record the pressure schema in the architecture and assessment docs, and advance DEVPLAN to the review state.
+Contract changes:
+- `ARCHITECTURE.md` - scenario compiler / builder rows now mention pressure metadata and pressure-aware round-context rendering.
+- `ASSESSMENT.md` - §4.5 pressure row now points at the implemented `pressure` object; the pressure-mechanisms note now distinguishes shipped small-bundle fields from deferred exogenous events.
+- `NEXT_STEPS.md` - Phase 38 status updated to closed across the backlog summary, pressure section, and reverse-scenario-builder lineage.
+- `DEVPLAN.md` - Step 38.5 checked off.
+
+This step was doc-only. No code or test changes were needed. The next action is Phase 38 review.

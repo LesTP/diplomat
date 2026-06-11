@@ -18,7 +18,7 @@
 | Coaching | Parse and route operator input by tag | toolkit/coaching |
 | Review Gate | Human approval workflow: approve/edit/revise/block (lazy-fetch reasoning/adversarial; `/revise:` LLM-rewrite with cap) | Transport (coaching channel), Pipeline (regenerate_with_directive) |
 | Edit Classifier | Classify review-gate edits into six categories via LLM for prompt-tuning signal | toolkit/edit_classifier (extracted 2026-06-07; project-side `build_edit_classifier` factory only) |
-| Scenario Compiler | Narrative scenario → scored persona files with point tables, BATNAs, deception tactics, game-mode | toolkit/structured_llm |
+| Scenario Compiler | Narrative scenario → scored persona files with point tables, BATNAs, pressure metadata, deception tactics, game-mode | toolkit/structured_llm |
 | Pipeline | Per-agent capability surface: event storage, extraction, operator dispatch, round advancement, reconciliation/analysis, response generation, and query APIs | All runtime modules, toolkit/cost_accountant |
 | Flow | Scheduling strategies that drive one or more Pipelines; current implementations are EventDrivenFlow and RoundSteppedFlow | Pipeline, Transport or moderator/application driver |
 | Orchestrator | Compatibility constructor that builds the old composition core and returns EventDrivenFlow(Pipeline(core)) | Pipeline, Flow, all modules |
@@ -133,7 +133,7 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 | 14 | Scenario Compiler | Pre-game tool. Narrative → scored personas. Not a pipeline module — operator runs it before game start. | Phase 18 complete |
 | 15 | Pipeline | Per-agent capability surface extracted from Orchestrator: persistence, extraction, coaching dispatch, round advancement, reconciliation/analysis, response generation, and query APIs. | Phase 22 complete |
 | 16 | Flow | Scheduling strategies that drive one or more Pipelines, starting with event-driven production and round-stepped self-play. | Phase 22 complete |
-| 17 | Scenario Builder | Constraint-driven reverse scenario generator. Operator writes a `ScenarioSpec`; tool searches scoring-table space via simulated-annealing hill-climb and emits `scenario_analysis.json` + per-faction `.txt` personas. Not a pipeline module — design tool only. | Complete |
+| 17 | Scenario Builder | Constraint-driven reverse scenario generator. Operator writes a `ScenarioSpec`; tool searches scoring-table space via simulated-annealing hill-climb and emits `scenario_analysis.json` + per-faction `.txt` personas, including the scenario `pressure` object. Not a pipeline module — design tool only. | Complete |
 
 ## Testing Status
 
@@ -162,7 +162,7 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 - **Orchestrator ↔ State Manager:** write path — Orchestrator calls the 5 persistence methods (`store_coaching`, `store_intelligence`, `set_game_state`, `store_adversarial_read`, `mark_coaching_consumed`) added in Phase 12.
 - **Edit Classifier ↔ State Manager:** write path — `LLMEditClassifier.classify()` results are stored via `StateManager.store_edit_classification(review_gate_edit_id, classification)`. `get_edit_classifications()` returns a joined view with `review_gate_edits` metadata. FK constraint: `edit_classifications.review_gate_edit_id → review_gate_edits.id`.
 - **Edit Classifier ↔ toolkit/edit_classifier:** the classifier primitive lives in `toolkit.edit_classifier` (extracted from Diplomat 2026-06-07; see `toolkit/ARCH_edit_classifier.md`). Diplomat's `src/modules/edit_classifier/` keeps only the project-side `build_edit_classifier(...)` factory that reads `pipeline.yaml`'s `{"primary": {...}}` provider shape and the local `DEFAULT_PROMPT_PATH` constant pointing at `config/prompts/edit_classifier.txt`. The toolkit primitive itself calls `toolkit.structured_llm.structured_call(tier="commodity", purpose="edit_classification")` with a six-category JSON schema enforced at the toolkit layer — same integration pattern as Extraction, Generation, Adversarial.
-- **Scenario Compiler ↔ structured_call:** the compiler (`src/tools/scenario_compiler.py`) uses `structured_call` to parse narrative scenarios into scoring tables. It generates persona files consumed by `FileBasedPersona`. No runtime dependency — it's a pre-game preparation tool.
+- **Scenario Compiler ↔ structured_call:** the compiler (`src/tools/scenario_compiler.py`) uses `structured_call` to parse narrative scenarios into scoring tables. It generates persona files consumed by `FileBasedPersona`, including pressure-aware round-context text when the scenario schema carries `pressure`. No runtime dependency — it's a pre-game preparation tool.
 - **Reconciliation factory:** `build_reconciler(llm_client, llm_providers_config, tier, attribution)` in `src/modules/reconciliation/__init__.py` is the canonical way to construct a `StateReconciler`. Both `src/main.py` (`_attach_reconciler`) and self-play (`game_environment.py`) use it. `subsystem_llm_config(primary, tier)` converts a pipeline.yaml provider config dict to the `{provider, models, api_key}` format used by `structured_call`.
 - **Extension: new Transport implementation** → additive (new class, config change). No other modules affected.
 - **Extension: new LLM provider** → toolkit config change only. No Diplomat code changes.

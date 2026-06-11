@@ -269,7 +269,7 @@ A scenario directory matching the existing pipeline contract:
 | Asymmetric BATNAs | `asymmetric_batna_fractions` | Per-faction BATNA = fraction × max-possible-score |
 | Priority structure | `priority_collision` | `none` (clean logrolling) / `soft` (forces compromise) / `hard` (single contested issue) |
 | Game mode | `game_mode` | `cooperative` / `competitive` / `mixed` — flows into persona template |
-| Pressure mechanisms | *(not yet)* | Round-cost decay, exogenous events, asymmetric deadlines — sit outside the scoring schema; see `NEXT_STEPS.md` §2 |
+| Pressure mechanisms | `pressure` object (`round_cost_decay`, `asymmetric_clocks`, `penalty_floor_offset`) | Small-bundle pressure now lives on the scenario schema and feeds persona / round-context rendering; exogenous events remain deferred to Phase 39 |
 
 Targets that aren't strictly required can be downweighted or disabled via
 `target_weights: {<field>: <weight>}`. The default is 1.0 for continuous
@@ -293,9 +293,10 @@ records when a spec doesn't converge in expected time.
 
 ### What it doesn't (yet) do
 
-- **Pressure mechanisms.** Round-cost decay, exogenous events, asymmetric
-  deadlines all sit outside `scenario_analysis.json` and require compiler
-  + `PERSONA_TEMPLATE` extension. `NEXT_STEPS.md` §2.
+- **Pressure mechanisms.** Round-cost decay, asymmetric deadlines, and
+  penalty floor now sit in `scenario_analysis.json` as `pressure` and flow
+  through `PERSONA_TEMPLATE`; exogenous events still sit outside the schema
+  and remain deferred to Phase 39. `NEXT_STEPS.md` §2.
 - **LLM narrative wrap.** Logrolling text, deception tactics, scenario
   title are emitted as stubs. Operator fills.
 - **Larger search spaces.** Validated at 3 factions × 3 issues × 3

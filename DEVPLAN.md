@@ -87,7 +87,7 @@ steps_remaining: 0
 - [x] 38.2 — Thread pressure through the persona template and `build_round_context()` / final-round marker text. Effective BATNA at round N = BATNA - (N-1) * round_cost - regret_offset; persona shows opponent deadlines if `priority_collision != "none"` style information sharing applies.
 - [x] 38.3 — Add `verify_scenario_pressure.py` plus fixture-backed tests for BATNA-pressure behavior (effective-BATNA at round N falls by ≥X%, asymmetric deadline forces accept-or-bust on the deadlined faction).
 - [x] 38.4 — Add `pressure_profile` metadata to each scenario (low/med/high time pressure, low/med/high external shock placeholder) and strengthen the final-round marker with current-best-vs-BATNA wording ("no deal = N pts (your BATNA); current best offer = M pts; walking away costs you M-N pts").
-- [ ] 38.5 — Doc update: `ARCHITECTURE.md` (pressure mechanisms in scenario schema row), `CLI_REFERENCE.md` if interfaces change, `ASSESSMENT.md` §4.5 (pressure mechanisms row in the spec-fields-to-properties table), `NEXT_STEPS.md` §2 (mark Phase 38 closed), `DEVLOG.md` (close entry).
+- [x] 38.5 — Doc update: `ARCHITECTURE.md` (pressure mechanisms in scenario schema row), `CLI_REFERENCE.md` if interfaces change, `ASSESSMENT.md` §4.5 (pressure mechanisms row in the spec-fields-to-properties table), `NEXT_STEPS.md` §2 (mark Phase 38 closed), `DEVLOG.md` (close entry).
 
 <!-- Closed phases only: newest first. -->
 
