@@ -31,6 +31,7 @@ _SAMPLE_ANALYSIS = {
         "gamma": {"Tariffs": {"Strict": 3, "Moderate": 5, "Relaxed": 6}, "Labor": {"Strict": 4, "Moderate": 5, "Relaxed": 3}, "Environment": {"Strict": 8, "Moderate": 5, "Relaxed": 1}},
     },
     "batna": {"alpha": 6, "beta": 6, "gamma": 6},
+    "priority_collision": "soft",
     "deception_tactics": {
         "alpha": "Overstate interest in Environment to create a tradeable concession",
         "beta": "Claim Tariffs are critical, then concede for Labor gains",
@@ -41,9 +42,9 @@ _SAMPLE_ANALYSIS = {
         "Gamma gets Strict Environment, concedes on Tariffs to Alpha",
     ],
     "pressure": {
-        "round_cost_decay": 0.0,
-        "asymmetric_clocks": {},
-        "penalty_floor_offset": 0.0,
+        "round_cost_decay": 1.5,
+        "asymmetric_clocks": {"alpha": 4, "beta": 2, "gamma": 3},
+        "penalty_floor_offset": 2.0,
     },
 }
 
@@ -73,6 +74,15 @@ class TestGeneratePersona:
     def test_includes_round_context_marker(self) -> None:
         persona = generate_persona("beta", _SAMPLE_ANALYSIS)
         assert "## CURRENT ROUND CONTEXT" in persona
+
+    def test_includes_pressure_summary_and_deadlines(self) -> None:
+        persona = generate_persona("alpha", _SAMPLE_ANALYSIS)
+        assert "### Pressure" in persona
+        assert "Round cost decay: 1.5 points per round" in persona
+        assert "Penalty floor offset: 2 points" in persona
+        assert "### Opponent Deadlines" in persona
+        assert "- beta: round 2" in persona
+        assert "- gamma: round 3" in persona
 
     def test_faction_name_capitalized(self) -> None:
         persona = generate_persona("gamma", _SAMPLE_ANALYSIS)

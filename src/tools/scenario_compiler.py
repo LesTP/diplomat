@@ -29,6 +29,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from modules.persona import CoachingContext, render_round_context_section
+
 # ---------------------------------------------------------------------------
 # Schema for structured extraction from scenarios
 # ---------------------------------------------------------------------------
@@ -278,22 +280,7 @@ Behavioral style:
   so it can be scored: "My proposal: [outcome] on [issue], [outcome] on
   [issue], ..."
 
-## CURRENT ROUND CONTEXT
-
-Round: 0
-Rounds remaining: unknown
-
-### Priorities
-- (none)
-
-### Constraints
-- (none)
-
-### Watch Items
-- (none)
-
-### Tone Notes
-- (none)
+{round_context_section}
 """
 
 _GAME_MODE_INSTRUCTIONS = {
@@ -516,6 +503,21 @@ def generate_persona(
     mode_template = _GAME_MODE_INSTRUCTIONS.get(game_mode, _GAME_MODE_INSTRUCTIONS["mixed"])
     game_mode_instructions = mode_template.format(batna=batna, good_deal=good_deal)
 
+    round_context_section = render_round_context_section(
+        round_number=0,
+        rounds_remaining=None,
+        coaching_context=CoachingContext(
+            priorities=[],
+            constraints=[],
+            watch_items=[],
+            tone_notes=[],
+        ),
+        pressure=analysis.get("pressure"),
+        priority_collision=str(analysis.get("priority_collision") or "none"),
+        faction_id=faction_id,
+        base_batna=batna,
+    )
+
     return PERSONA_TEMPLATE.format(
         faction_upper=faction_id.capitalize(),
         scenario_title=scenario_title,
@@ -529,6 +531,7 @@ def generate_persona(
         deception_section=deception_section,
         min_acceptable=min_acceptable,
         game_mode_instructions=game_mode_instructions,
+        round_context_section=round_context_section,
     )
 
 

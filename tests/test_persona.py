@@ -265,3 +265,34 @@ async def test_build_round_context_no_endgame_in_early_rounds(tmp_path):
         )
         assert "FINAL ROUND" not in context
         assert "PENULTIMATE ROUND" not in context
+
+
+@pytest.mark.asyncio
+async def test_build_round_context_renders_pressure_and_deadlines(tmp_path):
+    persona = FileBasedPersona(tmp_path / "unused.txt")
+
+    context = await persona.build_round_context(
+        round_number=4,
+        rounds_remaining=None,
+        coaching_context=CoachingContext(
+            priorities=[], constraints=[], watch_items=[], tone_notes=[]
+        ),
+        total_rounds=4,
+        pressure={
+            "round_cost_decay": 1.5,
+            "asymmetric_clocks": {"alpha": 4, "beta": 2, "gamma": 3},
+            "penalty_floor_offset": 2.0,
+        },
+        priority_collision="soft",
+        faction_id="alpha",
+        base_batna=18,
+    )
+
+    assert "### Pressure" in context
+    assert "Round cost decay: 1.5 points per round" in context
+    assert "Penalty floor offset: 2 points" in context
+    assert "### FINAL ROUND" in context
+    assert "Effective BATNA this round: 11.5 points" in context
+    assert "### Opponent Deadlines" in context
+    assert "- beta: round 2" in context
+    assert "- gamma: round 3" in context

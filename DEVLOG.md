@@ -616,3 +616,7 @@ Reviewed the current Phase 38 state after the planning commit. No implementation
 ## 2026-06-11 - Phase 38 step 38.1: pressure schema and spec round-trip
 
 Extended `ScenarioSpec` with a nested `PressureSpec` carrying `round_cost_decay`, `asymmetric_clocks`, and `penalty_floor_offset`, and threaded the pressure object through reverse-builder analysis output plus the compiler schema. Updated the deterministic fixture/tests in `tests/test_scenario_spec.py`, `tests/test_scenario_compiler.py`, `tests/test_scenario_builder.py`, and `tests/self_play/fake_llm_client.py` to match the new `pressure` object. Focused regression slice passed: `51 passed`.
+
+## 2026-06-11 - Phase 38 step 38.2: persona pressure rendering and deadlines
+
+Threaded pressure through the shared persona round-context renderer in `src/modules/persona/__init__.py` and reused it from `tools.scenario_compiler.generate_persona()`. Added pressure summary lines, pressure-aware final-round BATNA wording, and opponent deadlines when `priority_collision != "none"` so both runtime round contexts and generated persona files expose the same time-pressure language. Reverse-builder analyses now carry `priority_collision` so the deadline guidance survives spec-driven scenario generation. Focused regression slice passed: `117 passed`.

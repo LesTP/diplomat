@@ -222,7 +222,9 @@ class FakePersona:
     async def get_base_prompt(self):
         return "Base persona"
 
-    async def build_round_context(self, round_number, rounds_remaining, coaching_context, total_rounds=None):
+    async def build_round_context(self, *args, **kwargs):
+        del kwargs
+        round_number = args[0] if args else 0
         return f"Round {round_number}"
 
 
