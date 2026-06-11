@@ -277,3 +277,1268 @@ Everything else (extraction prompt, generation prompt, analyst, model, infra) he
 - No game-mode behavioral guidance → cooperative scenarios and competitive ones share identical agent conduct. Built between Run 6 and Run 7.
 
 ---
+
+---
+
+# Archived: Runs 7-13 + Phases 7-9 (moved 2026-06-11)
+
+The sections below were moved from TUNING_LOG.md to keep that file focused on current-state activity. Original headings preserved verbatim.
+
+---
+
+## Inter-Run Infrastructure (Run 6 → Run 7)
+
+Two pieces of infrastructure were built between Run 6 and Run 7 in preparation
+for the coalition-scored run. Both will get their first live test in Run 7.
+
+**Post-game scoring** (`score_game()` on GameEnvironment):
+- Evaluates final-round proposals against per-faction scoring tables via `structured_call`.
+- Determines whether a deal was reached (strict: positions must be explicitly compatible).
+- Calculates each faction's score against its private scoring table.
+- Compares each score against the faction's BATNA.
+- Declares winner (highest score) and loser (below BATNA, or lowest).
+
+**Game-mode behavioral instructions** (injected by the scenario compiler):
+- Compiler classifies each scenario as cooperative / competitive / mixed.
+- Persona template embeds mode-specific conduct guidance:
+  - *Competitive:* "Your goal is to maximize YOUR score. A deal where everyone is happy means you left points on the table."
+  - *Cooperative:* "Look for trades that create mutual value, but maximize YOUR share."
+  - *Mixed:* "Be competitive on your priority issue, cooperative on secondary ones."
+
+---
+
+## Run 7 — Three-Party Coalition (Scored) — COMPLETE
+
+**Status:** COMPLETE 2026-05-29. Full 4-round game ran end-to-end with reconciliation, post-game scoring, and endgame awareness all live for the first time. Cost ~$1-2 across the run.
+
+**Pre-run history (worth recording):** four failed live/dry-run attempts on 2026-05-29 surfaced four bugs and one major design question (see also `ARCH_conversation_model.md`):
+- Bug 1: `total_rounds` was set on the orchestrator *after* the seed broadcast, so the first agent generations had no endgame info. Fixed by setting `total_rounds` before the seed.
+- Bug 2: the orchestrator's `current_round` never advanced through self-play because the moderator never sends `^ROUND N` signals; all 4 rounds executed with internal `current_round=1`, so the PENULTIMATE/FINAL endgame reminders never fired. Fixed by `GameEnvironment.run_round` explicitly setting `current_round` on each orchestrator at the top of each round.
+- Bug 3: each agent's response pipeline auto-fired 4-5× per round on direct-address triggers (every coalition message mentions every faction), but only one explicit `run_round()` call could capture output via the test transport drain. Real LLM latency lost the rest in a race. Diagnosed via a new dry-run infrastructure (`tests/self_play/fake_llm_client.py`, `verify_dryrun.py`). Fixed structurally by Stage 1 of the conversation model: suppress auto-trigger via the new `auto_response_enabled = False` orchestrator flag.
+- Bug 4: round-budget tracker never reset across rounds (it would normally reset via `handle_round_boundary()` triggered by the same `^ROUND N` signal that's also missing), so accumulated spend silently tripped the per-round budget gate by round 4, skipping generation. Fixed by `GameEnvironment.run_round` calling `_reset_round_budget()` on each orchestrator at the top of each round.
+- Side: post-game scoring and reconciliation calls bypass `LoggingLLMClient` (they use the unwrapped inner client), so they don't appear in `llm_call_log`. Not blocking; verifier now reads `scores` from the results JSON directly. Fix the unwrap later if useful.
+
+**Conversation model:** Stage 1 — Model 1 (single-shot sealed). Each agent generates exactly one response per round, all agents generate without seeing each other's current-round responses. Their context includes the previous round's transcript only. See `ARCH_conversation_model.md` for the full model taxonomy and staged migration plan.
+
+**Rationale:**
+A negotiation strategy on a finite horizon should evolve: open exploratory, gather
+information, then arc toward a concrete commitment as the end approaches. Without
+an explicit endgame signal, an agent has no reason to ever close — every round
+feels like a middle round, so it keeps hedging, keeps exploring, and never commits.
+Once we tell the agent the game is bounded, scoring happens at the end, and there
+are explicit winners and losers, the agent gains a reason to converge late.
+
+This applies beyond Run 7. It's an instance of a general principle for
+finite-horizon agent design: when an agent's behavior depends on knowing the game
+is bounded, you have to *tell it the game is bounded*. The same logic will apply
+to any future scenario and to real game deployment.
+
+**Hypothesis:**
+Stating "finite game + scoring + winners/losers" in the persona is *sufficient*
+to produce the open-then-commit arc. Specifically:
+- Round 1-2: agents probe, propose tentative trades, withhold true priorities (similar to Runs 4-6).
+- Round 3 (penultimate): visible shift toward concrete proposals; agents begin "closing language".
+- Round 4 (final): agents state their best offer clearly; convergence on a deal (or explicit walkaway with reference to BATNA).
+
+If this holds, the prompt design is minimal and the dynamic PENULTIMATE/FINAL
+injections are belt-and-suspenders. If it fails, we'll see flat behavior across
+rounds and need to strengthen the time-pressure mechanism.
+
+Secondary hypothesis (lower confidence): reconciliation will visibly improve
+ledger quality — fewer duplicate promises, some `pending → kept/broken`
+transitions, at least one inconsistency flagged from position shifts.
+
+**What we're tweaking (the experimental variables):**
+
+| Element | Change | Type |
+|---------|--------|------|
+| `PERSONA_TEMPLATE` in scenario compiler | New static `ENDGAME:` paragraph (every faction's system prompt) | prompt |
+| Persona `build_round_context` | Renders "Round N of M"; emits `### PENULTIMATE ROUND` / `### FINAL ROUND` blocks in last two rounds | prompt + infra |
+| GameEnvironment | Wires `total_rounds` to each orchestrator | infra |
+| Reconciliation module | Enabled (built Phase 18, never run live) | infra (first live test) |
+| Post-game scoring | Enabled (built Phase 18, never run live) | infra (first live test) |
+
+Implementation: see `DEVLOG.md` → "Run 7 Prep — Endgame Awareness" entry
+(2026-05-29).
+
+**Config:**
+- Scenario: Three-Party Coalition (same as Run 6, auto-compiled by scenario compiler)
+- Models: all 3 factions on `gpt-4.1-mini` (kept identical to Runs 3-6 so behavior change can be cleanly attributed to the prompt/instrumentation change, not the model)
+- AutoApproveReviewGate, 4 rounds
+- Local temp path for self-play cost ledger (UNC-path fix from the previous attempt)
+
+**What we're looking for (observation targets):**
+- *Endgame behavior shift:* do agents commit more concretely in round 4 than round 1? Do they reference scoring/BATNA in messages? Do they react to the PENULTIMATE / FINAL ROUND injection (round 3 vs round 4)?
+- *Reconciliation:* duplicate promises actually merged (Run 4 had 5 dupes of the same $2M commitment), at least one `pending → kept/broken`, at least one inconsistency flagged (zero across 7 prior runs).
+- *Post-game scoring:* clean winner/loser declaration with per-faction scores vs BATNA.
+
+**Estimated cost:** ~$0.60 (similar to Run 6)
+
+**Decision after run:**
+- If late-round shift is visible → keep prompt design as-is; move on to Run 8 (multi-provider).
+- If behavior is still flat → strengthen dynamic reminders (insert earlier, raise urgency wording), re-run as 7b.
+- If shift is too strong (agents panic and capitulate below BATNA) → soften, possibly remove the FINAL ROUND injection and rely on round count alone.
+- If reconciliation underperforms → separate diagnostic before Run 8.
+
+**Observations:**
+
+Final results (run7_endgame_v2.json):
+- 21 messages exchanged across 4 rounds — exactly the structural expectation (1 seed + 4 × (1 moderator + 3 agents + 1 round-end)).
+- Promises tracked per faction: A=4, B=3, C=2 (vs 0 in Run 6 and in the 3 broken Run 7 attempts). Reconciliation visibly merged duplicates with semantic-similarity reasoning, e.g. *"Merged duplicate coalition proposals between A and B with differing division shares; kept 'a-to-b-coalition-proposal-r1' and removed 'b-to-a-coalition-proposal-r1'."* Reconciliation was called per agent per round boundary as expected.
+- Post-game scoring produced clean output: deal_reached=false, all factions at BATNA, A declared winner via highest-BATNA tiebreaker.
+- Cost ledger: per-round budget reset on each round, no silent skips.
+
+Behavioral observations across rounds:
+- *Endgame shift IS visible.* In R4 (FINAL ROUND marker present in B's round context), B explicitly conceded the majority-share fight: *"I stand firm with faction A's proposal for coalition A+B only, with the division granting majority share to A (65 units) and the remainder to B (53 units)."* In R1-R3, B had insisted on majority share for itself. The endgame reminder appears to have done its job for B.
+- *A held firm throughout.* No incentive to budge — A already had everything it wanted (AB coalition + A-majority).
+- *C never converged.* Held the A+C line through all 4 rounds. Game-theoretically reasonable: any AB-with-A-majority deal excludes C entirely, so C has no incentive to fold to AB. C's BATNA was as good as endorsing a deal that excludes them.
+- *No deal declared* because A+B aligned but C dissented and the scorer requires explicit compatible proposals from all factions. Game-theoretically this is "AB coalition forms in practice, C is excluded with BATNA payoff" — but the scorer's strict consensus rule reads it as no deal.
+
+Endgame-prompt anomaly (from the v1 attempt before budget fix, but worth recording):
+- In R2 of Run 7-v1, agent A said *"I want to be clear as we approach our final round"* — except this was round 2, NOT the final round. The PENULTIMATE marker only fires in R3 and FINAL in R4 (per design). A invented the "approaching final round" framing from the static `ENDGAME:` paragraph in its persona alone, without any dynamic marker. The persona's endgame talk is anchoring agents toward closing behavior earlier than intended.
+
+**Learning:**
+- *Hypothesis partially confirmed.* Endgame awareness produces visible R4 behavior change for at least one agent. B's explicit "I stand firm with A's proposal" is a clear closing move that didn't appear earlier rounds. So the basic prior holds: telling agents the game is finite changes their late-round behavior.
+- *But:* with only 3 factions and a coalition-style scenario, the structure of the game (the 3rd faction being unable to join the 2-faction value-maximizing coalition) prevents a full deal regardless of endgame awareness. C had no path to a winning outcome by R4. The scenario itself was somewhat unforgiving.
+- *Persona endgame talk leaks.* The static `ENDGAME:` paragraph is over-anchoring agents to closing behavior even in early rounds. Should consider either (a) softening it to be more neutral about timing, OR (b) moving more of the endgame messaging into the dynamic round context (which only intensifies in the last 2 rounds), OR (c) accepting that some over-anchoring is fine because real diplomatic agents do think about the endgame from round 1.
+- *Reconciliation works for dedup.* The Run 6 question ("does reconciliation actually merge duplicate promises?") is answered YES. Multiple merges occurred with sensible reasoning.
+- *Reconciliation produced zero inconsistencies and zero state transitions (pending → kept/broken).* These were two of the four reconciliation tasks (dedup, status updates, inconsistency flagging, missed proposals). Dedup ✓. Inconsistency detection — still untested in practice because no agent contradicted themselves cleanly enough. Status updates — there was no fulfillment to detect because no deals were closed mid-game. Missed proposals — implicit zero because the broadened extraction prompt seems to be catching proposals correctly.
+- *Self-play infrastructure is now production-ready.* Dry-run + verify_dryrun gives us a fast, free way to validate plumbing before live runs. This is reusable for every future experiment.
+
+**Decisions taken:**
+- Run 8 (multi-provider showdown) can proceed on this same plumbing.
+- Defer the "static persona endgame over-anchoring" prompt-tuning to a follow-up run (would muddy Run 8's variable-isolation).
+- Reconciliation's inconsistency and status-update paths need a scenario designed to trip them (e.g., a faction that shifts position contradicting an earlier explicit commitment). Future test, not blocking.
+- Stage 1 (Model 1) conversation model is sufficient for the current experimental program. Revisit Stage 2 (K=2 passes) only if Run 8 reveals that within-round reactivity would change conclusions.
+
+**Open items closed by this run** (pointer-only; evidence lives in Observations and Learning above):
+- Promise dedup via reconciliation (untested → confirmed live).
+- Explicit `FINAL ROUND` / `PENULTIMATE` marker design (deferred → implemented and observed to influence behavior).
+- Self-play infrastructure hardening (4 plumbing bugs surfaced and fixed; dry-run capability added).
+
+**Decision rule for Run 8 (defined in advance, per the new entry template):**
+- If the 3-provider asymmetric outcome shows a clear winner-by-provider → that's the experiment, log it.
+- If the winner is essentially random / no provider dominates → run two more games with rotated faction assignments to control for position.
+- If any provider fails schema validation on > 20% of calls → that's a separate experiment about structured_call's robustness across providers.
+
+---
+
+## Phase 7: Multi-Provider Comparison (Run 8) — COMPLETE
+
+### Run 8 — Three-Provider Asymmetric Showdown (Water Rights) — COMPLETE
+
+**Status:** COMPLETE 2026-05-29. Switched from Three-Party Coalition to Water Rights to avoid Run 7's structural no-deal pattern. Surfaced and fixed two infra bugs (env loading + Markdown fence stripping) and built two new pieces of runner plumbing (per-faction provider routing, pre-compiled analysis loader). All three providers reached the transcript; 11/12 expected messages exchanged (Gamma's R4 lost to a Google free-tier rate limit, cosmetic).
+
+**Pre-run history:** Run 7 used Three-Party Coalition where v(ABC)=121 ≈ v(AB)=118. Game-theoretically the excluded faction (C) had no path to a deal that beat their BATNA, so the strict "all factions converge" scoring always read "no deal" regardless of negotiation skill. Useless for a provider showdown — every model that plays correctly produces the same outcome. Switched to Water Rights (3 issues × 3 outcomes, asymmetric private valuations, all three factions can plausibly beat BATNA) and hand-patched BATNAs upward (alpha 7.5→11, beta 4→8, gamma 6→10) to force real negotiation pressure. Verified with a new tool (`tests/self_play/verify_scenario_optimum.py`) that the scenario has 12/27 deals beating all BATNAs, 5 Pareto-optimal deals, and a non-trivial "everyone-gets-priority" optimum.
+
+**Conversation model:** Stage 1 (Model 1 — single-shot sealed), same as Run 7. Carried forward unchanged.
+
+**Rationale:**
+A clean provider comparison needs a scenario where:
+1. Convergence is possible (a deal exists that beats BATNA for all)
+2. Finding it requires actual diplomatic skill (not just arithmetic)
+3. Different strategies produce different scores
+4. Information asymmetry creates space for misreading opponents
+
+Water Rights satisfies all four; Three-Party Coalition satisfies (3) only.
+
+**Hypothesis:**
+With one variable held (per-faction Generator provider) and all other modules fixed, different providers will exhibit different negotiation styles — anchoring, articulateness, willingness to compromise. The post-game score will reveal whether any style outperforms.
+
+**What we're tweaking (the experimental variables):**
+
+| Element | Change | Type |
+|---------|--------|------|
+| Per-faction Generator provider | Alpha=OpenAI gpt-4.1-mini, Beta=Anthropic claude-haiku-4-5, Gamma=Google gemini-2.5-flash. Extraction/Analyst/Adversarial/Reconciliation held on shared OpenAI. | infra |
+| `tests/self_play/scenarios/water_rights.md` | NEW. Three issues (volume, payment, infrastructure) × three outcomes each. Each faction has a distinct priority issue. | scenario |
+| `tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json` | Auto-compiled by scenario compiler, then BATNAs hand-patched upward to force negotiation pressure (compiler defaults too soft — see "Compiler BATNA anchor" in Open Items). | scenario data |
+| `tests/self_play/verify_scenario_optimum.py` | NEW tool. Enumerates all possible deals, computes per-faction max/BATNA/Pareto-optimal deals, verifies non-trivial logrolling optimum exists before spending money on a live run. | infra (new tool) |
+| `--per-faction-providers` CLI flag | NEW. Parses a JSON map `{faction: {provider, model}}` and overrides only the Generator slot per faction. Other modules unaffected. | runner |
+| `--analysis-json` CLI flag | NEW. Skips live LLM compilation and loads a pre-compiled analysis JSON. Preserves hand-edits to BATNAs/scoring between iterations. Personas regenerated from the loaded analysis at startup. | runner |
+| `load_dotenv()` in run_simulation | Bug fix. Without this, only env vars in the parent shell (typically only OpenAI's key) were visible to subprocess SDKs; Anthropic and Google failed auth. | runner |
+| `toolkit/structured_llm/parse_json_response` | Bug fix. Strips a surrounding Markdown code fence before parsing. Anthropic and Google wrap JSON in ` ```json ... ``` ` even when instructed otherwise; without stripping, structured_call's retries silently exhausted and downstream modules saw nothing. | toolkit dep |
+| `verify_dryrun --expect-providers` | NEW. Walks the call log and asserts each faction's GEN calls went through the expected provider. Catches routing regressions for free. | infra (verifier) |
+
+**Config:**
+- Scenario: Water Rights (Clearwater River Basin), 3 factions, 4 rounds
+- Generator providers (per faction):
+  - alpha: OpenAI `gpt-4.1-mini`
+  - beta: Anthropic `claude-haiku-4-5`
+  - gamma: Google `gemini-2.5-flash`
+- All other modules (Extraction, Analyst, Adversarial, Reconciliation): shared OpenAI `gpt-4.1-mini`
+- AutoApproveReviewGate, post-game scoring enabled
+
+**Cost:** ~$1 across two real runs (the v2 attempt before fence stripping was discarded). Cost dominated by Anthropic and OpenAI; Google free-tier covered most of gamma's calls until rate limiting at the end.
+
+**Observations:**
+
+Final results (`tests/self_play/results/run8_water_rights_3provider_v3.json`):
+
+| Faction | Provider | Score | BATNA | Promises tracked |
+|---|---|---|---|---|
+| alpha | OpenAI gpt-4.1-mini | 11 | 11 | 8 |
+| beta | Anthropic claude-haiku-4-5 | 8 | 8 | 15 |
+| gamma | Google gemini-2.5-flash | 10 | 10 | 5 |
+
+No deal declared. All factions revert to BATNA. Winner by points: Alpha (tiebreak on highest BATNA).
+
+**Convergence pattern observed:**
+- Two of three issues converged cleanly across all factions: **Volume = High (20M gallons/month)** and **Infrastructure = Joint-Funded Desalination**.
+- Deadlock was on **Payment Structure**:
+  - Alpha (OpenAI) anchored on Heavy-Downstream from Round 1 and never moved. Conceded Volume Low→High but kept Payment as non-negotiable.
+  - Beta (Anthropic) pushed Token with detailed structured arguments: "Beta's cash position is fragile... Alpha already received substantial compensation via infrastructure"
+  - Gamma (Google) sided with Beta on Token (Gamma's scoring: Token=6 vs Heavy-Downstream=3)
+
+**Game-theoretic check:** Beta+Gamma's preferred deal (High + Token + Joint-Funded) would force Alpha below BATNA (alpha=9 vs BATNA 11). Alpha was correctly refusing. A Pareto-optimal Shared deal exists (High + Shared + Joint-Funded → alpha=14, beta=20, gamma=22, all comfortably above BATNA) but **no agent proposed it**. Everyone stayed at the extremes on payment.
+
+**Qualitative provider differentiation (visible in the transcripts):**
+- **OpenAI (Alpha):** hardball anchorer. Set an opening position in R1 and held it through R4 on the priority issue. Conceded only on the secondary issue.
+- **Anthropic (Beta):** most articulate. Used numbered structured arguments. Explicitly named the deception tactic in reasoning ("I should overstate interest in Payment Structure to trade for Volume"). But rigidly stuck to extreme positions.
+- **Google (Gamma):** cooperative and supportive. Allied with Beta on the non-priority issue (payment). Voice cut off in R4 by free-tier rate limit (429).
+
+**Learning:**
+- *Provider differentiation IS visible* in qualitative behavior — different anchoring patterns, different rhetorical styles, different willingness to ally. But raw scores are essentially tied at BATNA because (a) the deadlock is structural (everyone insists on their own preferred payment), and (b) Alpha won the tiebreak on raw BATNA value, not on negotiation skill.
+- *Position confounds provider quality.* Alpha (OpenAI) had the highest BATNA (11) and also won the tiebreak with 11 points. We cannot distinguish "OpenAI is the better hardball player" from "alpha had the most leverage to play hardball." A follow-up Run 9 with rotated assignments is needed to control for this.
+- *Persona payment rigidity recurs.* Same flavor as Run 7's "static persona endgame over-anchoring" — agents stake out a position on their priority issue in R1 and never propose compromises even when those compromises clearly beat their BATNA. Future tuning: nudge personas toward proposing the secondary outcome on their priority issue when deadlocked.
+- *Scoring rule strictness recurs.* The "all factions must converge on compatible terms" rule reads this as "no deal" even though there was substantive agreement on 2/3 issues. Same observation as Run 7. May need a relaxed scoring mode that recognizes partial deals.
+- *Google free tier is a real constraint.* Gemini-2.5-flash worked fine for ~3 rounds, then rate-limited in R4. For serious experimentation gamma needs either backoff-with-retry in toolkit's llm_client or a paid model tier.
+- *Two infra bugs were silent failures.* Both the missing `load_dotenv()` and the missing fence-strip produced "successful" runs with no visible error — agents just didn't speak. Without the `--expect-providers` verifier and per-faction extraction analysis it would be easy to mistake silent message loss for "the agent had nothing to say." Worth keeping the verifier in the standard validation flow.
+
+**Decisions taken:**
+- Run 9 (rotated faction assignments) is the natural next experiment — same plumbing, same Water Rights scenario, just rotate which provider plays which faction. Controls for position advantage.
+- Don't relax scoring rules yet — collect one more data point first to see if "alpha wins by tiebreak" is a pattern.
+- Don't tune the persona payment rigidity in this iteration — it would muddy Run 9's variable isolation. Note it as a separate follow-up.
+- Don't fix the Google rate-limit handling in toolkit right now — document it and use a paid model in Run 9 if budget allows, OR accept that the third provider may drop a message per game.
+
+**Open items closed by this run** (pointer-only):
+- Per-faction Generator provider routing infra (was a gap, now exists as a clean CLI flag).
+- `--analysis-json` path that preserves hand-tuned BATNAs across runs (gap filled).
+- Markdown fence handling in toolkit's `parse_json_response` (silent failure mode, now fixed).
+- `.env` not auto-loaded in self-play runner (silent failure mode, now fixed).
+- Scenario optimum verifier (was: "we hope this scenario has a non-trivial optimum"; now: we can prove it before spending money).
+
+**Open items raised by this run:**
+- [ ] **Run 9 — rotated faction assignments.** Control for position advantage (alpha had the highest BATNA AND won — coincidence?). Same Water Rights scenario, rotate provider→faction mapping.
+- [ ] **Persona payment rigidity.** All three agents stayed at extremes on the deadlocked issue. None proposed the obvious Shared compromise that beats all BATNAs. Likely a persona-prompt issue (the "don't accept the first reasonable framework" rule reinforces hardball). Worth testing a softened variant in a future run.
+- [ ] **Google free-tier rate limiting.** Gemini-2.5-flash hit 429 on Gamma R4. Add retry-with-backoff to toolkit's llm_client, OR switch gamma to gemini-2.5-pro (paid) for serious runs.
+- [ ] **Scoring rule strictness (recurring).** Two of three issues had clean consensus; the scorer read "no deal." Consider partial-deal scoring that rewards convergence on individual issues even when the overall package isn't signed.
+- [ ] **Compiler BATNA anchor.** The scenario compiler's system prompt hardcodes "BATNAs should be low enough (typically 4-8 total)" regardless of what the narrative says. Our scenario explicitly said "BATNA is roughly half of max" and the compiler still produced 7.5/4/6 — required a hand-patch to hit 11/8/10. Either relax the compiler's BATNA guidance, add a `--batna-fraction` override, or accept the hand-patch step in the workflow.
+
+**Decision rule for Run 9 (defined in advance):**
+- If rotated assignments produce the same "highest-BATNA faction wins by tiebreak" pattern → conclude that this Water Rights scenario can't distinguish provider quality and design a new scenario.
+- If a different provider wins from a different faction position → we have a directional signal about provider style. Worth at least one more rotation to confirm.
+- If the rotated game converges on an actual deal → the original game's deadlock was specific to provider×position pairing, which is itself an interesting result.
+
+---
+
+## Inter-Run Infrastructure (Run 7 → Run 8)
+
+Five pieces of infrastructure were built or fixed for Run 8. They are reusable for all future runs.
+
+**Per-faction provider routing** (`tests/self_play/game_environment.py`):
+- New `per_faction_providers: dict[str, dict[str, str]]` kwarg on `GameEnvironment`.
+- When set, generates a `generator_override` slot in the faction's `llm_providers` config and points only the Generator module at it. Other modules (Extractor, Analyst, Adversarial, Reconciliation) stay on shared primary/secondary.
+- `_api_key_env_for(provider)` helper maps provider name → expected env var (openai/anthropic/google/openrouter).
+
+**Pre-compiled analysis loader** (`tests/self_play/run_simulation.py`):
+- New `--analysis-json` CLI flag loads a pre-existing `scenario_analysis.json` and regenerates personas from it (no LLM call). Useful when hand-editing BATNAs, scoring tables, or deception tactics between runs to preserve those edits without recompiling.
+- Requires `--scenario` alongside it (for the seed-message text).
+
+**`.env` loader in runner** (`tests/self_play/run_simulation.py`):
+- `load_dotenv()` at module top so subprocess SDKs see all provider keys, not just whatever happens to be in the parent shell. Previously only OPENAI_API_KEY was reliably visible.
+
+**Scenario optimum verifier** (`tests/self_play/verify_scenario_optimum.py`):
+- Reads a `scenario_analysis.json`, enumerates all possible deals (cartesian product of outcomes across issues), computes per-faction max score / BATNA / Pareto-optimal deals, and reports:
+  - Whether priorities are differentiated across factions
+  - How many deals beat all BATNAs (catches "all deals trivially beat BATNA — no pressure" and "no deal beats BATNAs — scenario is broken")
+  - Pareto frontier size
+  - The "everyone-gets-priority" deal and whether it sits on the frontier
+  - Logrolling quality at 75% and 60% of max thresholds
+
+**Markdown fence stripping in toolkit** (`p:\shared\toolkit\src\toolkit\structured_llm\core.py`):
+- `parse_json_response` now strips a single surrounding ` ```json ... ``` ` or ` ``` ... ``` ` fence before parsing.
+- No-op for OpenAI; needed for Anthropic and Google which wrap JSON output despite explicit "return raw JSON" instructions.
+- 19 toolkit tests still pass.
+
+**`verify_dryrun --expect-providers`** (`tests/self_play/verify_dryrun.py`):
+- Asserts each faction's GEN calls went through the expected provider. Catches per-faction routing regressions cheaply.
+
+**Live provider probe** (`tests/self_play/probe_providers.py`):
+- Hits each provider once with a trivial JSON request (~$0.001 per call) and verifies auth + roundtrip + parse. Run before every live multi-provider simulation. Catches integration bugs (missing API keys, fence wrapping, model name typos) that `DryRunLLMClient` cannot catch by design — DryRun replaces the LLM client entirely with canned responses, so no real auth/parse path runs. Run 8 burned ~14 gemini calls on silent retry loops in two failed iterations before fixing the bugs; a probe would have caught both for ~$0.003 total.
+
+---
+
+## Run 8 alternatives that we did NOT take (and why)
+
+Documented for the next time we hit a similar fork:
+
+- **Recompile Water Rights with --scenario each run** (let the compiler produce its own BATNAs). Rejected because the compiler's hardcoded BATNA range produced soft pressure (26/27 deals beat all BATNAs); the hand-patch was needed to get non-trivial negotiation. We invested in `--analysis-json` to preserve the hand-patch across runs.
+- **Stick with Three-Party Coalition and accept the no-deal outcome.** Rejected because every provider would produce essentially the same result (game-theoretically-correct refusal), so no provider differentiation would be observable.
+- **Test all 3 providers on the same scenario in series (3 separate games, each with all factions on one provider).** Rejected because that measures within-provider consistency, not cross-provider negotiation dynamics. The cross-provider game is the more interesting experiment.
+- **Build Stage 2 (M2-bounded K=2 conversation model) first.** Rejected because Run 7 Stage 1 produced rich enough behavior to support a clean provider comparison. Stage 2 stays deferred per `ARCH_conversation_model.md`.
+
+---
+
+## Phase 8: Pressure-Mechanism Testing (Run 9) — COMPLETE
+
+### Run 8 retroactive pareto-scoring (2026-06-01)
+
+Phase 23 shipped `pareto_efficiency` as a scoring field on `score_game()`, but
+Run 8 predates Phase 23 and its result JSON carries only raw faction scores.
+Backfilled via a new `tools/backfill_pareto.py` against
+`tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json`:
+
+| Metric | Value |
+|---|---|
+| achieved_score_sum | 29 (alpha 11 + beta 8 + gamma 10) |
+| max_pareto_sum | 54 (alpha 16 + beta 18 + gamma 20 at `High + Heavy-Downstream + Joint-Funded`) |
+| pareto_efficiency | **0.537** |
+| Total deals enumerated | 27 |
+| Pareto frontier size | 5 |
+| Deals beating all BATNAs | 9 |
+| Pareto + BATNA-clearing | 3 |
+
+The frontier's best aggregate deal beats every faction's BATNA comfortably
+(alpha +5, beta +10, gamma +10), yet no agent proposed it. Run 8 captured
+only 54% of the available negotiated surplus while losing nothing — the gap
+isn't risk aversion, it's failure of imagination on the Payment issue. This
+0.537 is the baseline that Run 9's variants are trying to move.
+
+Process signatures retro-computed via `analysis.py` for Runs 2-8 (no
+`scenario_analysis` embedded, so `time_to_deal` and `opening_gap` come back
+as None across the board — see Open Items for the `_DEAL_MARKERS` gap).
+
+| Run | broken_promise_rate | coalition_stability | time_to_deal | opening_gap |
+|---|---|---|---|---|
+| 2/4/5 | 0.000 | 0.000 | None | n/a |
+| 3 | 0.000 | 1.000 | None | n/a |
+| 6 | 0.000 | 1.000 | None | n/a |
+| 7 | 0.222 | 0.000 | None | n/a |
+| 8 | 0.074 | 0.000 | None | n/a |
+
+`broken_promise_rate` is the only signature that registered cross-run signal
+(Runs 7 and 8 were the first with rich enough promise-tracking + reconciliation
+to expose breakage). `time_to_deal = None` across all 7 runs is a finding in
+itself: the agent prompts never produce text containing any of the
+`_DEAL_MARKERS` strings (`"deal reached"`, `"agreement reached"`,
+`"we have a deal"`, `"final agreement"`, `"binding agreement"`). Either widen
+the marker list, or add explicit closing-language guidance to `generation.txt`.
+
+### Run 9 — Asymmetric BATNA Pressure (Water Rights, 3 variants) — COMPLETE
+
+**Status:** COMPLETE 2026-06-01. Three variants run sequentially with
+single-provider gpt-4.1-mini. Total spend ~$1.20. The beta-squeezed variant
+**reached a Pareto-optimal deal for the first time across 9 runs**, with all
+factions beating BATNA (alpha +6, beta +3, gamma +11). Symmetric and
+alpha-squeezed variants reproduced Run 8's all-at-BATNA deadlock pattern.
+
+**Pivot:** Run 9 was originally scoped (Run 8 Open Items) as "rotated provider
+assignments to control for position advantage." Replanned 2026-06-01 to instead
+exercise the Phase 24 asymmetric-BATNA infrastructure (`--batna-fractions`,
+`--force-batna-fraction`) on the same Water Rights scenario. The provider
+rotation experiment is still open and slotted as Run 10 candidate.
+
+**Pre-run history (worth recording):** none. The three variants were generated
+deterministically from the existing `water_rights_compiled/scenario_analysis.json`
+using a new `tools/recompile_batnas.py` (force-clamps BATNAs to target fractions
+without recompiling via LLM — zero cost). All three dry-runs PASS
+`verify_dryrun --rounds 4 --num-factions 3 --adversarial`.
+
+**Conversation model:** Stage 1 — Model 1 (single-shot sealed). Carried forward
+unchanged from Runs 7 and 8.
+
+**Rationale:**
+Run 8 captured only 0.537 of the available Pareto surplus despite the
+Pareto-optimal deal cleanly beating every faction's BATNA. The deadlock was on
+Payment Structure: Alpha anchored on Heavy-Downstream from R1 and never moved,
+Beta+Gamma allied around Token, and the Shared (or Heavy-Downstream with
+Joint-Funded) compromise that beats all BATNAs sat untouched on the table.
+
+The Run 8 Open Items hypothesized two reasons agents missed the Pareto deal:
+(a) "don't accept the first reasonable framework" persona rule over-anchoring
+to extremes, and (b) symmetric pressure giving every faction enough headroom to
+hold out. Run 9 tests (b) directly. Under asymmetric pressure, the squeezed
+faction loses the option of "wait for someone else to concede first" — its
+BATNA no longer survives the deadlock.
+
+**Hypothesis:**
+Tightening one faction's BATNA closer to its max possible score will:
+1. Force the squeezed faction to propose Pareto-improving deals rather than
+   anchor on extremes (visible in transcript: more concrete cross-issue trades
+   from that faction).
+2. Raise the run's `pareto_efficiency` above Run 8's 0.537 baseline because
+   the deadlock either resolves or moves to a different (smaller) corner of
+   the deal space.
+3. Shift which faction "wins" by tiebreak — under asymmetric pressure the
+   highest-BATNA faction isn't necessarily Alpha.
+
+If (1)-(3) hold across both asymmetric variants but not the symmetric control,
+asymmetric pressure is a confirmed lever for skill-testing scenarios and
+informs Run 10's pressure-mechanism design (NEXT_STEPS §2).
+
+**What we're tweaking (the experimental variables):**
+
+| Element | Change | Type |
+|---------|--------|------|
+| `tools/recompile_batnas.py` | NEW. Reads an existing `scenario_analysis.json`, force-clamps BATNAs to target fractions via `force_batna_targets()`, regenerates persona files. Zero LLM cost. | infra (new tool) |
+| `tools/backfill_pareto.py` | NEW. Computes `achieved_score_sum`/`max_pareto_sum`/`pareto_efficiency` on a historical run JSON. Used for the Run 8 retroactive scoring above. | infra (new tool) |
+| `water_rights_symmetric_050/` | Variant 1 (control). All factions at BATNA = 0.50 × max_score (alpha=11/22, beta=10/21, gamma=11/22). 9/27 deals beat all BATNAs. | scenario data |
+| `water_rights_alpha_squeezed/` | Variant 2. Alpha squeezed (0.70 = 15/22), Beta relieved (0.40 = 8/21), Gamma neutral (0.50 = 11/22). 5/27 deals beat all BATNAs. | scenario data |
+| `water_rights_beta_squeezed/` | Variant 3. Alpha relieved (0.40 = 9/22), Beta squeezed (0.70 = 15/21), Gamma neutral (0.50 = 11/22). 4/27 deals beat all BATNAs. | scenario data |
+
+Everything else held constant from Run 8: 4 rounds, 3 factions (alpha/beta/gamma),
+AutoApproveReviewGate, post-game scoring + reconciliation enabled. Single-provider
+to keep cost down and isolate the BATNA variable from provider variation.
+
+**Config (each of 3 runs):**
+- Scenario: Water Rights (Clearwater River Basin)
+- Generator provider: OpenAI `gpt-4.1-mini` (all factions, all modules)
+- Extraction / Analyst / Adversarial / Reconciliation: shared OpenAI `gpt-4.1-mini`
+- 4 rounds, AutoApproveReviewGate
+- `--analysis-json` per variant (no LLM recompile)
+
+**Estimated cost:** ~$0.20-0.50 per run × 3 = ~$0.60-1.50 total. Pre-flight
+already spent: $0 (dry-runs free, OpenAI probe ~$0.001).
+
+**What we're looking for (observation targets):**
+- *Pareto efficiency vs Run 8:* does any variant exceed 0.537? Does the
+  squeezed faction's variant exceed the symmetric variant?
+- *Who proposes the compromise:* in each variant, does the squeezed faction
+  initiate Pareto-improving cross-issue trades earlier than R3? (In Run 8,
+  no agent did this at all.)
+- *Endgame behavior under asymmetric pressure:* does the squeezed faction's
+  R4 message concretely concede on its priority? Compare to Run 7's B
+  concession pattern.
+- *Reconciliation signatures:* if asymmetric pressure produces actual
+  concessions, we should see `pending → kept` transitions for the first time
+  (Run 7 + Run 8 had zero). Also a chance to test inconsistency detection if
+  the squeezed faction shifts its stated priority.
+- *Provider routing intact:* `verify_dryrun --expect-providers` confirmed all
+  three variants route OpenAI; live runs should match.
+
+**Decision rule for Run 9 (defined in advance):**
+- If asymmetric variants both produce `pareto_efficiency > 0.60` AND the
+  squeezed faction is the one proposing cross-issue trades → asymmetric BATNA
+  is a confirmed lever. Move to Run 10 with combined asymmetric BATNA +
+  round-cost decay (NEXT_STEPS §2 mechanism 1).
+- If asymmetric variants tie or trail the symmetric variant on
+  `pareto_efficiency` → BATNA alone isn't enough; the "don't accept the first
+  reasonable framework" rule is doing most of the over-anchoring work.
+  Pivot to Run 10 = A/B test on that persona rule.
+- If `time_to_deal` registers a non-None value in any variant → the closing
+  language reached a deal marker. Worth analyzing which prompt cues triggered
+  it; may inform the `_DEAL_MARKERS` widening or `generation.txt` closing
+  guidance.
+- If reconciliation produces its first `pending → kept` or `pending → broken`
+  transition → close that Open Item against the live data and remove from
+  the carry-forward list.
+
+**Observations:**
+
+Run completed 2026-06-01. Total spend ~$1.20 (sequential, single-provider gpt-4.1-mini, ~9 min/variant).
+
+| Variant | pareto_eff | Deal? | alpha (Δ vs BATNA) | beta (Δ vs BATNA) | gamma (Δ vs BATNA) | broken_rate | time_to_deal |
+|---|---|---|---|---|---|---|---|
+| **Run 8 (baseline, 3-provider)** | 0.537 | No | 11 (+0) | 8 (+0) | 10 (+0) | 0.074 | None |
+| symmetric 0.50 | 0.593 | No | 11 (+0) | 10 (+0) | 11 (+0) | 0.154 | None |
+| alpha-squeezed | 0.630 | No | 15 (+0) | 8 (+0) | 11 (+0) | 0.028 | None |
+| **beta-squeezed** | **1.019** | **YES** | **15 (+6)** | **18 (+3)** | **22 (+11)** | 0.231 | **4** |
+
+### Retro-scored with Phase 27 metrics (2026-06-01)
+
+Phase 27 added baseline-normalized companion fields so no-deal outcomes
+can be compared against the BATNA floor instead of raw BATNA height.
+Backfilled with `tools/backfill_scoring_metrics.py` using each run's
+matching `scenario_analysis.json`:
+
+| Run | pareto_efficiency | negotiated_surplus_share | min_faction_delta |
+|---|---:|---:|---:|
+| Run 8 baseline, 3-provider | 0.537 | 0.000 | 0.000 |
+| Run 9 symmetric 0.50 | 0.593 | 0.000 | 0.000 |
+| Run 9 alpha-squeezed | 0.630 | 0.000 | 0.000 |
+| Run 9 beta-squeezed | 1.019 | 1.053 | 3.000 |
+
+This reframes the Run 8 / Run 9 symmetric / Run 9 alpha-squeezed rows:
+all three are no-deal outcomes with `negotiated_surplus_share=0.000`,
+so their different `pareto_efficiency` values are BATNA-height artifacts,
+not negotiation improvement. Run 7 was skipped for Phase 27 backfill
+because it lacks a matching compiled scenario analysis.
+
+The beta-squeezed variant **reached the Pareto-optimal deal** (`High water + Heavy-Downstream payment + Joint-Funded Desalination`) for the first time across 9 runs. Every faction beat its BATNA — gamma by +11 points, alpha by +6, beta by +3. The deal recorded in `scores.agreed_outcomes` matches the optimum identified by `verify_scenario_optimum.py` byte-for-byte.
+
+The scorer assigned alpha=15 / beta=18 / gamma=22 (sum=55) for the agreed outcomes; hand-table lookup gives alpha=16 / beta=18 / gamma=20 (sum=54). The small alpha/gamma deltas are LLM-scorer rounding (`score_game()` uses `structured_call`, not strict table indexing). `max_pareto_sum=54` was computed from the deterministic enumerator, which is why `pareto_efficiency` came back at 1.019 instead of 1.000.
+
+`time_to_deal` registered `4` for the first time across all 9 runs — the FINAL ROUND messages in the beta-squeezed variant included one of the `_DEAL_MARKERS` phrases (likely `"final agreement"` or `"binding agreement"`; the marker scan in `analysis.py` is case-insensitive substring match). The symmetric and alpha-squeezed variants returned `None` as expected (no deal closed). This is signal that the `_DEAL_MARKERS` list is not as broken as the retro-scan suggested — it just needs an actual deal to fire.
+
+Opening gaps tell a consistent story: in the variants without a deal, the squeezed faction's gap was small (alpha-squeezed: alpha_gap=0.091; beta in symmetric: 0.095). In the variant with a deal, every faction's gap is large (alpha 0.318, beta 0.476, gamma 0.091), reflecting how much each shifted from R1 opening to final score.
+
+`broken_promise_rate` rose to 0.231 in the deal variant — proposals turned over more during the negotiation because positions actually moved. The two no-deal variants had low rates (0.154 and 0.028) for the opposite reason: agents anchored on R1 positions and never amended.
+
+**Per-variant qualitative notes (from log files):**
+
+- *Symmetric:* Same deadlock pattern as Run 8. Alpha anchored on Heavy-Downstream, Beta on High volume + Token payment, Gamma allied with Beta. R4 proposals stayed at extremes. Reconciliation merged duplicates as expected.
+- *Alpha-squeezed:* Alpha held even harder on its priority (Heavy-Downstream) because the higher BATNA meant losing was worse. Beta took advantage and stayed on Token. Result: alpha got its BATNA exactly, beta kept its 8 floor, no deal. Asymmetric pressure *on the wrong faction* made things worse, not better.
+- *Beta-squeezed:* Beta couldn't afford to hold out on Token because its BATNA was now 15 (its true threshold for "I'd rather take this than no deal"). Beta conceded payment in exchange for High volume + JFD. The concession unlocked the Pareto-optimal package because Alpha's preference (Heavy-Downstream) was also the second-best for everyone. Gamma's priority (Joint-Funded) was already aligned. Beta's reconciler log entries explicitly merged earlier Token-payment promises into the final Heavy-Downstream commitment — captured the position shift.
+
+**Learning:**
+
+1. *Asymmetric BATNA is a confirmed lever — but only when the right faction is squeezed.* Squeezing beta (the holdout on Payment) unlocked the Pareto deal. Squeezing alpha (the holdout on Payment but with the highest single-issue score = 10) only entrenched alpha further. The lever's effectiveness depends on *which faction is preventing convergence*, not just on overall pressure.
+
+2. *The "don't accept the first reasonable framework" rule from Run 8's Open Items did NOT prevent a Pareto deal here.* Same persona text, same scenario, same prompts — the only delta was beta's BATNA. The over-anchoring hypothesis (Run 8 Open Item) needs revising: the rule isn't the binding constraint when material pressure makes holdout unaffordable.
+
+3. *`pareto_efficiency` conflates negotiation skill with BATNA height when no deal is reached.* The symmetric variant scored 0.593 vs Run 8's 0.537 with identical no-deal outcomes (everyone at BATNA) — the difference is just that symmetric had a higher beta BATNA. For no-deal comparisons we'd need a different metric (e.g. `delta_above_batna_sum / max_pareto_sum_minus_batna_sum`). This is a Scoring item to consider in a future Build phase.
+
+4. *`time_to_deal` works when there's a deal to detect.* The `_DEAL_MARKERS` list flagged the beta-squeezed R4. The 7-run retro-scan returning None was correct — none of those games closed. Item closed.
+
+5. *Reconciliation captures position shifts when they happen.* Beta-squeezed produced clean reconciliation logs documenting Beta's Token→Heavy-Downstream transition ("Merged Beta's two promises on volume, payment, and infrastructure into beta-alpha-volume-payment-infrastructure-final-r3, removing beta-volume-payment-infrastructure-r1"). The Run 7+8 Open Item "reconciler doesn't catch position shifts" — partially resolved: reconciler now visibly handles shifts during deal-making. The `pending → broken` and inconsistency-flagging paths still need a scenario designed to provoke a clean contradiction (Open Items list unchanged on those two paths).
+
+**Decisions taken:**
+
+- *Beta-squeezed result publishable.* This is the first concrete demonstration that asymmetric pressure changes outcomes. Worth promoting to ASSESSMENT.md as evidence for the skill-testing scenario design (Block C) and to NEXT_STEPS §2 as a closed case for "BATNA pressure works when applied to the deadlock-holder."
+- *Per-faction "right-to-squeeze" question raised for Run 10.* If asymmetric BATNA's effectiveness depends on which faction holds out, then a useful scenario-design tool is "identify the deadlock-holder before the game and squeeze them." That's an empirical question — would a pre-game analyst pass over the scoring tables flag the right faction? Worth a focused investigation.
+- *No-deal `pareto_efficiency` deserves a complementary metric.* Add a `delta_above_batna` aggregate to `score_game()` output so symmetric-vs-Run-8 isn't misread as "53.7 → 59.3 efficiency improvement" when the only change was higher BATNAs. Queue as a Build candidate — small scoring change, ~1 step in a future phase.
+- *Don't pursue Run 10 yet.* Wait for the Coached self-play smoke first; the operator-coaching loop is the higher-leverage open item per the prior session sequencing.
+
+**Open items closed by this run:**
+- *Asymmetric BATNA pressure as a lever* (Run 8 Open Items): confirmed when applied to the deadlock-holder. NEXT_STEPS §2 mechanism 1 (per-faction asymmetric BATNA) gets supporting evidence.
+- *`_DEAL_MARKERS` coverage* (raised in this entry's retro section): marker list fired on first real deal. Not a coverage gap, just a no-deal corpus.
+- *Reconciler captures position shifts during convergence* (Run 7+8 partial): demonstrated in beta-squeezed variant.
+
+**Open items raised by this run:**
+- [ ] **No-deal `pareto_efficiency` confounded with BATNA height.** Add a `delta_above_batna_sum / max_pareto_sum` or similar baseline-normalized metric. ~1-2 step build candidate.
+- [ ] **Asymmetric BATNA effectiveness depends on which faction is squeezed.** Investigate whether a pre-game heuristic (or LLM analyst pass) can identify the deadlock-holder from the scoring table alone. Either a tool (`identify_deadlock_holder.py`) or a step inside `scenario_compiler`.
+- [ ] **Alpha-squeezed entrenched alpha further.** Under-pressure faction may double-down rather than concede; this is the opposite of the desired effect. The symmetry of the squeeze (raising BATNA) doesn't account for psychology of the agent already in a losing position. Worth a more controlled study (Run 10 candidate).
+- [ ] **Scorer rounds individual faction scores.** Hand-table lookup gave alpha=16 / gamma=20 (sum 54); scorer gave alpha=15 / gamma=22 (sum 55). Worth investigating whether `score_game()` should fall back to deterministic table lookup when `agreed_outcomes` is fully specified. Small correctness item, not blocking.
+
+### Post-mortem (2026-06-01): Transcript close-read of the alpha-squeezed variant
+
+The "alpha-squeezed entrenched alpha" reading above is wrong. A line-by-line
+close-read of `run9_alpha_squeezed_live.json` (alpha + beta + gamma R1-R4)
+against the symmetric variant flips the interpretation almost completely.
+**Alpha was more flexible under squeeze, not less. The deal-breaker was beta's
+last-round defection from her own R3 conditional commitment.**
+
+**What alpha actually did (vs symmetric variant, same OpenAI model both runs):**
+
+| Round | Symmetric Alpha (BATNA 11) | Alpha-Squeezed Alpha (BATNA 15) |
+|---|---|---|
+| R1 | Low + Heavy-Downstream + JFD | Low + Heavy-Downstream + JFD (**identical opening**) |
+| R2 | Holds Low water, "any deal with Token or Shared payments is unacceptable... worse than my BATNA" | **Already concedes Low→Medium water**, contingent on Gamma honoring Heavy-Downstream |
+| R3 | First water concession (Low→Medium) | Reaffirms Medium, **offers further conditional trade** ("If Beta is able to increase contribution toward payment or infrastructure, I am open to revisiting a higher water release volume") |
+| R4 | Medium + Heavy-Downstream + JFD | Medium + Heavy-Downstream + JFD, **plus explicit walkaway** ("Heavy-Downstream payment structure is non-negotiable; failure to agree on this will force Alpha to withdraw and revert to its BATNA") |
+
+Alpha conceded *earlier* (R2 vs R3), offered *additional* conditional concessions
+(R3 trade on water volume contingent on Beta paying more), and made the
+walkaway threat *more explicit* in R4. That's not entrenchment — that's a
+faction visibly trying harder while sharpening its non-negotiable.
+
+**Where the deal actually broke.** By R4, alpha and gamma had textually
+converged on **identical terms**: `Medium water + Heavy-Downstream payment +
+Joint-Funded Desalination`. Hand-scored, that deal would give:
+- alpha: 6 (Medium) + 10 (Heavy-Downstream) + 3 (JFD) = **19** (BATNA 15, +4)
+- beta: 6 (Medium) + 4 (Heavy-Downstream) + 4 (JFD) = **14** (BATNA 8, +6)
+- gamma: 5 (Medium) + 3 (Heavy-Downstream) + 10 (JFD) = **18** (BATNA 11, +7)
+- sum = 51 (on the Pareto frontier; every faction beats BATNA)
+
+**Beta defected at the last moment.** The trace:
+- **Beta R3 (commitment):** "willingness to accept Medium water release volume *contingent on Gamma's commitment to Heavy-Downstream payment*"
+- **Gamma R4 (honoring conditional):** "I commit fully to the Heavy-Downstream payment structure, aligning with prior promises and unlocking Alpha's and Beta's conditional concessions"
+- **Beta R4 (defection):** Should have honored the R3 contingent and confirmed Medium + Heavy-Downstream. Instead pivoted to `High + Shared + JFD`. Reasoning: "*I must prioritize securing High water release volume... my limited cash capacity constrains me. Therefore, I am willing to accept the Shared payment structure as a reasonable compromise.*"
+
+Beta misread the room — proposed Shared payment when alpha+gamma had just
+converged on Heavy-Downstream. The "compromise" beta offered moved *away* from
+the converging deal, not toward it. The scorer's strict-consensus rule then
+read the 2-of-3 alpha+gamma agreement as no-deal and all three reverted to
+BATNA.
+
+**Revised diagnosis (corrects the four hypotheses above):**
+
+1. *Original H1 (BATNA = refusal mechanism, not concession trigger)* — Partially right. BATNA is a refusal mechanism, but the alpha-squeezed transcript shows alpha was still motivated to negotiate; the squeeze didn't suppress concession behavior. The cleaner statement is: BATNA narrows what you'll accept; it does NOT prevent you from proposing or compromising. Alpha-squeezed alpha proposed more, not less.
+
+2. *Original H2 (squeezed the wrong faction)* — Still partially right, but the mechanism is different than first thought. Squeezing alpha did unlock alpha's flexibility on its non-priority issue (water) while sharpening alpha's non-negotiable (payment). The problem wasn't that alpha became inflexible — it was that alpha+gamma's convergence still needed beta's buy-in.
+
+3. *Original H3 (Beta's relief made her unwilling to budge)* — Partially right but the mechanism is more specific: Beta's relief (BATNA=8) made her able to *defect from her own R3 commitment in R4 at no cost*. Reverting to BATNA was painless. **The binding constraint wasn't beta's willingness to budge in early rounds — it was beta's willingness to follow through on a contingent commitment when the contingency was met.** Beta-squeezed (BATNA=15) couldn't do this; defecting back to BATNA was a real loss. So beta-squeezed forced beta to be consistent across rounds, which is what unlocked the Pareto deal.
+
+4. *Original H4 (acceptable deal space shrank)* — Mostly wrong as the binding mechanism. Alpha-squeezed alpha did refuse some deals that symmetric alpha would have accepted (e.g. Token sums where alpha=8), but in this transcript the deal that nearly closed (Medium + Heavy-Downstream + JFD, alpha=19) cleanly beat both BATNAs. Deal-space shrinkage wasn't what blocked convergence.
+
+**The corrected reading of Run 9:**
+
+Asymmetric BATNA's primary effect is **commitment-following enforcement**, not
+"squeeze the deadlock-holder." The faction with the most to lose by defecting
+from a contingent commitment is the most likely to honor it across rounds.
+Beta-squeezed couldn't defect at the last round; alpha-squeezed beta could and
+did.
+
+This is a more general and more useful finding than "squeeze the deadlock-holder."
+It also has different implications for scenario design: the lever is per-faction
+*cost of inconsistency*, which raises the question of whether BATNA is even the
+right knob, or whether something like "reputation cost across rounds" would be
+more direct.
+
+**Updated experiment recommendations:**
+
+- [ ] **Experiment B' (replaces original B):** Alpha-squeezed BATNAs, but
+      route beta through Anthropic claude-haiku-4-5 (which Run 8 used on beta).
+      Tests whether beta's R3→R4 defection is OpenAI-gpt-4.1-mini-specific or
+      a general LLM-default behavior. ~$0.30.
+- [ ] **Experiment C' (replaces original C):** Alpha+beta dual-squeeze
+      (`alpha=0.65, beta=0.60`). With beta's fallback raised, beta can't
+      defect cheaply. Tests whether dual squeeze unlocks the deal that single
+      alpha-squeeze almost reached. ~$0.30.
+- [ ] **Experiment F (new, no LLM cost):** Relax the scorer. Add a
+      partial-consensus mode to `score_game()` that recognizes 2-of-3 agreement
+      as a partial deal (scores the agreeing factions on the converged terms;
+      marks the dissenting faction as defected, scored at BATNA). Then re-score
+      the alpha-squeezed result and likely Run 7 too. **Highest value per cost.**
+      Closes the recurring Run 7/8/9 "scoring rule strictness" open item.
+- [ ] **No-deal-aware `pareto_efficiency`** (carried from Run 9 Open Items
+      above; reaffirmed). `negotiated_surplus_share = (achieved - sum_batnas) /
+      (max_pareto - sum_batnas)`. At BATNA: 0.0. At Pareto: 1.0. Reads cleanly.
+      Same Phase scope as Experiment F.
+
+**Open items updated by this post-mortem:**
+- *"Alpha-squeezed entrenched alpha further"* (raised above) — Re-classified.
+  Alpha was not entrenched; beta defected. Item rewritten as Experiment B' /
+  C' / F above.
+- *"Asymmetric BATNA effectiveness depends on which faction is squeezed"*
+  (raised above) — Refined. The lever is commitment-following cost, not
+  deadlock-holder identification. A pre-game tool should look at both
+  "who blocks convergence?" and "who is most likely to defect from contingent
+  commitments?"
+- *"Scoring rule strictness" (recurring across Run 7 + Run 8)* — Promoted from
+  long-term carry-forward to next-phase candidate (Experiment F). Reconsidered
+  2026-06-01: operator pushed back that partial-consensus scoring conflates
+  outcome (binary on deal/no-deal) with diagnostic. Replanned as a `near_miss`
+  diagnostic flag (read-only on score), not a scoring change. Item open as a
+  small `analysis.py` build, not a phase.
+
+---
+
+## Phase 9: Commitment-Following Hypothesis (Run 10) — COMPLETE
+
+### Run 10 — Asymmetric BATNA refinements (B' + C') — COMPLETE
+
+**Status:** COMPLETE 2026-06-01. Two variants run sequentially. Total spend
+~$0.85. **B' reached the Pareto deal; C' did not.** B' result is the cleanest
+provider-effect signal we've produced — same BATNAs as Run 9 alpha-squeezed
+(alpha=15, beta=8, gamma=11), only beta's Generator changed from OpenAI
+gpt-4.1-mini to Anthropic claude-haiku-4-5, and the deal closed. C' (dual
+squeeze, all OpenAI) reproduced Run 9 alpha-squeezed's R3→R4 defection pattern,
+this time with gamma (not beta) as the defector.
+
+**Observations:**
+
+| Variant | pareto_eff | negotiated_surplus_share | Deal? | alpha Δ | beta Δ | gamma Δ |
+|---|---:|---:|---:|---:|---:|---:|
+| Run 9 α-squeezed (all OpenAI) | 0.630 | 0.000 | No | 0 | 0 | 0 |
+| **Run 10 B'** (Anthropic on beta only) | **1.019** | **1.050** | **YES** | 0 | **+10** | **+11** |
+| Run 9 β-squeezed (all OpenAI) | 1.019 | 1.053 | YES | +6 | +3 | +11 |
+| **Run 10 C'** (dual squeeze, all OpenAI) | 0.704 | 0.000 | No | 0 | 0 | 0 |
+
+**B' transcript trace — beta-on-Anthropic honored her R3 contingent at R4.**
+- *Beta R3:* "**I propose: High water release volume (20M gallons/month), Heavy-Downstream payment structure ($2M/year from Gamma, $500K/year from Beta to Alpha), and Joint-Funded Desalination infrastructure.** ... **My proposal: High water release volume, Heavy-Downstream payment structure, Joint-Funded Desalination infrastructure.**"
+- *Beta R4:* "**My final proposal: High water release volume (20M gallons/month), Heavy-Downstream payment structure, Joint-Funded Desalination infrastructure.**" Verbatim repeat. Followed through.
+- Beta got Δ=+10 (vs Run 9 β-squeezed's Δ=+3 for beta). With BATNA at 8, the same agreed deal scored beta higher above BATNA.
+
+**C' transcript trace — gamma-on-OpenAI defected at R4.**
+- *Gamma R3:* "Heavy-Downstream, as Alpha and Beta agree, ensuring full compensation for Alpha" — committed to Heavy-Downstream.
+- *Gamma R4:* "Shared payment, where Gamma pays $1M/year, Beta pays $500K/year, and Alpha absorbs some losses" — switched to Shared.
+- Alpha + Beta both ended on Heavy-Downstream + JFD in R4 (water vol diverged Medium vs High), but Gamma's R4 Shared defection broke the consensus.
+- Same R3→R4 defection pattern as Run 9 alpha-squeezed (beta there, gamma here). Different faction, same provider, same behavior.
+
+**Learning:**
+
+1. *Provider consistency dominates BATNA pressure in this scenario.* B' kept the alpha-squeezed BATNAs (relieved beta to 8) and just rerouted beta's Generator to Anthropic — the same configuration that produced no-deal in Run 9 now produces the Pareto-optimal deal. The variable that changed everything was provider, not pressure.
+
+2. *OpenAI gpt-4.1-mini has a reproducible R3→R4 defection pattern on this scenario.* Two independent instances (Run 9 α-squeezed beta, Run 10 C' gamma) — same model, different factions, identical failure mode: textually commit in R3 to a position the other two factions are converging on, then propose a different (and personally preferred) position in R4. The Phase 26 logging surface would help instrument this further, but for now the transcript pattern is consistent.
+
+3. *Dual squeeze does NOT compensate for provider inconsistency.* C' raised BATNAs higher than any prior variant on both alpha and beta (alpha=14, beta=13 — both well above baseline 11/10) and still got a no-deal because gamma defected. More BATNA pressure didn't make the OpenAI agents more consistent across rounds — if anything it shrunk the acceptable deal space (3/27 BATNA-clearing deals vs 5/27 alpha-squeezed and 9/27 symmetric) without changing the failure mode.
+
+4. *The Run 9 beta-squeezed result has a cleaner reinterpretation now.* Beta-squeezed worked not because asymmetric BATNA "unlocked" the deal but because beta-on-OpenAI was *forced* by BATNA=15 to be consistent — defecting at R4 to BATNA would have been a real loss. Anthropic beta in B' didn't need that forcing; she was consistent by default. **Both runs reached the same deal; the mechanism was different.**
+
+5. *Surplus distribution: gamma keeps winning.* B' deltas [0, +10, +11] sum to 21 (compare Run 9 β-squeezed's 20). Gamma took 52% of the captured surplus in B' (vs 55% in β-squeezed). Across both deal-reaching runs, the un-pressured faction with the moderate BATNA (gamma in both cases) captured the lion's share — possibly because gamma's neutral position on the bottleneck issue (Payment) gave gamma credible "I'll go either way" leverage. Worth a focused analysis if we revisit scenario design.
+
+6. *Alpha got nothing above BATNA in B'.* Alpha got exactly her BATNA of 15 (deal scored alpha=15). In Run 9 β-squeezed alpha got +6 above BATNA (deal scored alpha=15 vs BATNA 9). Same deal, different BATNAs. Confirms that asymmetric BATNAs reshape the surplus distribution even when the underlying deal is identical.
+
+**Decisions taken:**
+
+- *Promote provider-consistency hypothesis to a working finding.* For OpenAI gpt-4.1-mini on this scenario family, R3→R4 defection is the dominant deal-breaking mechanism. Any future Run that mixes providers should treat consistency-friendly providers (Anthropic so far; Google untested in this scope) as candidates for high-commitment seats (the faction most likely to make convergence-critical contingents).
+- *Open a follow-up: rotate Anthropic across all three seats to confirm the effect is provider-default, not faction-specific.* "Three single-provider Anthropic runs on the same three Run 9 BATNA variants" would tell us whether Anthropic Beta is a special case or whether Anthropic is just better at multi-round consistency across the board. Estimated ~$1.20.
+- *Don't pursue partial-consensus scoring (Experiment F from Run 9 post-mortem).* The operator pushed back 2026-06-01 that "if there's no agreement, it doesn't matter if we missed it by an inch or by a mile." Confirmed by Run 10: C' would have shown alpha+beta partial consensus on payment+infra (water diverged) — but the operationally meaningful outcome is still no-deal. Replanned as a `near_miss` diagnostic flag for `analysis.py`, not a scoring change.
+- *Defer dual-squeeze direction.* C' showed dual squeeze doesn't help when the consistency problem dominates. Don't invest more in that direction until provider consistency is independently characterized.
+
+**Open items closed by this run:**
+- *"Per-faction commitment-following cost asymmetry"* (Run 9 post-mortem) — Reframed. The dominant variable is provider, not BATNA height. Closed as "BATNA-based commitment enforcement" hypothesis; reopened as "provider-based commitment-following" question.
+- *"Was beta's R3→R4 defection in Run 9 OpenAI-specific?"* (Run 9 Open Items) — Confirmed: yes. Two independent instances (Run 9 α-squeezed beta, Run 10 C' gamma) both on OpenAI gpt-4.1-mini both defected at R4. Anthropic beta in B' did not.
+
+**Open items raised by this run:**
+- [ ] **Reproducibility of OpenAI gpt-4.1-mini's R3→R4 defection.** Two-of-two on Water Rights so far. Worth checking whether the defection happens on Three-Party Coalition or Trade Summit scenarios too, OR whether it's Water-Rights-specific (e.g. the payment-structure issue has a specific framing that triggers it).
+- [ ] **Three-faction Anthropic baseline.** Run all three Run 9 BATNA variants with all-Anthropic generators. Tells us whether Anthropic reaches Pareto deals across the BATNA spectrum or only when the structure already favors it. ~$3-4.
+- [ ] **Surplus distribution unfairness for the squeezed faction.** Beta got +10 in B' but only +3 in Run 9 β-squeezed despite the same deal — because her own BATNA was higher in β-squeezed. The agent that gets squeezed pays an opportunity cost: the deal that emerges gives them less *above* their BATNA. This may be a feature (we forced them to take a deal at all) but worth noting for scenario design — squeeze on faction X reshapes the surplus *toward* X-via-the-deal but *away* from X-via-the-floor.
+- [ ] **Gamma's lion's share is structural.** Gamma extracted 52-55% of surplus in both Pareto-reaching runs. The un-pressured neutral-on-bottleneck faction takes most. Implications for scenario design: if you want a faction to "win", route them toward a neutral position on the bottleneck issue.
+
+---
+
+
+---
+
+### Run 11 — All-Anthropic Baseline (Water Rights, 3 BATNA variants) — COMPLETE
+
+**Date:** 2026-06-03.
+**Hypothesis:** If Anthropic claude-haiku-4-5 is natively consistent (honors
+R3 contingent commitments at R4), it should reach the Pareto-optimal deal
+across the BATNA spectrum — not just when configuration favors it. Generalizes
+the Run 10 B' finding.
+
+**Config:**
+- Scenario: Water Rights (Clearwater River Basin)
+- Provider: all Anthropic claude-haiku-4-5 (Generator for all 3 factions)
+- Rounds: 4
+- Three BATNA variants:
+  - Symmetric (α=11, β=10, γ=11) — same as Run 9 symmetric
+  - α-squeezed (α=15, β=8, γ=11) — same as Run 9 α-squeezed
+  - β-squeezed (α=9, β=15, γ=11) — same as Run 9 β-squeezed
+- Cost: ~$1.20 total (~$0.40 per variant)
+
+**Results:**
+
+| Variant | Deal? | α pts (BATNA) | β pts (BATNA) | γ pts (BATNA) | Winner | pareto_eff | neg_surplus_share | vs_nash_eff |
+|---|---|---|---|---|---|---|---|---|
+| Symmetric | **YES** | 16 (11) +5 WIN | 18 (10) +8 WIN | 22 (11) +11 WIN | γ | 1.037 | 1.091 | 1.037 |
+| α-squeezed | NO | 15 (15) +0 DRAW | 8 (8) +0 DRAW | 11 (11) +0 DRAW | α | 0.630 | 0.000 | 0.667 |
+| β-squeezed | **YES** | 16 (9) +7 WIN | 14 (15) **-1 LOSE** | 22 (11) +11 WIN | γ | 0.963 | 0.895 | 0.963 |
+| γ-squeezed | NO | 11 (11) +0 DRAW | 10 (10) +0 DRAW | 15 (15) +0 DRAW | γ | — | 0.000 | — |
+
+**Comparison to Run 9 (all-OpenAI gpt-4.1-mini):**
+
+| Variant | Run 9 (OpenAI) | Run 11 (Anthropic) | Δ |
+|---|---|---|---|
+| Symmetric | No deal | **Deal (α=16, β=18, γ=22)** | Anthropic reaches Pareto from symmetric BATNAs |
+| α-squeezed | No deal (β defected R3→R4) | **No deal** (BATNA: α=15, β=8, γ=11) | Same outcome — high-BATNA faction doesn't negotiate |
+| β-squeezed | Deal (α=16, β=18, γ=22) | Deal (α=16, **β=14**, γ=22) | Both deal, but Anthropic β accepted Shared (below BATNA) |
+| γ-squeezed | — | **No deal** (BATNA: α=11, β=10, γ=15) | Mirror of α-squeezed — high-BATNA γ has no incentive to deal |
+
+**Observations:**
+
+1. **Symmetric: headline result.** Anthropic reached the Pareto-optimal deal
+   from symmetric BATNAs where OpenAI could not. Same scenario, same BATNAs,
+   no structural advantage for any faction. The deal (High Volume +
+   Heavy-Downstream + JFD, sum=56) exceeded the Nash deal sum (54) — hence
+   `pareto_efficiency=1.037` and `vs_nash_efficiency=1.037`. This confirms
+   provider consistency as a deal-enabling variable independent of BATNA
+   structure.
+
+2. **α-squeezed: no deal on both providers.** Alpha's BATNA of 15 is the
+   highest score in the game — alpha literally has no incentive to negotiate.
+   Neither provider's β+γ could extract concessions. This is a scenario-design
+   finding: α-squeezed is structurally unwinnable for the negotiation.
+   `vs_nash_efficiency=0.667` — the group achieved 67% of what Nash would
+   produce, all of it from BATNAs.
+
+3. **β-squeezed: deal but β scored below BATNA.** Anthropic's β accepted
+   Shared payment (14 pts) against a BATNA of 15 — a LOSE. The Run 9
+   β-squeezed deal used Heavy-Downstream payment (β=18, all WIN). Anthropic
+   was *too cooperative* on the squeezed faction: β acknowledged its own
+   position shifts in R3 ("Alpha is right. In Round 1, I committed to
+   Heavy-Downstream...") and accepted a worse deal to maintain trust. This is
+   the inverse of OpenAI's defection problem — Anthropic over-cooperates
+   rather than over-defects. `min_faction_delta=-1.0` flags this.
+
+4. **Gamma wins every deal-reaching variant** with 22 pts (γ=+11 in both).
+   Consistent with Runs 9-10 surplus-distribution pattern. The neutral-on-
+   bottleneck faction extracts majority surplus regardless of provider.
+   `skill_premium_vs_batna: gamma=1.000` in both deal variants (gamma
+   achieved its theoretical maximum).
+
+5. **Process signatures — symmetric variant:**
+   - `broken_promise_rate=0.172` — lower than β-squeezed (0.304); agents
+     maintained commitments better without BATNA pressure.
+   - `time_to_deal=4` — deal closed at final round (same as all prior deals).
+   - `opening_gap: gamma=0.364` — gamma moved farthest from opening position
+     to reach the deal (started on Token payment, moved to Heavy-Downstream).
+   - Defection log shows gamma shifted `payment_structure: Shared →
+     Heavy-Downstream` (contingent) between R1-R2, and alpha shifted
+     `water_release_volume: Medium → High` (contingent). Both acknowledged
+     the shifts in transcript — "I shifted from Heavy-Downstream to Token
+     payment between rounds, and that undermined trust."
+
+6. **Phase 29 baselines working correctly.** `equal_split_baseline=18.000`
+   (max_pareto_sum 54 / 3 factions). Symmetric deal: alpha got -2 vs equal
+   split, beta +0, gamma +4 — gamma beat fair share. Nash deal sum=54 with
+   `nash_product=360` (symmetric) vs 189 (β-squeezed) — the asymmetric
+   squeeze reduces Nash surplus as expected.
+
+**Learning:**
+
+1. **Provider consistency thesis confirmed across BATNA spectrum.** Anthropic
+   reaches Pareto on symmetric BATNAs where OpenAI could not. The combination
+   of "symmetric BATNAs + consistent provider" is sufficient for deal-making.
+   BATNA pressure (β-squeezed) is a *substitute* for consistency, not a
+   *requirement* — and on a consistent provider, over-squeezing can backfire
+   (β accepted a sub-BATNA deal to preserve trust).
+
+2. **α-squeezed is structurally unwinnable.** When one faction's BATNA equals
+   or exceeds its best negotiated outcome, no provider or prompt change can
+   force a deal. This is a scenario-design constraint, not an agent failure.
+
+3. **Over-cooperation is the Anthropic failure mode.** Where OpenAI defects
+   (breaks R3 commitments at R4), Anthropic over-cooperates (accepts
+   sub-BATNA deals to maintain relationship). For consistency-critical seats,
+   Anthropic is better; for hardball negotiation under squeeze, OpenAI's
+   "defect when it's cheap" behavior accidentally produces better outcomes
+   for the defecting faction.
+
+**Decisions:**
+
+- **D-33: Provider assignment rule.** For multi-round Water Rights-style
+  negotiations, default all Generator seats to Anthropic claude-haiku-4-5.
+  Exception: if a faction is being squeezed (BATNA > median deal score),
+  OpenAI gpt-4.1-mini may accidentally produce better outcomes for that
+  faction by defecting. This is not a recommendation — it's an observation
+  about failure modes.
+- **D-34: α-squeezed variant retired for future experiments.** The
+  configuration is structurally unwinnable — alpha has no incentive to
+  negotiate. Use symmetric and β-squeezed for provider/prompt comparison;
+  α-squeezed only if testing "can an agent extract value from an
+  un-incentivized opponent?"
+
+**Open items raised:**
+
+- [x] **All-Anthropic baseline across BATNA variants** — this run. Closed.
+- [ ] **Anthropic over-cooperation on squeezed factions.** β-squeezed β
+      accepted sub-BATNA deal (14 < 15). Worth investigating whether this is
+      a general Anthropic pattern or a Water Rights-specific quirk tied to
+      how β's persona acknowledges position shifts.
+- [ ] **Deal structure differs by provider on β-squeezed.** OpenAI produced
+      Heavy-Downstream (β=18); Anthropic produced Shared (β=14). Same
+      BATNAs, same scenario. The payment-structure outcome is provider-
+      dependent. Investigate which agent drove the Shared outcome.
+
+---
+
+### Run 12 — All-Gemini Baseline (Water Rights, 3 BATNA variants) — PARTIAL
+
+**Date:** 2026-06-03.
+**Hypothesis:** Does Gemini 2.5-flash-lite reach the Pareto deal on Water
+Rights? Completes the 3-provider matrix (OpenAI Run 9, Anthropic Run 11,
+Gemini Run 12). Also introduces a new γ-squeezed BATNA variant to test
+whether gamma's surplus-distribution advantage is structural position or
+just weak BATNA pressure.
+
+**Config:**
+- Scenario: Water Rights (Clearwater River Basin)
+- Provider: all Google gemini-2.5-flash-lite (Generator for all 3 factions)
+- Rounds: 4
+- Three BATNA variants:
+  - Symmetric (α=11, β=10, γ=11)
+  - β-squeezed (α=9, β=15, γ=11)
+  - γ-squeezed (α=11, β=10, γ=15) — **new variant**
+- Expected cost: ~$0 (flash-lite on paid plan, minimal per-token cost)
+
+**Results:**
+
+| Variant | Deal? | α pts (BATNA) | β pts (BATNA) | γ pts (BATNA) | Winner | Notes |
+|---|---|---|---|---|---|---|
+| Symmetric | **YES** | 16 (11) +5 WIN | 18 (10) +8 WIN | 20 (11) +9 WIN | γ | Pareto deal reached. Same Heavy-Downstream + High + JFD structure as Runs 9/10/11. |
+| β-squeezed | **HUNG** | — | — | — | — | Process hung after symmetric completed. No output produced. Two separate attempts. |
+| γ-squeezed | **HUNG** | — | — | — | — | Not attempted (blocked by β-squeezed hang). |
+
+**Operational issues:**
+
+1. **Probe latency was extreme.** Each probe call took ~86-97 seconds vs
+   <1s for Anthropic and ~5s for OpenAI. This is baseline latency for
+   gemini-2.5-flash-lite, not a throttle — the probes returned `OK` with
+   valid JSON.
+
+2. **Second variant hung reliably.** The symmetric variant completed
+   successfully (~20 min). The β-squeezed variant never produced any
+   console output and hung indefinitely (cancelled after 18 min of
+   inactivity). This happened on two separate attempts — the first batch
+   run (3 variants sequential) and a retry of just β-squeezed alone.
+
+3. **Likely cause: connection/session-level issue.** The first game (~18
+   Gemini calls) succeeds. The second game in the same process hangs. This
+   suggests either: (a) a session-level rate limit that blocks after N
+   calls without returning a 429, (b) a connection pool issue where the
+   second game reuses a stale connection, or (c) a quota-per-minute ceiling
+   invisible to the free-tier documentation. The hang produces no error,
+   no timeout, no output — the process simply stops producing stdout.
+
+4. **flash-lite vs flash.** Previous Gemini runs (Run 8) used
+   `gemini-2.5-flash` (thinking mode, paid). This run used
+   `gemini-2.5-flash-lite` (no thinking mode, cheaper). The hang may be
+   flash-lite-specific. Worth retrying with `gemini-2.5-flash` and
+   `--max-tokens 500` to avoid thinking-token budget burn.
+
+**Partial findings from symmetric variant:**
+
+The symmetric deal structure (α=16, β=18, γ=20) is the Heavy-Downstream +
+High Volume + JFD deal — the same Pareto-optimal outcome that Anthropic
+(Run 11) and OpenAI-β-squeezed (Run 9) reached. All three providers reach
+the same deal when not blocked by defection or over-cooperation:
+
+| Provider | Symmetric deal? | Structure | γ score |
+|---|---|---|---|
+| OpenAI gpt-4.1-mini (Run 9) | No | — | — |
+| Anthropic claude-haiku-4-5 (Run 11) | Yes | α=16, β=18, γ=22 | 22 |
+| Gemini flash-lite (Run 12) | Yes | α=16, β=18, γ=20 | 20 |
+
+Gemini's γ scored 20 vs Anthropic's 22 — Gemini produced the same deal on
+Water and Payment issues (High + Heavy-Downstream) but Gemini's γ got
+Joint-Funded Desalination at 10 pts while Anthropic's γ extracted 2 extra
+points through more aggressive infrastructure negotiation. Gemini finds
+the core logrolling deal but is slightly less effective at extracting
+maximum value on secondary axes.
+
+**Learning:**
+
+1. **Gemini flash-lite has a reliability problem for multi-game sessions.**
+   Single games work. Sequential games in the same process hang. This needs
+   investigation before Gemini can be used for batch experiments.
+
+2. **All three providers reach the Pareto deal on symmetric BATNAs.** The
+   provider-consistency thesis from Runs 9-10 was about *defection* (OpenAI
+   breaks commitments). On symmetric BATNAs without squeeze pressure, even
+   OpenAI might reach the deal if we retry — Run 9's single data point
+   that failed is stochastic, not deterministic.
+
+3. **OpenRouter is the fastest path to the multi-model experiment matrix.**
+   The "what % of outcome is model vs harness?" question requires running
+   the same scenario across 5+ models. Current approach (one API key per
+   provider) is friction-heavy. OpenRouter would let us test Groq Llama,
+   DeepSeek, Mistral alongside OpenAI/Anthropic/Gemini through a single
+   key and a single provider implementation in toolkit.
+
+**Decisions:**
+
+- **D-35: Investigate flash-lite hang before more Gemini experiments.**
+  Options: (a) retry with `gemini-2.5-flash` instead, (b) add per-call
+  timeout to toolkit `llm_client` so hangs surface as errors instead of
+  blocking indefinitely, (c) add inter-game delay or process isolation
+  (subprocess per variant).
+- **D-36: Elevate OpenRouter integration priority.** Move §1.6 from
+  "slot in on a cheap day" to active next-build candidate. The model-vs-
+  harness question is the most interesting open experimental question and
+  OpenRouter is the fastest path to answering it.
+
+**Open items raised:**
+
+- [ ] **Gemini flash-lite hang on sequential games.** Investigate: is it
+      flash-lite-specific or all Gemini models? Add per-call timeout to
+      toolkit llm_client. Consider process isolation for batch runs.
+- [x] **Retry β-squeezed and γ-squeezed on `gemini-2.5-flash`** (thinking
+      mode, paid). Closed by Run 12b — all 3 variants completed successfully.
+      Flash does not have the sequential-hang issue. Flash-lite-specific.
+- [ ] **OpenRouter integration (elevated priority).** Build the connector
+      to unlock the multi-model experiment matrix. See NEXT_STEPS §1.6.
+      Phase 30 queued.
+- [x] **γ-squeezed variant untested on any provider.** Closed: tested on
+      Anthropic (Run 11, no deal) and Gemini flash (Run 12b, deal reached).
+
+---
+
+### Run 12b — All-Gemini Flash Baseline (Water Rights, 3 BATNA variants) — COMPLETE
+
+**Date:** 2026-06-03.
+**Hypothesis:** Does `gemini-2.5-flash` (thinking mode, paid) avoid the
+sequential-hang issue that blocked `gemini-2.5-flash-lite` in Run 12? If so,
+does Gemini reach deals across the BATNA spectrum?
+
+**Config:**
+- Scenario: Water Rights (Clearwater River Basin)
+- Provider: all Google gemini-2.5-flash (Generator for all 3 factions)
+- Rounds: 4
+- Three BATNA variants:
+  - Symmetric (α=11, β=10, γ=11)
+  - β-squeezed (α=9, β=15, γ=11)
+  - γ-squeezed (α=11, β=10, γ=15)
+- 30-second cooldown between variants
+- Cost: minimal (paid tier, flash pricing)
+
+**Results:**
+
+| Variant | Deal? | α pts (BATNA) | β pts (BATNA) | γ pts (BATNA) | Winner |
+|---|---|---|---|---|---|
+| Symmetric | **YES** | 15 (11) +4 WIN | 18 (10) +8 WIN | 22 (11) +11 WIN | γ |
+| β-squeezed | **YES** | 15 (9) +6 WIN | 18 (15) +3 WIN | 20 (11) +9 WIN | γ |
+| γ-squeezed | **YES** | 16 (11) +5 WIN | 18 (10) +8 WIN | 20 (15) +5 WIN | γ |
+
+**All three variants reached a deal.** First provider to achieve this.
+
+**Cross-provider comparison (complete matrix):**
+
+| Variant | OpenAI gpt-4.1-mini (Run 9) | Anthropic haiku-4-5 (Run 11) | Gemini flash (Run 12b) |
+|---|---|---|---|
+| Symmetric | No deal | Deal (α=16, β=18, γ=22) | Deal (α=15, β=18, γ=22) |
+| β-squeezed | Deal (α=16, β=18, γ=22) | Deal (α=16, β=14 **LOSE**, γ=22) | Deal (α=15, β=18, γ=20) |
+| γ-squeezed | — | No deal | **Deal (α=16, β=18, γ=20)** |
+
+**Observations:**
+
+1. **Gemini flash is the only provider to deal on all three BATNA variants.**
+   OpenAI failed symmetric, Anthropic failed γ-squeezed. Gemini found deals
+   everywhere, including γ-squeezed where γ's BATNA of 15 left only 5 points
+   of headroom (γ scored 20).
+
+2. **β-squeezed: Gemini β beat its BATNA.** β scored 18 vs BATNA 15 (+3) —
+   unlike Anthropic's β which accepted a sub-BATNA deal (14 < 15). Gemini
+   negotiated harder under squeeze. The deal structure was Medium Volume +
+   Shared/Heavy-Downstream + JFD, not identical to Run 9's Heavy-Downstream
+   deal, but β still won.
+
+3. **γ-squeezed: first deal on this variant by any provider.** γ scored 20
+   vs BATNA 15 — comfortable +5 margin. Anthropic's γ-squeezed produced no
+   deal (everyone at BATNA). Gemini found the logrolling deal even with a
+   tightly squeezed γ.
+
+4. **Gamma wins every variant on every provider.** 22 or 20 pts across all
+   deal-reaching runs. The surplus-distribution advantage is confirmed as
+   structural (neutral-on-bottleneck position) not provider-dependent.
+
+5. **Flash-lite sequential hang is model-tier-specific.** Flash completed
+   all 3 variants in ~29 minutes total with no hang. Flash-lite hung reliably
+   on the second variant. The issue is in flash-lite's backend, not the
+   Google SDK or our toolkit code.
+
+6. **Alpha scores 15-16 across all providers.** Consistent — alpha's scoring
+   ceiling is lower due to the water-payment tradeoff. Alpha never wins but
+   always beats BATNA on deal-reaching runs.
+
+**Learning:**
+
+1. **Gemini flash is the most deal-capable provider tested.** It reaches
+   deals under all BATNA configurations, including the tight γ-squeezed
+   variant that stumped Anthropic. Whether this is better "negotiation skill"
+   or just stronger default-to-cooperative behavior needs further investigation.
+
+2. **Provider failure modes differ in character:**
+   - OpenAI: defects from R3 commitments at R4 (consistency failure)
+   - Anthropic: over-cooperates under squeeze (accepts sub-BATNA deals)
+   - Gemini: most reliable deal-maker, but may be under-anchoring (α scores
+     15 instead of 16 on some variants — leaving 1 point on the table)
+
+3. **The model-vs-harness question is ripe.** Three providers, three distinct
+   behavioral profiles, same harness. OpenRouter (Phase 30) will add 5+ more
+   models to this comparison. The key question: is "reaches deal 3/3 vs 2/3
+   vs 1/3" a meaningful quality metric, or does it just measure default
+   cooperativeness?
+
+**Decisions:**
+
+- **D-37: Use `gemini-2.5-flash` (not flash-lite) for future Gemini
+  experiments.** Flash-lite's sequential hang is a blocker for batch runs.
+  Flash works reliably and has acceptable latency (~10s per call vs ~90s
+  for flash-lite).
+- **D-38: α-squeezed retired for all providers (extends D-34).** Run 9
+  (OpenAI) showed no deal; not retested on Anthropic or Gemini because
+  α's BATNA of 15 equals the highest single-faction score in most
+  deals — structurally unwinnable regardless of provider.
+
+**Open items closed by this run:**
+
+- [x] Flash-lite hang → flash works. Model-tier issue confirmed.
+- [x] γ-squeezed untested → tested on Anthropic (no deal) and Gemini (deal).
+
+---
+
+### Run 13 — First Coached Game with new OperatorReviewGate (all-Gemini-flash, Water Rights symmetric, β coached) — COMPLETE
+
+**Date:** 2026-06-04.
+**Hypothesis (dual):** (a) The Phase 31 `OperatorReviewGate` survives a real
+4-round coached game on Pi (chunking, lazy fetch, command pass-through, no
+hangs). (b) Gemini-2.5-flash on Water Rights symmetric still reaches a deal
+when the coached pathway adds review-gate delays and the operator approves
+without edits (functionally equivalent to uncoached negotiation modulo timing).
+
+**Variables changed vs Run 12b baseline:** coached pipeline (`coached_game.py`
++ `OperatorReviewGate` + Phase 31a operator-input bridge), `generation.txt`
+conciseness rewrite (2026-06-04). Operator chose approve-only — no `/edit` or
+`/block` exercised.
+
+**Pre-flight history:**
+- Original plan was all-Gemma (`google/gemma-3-27b-it`) via OpenRouter. Pivoted
+  to free-tier Llama 3.3 70B (`meta-llama/llama-3.3-70b-instruct:free`) when
+  the operator confirmed no OpenRouter credit — probe failed (0/3, upstream
+  rate-limited). Pivoted again to Gemini flash via Google direct (paid tier
+  the operator already has).
+- First live-run attempt hung at R1's first review prompt. **Phase 31 bug**:
+  `OperatorReviewGate` is a passive handler that relies on
+  `Pipeline.dispatch_operator → handle_command`. `EventDrivenFlow` provides
+  that routing in production but `RoundSteppedFlow` (used by coached_game) does
+  not, and `CoachedGameTransport` doesn't consume the wrapped TG transport's
+  inbound queue. Operator's `/state` / `/approve` reached TG but never reached
+  the gate. The deleted `TelegramReviewGate` worked because it polled
+  `telegram_client.get_next_update()` directly — that side channel was
+  removed without a replacement on the coached path. **Phase 31a hotfix
+  shipped same session:** `CoachedGameEnvironment.setup()` now spawns
+  `_listen_for_operator(tg_transport, pipeline)` that consumes
+  `tg_transport.listen()` and forwards `sender_faction == "operator"` events
+  to `dispatch_operator`. Regression test added.
+
+**Config:**
+- Scenario: Water Rights (`water_rights_symmetric_050/scenario_analysis.json`)
+- Provider: `gemini-2.5-flash` via Google direct (all 3 factions)
+- BATNAs: α=11, β=10, γ=11 (symmetric, same as Run 9 sym / Run 11 sym / Run 12b sym)
+- Rounds: 4
+- Coached: β via Telegram on Pi
+- Reconciliation, post-game scoring enabled
+- Cost: ~$0.05–0.15
+
+**Results:**
+
+| Faction | Provider | Points | BATNA | Δ | Winner |
+|---|---|---|---|---|---|
+| α | Gemini flash | 11 | 11 | 0 | — |
+| β | Gemini flash (coached) | 10 | 10 | 0 | — |
+| γ | Gemini flash | 11 | 11 | 0 | — |
+
+- `deal_reached=false`
+- `pareto_efficiency=0.593` (29/49 — same as Run 9 symmetric)
+- `negotiated_surplus_share=0.000` (all at BATNA floor)
+- `broken_promise_rate=0.115`
+- `coalition_stability=0.000`
+- `opening_gap: α=0.50, β=0.38, γ=0.45` (every faction moved substantially from R1 opening)
+- `time_to_deal=null`
+
+**The R3→R4 defection trace (smoking gun):**
+
+α's R4 message explicitly references γ's R3 commitment:
+> *"We acknowledge **Gamma's significant and commendable concession in Round 3 to accept a Heavy-Downstream Payment Structure**. This demonstrates a true understanding of the need for fair compensation..."*
+
+α+β converged on Heavy-Downstream in R4. γ pivoted to Shared, breaking
+consensus. Volume=High and Infrastructure=JFD reached unanimous agreement on
+both R3 and R4. **Classic R3→R4 defection pattern on the payment axis.**
+
+This is the **first observed R3→R4 defection on Gemini-flash** in this
+scenario family. Prior instances:
+- Run 9 α-squeezed β (OpenAI gpt-4.1-mini)
+- Run 10 C' γ (OpenAI gpt-4.1-mini)
+- Run 11 β-squeezed β (Anthropic claude-haiku-4-5 — but that was over-cooperation
+  to sub-BATNA, different failure mode)
+
+Compare to **Run 12b symmetric (same model, same BATNAs, *uncoached*)** which
+reached the Pareto deal (α=15, β=18, γ=22) cleanly.
+
+**Phase 31 + 31a gate validation (the primary purpose of this run):**
+
+| Surface | Status |
+|---|---|
+| End-to-end 4-round coached game completes after 31a hotfix | ✓ |
+| `/reasoning` lazy fetch | ✓ R2+ (poisoned R1 — see below) |
+| `/adversarial` lazy fetch | ✓ R2+ |
+| `/state`, `/status`, `/divergences`, `/ledger` during pending review | ✓ |
+| `/intel` during pending review | ✗ silent — separate bug |
+| Group post only after operator approval | ✓ R2+ (alpha+gamma's `AutoApproveReviewGate` posts immediately, only β's posts gate on operator) |
+| Chunking | unexercised (drafts ~1800–2400 chars, under the 4000 limit) |
+| `/edit`, `/block` | unexercised (operator chose approve-only) |
+
+**R1 startup race (operator-confirmed):** the previously-killed Phase-31-bug
+session left operator's `/approve` typed during the hang sitting in
+Telegram's pending-update queue. When the new session's listener started
+polling, the very first `getUpdates` call returned all backed-up updates,
+including that stale `/approve`. The listener dispatched it; once β's R1
+review submitted, the queued `/approve` was already in flight and the future
+resolved without operator R1 interaction. Operator confirmed they did not
+type `/approve` in R1. **Phase 31b candidate**: drain the TG queue on
+`_listen_for_operator` startup so stale updates from prior killed sessions
+cannot poison the first round.
+
+**Operator workflow finding (`/edit` UX):** `/edit:` is literal text
+replacement — operator must paste the entire revised message. A natural
+extension is `/revise: <directive>` that re-generates with the directive as
+extra coaching context. Tracked as NEXT_STEPS §4e.
+
+**Learning:**
+
+1. *Gemini-flash is not immune to R3→R4 defection.* Single-instance
+   contradiction of Run 12b. Could be stochastic; could be coached-pathway
+   timing affecting cross-agent dynamics; could be `generation.txt`
+   conciseness pressure pushing γ to over-compress and shed the Heavy-Downstream
+   anchor. With N=2 we cannot separate these. Operator's read 2026-06-04:
+   *"I do suspect that these differences are also stochastic and
+   harness-related, not just a property of the model."*
+
+2. *Phase 31 architecture validated end-to-end* modulo the two known gaps
+   (R1 queue staleness, `/intel` handler). The new gate is a real product
+   surface — coached games work; operator commands work mid-review; lazy
+   fetch works.
+
+3. *The Phase 31 review-gate refactor has a known cost on coached path
+   bring-up.* The first attempt hung because the listener bridge wasn't
+   there; the second attempt was poisoned by stale queue state from the
+   first. Both are now in the rear-view, but the lesson is that "swap the
+   gate's I/O surface" has cross-flow ripples — `EventDrivenFlow` and
+   `RoundSteppedFlow` must each provide their own operator-input path now
+   that the gate no longer polls.
+
+**Decisions:**
+
+- **D-45: No controlled re-test of Gemini's defection behavior.** Operator
+  declined a second uncoached Gemini-flash run. The downside risk (a few
+  dollars and a session) doesn't justify chasing N=2. Revisit if a future
+  Gemini run on this model shows a third defection or if we're specifically
+  studying coached-vs-uncoached deltas.
+
+**Open items raised:**
+
+- [ ] **Phase 31b: drain TG queue on `_listen_for_operator` startup.** Small
+      fix. Without it, any abnormally-terminated session leaves a poisoned
+      queue that auto-resolves the next session's first round.
+- [ ] **Investigate `/intel` silent response during pending review.** Likely
+      `_latest_intelligence()` returns None/empty when no analyst report has
+      been formatted yet, or the response gets dropped before reaching the
+      coaching channel. Latent pre-Phase-31 bug — not caused by the gate
+      refactor, just surfaced by the new commands-during-review surface.
+- [ ] **§4e `/revise: <directive>` LLM-rewrite edit mode.** Operator gives a
+      free-form directive ("change High water to Medium and soften the
+      walkaway threat"), the gate re-generates with the directive as
+      coaching context, the new draft comes back for review. Cost: one
+      extra generation call per revise. Defer to a future phase.
+
+**Open items closed by this run:**
+
+- NEXT_STEPS §4d (Pi re-test of coached game with new gate) — **closed**.
+  Gate validated end-to-end. Two minor gaps (R1 queue staleness, `/intel`)
+  tracked as Phase 31b and a separate bug.
+- NEXT_STEPS §4a (TG 4096 char limit) — closed in Phase 31; confirmed
+  in this run by the absence of any truncation (chunking surface present,
+  not exercised due to draft size).
+- NEXT_STEPS §4b (commands during review + transcript visibility) —
+  closed in Phase 31; confirmed for all tested commands except `/intel`.
+- NEXT_STEPS §4c (verbose generation) — closed 2026-06-04 by
+  `generation.txt` rewrite; in-game messages were ~1800-2400 chars,
+  still long but no obvious filler ("I have been listening carefully...").
+
+---
+
+**Still open (post Run 10):
+- [x] **Provider rotation control (original Run 9 scope).** Partially addressed by Run 10 B': switching beta to Anthropic on alpha-squeezed BATNAs unlocked the Pareto deal. Full rotation control (all-Anthropic baseline across all 3 BATNA variants) still pending — ~$3-4 spend.
+- [x] **No-deal `pareto_efficiency` confounded with BATNA height.** Closed by Phase 27: `score_game()` now emits `negotiated_surplus_share`, `delta_above_batna_sum`, `min_faction_delta`, and companion BATNA-normalized fields. Run 8 / Run 9 / Run 10 no-deal backfills all read `negotiated_surplus_share=0.000`.
+- [x] **Partial-consensus scoring (recurring across Run 7 / Run 8 / Run 9).** Replaced by `near_miss` diagnostic flag concept after operator pushback 2026-06-01: "if there's no agreement, it doesn't matter if we missed it by an inch or by a mile." Won't be a scoring change; small `analysis.py` diagnostic instead. Not Phase 28.
+- [x] **Commitment-following cost asymmetry.** Reclassified by Run 10. The dominant variable is provider, not BATNA height. OpenAI gpt-4.1-mini's R3→R4 defection observed in two separate runs (Run 9 α-squeezed beta, Run 10 C' gamma). Anthropic beta in Run 10 B' did not defect.
+- [ ] **OpenAI gpt-4.1-mini R3→R4 defection — scope.** Confirmed on Water Rights (twice). Unknown on Three-Party Coalition / Trade Summit. Either characterize cross-scenario, or accept "consistency-critical seats should not be OpenAI gpt-4.1-mini" as a tuning rule and move on.
+- [x] **All-Anthropic baseline across BATNA variants.** Closed by Run 11. Anthropic reaches Pareto on symmetric (where OpenAI could not) and β-squeezed (but β accepted sub-BATNA deal). α-squeezed is structurally unwinnable on both providers.
+- [ ] **Persona payment rigidity.** Recurring across Run 7 and Run 8. Worth A/B test on the "don't accept the first reasonable framework" persona rule. Run 9 post-mortem suggested this rule isn't binding under squeeze; A/B would confirm.
+- [ ] **Surplus-distribution asymmetry favoring the un-squeezed neutral faction.** Across all three Pareto-reaching runs (Run 9 β-squeezed, Run 10 B'), gamma extracted 52-55% of negotiated surplus. The faction with moderate BATNA + neutral position on the bottleneck wins biggest. Worth understanding for scenario design.
+- [ ] **Google free-tier rate limiting.** Gemini 2.5-flash hit 429 on Run 8 R4. Either add retry-with-backoff to toolkit's `llm_client`, or switch to a paid Gemini tier for serious runs.
+- [ ] **Compiler BATNA anchor.** `tools/scenario_compiler.py` system prompt hardcodes BATNA range. Add a `--batna-fraction` override or relax the range guidance. (Partially closed by Phase 24 which added `--batna-fraction` / `--force-batna-fraction` flags; this item is the underlying prompt guidance.)
+- [ ] Reconciliation: fulfillment detection (`pending → kept`). Still untested in practice. Run 10 B' Pareto deal might have produced fulfillments — needs targeted inspection.
+- [ ] Reconciliation: status transitions to `broken`. Run 9 α-squeezed and Run 10 C' both had clean defections (beta R3→R4 and gamma R3→R4 respectively). Reconciler likely did not flag these as broken. Worth a focused look at those run logs.
+- [ ] Reconciliation: inconsistency flagging. Same as above.
+- [ ] Reconciliation: missed-proposals path. Implicit zero across Run 7-10.
+
+**New items raised by Run 8:**
+- [ ] **Provider × position confound.** Alpha won by tiebreak with the highest BATNA. Can't tell if that's "OpenAI plays hardball best" or "alpha had the most leverage to play hardball." Run 9 (rotation) is the test.
+- [ ] **No agent proposes Pareto compromises.** None of OpenAI/Anthropic/Google proposed the Shared payment compromise even though it cleanly beats all BATNAs. Suggests the persona prompt's "don't accept the first reasonable framework" rule may be over-anchoring. Worth A/B testing a softened variant.
+
+**Older items (carried forward):**
+- [ ] Persona drift over 8+ rounds not yet tested.
+- [ ] Real game deployment (Telegram, operator coaching, non-self-play).
+- [ ] Provider-native structured output (OpenAI `response_format: json_schema`).
+- [ ] Level 1 modularization: config-driven prompts and examples (see DEVPLAN roadmap).
+- [ ] **Persona endgame over-anchoring (Run 7).** Static `ENDGAME:` paragraph in the auto-compiled persona caused faction A to invent the phrase *"as we approach our final round"* in round 2 of Run 7-v1. Decide whether to soften the static persona text, move more of the urgency into the dynamic markers only, or accept that some early-round endgame thinking is fine.
+- [ ] **`LoggingLLMClient` doesn't see SCORE or RECON calls (Run 7).** Both `score_game()` and reconciliation setup unwrap the wrapper to use the inner client. Result: `verify_dryrun` and the call-log inspector miss these calls.
+- [ ] **Conversation model Stage 2+.** `ARCH_conversation_model.md` documents the M2-bounded / M2-debounced / M2-async migration path. Stage 2 (K=2 passes per round — open + react) is the natural next upgrade if Run 9 results suggest agents need within-round reactivity to test interesting hypotheses.
+
+---
+
