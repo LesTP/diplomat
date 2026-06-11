@@ -582,7 +582,7 @@ Note 1 (`RESEARCH_NOTES.md`) predicts harness contribution grows with scenario c
 ### Out of scope for this section
 
 - **Pressure mechanisms** — see §2 (Phase 38 closed / Phase 39 deferred / Phase 40 deferred).
-- **LLM narrative wrap** — operator runs `tools.scenario_compiler` over the builder's emitted scoring tables to fill `logrolling` + `deception_tactics` + scenario title. Hand-author also works.
+- **LLM narrative wrap** — closed 2026-06-11: use `tools.scenario_compiler --fill-narrative-only <analysis.json>` over the builder's emitted scoring tables to fill `logrolling` + `deception_tactics`; hand-author also works.
 - **Cascade scoring** — needs cross-game state (Phase 40, indefinitely deferred).
 
 ---

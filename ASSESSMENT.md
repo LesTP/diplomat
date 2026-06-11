@@ -252,9 +252,16 @@ A scenario directory matching the existing pipeline contract:
   `game_mode`. Same schema, same downstream consumers (self-play,
   `FileBasedPersona`, verifier).
 - `<faction>.txt` per faction — rendered from `PERSONA_TEMPLATE`.
-- `logrolling` and `deception_tactics` fields emitted as stubs. Operator
-  hand-authors them or pipes the generated tables through
-  `tools.scenario_compiler` to LLM-author them.
+- `logrolling` and `deception_tactics` fields emitted as stubs until the
+  reverse-builder output is passed through
+  `tools.scenario_compiler --fill-narrative-only` (or hand-authored).
+
+Workflow:
+
+`ScenarioSpec` -> `tools.scenario_builder` -> `scenario_analysis.json` +
+persona stubs -> `tools.scenario_compiler --fill-narrative-only
+[--domain-context-file ...]` -> enriched `scenario_analysis.json` +
+persona files
 
 ### Spec fields ↔ §4 properties
 
@@ -297,8 +304,10 @@ records when a spec doesn't converge in expected time.
   penalty floor now sit in `scenario_analysis.json` as `pressure` and flow
   through `PERSONA_TEMPLATE`; exogenous events still sit outside the schema
   and remain deferred to Phase 39. `NEXT_STEPS.md` §2.
-- **LLM narrative wrap.** Logrolling text, deception tactics, scenario
-  title are emitted as stubs. Operator fills.
+- **LLM narrative wrap.** Closed via `tools.scenario_compiler
+  --fill-narrative-only`; logrolling text and deception tactics are filled
+  from the fixed scoring tables, with an optional domain-context file for
+  operator framing.
 - **Larger search spaces.** Validated at 3 factions × 3 issues × 3
   outcomes (27-deal space) in ~4 seconds. 4+ factions or 4+ issues per
   faction may need search-algorithm work (LLM-guided proposal seeding,

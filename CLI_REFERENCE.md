@@ -293,14 +293,22 @@ python -m tools.scenario_compiler \
     --scenario tests/self_play/scenarios/water_rights.md \
     --batna-fraction 0.55 \
     --force-batna-fraction
+
+# Fill narrative fields on an existing reverse-builder output
+python -m tools.scenario_compiler \
+    --fill-narrative-only tests/self_play/scenarios/joint_space_mission_v1/scenario_analysis.json \
+    --domain-context-file tests/self_play/scenarios/joint_space_mission.md \
+    --title "Joint Space Mission"
 ```
 
 | Flag | Default | Notes |
 |---|---|---|
-| `--scenario` * | — | Path to scenario text/markdown file |
+| `--scenario` * | — | Path to scenario text/markdown file. Required unless `--fill-narrative-only` is supplied. |
+| `--fill-narrative-only` | — | Existing `scenario_analysis.json` to enrich with `logrolling` and `deception_tactics`; skips forward analysis and reuses the fixed scoring tables, BATNAs, issues, and factions. |
 | `--faction` | (all) | Generate persona for one faction only |
-| `--output-dir` | (scenario dir) | Where to write `scenario_analysis.json` and persona `.txt` files |
+| `--output-dir` | (scenario dir) | Where to write `scenario_analysis.json` and persona `.txt` files. Defaults to the scenario directory, or to the analysis file's directory in fill-narrative mode. |
 | `--title` | `"a multi-party negotiation"` | Persona header title |
+| `--domain-context-file` | — | Optional operator-authored framing text passed to `--fill-narrative-only`. Useful for domain lore, campaign notes, or scenario-specific context. |
 | `--batna-fraction` | `0.50` | Target BATNA as fraction of each faction's max possible score. Scalar fallback when `--batna-fractions` is not supplied. Same flag as on `run_simulation.py`. See `TUNING.md` §1 BATNA tuning for full semantics (higher = more pressure to find Pareto deals; lower = easier to settle for any deal). |
 | `--batna-fractions` | — | JSON map `{faction_id: fraction}` for **asymmetric** BATNAs. Overrides `--batna-fraction` only for listed factions; unlisted use the scalar fallback. Example: `'{"alpha":0.65,"beta":0.35}'`. |
 | `--force-batna-fraction` | `false` | After LLM analysis, **overwrite** each faction's BATNA with `target_fraction × max_possible_score`. Uses `--batna-fractions` per-faction targets when supplied; otherwise uses `--batna-fraction`. Default off, preserving narrative BATNAs. Use when narrative-explicit BATNAs would dilute the target pressure. |
@@ -323,7 +331,7 @@ fitness distance, the exit reason, and the per-target distances at exit.
 
 No LLM calls — pure combinatorial search. `logrolling` and `deception_tactics`
 fields are emitted as stubs; fill them by hand or by running
-`tools.scenario_compiler` over the generated tables.
+`tools.scenario_compiler --fill-narrative-only` over the generated tables.
 
 ```bash
 # Build a scenario from a spec, verify the Pareto count matches the target

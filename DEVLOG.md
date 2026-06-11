@@ -667,3 +667,11 @@ Mode: Build
 Outcome: Verified the fill-narrative-only integration path against the checked-in joint-space fixture, confirmed the copied analysis rewrites back to the expected prose payload, and removed the temporary `tools/_temp_fill_narrative.py` helper now that the permanent CLI path covers the use case.
 Contract changes: none
 The existing integration test in `tests/test_scenario_compiler.py` already exercised the scenario-compiler fill-only path by stubbing the LLM response, resetting `scenario_analysis.json` to logrolling/deception stubs in a temp copy, and asserting the rewritten analysis plus regenerated persona output matched the checked-in fixture content. Focused verification passed with the repo venv: `./.venv/bin/python -m pytest -q tests/test_scenario_compiler.py` (`44 passed`). With that coverage in place, the temporary helper script was deleted.
+
+### Step 39.4: fill-narrative docs update
+Mode: Build
+Outcome: Updated the CLI reference, assessment note, and next-steps backlog to document `tools.scenario_compiler --fill-narrative-only`, the optional `--domain-context-file` framing input, and the reverse-builder flow from `ScenarioSpec` through narrative fill.
+Contract changes:
+- `CLI_REFERENCE.md` - added a fill-narrative worked example and flag rows for `--fill-narrative-only` / `--domain-context-file`; clarified that `--scenario` is optional in fill-only mode and that `--output-dir` defaults to the analysis directory there.
+- `ASSESSMENT.md` - added an explicit reverse-builder workflow diagram step for `tools.scenario_compiler --fill-narrative-only` and closed out the narrative-wrap note.
+- `NEXT_STEPS.md` - marked the LLM narrative-wrap backlog item closed and pointed it at the new fill-only CLI mode.
