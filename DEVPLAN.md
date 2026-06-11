@@ -1,7 +1,7 @@
 ## Phase 38: Pressure mechanisms small bundle - Complete
 phase: 39
 blocked: false
-state: execute
+state: review
 steps_remaining: 0
 ---
 
@@ -85,7 +85,7 @@ steps_remaining: 0
 - [x] 39.2 — Extend `scenario_compiler` CLI with `--fill-narrative-only <analysis_path>` flag. When set, skip the forward narrative-to-analysis path and just call `fill_narrative` against the existing analysis. Add `--domain-context-file <path>` optional flag for passing operator-authored domain framing (e.g., the NASA/ESA/commercial framing used for Joint Space Mission). Existing flags (`--output-dir`, `--scenario-title`, `--faction`, `--batna-fraction`) continue to work.
 - [x] 39.3 — Integration test: regenerate `tests/self_play/scenarios/joint_space_mission_v1/scenario_analysis.json` with logrolling+deception reset to stubs, run `python -m tools.scenario_compiler --fill-narrative-only ... --domain-context-file ...`, confirm output matches the prose content currently in the file. Remove `tools/_temp_fill_narrative.py` once integration test passes.
 - [x] 39.4 — Doc updates: `CLI_REFERENCE.md` (new `--fill-narrative-only` and `--domain-context-file` flags with worked example), `ASSESSMENT.md` §4.5 (add fill-narrative step to the reverse-builder workflow diagram), `NEXT_STEPS.md` §8 (mark fill-narrative item as closed; reference the new CLI mode).
-- [ ] 39.5 — Phase close: append DEVLOG entry summarizing what shipped, file/test counts, archive Phase 38 to DEVLOG_archive per the established pattern.
+- [x] 39.5 — Phase close: append DEVLOG entry summarizing what shipped, file/test counts, archive Phase 38 to DEVLOG_archive per the established pattern.
 
 ## Phase 38: Pressure mechanisms small bundle — Complete
 

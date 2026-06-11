@@ -3056,3 +3056,60 @@ Contract changes: none (additive only — new metric field + computation, no exi
 **Contract changes scan:** No contract-change markers in Phase 37 DEVLOG entries. The new field is additive; all existing specs using `pareto_outcome_diversity` omitted default to `0.0` (no constraint), preserving backward compatibility.
 
 **Integration check:** `scenario_fitness.py` and `scenario_spec.py` are in the tools module (not pipeline modules). No cross-module type changes. No integration check needed.
+
+---
+
+## Archived 2026-06-11 — Phase 38: Pressure mechanisms small bundle
+
+## 2026-06-11 - Phase 38 plan: pressure mechanisms small bundle
+
+Planned Phase 38 as a Build phase to add round-cost decay, asymmetric clocks, and penalty floor to the scenario pressure surface. Scoped exogenous events and cascade scoring as deferred. Draft steps: schema/compiler plumbing, persona/round-context rendering, pressure verifier/tests, final-round marker wording, and doc updates.
+
+## 2026-06-11 - Phase 38 review: plan-only state, no code findings
+
+Reviewed the current Phase 38 state after the planning commit. No implementation changes were present in the tree yet, so there were no code-level must-fix or should-fix findings to apply. The plan scope still matches the small pressure bundle described in DEVPLAN.
+
+## 2026-06-11 - Phase 38 step 38.1: pressure schema and spec round-trip
+
+Extended `ScenarioSpec` with a nested `PressureSpec` carrying `round_cost_decay`, `asymmetric_clocks`, and `penalty_floor_offset`, and threaded the pressure object through reverse-builder analysis output plus the compiler schema. Updated the deterministic fixture/tests in `tests/test_scenario_spec.py`, `tests/test_scenario_compiler.py`, `tests/test_scenario_builder.py`, and `tests/self_play/fake_llm_client.py` to match the new `pressure` object. Focused regression slice passed: `51 passed`.
+
+## 2026-06-11 - Phase 38 step 38.2: persona pressure rendering and deadlines
+
+Threaded pressure through the shared persona round-context renderer in `src/modules/persona/__init__.py` and reused it from `tools.scenario_compiler.generate_persona()`. Added pressure summary lines, pressure-aware final-round BATNA wording, and opponent deadlines when `priority_collision != "none"` so both runtime round contexts and generated persona files expose the same time-pressure language. Reverse-builder analyses now carry `priority_collision` so the deadline guidance survives spec-driven scenario generation. Focused regression slice passed: `117 passed`.
+
+## 2026-06-11 - Phase 38 step 38.3: pressure verifier and fixture-backed tests
+
+Added `tests/self_play/verify_scenario_pressure.py` to verify deadline-driven BATNA pressure: it checks per-faction effective-BATNA decay, requires surfaced deadlines when `priority_collision` is active, and synthesizes the deadline round as a final-round / accept-or-bust context. Added a fixture-backed regression in `tests/self_play/fixtures/pressure/pressure_good.json` plus `tests/test_scenario_pressure.py` covering the passing profile, the low-drop failure mode, and the deadline-context rendering. Focused regression slice passed: `20 passed`; direct CLI smoke on the new verifier passed against the fixture.
+
+## 2026-06-11 - Phase 38 step 38.4: pressure_profile metadata and final-round marker
+
+### Step 38.4: pressure_profile metadata and final-round marker
+Mode: Build
+Outcome: Added `pressure_profile` metadata to the scenario spec/model and committed scenario analysis fixtures, then strengthened the shared final-round context so it can say `No deal = N points (your BATNA). Current best offer = M points. Walking away costs you M-N points.` when the caller supplies a current-best value.
+Contract changes:
+- `src/tools/scenario_spec.py` - added `pressure_profile` validation/defaults/round-trip support.
+- `src/tools/scenario_compiler.py` - extended the scenario analysis schema with required `pressure_profile` metadata and passed `current_best_offer` into the round-context renderer.
+- `src/modules/persona/__init__.py` - added optional `current_best_offer` handling and the final-round BATNA-vs-best-offer wording.
+- `tests/self_play/verify_scenario_pressure.py` - verified the final-round context includes the new comparison text.
+- `tests/test_persona.py`, `tests/test_scenario_compiler.py`, `tests/test_scenario_spec.py`, `tests/self_play/fake_llm_client.py` - updated coverage and fixture shapes.
+- `tests/self_play/scenarios/*.json`, `tests/self_play/scenarios/joint_space_mission_v1/spec.json` - committed `pressure_profile` metadata for the checked-in scenarios/spec.
+Focused verification: `python3 -m pytest -q tests/test_persona.py tests/test_scenario_compiler.py tests/test_scenario_spec.py tests/test_scenario_pressure.py` --- `61 passed`; JSON load check on touched scenario files passed.
+
+## 2026-06-11 - Phase 38 step 38.4 follow-up: verified final-round summary and pressure fixture metadata
+
+Verified the step 38.4 follow-up edits in the live tree: `src/modules/persona/__init__.py` now emits the combined final-round summary line (`No deal = N pts (your BATNA); current best offer = M pts; walking away costs you M-N pts`) ahead of the existing detail lines, `tests/self_play/fixtures/pressure/pressure_good.json` now carries `pressure_profile`, and the matching tests assert both changes. Focused regression slice passed again after the edits: `python3 -m pytest tests/test_persona.py tests/test_scenario_pressure.py tests/test_scenario_compiler.py` and the direct pressure verifier smoke both passed.
+
+### Step 38.5: doc update and phase-close prep
+Mode: Build
+Outcome: Updated the phase-close docs to mark Phase 38 closed, record the pressure schema in the architecture and assessment docs, and advance DEVPLAN to the review state.
+Contract changes:
+- `ARCHITECTURE.md` - scenario compiler / builder rows now mention pressure metadata and pressure-aware round-context rendering.
+- `ASSESSMENT.md` - §4.5 pressure row now points at the implemented `pressure` object; the pressure-mechanisms note now distinguishes shipped small-bundle fields from deferred exogenous events.
+- `NEXT_STEPS.md` - Phase 38 status updated to closed across the backlog summary, pressure section, and reverse-scenario-builder lineage.
+- `DEVPLAN.md` - Step 38.5 checked off.
+
+This step was doc-only. No code or test changes were needed. The next action is Phase 38 review.
+
+## 2026-06-11 - Phase 38 close: pressure mechanisms small bundle complete
+
+Phase 38 closed after the pressure small bundle shipped end to end: `pressure` now carries round-cost decay, asymmetric clocks, penalty floor, and pressure-profile metadata; persona rendering and the final-round marker are pressure-aware; verifier coverage is in place. Close verification passed on the focused phase slice (`python3 -m pytest -q tests/test_persona.py tests/test_scenario_pressure.py tests/test_scenario_compiler.py tests/test_scenario_spec.py` — `61 passed`). `DEVPLAN.md` now shows Phase 38 as complete with a DEVLOG reference.
