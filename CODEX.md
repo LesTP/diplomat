@@ -192,6 +192,8 @@ $ sed -i "s/^state:.*/state: $NEXT/" DEVPLAN.md
 
 Shell-chain trap: `bash tools/state_machine.sh && cat CODEX.md` runs dispatch FIRST, then the `cat`. The chain looks like "check state, then load context" but it's just a plain dispatch followed by reads. A second such chain in the same iteration dispatches twice.
 
+**Peek's return is informational, not authoritative.** The action the worker owes is the one its most recent DISPATCH returned. If the first dispatch this iteration returned `EXECUTE` / `REVIEW` / `PLAN` / `CLOSE`, perform that action even if a later peek returns `EXIT`. Peek's `EXIT` reports "no more dispatches available this iteration"; dispatch's `EXIT` reports "no work the loop wants done." Two different signals, two different meanings.
+
 **CRITICAL — state-write command (step 7).** Copy-paste this **exactly**:
 
 ```bash
