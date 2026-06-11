@@ -188,32 +188,6 @@ def _all_cells(spec: ScenarioSpec) -> list[_Cell]:
     return cells
 
 
-def _best_single_cell_flip(
-    spec: ScenarioSpec,
-    scoring: dict[str, dict[str, dict[str, int]]],
-    current_distance: float,
-) -> tuple[dict[str, dict[str, dict[str, int]]] | None, dict[str, Any] | None, float]:
-    best_scoring: dict[str, dict[str, dict[str, int]]] | None = None
-    best_analysis: dict[str, Any] | None = None
-    best_distance = current_distance
-    values = list(_score_range(spec))
-
-    for cell in _all_cells(spec):
-        current_value = scoring[cell.faction][cell.issue][cell.outcome]
-        for value in values:
-            if value == current_value:
-                continue
-            candidate_scoring = copy.deepcopy(scoring)
-            candidate_scoring[cell.faction][cell.issue][cell.outcome] = value
-            candidate_analysis = _analysis_from_scoring_table(spec, candidate_scoring)
-            candidate_distance = compute_fitness(candidate_analysis, spec).total_distance
-            if candidate_distance < best_distance:
-                best_scoring = candidate_scoring
-                best_analysis = candidate_analysis
-                best_distance = candidate_distance
-    return best_scoring, best_analysis, best_distance
-
-
 def _anneal_local(
     spec: ScenarioSpec,
     scoring: dict[str, dict[str, dict[str, int]]],

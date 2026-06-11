@@ -136,10 +136,6 @@ class TestSearchLoop:
             lambda *args, **kwargs: copy.deepcopy(scoring),
         )
         monkeypatch.setattr("tools.scenario_builder._candidate_is_acceptable", lambda *a, **k: False)
-        monkeypatch.setattr(
-            "tools.scenario_builder._best_single_cell_flip",
-            lambda spec, scoring, current_distance: (None, None, current_distance),
-        )
         caplog.set_level(logging.INFO, logger="tools.scenario_builder")
 
         def collect_schema() -> list[list[str]]:
