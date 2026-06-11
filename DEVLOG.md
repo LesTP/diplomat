@@ -1,5 +1,15 @@
 # Diplomat — Development Log
 
+## 2026-06-11 — Phase 37 Step 37.3
+
+Mode: Build
+Outcome: Added and validated the Phase 37 unit-test coverage for `pareto_outcome_diversity` in `tests/test_scenario_fitness.py`. The suite now pins the low-diversity, distinct-winner, mixed-target, default-zero/no-constraint, total-distance-weighting, and categorical-default-weight behaviors for scenario fitness scoring.
+Contract changes: None
+
+Validation: `python3 -m pytest tests/test_scenario_fitness.py` — 9 passed.
+
+Notes: The environment does not provide a `python` shim, so validation used `python3`.
+
 <!-- Reverse-chronological record of what happened during development.
      Newest entries at the top. Each step or milestone gets a structured entry.
      This is the audit trail.
