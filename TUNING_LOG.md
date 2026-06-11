@@ -1557,6 +1557,54 @@ Now definitely the next critical run per 14d's 0/3 outcome. Expected cost ~$15-3
 
 **One important caveat** (per `RESEARCH_NOTES.md` Note 1): this is all on a **scale-1 scenario** — 3 factions, 3 issues, 4 rounds, ~4% context utilization, no deception, synchronous, unique Pareto optimum. Findings are about *this scenario shape*, not about harnesses in general. Note 1's prediction (harness contribution grows with scenario complexity) makes the strong-bare 0/3 result *less* surprising in that frame: at scale-1 the harness should still help with the modest coordination problem, and it does; at scale-N the gap should widen further. Run 14d is consistent with the thesis.
 
+### Plain-language progress matrix (post-14d)
+
+Three views of the campaign so far for non-technical / first-time readers. The detail tables above remain canonical; this section is a navigation aid.
+
+**Per-cell — what each run measured:**
+
+| Cell | What we ran | What it tests (plain language) | Outcome | Cost | Wall |
+|---|---|---|---|---|---|
+| 14a | Mid OpenAI + full harness | Baseline — can mid tier with full scaffolding close the deal? | **2/3** deals (66%) | ~$3-4 | ~12 min/run |
+| 14b | Mid OpenAI, raw model only | Does removing the harness hurt at mid tier? | **1/3** (33%) | ~$0.50 | ~6 min/run |
+| 14c-full | Cheap OpenAI + full harness | Can scaffolding lift a 10× cheaper model to mid-tier performance? | **2/3** (66%) | ~$0.15 | ~10 min/run |
+| 14c-bare | Cheap OpenAI, raw model only | What does the cheapest model achieve alone? | **0/3** (0%) | ~$0.15 | ~4 min/run |
+| 14d | Strong Anthropic, raw model only | Does raw model strength substitute for the harness? | **0/3** (0%) | ~$0.50 | ~8 min/run |
+| 14e *(pending)* | Strong Anthropic + full harness | Does the harness rescue sonnet, or does the scenario have a 2/3 ceiling regardless of tier? | TBD | ~$15-30 | ~25-40 min/run |
+
+When closing, **every** run found the *identical* Pareto-optimal deal (alpha 16 / beta 18 / gamma 20). Cells differ only in close rate, never in deal quality. The scenario has one right answer; close rate measures whether the agents can find it.
+
+**Pairwise — what the comparisons tell us:**
+
+| Comparison | What we learn | Result | Implication |
+|---|---|---|---|
+| Harness lift per tier (X-full vs X-bare) | How much does scaffolding help at this model tier? | weak +67%, mid +33%, strong ??? | Harness always helps; 14e closes this row. |
+| Cheap+full vs mid+full (14c-full vs 14a) | Does harness erase a 10× model-cost gap? | Both 2/3 | **Yes** — harness lets a cheap model match a mid model here. |
+| Cheap+full vs mid+bare (14c-full vs 14b) | Is "cheap model + scaffolding" better than "mid model alone"? | 2/3 vs 1/3 | **Yes** — speaks to "make cheap models good enough" positioning. |
+| Bare-mode tier ladder (14c-bare → 14b → 14d) | Does close rate scale with model strength when there's no harness? | weak 0/3, mid 1/3, strong 0/3 | **Non-monotonic.** Sonnet-bare ≈ nano-bare. Raw model strength doesn't substitute for structured reasoning here. |
+| Strong-bare vs cheap+full (14d vs 14c-full) | Is "buy the bigger model" enough, or do we still need scaffolding? | 0/3 vs 2/3 | **Cheap+scaffolding wins decisively.** "Pay for model not infra" doesn't hold. |
+| Strong-bare vs strong-full (14d vs 14e, pending) | Will the harness rescue sonnet too, or hit a ceiling? | TBD | Headline crossover test of the campaign. |
+
+**Implied unit economics (back-of-envelope, pending 14e):**
+
+| Configuration | $/deal-attempt | Implied $/closed-deal at observed close rate |
+|---|---|---|
+| cheap + full (14c-full) | ~$0.05 | ~$0.075 (2/3 close rate) |
+| mid + full (14a) | ~$1.20 | ~$1.80 (2/3 close rate) |
+| strong + full (14e projected if 2/3) | ~$5-10 | ~$7-15 (assumed 2/3) |
+| strong + bare (14d) | ~$0.17 | **∞ (0 deals closed)** |
+
+If close rates hold, cheap+harness is **24-100× cheaper per closed deal** than the strong tier — Phase B / production-economics implication is that the production default should be cheap+harness, with strong models reserved for situations where the harness can't compensate (which we don't yet know how to identify).
+
+### Follow-up questions in priority order (post-14d)
+
+1. **Will 14e hit 3/3 or stay at the 2/3 ceiling that nano-full and mid-full both hit?** Tells us whether close rate is bounded by the scenario or by what each model can do with the harness. Highest leverage per dollar; pending operator dispatch.
+2. **Does the load-bearing-harness finding generalize beyond this scenario?** RESEARCH_NOTES.md Note 1 predicts the gap *widens* at richer scenarios (more factions, more issues, longer horizons, deception). Needs Phase 41/42 (scale matrix) + a follow-up ablation campaign on the richer scenarios the upgraded builder can produce.
+3. **Which harness modules are doing the work?** Bare strips all of: extraction, analyst, divergence, reconciliation, adversarial, coaching. Per-module ablation (Phase 35 candidate from §10 TODOs) would isolate whether it's specifically the analyst intel, the state-manager tracking, or the stack collectively.
+4. **Why is mid-bare (1/3) > strong-bare (0/3)?** Non-monotonic curve is unexpected. Three plausible explanations: (a) noise — 3 runs per cell is small; (b) sonnet's longer/more deliberative drafts cross some working-memory threshold differently than gpt-mini's terser style; (c) Anthropic's self-correction failure modes differ from OpenAI's in ways that hurt without external reconciliation. A wider-sample re-run of mid-bare and strong-bare (e.g., 5-10 runs each) would resolve (a); the others need transcript inspection.
+5. **Does cheap+harness beat strong+harness in cost-per-deal?** See unit-economics table above. Likely yes by 24-100×.
+6. **Is the "every closing run finds identical Pareto deal" property robust to scenario shape?** This is the cleanest evidence the scenario has a unique-right-answer structure. Multi-Pareto scenarios (`joint_space_mission_v1`, soon) will produce a different pattern — different deals favoring different factions. Once those land in ablation, the "close rate vs deal quality" distinction becomes a real two-dimensional signal.
+
 ### Recommended next runs (post-14d)
 
 **14e (sonnet full, 3 runs, ~$15-30)** — **now the critical run.** 14d's 0/3 fires the "≤1/3 → fire 14e" conditional from the original sequencing plan. Expected outcomes:
