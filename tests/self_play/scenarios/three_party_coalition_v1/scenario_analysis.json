@@ -1,0 +1,74 @@
+{
+  "batna": {
+    "a": 0,
+    "b": 0,
+    "c": 0
+  },
+  "deception_tactics": {
+    "a": "Overstate interest in BC coalition to appear less essential and gain concessions in AB or ABC",
+    "b": "Overstate interest in AC coalition to pressure A and C",
+    "c": "Overstate interest in AB coalition to pressure A and B"
+  },
+  "factions": [
+    "a",
+    "b",
+    "c"
+  ],
+  "game_mode": "competitive",
+  "issues": [
+    {
+      "description": "Which coalition to form and how to split the coalition value",
+      "name": "coalition_choice",
+      "outcomes": [
+        "AB coalition formed and value split",
+        "AC coalition formed and value split",
+        "BC coalition formed and value split",
+        "ABC grand coalition formed and value split"
+      ]
+    }
+  ],
+  "logrolling": [
+    "A concedes some surplus share in AB coalition in exchange for blocking side deal from C",
+    "C concedes on share in AC coalition to gain blocking power against AB coalition",
+    "B concedes on share in BC coalition to maintain leverage in grand coalition"
+  ],
+  "pressure": {
+    "asymmetric_clocks": {
+      "a": 10,
+      "b": 8,
+      "c": 6
+    },
+    "penalty_floor_offset": 0,
+    "round_cost_decay": 0
+  },
+  "pressure_profile": {
+    "external_shock": "low",
+    "time_pressure": "low"
+  },
+  "scoring": {
+    "a": {
+      "coalition_choice": {
+        "AB coalition formed and value split": 9,
+        "ABC grand coalition formed and value split": 7,
+        "AC coalition formed and value split": 7,
+        "BC coalition formed and value split": 0
+      }
+    },
+    "b": {
+      "coalition_choice": {
+        "AB coalition formed and value split": 10,
+        "ABC grand coalition formed and value split": 7,
+        "AC coalition formed and value split": 0,
+        "BC coalition formed and value split": 6
+      }
+    },
+    "c": {
+      "coalition_choice": {
+        "AB coalition formed and value split": 0,
+        "ABC grand coalition formed and value split": 7,
+        "AC coalition formed and value split": 9,
+        "BC coalition formed and value split": 7
+      }
+    }
+  }
+}
