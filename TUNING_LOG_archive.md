@@ -857,23 +857,42 @@ BATNA.
 
 2. *Original H2 (squeezed the wrong faction)* — Still partially right, but the mechanism is different than first thought. Squeezing alpha did unlock alpha's flexibility on its non-priority issue (water) while sharpening alpha's non-negotiable (payment). The problem wasn't that alpha became inflexible — it was that alpha+gamma's convergence still needed beta's buy-in.
 
-3. *Original H3 (Beta's relief made her unwilling to budge)* — Partially right but the mechanism is more specific: Beta's relief (BATNA=8) made her able to *defect from her own R3 commitment in R4 at no cost*. Reverting to BATNA was painless. **The binding constraint wasn't beta's willingness to budge in early rounds — it was beta's willingness to follow through on a contingent commitment when the contingency was met.** Beta-squeezed (BATNA=15) couldn't do this; defecting back to BATNA was a real loss. So beta-squeezed forced beta to be consistent across rounds, which is what unlocked the Pareto deal.
+3. *Original H3 (Beta's relief made her unwilling to budge)* — Right that beta's BATNA was decisive, but the earlier mechanism ("defecting to BATNA was painless / a real loss") is imprecise and is corrected here. The decisive factor is the *size of beta's acceptable-deal set*, not the point-cost of falling to BATNA. With a low BATNA (relief, =8) beta's selfishly-preferred Token/Shared variants still clear her floor, so chasing them at R4 — which breaks the alpha+gamma consensus — looks rational to her; that is the "defection." With a high BATNA (squeeze, =15) those same alternatives fall *below* her floor, so chasing them is irrational, and the only deal that still clears 15 is the efficient Heavy-Downstream Pareto deal (beta=18). The squeeze doesn't make beta *want* a deal more — it prices her tempting alternatives out of her acceptable set, leaving consistency (locking onto the one surviving deal) as her only rational move. "Commitment-following" is a *consequence* of a narrow acceptable set, not a separate primitive.
 
 4. *Original H4 (acceptable deal space shrank)* — Mostly wrong as the binding mechanism. Alpha-squeezed alpha did refuse some deals that symmetric alpha would have accepted (e.g. Token sums where alpha=8), but in this transcript the deal that nearly closed (Medium + Heavy-Downstream + JFD, alpha=19) cleanly beat both BATNAs. Deal-space shrinkage wasn't what blocked convergence.
 
-**The corrected reading of Run 9:**
+**The corrected reading of Run 9 (acceptable-set narrowing, not "cost of falling to BATNA"):**
 
-Asymmetric BATNA's primary effect is **commitment-following enforcement**, not
-"squeeze the deadlock-holder." The faction with the most to lose by defecting
-from a contingent commitment is the most likely to honor it across rounds.
-Beta-squeezed couldn't defect at the last round; alpha-squeezed beta could and
-did.
+Asymmetric BATNA's primary effect is **acceptable-set narrowing**, not "squeeze
+the deadlock-holder" and not (as an earlier draft put it) "make defecting to
+BATNA too costly." Raising a faction's BATNA deletes from its acceptable set
+every deal below the new floor — including the mediocre, selfishly-preferred
+alternatives it would otherwise hold out for or defect to. The *sign* of that
+effect depends on what survives the narrowing:
 
-This is a more general and more useful finding than "squeeze the deadlock-holder."
-It also has different implications for scenario design: the lever is per-faction
-*cost of inconsistency*, which raises the question of whether BATNA is even the
-right knob, or whether something like "reputation cost across rounds" would be
-more direct.
+- If a deal comfortably above the raised floor still exists (β-squeezed:
+  Heavy-Downstream, beta=18 > 15), the faction is pinned to it and stops
+  wandering → deal *enabled*.
+- If nothing survives (α-squeezed: alpha's BATNA = the highest score in the
+  game), the faction has nothing left to accept → deadlock; the squeeze
+  *backfires* (D-34 retires this variant as structurally unwinnable).
+
+This reconciles H3 and H4: acceptable-set shrinkage is the single mechanism, but
+it *blocks* convergence only when it deletes the efficient deal too (it did not
+in α-squeezed — what blocked that game was beta's defection, per H4); it
+*enables* convergence when it deletes only the tempting alternatives
+(β-squeezed). The faction that defects in any variant is whichever one has the
+*widest* acceptable set (lowest BATNA), because it has the most attractive
+alternatives to chase.
+
+And per Run 10, the entire effect is substitutable by a natively-consistent
+provider — Anthropic reached the same deal with no squeeze. So the squeeze is
+really just a way to force an inconsistency-prone model's hand by removing its
+options; the deeper knob is per-faction *cost of inconsistency* / reputation,
+not BATNA itself. (Boundary case: Run 11 shows even a high BATNA does not
+guarantee a rational floor — Anthropic-β, squeezed to 15, accepted a 14-point
+sub-BATNA deal to preserve the relationship. The acceptable-set logic is a
+statement about model behavior, not clean game theory.)
 
 **Updated experiment recommendations:**
 

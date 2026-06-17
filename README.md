@@ -1,13 +1,16 @@
 # Diplomat
 
-> AI faction agent for a multiplayer diplomacy game. Autonomous negotiation,
-> promise tracking, and strategic analysis, coached by a human operator
-> through a review gate.
+> **LLM negotiation benchmark.** Multi-model, multi-scenario evaluation
+> harness measuring negotiation skill across model classes. Originally
+> scoped as an AI faction agent coached by a human operator through a
+> review gate — pivoted 2026-06-16 to the benchmark direction per
+> `DECISIONS.md` D-56. Coaching infrastructure preserved in tree, no new
+> investment.
 
 For the project's scope, audience, success criteria, and constraints, read
 [`PROJECT.md`](PROJECT.md). For the architectural component map and module
 contracts, read [`ARCHITECTURE.md`](ARCHITECTURE.md). To pick up active
-work, read [`DEVPLAN.md`](DEVPLAN.md).
+work, read [`NEXT_STEPS.md`](NEXT_STEPS.md).
 
 ---
 
@@ -15,15 +18,16 @@ work, read [`DEVPLAN.md`](DEVPLAN.md).
 
 | I want to... | Go to |
 |---|---|
-| Understand what the project does | [`PROJECT.md`](PROJECT.md) |
-| Run the production Telegram bot | [`CLI_REFERENCE.md`](CLI_REFERENCE.md) → `tools/service.sh` |
+| Understand what the project does + direction | [`PROJECT.md`](PROJECT.md) |
+| See the benchmark / coaching direction decision | [`DECISIONS.md`](DECISIONS.md) D-56 |
 | Run a multi-agent self-play game | [`CLI_REFERENCE.md`](CLI_REFERENCE.md) → `tests.self_play.run_simulation` + [`RUN_PROTOCOL.md`](RUN_PROTOCOL.md) for the pre-flight |
-| Smoke-test the Pi deployment | [`SMOKE_RUNBOOK.md`](SMOKE_RUNBOOK.md) |
-| Set up a coaching-test loop on Pi | [`NEXT_STEPS.md`](NEXT_STEPS.md) §4 (pending) |
+| Run a single benchmark cell (any provider/model × scenario × mode) | `tools/ablation_multi.sh run MODEL SCENARIO MODE N` |
 | Tune BATNAs, providers, prompts | [`TUNING.md`](TUNING.md) |
 | See what experiments have run | [`TUNING_LOG.md`](TUNING_LOG.md) (active arc) + [`TUNING_LOG_archive.md`](TUNING_LOG_archive.md) (early runs) |
 | Find work to do | [`NEXT_STEPS.md`](NEXT_STEPS.md) |
 | Understand how skill is measured | [`ASSESSMENT.md`](ASSESSMENT.md) |
+| See architectural diagrams | [`_arch_diagrams.md`](_arch_diagrams.md) (mermaid; render via `Markdown Preview Mermaid Support` extension or `render_mermaid_file`) |
+| **Coaching product** (deferred per D-56) | Run the production Telegram bot via [`CLI_REFERENCE.md`](CLI_REFERENCE.md) → `tools/service.sh`; Pi smoke runbook in [`SMOKE_RUNBOOK.md`](SMOKE_RUNBOOK.md); coached self-play via `tests.self_play.coached_game` per [`diplomat-testing-doc.md`](diplomat-testing-doc.md) §5b. Infrastructure operational; no new investment under D-56. |
 
 ---
 

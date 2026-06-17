@@ -1,5 +1,5 @@
 # AI Diplomat — Testing and Tuning Guide
-**Version 0.8 | Updated 2026-06-02 — Phase 28 coached self-play + near-miss diagnostic**
+**Version 0.9 | Updated 2026-06-16 — synced through Phase 38 / Run 17; D-56 benchmark-direction pivot**
 
 ---
 
@@ -21,15 +21,15 @@ The modular architecture in the main spec was partly designed with testability i
 | 2 — Prompt regression | Prompt quality and constraint compliance | Slow | Low | Before prompt changes go live | **Complete** — infrastructure + 6 starter scenarios |
 | 3 — Pipeline integration | Cross-module behavior, failure handling, transcript replay, Phase 18 reconciliation paths | Medium | Free | Before deployments | **Complete** — 5 test files |
 | — Live smoke test | Real Telegram + real LLM end-to-end | Manual | Low | Before first game | **Complete** |
-| 4 — Multi-agent self-play | Game-level behavior, persona coherence | Slow | Medium-high | Final validation before real game | **Operational** — 10 simulation runs, ongoing tuning |
+| 4 — Multi-agent self-play | Game-level behavior, persona coherence | Slow | Medium-high | Final validation before real game | **Operational** — 17 simulation runs (incl. bare-vs-full ablation campaigns), ongoing tuning |
 
-**Total: 346 tests passing** (Phase 28).
+**Total: 414 tests passing** (Phase 34; later phases add more).
 
 ### What Already Exists
 
 | Artifact | Location | Notes |
 |---|---|---|
-| 25 unit test files | `tests/test_*.py` | One per module + cross-cutting, 346 tests total |
+| 25 unit test files | `tests/test_*.py` | One per module + cross-cutting, 414 tests total (Phase 34) |
 | Pipeline integration tests | `tests/integration/` | 5 test files: pipeline flow, failure handling, replay, Phase 18 paths, pipeline fixture |
 | Transcript fixtures | `tests/integration/fixtures/transcripts/` | cooperative_3round.json, betrayal_arc.json |
 | CLITransport | `src/modules/transport/__init__.py` | JSON reader/writer, no inject() |
@@ -1241,7 +1241,7 @@ Run `python src/main.py` on the Pi, then manually test each path:
 
 Self-play runs multiple agent instances against each other in a simulated environment. It validates game-level behavior, persona coherence, extraction quality, and strategic play. See `TUNING_LOG.md` for the full iterative tuning record.
 
-**Status:** Operational. 10 simulation runs completed across 4 scenario types (Runs 1–6 archived in `TUNING_LOG_archive.md`, Runs 7–10 in `TUNING_LOG.md`).
+**Status:** Operational. 17 simulation runs completed across multiple scenario types (Runs 1–13 archived in `TUNING_LOG_archive.md`, Runs 14–17 in `TUNING_LOG.md`).
 
 ### 6.1 Architecture
 
@@ -1374,7 +1374,7 @@ GameEnvironment includes `score_game()` which evaluates the final round's propos
 
 ### 6.5 What Self-Play Has Revealed
 
-Key findings from 10 runs across 4 scenario types (see `TUNING_LOG.md` and `TUNING_LOG_archive.md` for details):
+Key findings from 17 runs across multiple scenario types (see `TUNING_LOG.md` and `TUNING_LOG_archive.md` for details):
 
 1. **LLMs default to cooperative.** Without explicit competitive instructions, agents converge on reasonable deals too quickly. Point tables + named deception tactics produce dramatically more strategic behavior.
 2. **Extraction definition matters.** "Promise = binding commitment" missed most negotiation language. Broadened to include concrete proposals with specific terms.
@@ -1383,6 +1383,7 @@ Key findings from 10 runs across 4 scenario types (see `TUNING_LOG.md` and `TUNI
 5. **Few-shot examples + retry eliminates schema failures.** Narrative-only prompts failed ~30% of the time. `structured_call` with examples and retry reduced failures to near zero.
 6. **Provider consistency is a first-class variable.** Run 10 showed OpenAI gpt-4.1-mini defects from R3 contingent commitments at R4 (2-of-2 instances); Anthropic claude-haiku-4-5 honored them. BATNA pressure substitutes for native consistency on flaky models.
 7. **BATNA squeeze works asymmetrically.** Run 9 β-squeezed reached the Pareto-optimal deal that symmetric BATNAs missed. Squeeze the faction that holds the bottleneck issue.
+8. **Harness contribution is scenario × model dependent, and shows up in close-rate not deal quality** (Runs 14–17). Bare-vs-full ablation: the harness is load-bearing for weak/mid OpenAI on single-Pareto Water Rights, but contributes nothing for sonnet (3/3 bare on multi-Pareto jsm1; strategic refusal in both modes on Water Rights). Closing runs find the *identical* Pareto deal regardless of mode. See `RESEARCH_NOTES.md` Note 1.
 
 ### 6.6 Available Scenarios
 
@@ -1492,6 +1493,7 @@ Manual classification (this section's original workflow) remains valid as a veri
 | **Done** | Phases 20–24: Layer 3 Phase 18 path tests, module boundary cleanup, Pipeline/Flow split, Pareto scoring, asymmetric BATNA flags, Level 1 modularization | Layer 4 stable |
 | **Done** | Phases 25–27: service.sh tmux rewrite, structured per-event logging, no-deal-aware scoring metrics | Phases 20–24 |
 | **Done** | Phase 28: Coached self-play harness (`coached_game.py`) + near-miss diagnostic (`compute_near_miss()`) | Pipeline/Flow split (Phase 22) |
+| **Done** | Phases 29–38: OpenRouter integration, coaching gate v2 (`/revise:` + edit classifier), bare-prompt ablation (Phase 34), reverse scenario builder + pressure mechanisms (Phases 35–38) | Phase 28 |
 | **Ongoing** | Add scenarios and tune prompts based on self-play analysis. See `TUNING_LOG.md` | — |
 
 ---
@@ -1590,3 +1592,4 @@ python -m tests.self_play.analysis \
 |------|-------------|-----|
 | 2026-05-27 | Version 0.6 — Phase 17 prompt regression infrastructure complete | Initial stable version with Layers 1–4 |
 | 2026-06-02 | Version 0.8 — Phase 28 sync. Updated version header, testing layers table (346 tests), "What Already Exists" inventory, directory structure (added `src/flows/`, `src/pipeline.py`, `src/logging_config.py`, `src/modules/reconciliation/`, `config/examples/`, `tools/`), Layer 1 table (12 → 25 test files), Layer 4 architecture table (added 4 components), run count (8 → 10), scenario table (Water Rights .md + BATNA variants), post-game scoring (Pareto + surplus fields), self-play findings (provider consistency, BATNA squeeze), build order (added Phases 20–28), Quick Reference (coached game runner, verify scenario, probe providers). Reframed §2 header from "Changes Required" to "Reference." | Sync doc with Phases 20–28, Runs 9–10, and actual codebase structure |
+| 2026-06-16 | Version 0.9 — sync through Phase 38 / Run 17 and the D-56 benchmark-direction pivot. Updated version header; testing-layers table (10 → 17 runs); total test count (346 → 414, Phase 34); unit-test total; Layer 4 status + run-count references (10 → 17; archive split now Runs 1–13 / active Runs 14–17); added a Phases 29–38 build-order row; added the harness-contribution self-play finding (§6.5 #8). | Doc had drifted ~9 phases / 7 runs behind the codebase and predated the benchmark-direction pivot |

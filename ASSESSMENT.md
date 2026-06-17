@@ -6,6 +6,17 @@
 > §5 below). Architecture lives in `ARCHITECTURE.md` (and per-module
 > `ARCH_*.md`). Operational tuning lives in `TUNING.md`.
 
+> **Project direction (2026-06-16, per `DECISIONS.md` D-56):** Diplomat is
+> now an **LLM negotiation benchmark**, not a coaching product. Under that
+> direction, **Block C (game creation, scoring, assessment) is the primary
+> investment surface**, Block A (architecture/memory) stays infrastructure,
+> and Block B (prompt tuning) demotes to "tunings that affect benchmark
+> results" only. Persona-tuning for live-game performance, coached self-play
+> refinements, and operator-coaching UX work are deferred. The scoring
+> lenses in §3 below were authored under cooperative-product framing; §3.5
+> (rank-based) and §3.6 (coalition-value) are queued as the competitive
+> companions per `RESEARCH_NOTES.md` Note 2 Path B.
+
 ---
 
 ## 1. Why this exists — the calculation-vs-negotiation tension
@@ -173,7 +184,43 @@ diagnostics that characterize *how* the deal was reached, not just
   remain deferred because they need transcript interpretation beyond exact
   outcome-name matching.
 
-### 3.5 How they compose
+### 3.5 Rank-among-factions (queued — Note 2 Path B companion)
+
+```
+rank(faction, game) = position in descending order of score_achieved
+                       across all factions in the game (1 = highest, N = lowest)
+
+mean_rank(model, scenario) = average rank across all games where that model
+                              played in that scenario, over all faction slots
+```
+
+- Range: integer per game; aggregated to mean across games.
+- Captures: "Did this model score higher than its peers in head-to-head?"
+- Status: **Queued** (Phase TBD). Required for benchmark direction (D-56). Implementation is ~50 LOC — add `rank_among_factions` to `tests/self_play/analysis.py` post-game report; aggregator for cross-game cumulative ranking; optional position-rotation harness for scenario-asymmetry control.
+- Why diagnostic: only competitive metric that's meaningful in **mixed-model populations**. The first four lenses are all cooperative measures (did the *group* find joint value); rank-based is the first that asks "did *this* model beat *those* models." Under D-56 this is the load-bearing benchmark metric for mixed-model campaigns.
+- Required precondition for usefulness: scenarios with non-trivial score asymmetry (your win is partly someone else's loss). Adversarial-scoring scenarios (per §4 Path C) magnify the signal; cooperative scenarios with strong attractors (e.g., jsm1 balanced-consensus) flatten it.
+
+### 3.6 Coalition-value scoring (queued — Note 2 Path B build)
+
+```
+coalition_value(game) = lookup of {coalition members} → value
+                         in scenario_analysis.json::coalition_values
+
+faction_score(faction, game) =
+    coalition_value(coalition containing faction) × split_share(faction)
+    if faction is in the agreed coalition;
+    BATNA otherwise (excluded faction).
+```
+
+where `coalition_values` is a new field in `scenario_analysis.json` (e.g., Susskind Three-Party: `{AB: 118, AC: 84, BC: 50, ABC: 121}`) and `split_share` is determined by the round-by-round transcript's negotiated split.
+
+- Range: faction scores reflect coalition value × split, not aggregate-issue scoring. Excluded factions hit BATNA, not the issue-scoring floor.
+- Captures: "Did the agreeing subset form a coalition, and how did they split the value?"
+- Status: **Queued** (Note 2 Path B build, ~1-2 days). Required for benchmark direction (D-56) on coalition-formation scenarios. Modifies `score_game()` to detect partial-agreement on a designated "coalition membership" issue, look up coalition value, apply split per transcript-extracted shares. Excluded factions assigned BATNA or coalition-specific exclusion payoff.
+- Why diagnostic: the current `score_game()` requires unanimous agreement on every issue. On coalition-coercive scenarios (Susskind), this collapses A+B coalition formation (where C blocks ABC and gets excluded) into "no deal, everyone at BATNA" — the agreeableness-bias problem documented in `RESEARCH_NOTES.md` Note 2. Coalition-value scoring is what makes mixed-model populations on coalition scenarios produce "X model wins, Y loses" rather than "everyone deadlocks."
+- Required precondition for usefulness: scenarios that emit `coalition_values` (currently the patched Three-Party Coalition v1; others as authored). Non-coalition scenarios pass through to the existing issue-scoring logic unchanged.
+
+### 3.7 How they compose
 
 Different questions call for different combinations:
 
@@ -185,6 +232,9 @@ Different questions call for different combinations:
 | "How did they negotiate, not just what they got?" | 3.4 Process signatures |
 | "Is a new persona/strategy/model better?" | 3.1 + 3.2 across multiple scenarios |
 | "Does this strategy work in mixed-motive games but not zero-sum?" | 3.1 + 3.3 per game-mode |
+| **"Which model wins in a mixed-population game?"** (benchmark) | **3.5 rank-among-factions** |
+| **"Did the agreeing subset form a coalition and exclude the third party?"** (benchmark) | **3.6 coalition-value scoring** |
+| **"Ranking N models across M scenarios — who's the strongest negotiator overall?"** (benchmark) | **3.5 mean-rank, aggregated across cells; 3.2 cross-validated per cell** |
 
 ---
 
@@ -336,6 +386,15 @@ All work fits one of three blocks. Each has its own iteration loop, its
 own evaluation signal, and its own kind of technical debt. Cross-cutting
 items get a fourth bucket.
 
+> **Tier priorities under D-56 (2026-06-16):** **Block C is the primary
+> investment surface** for the benchmark direction. Block A stays
+> infrastructure (additive Flow types, scale-axis untested questions).
+> **Block B demotes** — persona-tuning for live-game performance, strategy
+> libraries, voice overlays, and edit-classification feedback loops drop
+> out of the active queue. The pre-D-56 active items in Block B are
+> retained below for historical context and preserved infrastructure but
+> are not Tier 1 investments under the benchmark direction.
+
 ### Block A — Agent architecture & memory
 
 **What it covers.** The pipeline that turns inbound events into outbound
@@ -351,8 +410,7 @@ integration tests → fake-LLM regression → live self-play sanity check.
 transcripts; reconciliation accuracy (dedup hit rate, fulfillment
 detection rate).
 
-**Tech debt to watch.** Per-event structured logging (currently only
-`DIPLOMAT ONLINE` lines), tools/function-calling support (none yet),
+**Tech debt to watch.** Tools/function-calling support (none yet);
 tiered memory (none — flat state + audit log). The Pipeline/Flow
 split is complete (Phase 22); adding a StreamFlow / TurnBasedFlow /
 Clankmates HybridFlow is now additive against the stable `Pipeline`
@@ -363,13 +421,30 @@ tests in `tests/integration/test_phase18_paths.py`: burst extraction
 without dropped messages, duplicate promise merge, promise fulfillment,
 new inconsistency detection, and missed proposal insertion.
 
-**Active items.** Stage 2a conversation model (#3), structured per-event logging (smoke tooling debt).
+**Active items.** Stage 2a conversation model (#3); **scale-dependent harness contribution research question** (Run 16 partial refutation of Note 1 — harness contribution = f(scenario shape, model unaided capability), not a single-axis function of scenario richness; remaining four Note 1 axes — context exhaustion, relationship complexity, deception, horizon — still untested, blocked on Phase 41/42 scale-matrix verification).
 
 **Closed debt (Phase 21).** Module boundary cleanup orchestration (§1.7 — `OrchestrationOptions` dataclass, `advance_to_round` public API, reconciler logged exceptions) ✓. Module boundary cleanup LLM adapter + config (§1.8 — `_TaggedLLMClient` deleted, `LoggingLLMClient` reduced, `purpose` kwarg threaded through all modules, `DryRunLLMClient` purpose-based classification, `build_reconciler` / `subsystem_llm_config` factories) ✓.
 
 **Closed debt (Phase 22).** Pipeline/Flow split (§1.9 — `Pipeline` interface in `src/pipeline.py`; `EventDrivenFlow` for production Telegram/CLI; `RoundSteppedFlow` for self-play; `Orchestrator` reduced to compat factory returning `EventDrivenFlow`; `GameEnvironment` composes `RoundSteppedFlow`) ✓.
 
-### Block B — Prompt tuning
+**Closed debt (Phase 26).** Structured per-event logging in orchestrator + transport (`diplomat.*` namespace, `DIPLOMAT_LOG_LEVEL` env override, `logging.level` / `logging.format` in pipeline config, caplog-asserted `event.routed` / `extraction.scheduled` / `extraction.complete` visible from real pipeline fixture) ✓.
+
+**Closed debt (Phase 34 + Runs 14, 16).**
+
+**Closed debt (Phase 34 + Runs 14, 16).** Bare-prompt ablation infrastructure (`tests/self_play/bare_mode.py`, `--bare-prompt` flag, `bare_module_overrides()`) shipped Phase 34. Run 14 (WR-β, 18 runs) + Run 16 (jsm1, 12 runs) campaigns produced the cross-scenario × cross-tier harness-contribution matrix. Project-direction call: harness load-bearing on cooperative-single-Pareto for weak/mid OpenAI; harness contribution = 0 for sonnet on multi-Pareto; production default now scenario-dependent. Per-module ablation (Phase 35 candidate) demoted post-Run-16 — sonnet-bare jsm1 = 3/3 means no module is load-bearing for sonnet on that scenario shape.
+
+### Block B — Prompt tuning (DEMOTED under D-56)
+
+> **D-56 demotion (2026-06-16):** Prompt tuning for live-game faction
+> performance, edit-classification feedback loops, and strategy-library
+> work were authored under the coaching-product framing. Under the
+> benchmark direction, prompts are *experimental variables* (does
+> changing the persona prompt produce different model rankings?) rather
+> than *production tunings*. The active items below are preserved as
+> reference for future benchmark-relevant prompt experiments but are not
+> Tier-1 work. The only Block B item remaining naturally relevant under
+> the benchmark direction is per-role model strategy (§7) — and even
+> that's primarily a Block C cost-coverage concern now.
 
 **What it covers.** Everything that goes into an LLM call as
 prompt — faction personas, module prompts (state_updater, analyst,
@@ -388,39 +463,86 @@ quality from self-play.
 **Tech debt to watch.** Persona payment rigidity (recurring across
 Runs 7, 8); persona endgame over-anchoring; persona drift in long
 games; provider-native structured output (token-level schema
-compliance via OpenAI `response_format`).
+compliance via OpenAI `response_format`). All preserved as infrastructure
+debt; not Tier 1 under D-56.
 
-**Active items.** Strategy library §2.5, voice templates §9,
-persona payment rigidity A/B test, persona endgame over-anchoring
-decision, more extraction few-shot examples, per-role model strategy
-§7.
+**Active items (deferred under D-56; preserved for reference).** Strategy
+library §2.5, voice templates §9, persona payment rigidity A/B test,
+persona endgame over-anchoring decision, more extraction few-shot
+examples, per-role model strategy §7 (only this last item retains Tier-1
+relevance — and only as a cost-coverage concern, see Block C).
 
-### Block C — Game creation, scoring, assessment
+### Block C — Game creation, scoring, assessment (PRIMARY under D-56)
+
+> **D-56 elevation (2026-06-16):** Under the benchmark direction, Block C
+> is the primary investment surface. Every active item below is also
+> reflected in NEXT_STEPS as a Tier 1 entry. Scoring lens additions
+> (§3.5 rank-based, §3.6 coalition-value) are queued explicitly here.
+> Scenario-class authoring (zero-sum / distributive / asymmetric-BATNA /
+> hidden-value per Note 2 Path C) is queued. Phase 41/42 (scale-matrix
+> verification) is queued as it enables richer scenarios that the
+> benchmark needs to credibly differentiate models beyond the current
+> WR-β + jsm1 pair.
 
 **What it covers.** Scenario design and compilation, BATNA tuning,
-pressure mechanisms, verification tools, post-game scoring (all four
-lenses from §3), process signature aggregation. Anything that asks
-"is this scenario well-designed?" or "did this agent negotiate well?"
+pressure mechanisms, verification tools, post-game scoring (all six
+lenses from §3 once §3.5 + §3.6 land), process signature aggregation,
+mixed-model dispatcher with position rotation. Anything that asks
+"is this scenario well-designed?", "did this agent negotiate well?",
+or "which model wins in this matchup?"
 
-**Iteration loop.** Hypothesis about skill or scenario property →
-design or compile a scenario → verify with `verify_scenario_optimum.py`
-→ run self-play → score with all applicable lenses → conclusion.
-`RUN_PROTOCOL.md` formalizes the live-run side.
+**Iteration loop.** Hypothesis about skill, scenario property, or
+model differential → design or compile a scenario → verify with
+`verify_scenario_optimum.py` → run self-play (homogeneous for ablation,
+mixed-model for competitive) → score with applicable lenses →
+conclusion. `RUN_PROTOCOL.md` formalizes the live-run side.
 
 **Evaluation signal.** Pareto efficiency across runs; skill premium
-over naive baseline; process signature distributions; scenario
-verification pass/fail.
+over naive baseline; rank-among-factions in mixed populations;
+coalition formation patterns; process signature distributions; scenario
+verification pass/fail; cell-to-cell discrimination signal (does the
+new scenario / lens / matrix surface differential model behavior?).
 
-**Tech debt to watch.** Skill premium (3.3) is still unimplemented;
-three process signatures (position-shift count, concession curve,
-persuasion shifts caused) still require transcript interpretation;
-reverse scenario builder doesn't exist; scenario compiler still
-under-pressures BATNAs by default (mitigated by `--batna-fraction`).
+**Tech debt to watch.** Three §3.4 process signatures (position-shift
+count, concession curve, persuasion shifts caused) still require
+transcript interpretation (LLM-judge over transcripts; deferred from
+Phase 28); scenario compiler's default `--batna-fraction=0.50` can
+under-pressure BATNAs (mitigated by per-faction `--batna-fractions` +
+`--force-batna-fraction` per Phase 24, and superseded by Phase 38
+pressure mechanisms when those apply); reverse scenario builder
+validated at 3×3×3 only — 4+ factions / 4+ issues need Phase 41/42
+algorithm work; per-run cost not captured in self-play result JSONs
+(`metadata.cost_usd: None`, `selfplay_cost_ledger.jsonl` stale — Phase
+38.5/39 candidate flagged in Run 14e + Run 16 wrap-ups).
 
-**Active items.** Game pressure beyond BATNA §2 (round decay,
-exogenous events, asymmetric deadlines, penalty floors, cascade
-scoring); divorce scenario design §2; reverse scenario builder §8;
-pricing audit §6 (cost accounting affects per-game cost metrics).
+**Active items (D-56 primary surface).**
+- **§3.5 rank-among-factions lens** (~50 LOC, queued) — required for mixed-model benchmark cells.
+- **§3.6 coalition-value scoring engine** (Note 2 Path B, 1-2 day build, queued) — required for coalition-coercive scenario class (Susskind Three-Party Coalition v1 patched and ready as first consumer).
+- **Mixed-model dispatcher** — `ablation_multi.sh` extension supporting heterogeneous `--per-faction-providers` JSON and position rotation (so a 3-position rotation × n=3 = 9 cells controls for scenario-asymmetry effects).
+- **Scenario-class authoring** (Note 2 Path C) — distributive bargaining, asymmetric-BATNA-with-walkaway, hidden-value bluff. Designed via existing reverse builder + Phase 38 pressure mechanisms.
+- **Phase 41/42 scale-matrix verification + algorithm fixes** — unblocks 4+ factions / 4+ issues scenarios. Note 1's untested axes (context exhaustion, relationship complexity, deception, horizon) gate on this.
+- **Phase 39 exogenous events + Phase 40 cascade scoring** (deferred from Phase 38 small bundle — §2). Phase 39 promotes when small-bundle pressure proves insufficient; Phase 40 promotes when tournament-style benchmark cells are demanded.
+- **Divorce scenario design** as Phase 38 showcase §2.
+- **Per-run cost capture in result JSONs** — current `metadata.cost_usd: None` + stale `selfplay_cost_ledger.jsonl` make cost-coverage analysis (Block C tier-1 concern under D-56) back-of-envelope. Small phase, high benchmark value.
+- **Phase 38 pressure validation via N4** (mid-tier + round-cost decay × 3 on jsm1) — cleanest single test of Phase 38's scenario-design value post-Run-16.
+- **Pricing audit §6** — per-cell cost-coverage needs accurate pricing. Now Block C primary concern (was cross-cutting infrastructure).
+
+**Closed debt (Phases 23, 27, 28, 35–38).** Pareto efficiency scoring
+§3.2 + four deterministic process signatures §3.4 (broken-promise rate,
+coalition stability, time-to-deal, opening gap) ✓ Phase 23. No-deal-aware
+scoring metrics (`negotiated_surplus_share`, `delta_above_batna_sum`,
+`min_faction_delta`, `surplus_distribution_stdev`, `faction_deltas`) +
+`tools/backfill_scoring_metrics.py` ✓ Phase 27. Skill premium §3.3
+(`equal_split_baseline`, `vs_equal_split`, `skill_premium_vs_batna`,
+`nash_deal_scores`, `nash_product`, `vs_nash_efficiency`) + 5th process
+signature (near-miss diagnostic — `converging_factions`,
+`dissenting_faction`, `defection_event_log`) ✓ Phase 28. Reverse
+scenario builder (`tools.scenario_builder`, `ScenarioSpec`, fitness
+search, simulated annealing, biased init, `--verify` /
+`--debug-search`) ✓ Phase 35-36. `pareto_outcome_diversity` metric ✓
+Phase 37. Pressure mechanisms small bundle (round-cost decay +
+asymmetric clocks + penalty floor with schema + persona-template
+rendering + round-aware verifier + integration test) ✓ Phase 38.
 
 ### Cross-cutting items
 
@@ -468,3 +590,6 @@ Some items touch multiple blocks or sit outside them:
 | 2026-05-31 | Block A reconciliation path coverage moved from active debt to closed debt after Layer 3 `test_phase18_paths.py` covered burst extraction, dedup, fulfillment, inconsistencies, and missed proposals. |
 | 2026-05-31 | Block A Pipeline/Flow split (§1.9) moved from active debt to closed debt (Phase 22): `Pipeline` interface extracted, `EventDrivenFlow` and `RoundSteppedFlow` implemented, `Orchestrator` compat shim, `GameEnvironment` refactored. Tech-debt-to-watch blurb updated to reflect completion. |
 | 2026-05-31 | Phase 23 implemented scoring lenses §3.2 Pareto efficiency and four deterministic §3.4 process signatures. Block C tech debt now tracks only skill premium, transcript-interpretive process signatures, reverse scenario builder, and BATNA pressure defaults. |
+| 2026-06-12 | **Run 16 sync.** Block A active items expanded with "scale-dependent harness contribution research question" — Run 16's partial refutation of `RESEARCH_NOTES.md` Note 1 makes "harness lift = f(scenario richness)" wrong as written; revised framing is harness lift = f(scenario shape, model unaided capability). New Block A closed-debt entry (Phase 34 + Runs 14, 16) capturing the bare-prompt ablation infrastructure + cross-scenario harness-contribution matrix + project-direction read (harness load-bearing on cooperative-single-Pareto for weak/mid OpenAI; harness contribution = 0 for sonnet on multi-Pareto). Block C active items gained Phase 38 pressure validation via N4 as the sharpest residual Block C experiment post-Run-16. |
+| 2026-06-12 | **Block A/C tech-debt drift cleanup.** Block A tech-debt-to-watch: "per-event structured logging" clause removed (Phase 26 closed 2026-06-01). Block A active items: "structured per-event logging (smoke tooling debt)" removed. New Block A closed-debt (Phase 26) entry added. Block C tech-debt-to-watch rewritten: dropped "skill premium (3.3) unimplemented" (Phase 28 closed) and "reverse scenario builder doesn't exist" (Phase 35-37 shipped); kept transcript-interpretive process signatures + softened BATNA-pressure framing to reflect Phase 24 / Phase 38 mitigations + added Phase 41/42 scale-validation gap + per-run-cost-capture gap. Block C active items rescoped: "Game pressure beyond BATNA §2" replaced with "Phase 39 exogenous events + Phase 40 cascade scoring (deferred from Phase 38)"; "reverse scenario builder §8" replaced with "scale verification — Phase 41/42". New consolidated Block C closed-debt entry covering Phases 23, 27, 28, 35-38. No behavioral changes to scoring lens definitions or workstream block boundaries; this is documentation drift sync only. |
+| 2026-06-16 | **D-56 direction pivot — negotiation benchmark over coaching product.** New directional banner at top of doc. **§3.5 (rank-among-factions) and §3.6 (coalition-value scoring) added as queued lenses**, with §3.5 (How they compose) renumbered to §3.7 and the compose table extended with three benchmark-direction question rows. **§5 workstream tier-priority banner added**: Block C primary, Block A infrastructure, Block B demoted. Block B section header marked "(DEMOTED under D-56)" with explanation of why active items moved to "deferred under D-56 — preserved for reference." Block C section header marked "(PRIMARY under D-56)" with elevation banner pointing at NEXT_STEPS Tier 1 entries. Block C active items list rewritten to call out the benchmark v2-gating items explicitly (rank-based + coalition-value lenses, mixed-model dispatcher, scenario-class authoring, Phase 41/42, per-run cost capture). No behavioral / metric / scoring definition changes; this is workstream framing per D-56. Companion edits in PROJECT.md, NEXT_STEPS.md, RESEARCH_NOTES.md Note 2, README.md. |

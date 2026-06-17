@@ -20,94 +20,113 @@
 > - 🔀 **MIX** — has a build component but needs operator decisions at boundaries.
 > - 👁 **SUPERVISED** — experiments, prompt tuning, design judgment, or interactive work. Operator-driven only.
 
-> **Tier-priority rationale (operator, 2026-06-02).** `[A]` agent architecture
-> and `[X]` cross-cutting infra are foundational — they enable `[C]` (game design)
-> and `[B]` (prompt tuning) to land cleanly. Work down the tiers gradually
-> rather than chasing the highest-interest item across all tiers in parallel.
-> The "Open items by workstream tier" section below groups everything in that
-> order; the per-section detail (§1.6 through §9) keeps the historical
+> **Tier-priority rationale (D-56 direction commit, 2026-06-16).** Under
+> the negotiation-benchmark direction per `DECISIONS.md` D-56, **Tier 1 is
+> now `[C]` game creation & scoring** (the primary investment surface),
+> **Tier 2 is `[A]`/`[X]` infrastructure that serves the benchmark**, and
+> **Tier 3 / Deferred holds coaching-product items** (infrastructure
+> preserved, no new investment). This inverts the pre-D-56 tiering which
+> had Block A foundational + Block C secondary + Block B prompt-tuning
+> third. The "Open items by workstream tier" section below reflects the
+> new ordering; per-section detail (§1.6 through §11) keeps historical
 > numbering for stable cross-references.
 
-> **State as of 2026-06-11:** Phases 20–38 closed. **Phase 37 complete** (`pareto_outcome_diversity` metric — closes the metric-semantics gap surfaced during Phase 36.5 validation). **Phase 38 closed** (pressure mechanisms small bundle). Runs 9 + 10 + 13 closed.
-> **Run 14 ablation campaign in progress** — cells 14a (mid full, 2/3
-> deals), 14b (mid bare, 1/3 deals), 14c (weak full+bare, 2/3 + 0/3)
-> complete. Cells 14d (strong bare) + 14e (strong full) pending —
-> see §10 below for run sequencing + conditional decision logic. Run
-> 13b (coached re-test) still queued. **Cross-tier harness signal so
-> far:** harness substitutes for ~1+ model tier (weak+full ≈ mid+full;
-> bare degrades steeply with model strength); harness contribution is
-> in close-rate not deal quality (every closing run finds the same
-> Pareto-optimal deal). Findings caveated by scenario being "scale-1"
-> on every harness-relevant axis — see `RESEARCH_NOTES.md` Note 1.
+> **State as of 2026-06-16 (post-D-56 pivot):** Phases 20–38 closed.
+> Runs 9 + 10 + 13 + 14 (WR-β ablation matrix, 18 cells) + 15 (jsm1
+> calibration) + 16 (jsm1 ablation matrix, 12 cells) + 17 (multi-provider
+> calibration, 10 cells landed; R1 partially deferred for toolkit fix,
+> then unblocked at toolkit `606e309` — R1 cell #1 landed before cap)
+> closed. **D-56 commits to benchmark direction** — coaching product
+> (Run 13b, §4 Pi coaching loop, §5 Clankmates, persona drift A/Bs)
+> deferred; benchmark items (§11 competitive scoring, Path B coalition
+> scoring, §3.5/3.6 scoring lenses, scenario-class authoring,
+> Phase 41/42) promoted to Tier 1.
 >
-> **Reverse scenario builder lineage:** Phase 35 shipped the tool; Phase 36 added soft-weighted fitness + simulated annealing + biased init; Phase 37 added `pareto_outcome_diversity`; Phase 38 closed the pressure-mechanisms small bundle; Phase 41/42 remain queued for larger-search-space verification — see Tier 2 table + §2 + §8 below.
+> **Cross-tier, cross-scenario harness findings (Runs 14 + 16 + 17 combined):** Harness contribution is in close-rate, not deal quality (every closing run on either scenario finds the *identical* Pareto deal for that scenario). Harness lift is scenario × tier dependent: WR-β weak +67% / mid +33% / strong 0%; jsm1 weak +33% / mid 0% / strong 0%. Multi-provider extension: DeepSeek V3 sits in a hybrid "mid+" tier (sonnet-like refusal on WR-β, harness-lift on jsm1). The "richness alone produces harness lift" formulation of Note 1 is partially refuted. Revised framing: **harness contribution = f(scenario shape, what the model already does well)**. See `RESEARCH_NOTES.md` Note 1 amendment 2026-06-12 + Note 2 resolution 2026-06-16.
 >
-> **Clankmates integration:** primary work is currently under toolkit (`toolkit/clankmates_client` per `CLANKMATES_CLIENT_PLAN.md`). Diplomat-side `ClankmatesTransport` is gated on that primitive landing; §5 captures the diplomat-side scope for when it does.
+> **Reverse scenario builder lineage:** Phase 35 shipped the tool; Phase 36 added soft-weighted fitness + simulated annealing + biased init; Phase 37 added `pareto_outcome_diversity`; Phase 38 closed the pressure-mechanisms small bundle; Phase 41/42 remain queued for larger-search-space verification — promoted to Tier 1 under D-56 — see §8.
+>
+> **Clankmates integration:** deferred under D-56 (coaching-product surface). Toolkit-side `clankmates_client` work continues independently per its own roadmap; diplomat-side `ClankmatesTransport` no longer Tier 1.
 
 ---
 
 ## Closed since 2026-05-30
 
 Audit trail moved to **Appendix A** at the end of this document — 30+ closed
-items across Phases 19-28 + Runs 9-10 + a handful of rescoped / rejected
+items across Phases 19-28 + Runs 9-17 + a handful of rescoped / rejected
 items. Canonical detail lives in `DEVLOG.md` / `DEVLOG_archive.md` and
 `TUNING_LOG.md` / `TUNING_LOG_archive.md`.
 
 ---
 
-## Open items by workstream tier
+## Open items by workstream tier (D-56 direction commit)
 
-Grouped by the operator's priority tiering A/X > C > B. Section detail
-(§1.6 through §9) is below and keeps the historical numbering for stable
-cross-references.
+Grouped by post-D-56 priority: `[C]` benchmark direction > `[A]`/`[X]`
+infrastructure that serves the benchmark > deferred (coaching product,
+infrastructure preserved). Section detail (§1.6 through §11) is below and
+keeps the historical numbering for stable cross-references.
 
-### Tier 1 — `[A]` agent architecture + `[X]` cross-cutting (foundational)
-
-| Item | Tags | Loop | Where | Notes |
-|---|---|---|---|---|
-| **Bare-prompt ablation** (does the harness contribute?) | `[A][X]` | 👁 | §10 | Phase 34 closed 2026-06-08 (bare-mode plumbing shipped, ~$0.02/game vs ~$1 projected). Runs 14a-14f (3 models × 2 modes × 2 scenarios × 3 runs = 36 runs, ~$60-100) queued. Foundational design-bet test: harness load-bearing, theater, or scaffold? |
-| **Coaching test loop on Pi** | `[X]` | 👁 | §4 | Run 13 (2026-06-04) validated new gate end-to-end but operator chose approve-only — edit path untested. Phase 33 shipped `/revise:` + auto-classifier (2026-06-07). Run 13b queued to exercise edit modes live. |
-| **Game-platform exploration** (Clankmates / Discord / fallback) | `[X]` | 👁 | §5 | Gated on operator + partner platform decision. Discord considered alongside Clankmates. |
-| **Pricing & accounting audit** | `[X][C]` | 👁 | §6 | Best done before Tier 3 §7 so per-role cost claims have a firm baseline. |
-| **TelegramReviewGate as production default** | `[X]` | 👁 | (decision) | Whether to flip `pipeline.yaml` `review_gate` to `TelegramReviewGate` as the production default. Smoke runs on `pipeline_smoke.yaml` already use it. |
-| **Provider-native structured output** (`response_format: json_schema`) | `[X]` | 🔀 | Carry-forward | Toolkit plumbing build; gives token-level schema compliance. Lower priority — current `structured_call` retry loop is working. |
-
-### Tier 2 — `[C]` game creation & scoring
+### Tier 1 — `[C]` benchmark direction (primary under D-56)
 
 | Item | Tags | Loop | Where | Notes |
 |---|---|---|---|---|
-| **Reverse scenario builder evolution** (outcome diversity, pressure, scale) | `[C]` | mixed | §8 | Phase 35/36 shipped the tool. **Phase 37 complete** (`pareto_outcome_diversity` metric). **Phase 38 closed** (pressure mechanisms small bundle: round-cost decay + penalty floor + asymmetric clocks — see §2). **Phase 41/42 queued** (scale-matrix verification + algorithm fixes for 4+ factions / 4+ issues). Phase 39 (exogenous events) and Phase 40 (cascade scoring) deferred. |
-| **Game pressure beyond BATNA** (round-cost decay, asymmetric clocks, penalty floor) | `[C]` | 🔨 | §2 | **Phase 38 closed** — small bundle of three structural mechanisms that share schema + persona-template surface. Run 10 confirmed BATNA is refusal-strengthening; round-cost decay is the missing concession-eliciting mechanism. Builder mostly passes new schema fields through unchanged; pipeline does the heavy lifting (renderer, round-context, verifier). |
-| **Scale matrix verification** (4+ factions, 4+ issues) | `[C][X]` | 🔨 | §8 | **Phase 41 queued** (cheap instrumentation — run builder at 3×3×4, 4×4×4, etc. with fixed simple spec; measure convergence rate + wall-clock). **Phase 42 queued** (algorithm fixes for whichever shapes Phase 41 reveals as broken). Strategically valuable: enables richer scenarios for next-round ablation against the Note 1 thesis. |
-| **Pareto-frontier annotation in analyst output** | `[C][B]` | 🔀 | §2 TODOs | Analyst surfaces threats/leverage; add Pareto-compromise opportunities. Schema + prompt change. |
-| **Surplus-distribution diagnosis** | `[C]` | 👁 | Backlog | Cross-scenario investigation of "why does gamma extract 52-55% of surplus?" Likely game-theoretic; if confirmed, a scenario-design lever. |
-| **Identify-the-blocker tool** | `[C][X]` | 🔀 | (loop-readiness) | Pre-game LLM analyst pass over scoring tables to predict squeeze target. Lower priority post-Run 10 but still a useful scenario-design aid. |
-| **ASSESSMENT §3.4 persuasion-shifts / concession-curve signatures** | `[C]` | 👁 | (loop-readiness) | Needs LLM-judge over transcripts. Higher cost; defer until other Tier 2 items land. |
-| **Reconciliation live validation** | `[C]` | 👁 | Backlog | Status transitions + inconsistency flagging untested in live runs. Run 10 B' and α-squeezed defection are natural inspection targets. |
-| **Divorce scenario design** (§2 showcase) | `[C]` | 👁 | §2 | Hand-author after Phase 38 closes. Natural showcase for all three small-bundle pressure mechanisms; defers exogenous events until Phase 39 is on the table. |
+| **§3.6 coalition-value scoring engine** (Path B build) | `[C][A]` | 🔨 | §11 + ASSESSMENT §3.6 | Note 2 Path B. 1-2 day build: extend `scenario_analysis.json` with `coalition_values`; modify `score_game()` to detect partial-agreement coalitions + lookup value + apply split per transcript; assign BATNA to excluded faction. **Required for mixed-model coalition scenarios to produce "X wins, Y loses" outcomes.** Three-Party Coalition v1 patched and ready as first consumer. |
+| **§3.5 rank-among-factions scoring lens** | `[C]` | 🔨 | ASSESSMENT §3.5 | ~50 LOC. `rank_among_factions` in `tests/self_play/analysis.py`; cross-game aggregator; optional position-rotation harness. **Required competitive metric for mixed-model populations.** Independent of Path B; can ship in parallel. |
+| **Mixed-model dispatcher extension** | `[C][X]` | 🔨 | (§11 follow-up) | Extend `tools/ablation_multi.sh` to take heterogeneous `--per-faction-providers` JSON + position rotation. Currently same-model-all-factions only. Cheap addition (~1 hour); unblocks §11.b Path A calibration. |
+| **§11.b Path A calibration — mixed Three-Party Coalition × position rotation** | `[C]` | 👁 | §11 | 9 cells (3 lineups × 3 rotations × n=1). ~$1-2, ~30 min. Suggested lineup post-Run-17: sonnet + gpt-5.4-mini + deepseek/deepseek-chat. Tests whether mixed populations produce transcript differentiation in the current unanimity frame; outputs inform whether to invest in Path B vs Path C first. |
+| **Path C scenario-class authoring** | `[C]` | 👁 | §11 / §2 | Distributive bargaining (fixed pie, identical-numbers deal-detection), asymmetric-BATNA-with-walkaway, hidden-value bluff. ~3 new scenarios via reverse builder + Phase 38 pressure. Produces rank-discriminating outcomes on the existing harness without requiring Path B build. |
+| **Run 17 V3 full n=3 expansion** | `[C]` | 👁 | TUNING_LOG Run 17 follow-up | Solidify V3 baseline — current cells are V3 full n=1 + V3 bare n=3. ~$0.15, ~12 min. Confirms whether V3 jsm1 full = 1/1 holds at n=3 and whether V3 wrbeta full = 0/1 is robust. |
+| **Run 17 R1 cells × 3 on both scenarios** (toolkit-unblocked) | `[C]` | 👁 | TUNING_LOG Run 17 follow-up | First reasoning-model data points. Toolkit `606e309` patch unblocked R1; cell #1 jsm1 already landed (DEAL, balanced-consensus). ~$2-4, ~30-90 min for 5 more cells. |
+| **N4 — gpt-mini + Phase 38 pressure × 3 on jsm1** | `[C][B]` | 👁 | §10 / §2 | Pressure validation on mid-tier "stuck-but-engaged" pattern. ~$1.50 + ~36 min. Phase 38 schema ready; cleanest scenario-design lever test. |
+| **Phase 41 scale-matrix verification** | `[C][X]` | 🔨 | §8 | Cheap instrumentation: run builder at 3×3×4, 4×4×4, 5×3×3, etc. with fixed simple spec; measure convergence rate + wall-clock. Reveals which shapes are feasible. ~4-5 steps; no algorithmic changes. **Unblocks richer scenarios that Note 1 untested axes need.** |
+| **Phase 42 algorithm fixes** (conditional on Phase 41) | `[C][X]` | 🔨 | §8 | Scope determined by Phase 41 findings. Likely candidates: cached fitness deltas, larger neighborhoods, adaptive SA, LLM-guided init. |
+| **Phase 39 exogenous events** | `[C]` | 🔨 | §2 | Mid-round shocks that recompute BATNAs. ~1.5× Phase 38 size. Promote when small-bundle pressure proves insufficient for benchmark scenarios. |
+| **Per-run cost capture in result JSONs** | `[C][X]` | 🔨 | (cross-section) | `metadata.cost_usd: None` and stale `selfplay_cost_ledger.jsonl` make benchmark cost-coverage analysis back-of-envelope. Small phase, high benchmark value. |
+| **Pricing audit §6** | `[X][C]` | 👁 | §6 | Cross-provider pricing accuracy across all models we actually use. Now Block C primary concern under D-56 (per-cell cost is benchmark-critical). |
+| **ASSESSMENT §3.4 persuasion-shifts / concession-curve signatures** | `[C]` | 👁 | (loop-readiness) | Needs LLM-judge over transcripts. Higher cost; defer until other Tier 1 items land but stays Tier 1 (benchmark-relevant). |
+| **Divorce scenario design** (Phase 38 showcase) | `[C]` | 👁 | §2 | Hand-author after benchmark scenario-class authoring (Path C) lands. Natural showcase for pressure mechanisms; specific benchmark cell. |
+| **Surplus-distribution diagnosis** | `[C]` | 👁 | Backlog | Cross-scenario investigation of "why does gamma extract 52-55% of surplus?" Likely game-theoretic; if confirmed, a scenario-design lever. Stays Tier 1 — relevant to benchmark scenario authoring. |
 
-### Tier 3 — `[B]` prompt tuning & strategy
+### Tier 2 — `[A]`/`[X]` infrastructure that serves the benchmark
 
 | Item | Tags | Loop | Where | Notes |
 |---|---|---|---|---|
-| **Per-role model strategy** (consistency + cost + quality axes) | `[B]` | 👁 | §7 | Materially informed by Run 10. Wants Tier 1 §6 (pricing audit) for cost baseline + Tier 3 §1.7/§1.8 results. |
-| **Provider consistency tests** (all-Anthropic baseline + cross-scenario) | `[B][X]` | 👁 | §1.7 / §1.8 | Run 11 candidates. Generalize Run 10 finding. ~$3-4 + ~$0.30. Cheap and operator-driven, can run independently of other tiers. |
-| **Strategy routing** (hardball / integrative / tit-for-tat / etc.) | `[B]` | 👁 | §2.5 | Prompt library + operator-pickable strategy. Real-game value: pick a strategy mid-game and the prompt machinery executes it. |
-| **Persona payment rigidity / drift / endgame over-anchoring** | `[B]` | 👁 | Carry-forward | Recurring across Runs 7-10. Run 10 showed provider consistency matters more than persona rule. A/B in a future run. |
+| **Provider-native structured output** (`response_format: json_schema`) | `[X]` | 🔀 | Carry-forward | Token-level schema compliance; reduces flaky JSON failures in benchmark cells. Lower priority — current `structured_call` + retry is working. |
+| **TurnBasedFlow / position-rotation harness** | `[A][C]` | 🔨 | ARCH_flow.md "Worked Example" | Required for tournament-style benchmark cells (Option D from Note 2 / Phase 40 candidate). Additive against Pipeline contract; no module changes. |
+| **Reconciliation live validation** | `[C]` | 👁 | Backlog | Status transitions + inconsistency flagging untested in live runs. Run 10 B' and α-squeezed defection are natural inspection targets. Benchmark-relevant for understanding reconciler signal in mixed-model cells. |
+| **Identify-the-blocker tool** | `[C][X]` | 🔀 | (loop-readiness) | Pre-game LLM analyst pass over scoring tables to predict squeeze target. Useful scenario-design aid for benchmark scenario authoring. |
+| **Pareto-frontier annotation in analyst output** | `[C][B]` | 🔀 | §2 TODOs | Analyst schema + prompt change. Lower priority — under D-56 the analyst's job in benchmark cells is to produce intelligence for the *agent*, not the operator; Pareto annotation is a coaching-direction enhancement. |
+
+### Deferred — coaching product (infrastructure preserved per D-56)
+
+| Item | Tags | Loop | Where | Notes |
+|---|---|---|---|---|
+| **Coaching test loop on Pi** | `[X]` | 👁 | §4 | Run 13 (2026-06-04) validated new gate end-to-end; Run 13b queued and **deferred under D-56**. Infrastructure intact; revisit if D-56 trigger condition (a) fires (real game opportunity with deadline). |
+| **Run 13b** (coached game exercising `/revise:` + `/edits-summary`) | `[X]` | 👁 | §4 | Deferred under D-56. |
+| **Game-platform exploration** (Clankmates / Discord / fallback) | `[X]` | 👁 | §5 | Deferred under D-56. Clankmates work continues toolkit-side independently; diplomat-side transport no longer Tier 1. |
+| **TelegramReviewGate as production default** | `[X]` | 👁 | (decision) | Deferred under D-56 — production-default decisions for the coaching deployment are no longer pressing. |
+| **Strategy routing** (hardball / integrative / tit-for-tat / etc.) | `[B]` | 👁 | §2.5 | Demoted under D-56. Useful as benchmark *experimental variable* if a campaign explicitly tests prompt-strategy effects, but no longer a Tier-1 build. |
+| **Per-role model strategy** (consistency + cost + quality axes) | `[B]` | 👁 | §7 | Demoted under D-56. The per-role question is now subsumed under the benchmark's natural matrix (varying provider per-cell). The "production-default" framing belonged to coaching direction. |
+| **Provider consistency tests** (all-Anthropic baseline + cross-scenario) | `[B][X]` | 👁 | §1.7 / §1.8 | Demoted under D-56. Information value retained — these tests would still produce benchmark-relevant data — but no longer Tier-1 priority. Can resurface if a campaign explicitly needs the data. |
+| **Persona payment rigidity / drift / endgame over-anchoring** | `[B]` | 👁 | Carry-forward | Demoted under D-56. Persona tuning for live-game performance is coaching-direction work. |
 
 ### Deferred — `[A]` conversation model evolution
 
 | Item | Tags | Loop | Where | Notes |
 |---|---|---|---|---|
-| **Conversation model evolution** (multi-pass / async) | `[A]` | 👁 | §3 | Stage 2a (K-pass rounds), 2b (convergence detection), 3 (true async). Demoted 2026-06-02: current Stage 1 sealed-bid model produces real negotiation dynamics; pressure mechanisms (§2) work with extra rounds. Pursue when a use case demands within-round reactivity or timing-as-strategy. |
+| **Conversation model evolution** (multi-pass / async) | `[A]` | 👁 | §3 | Stage 2a (K-pass rounds), 2b (convergence detection), 3 (true async). Original deprioritization 2026-06-02 preserved under D-56. Pursue when a benchmark scenario class demands within-round reactivity or timing-as-strategy. |
 
-### Sequencing within Tier 1 (most actionable now)
+### Sequencing within Tier 1 (most actionable now, post-D-56)
 
-If working down the tiers, the immediate decision is which Tier 1 item to do first. Recommended order:
+If working down the tiers, the immediate decision is which Tier 1 item to do first. Recommended order under D-56:
 
-1. **Run 14d-14e bare-prompt ablation finish (§10)** — cells 14a-c done. 14d (strong bare) is the next decisive run; 14e (strong full) conditional. Result drives the foundational "is the harness load-bearing" call.
-2. **Pricing audit (§6)** — best done before Tier 3 §7 so per-role decisions have a firm cost baseline.
-3. **Game-platform exploration (§5)** — toolkit-side `clankmates_client` is the gating dependency; diplomat-side `ClankmatesTransport` waits on it. Discord remains a hedge candidate.
+1. **§3.6 coalition-value scoring engine (Path B build)** — load-bearing for benchmark v2 (per `PROJECT.md` MVP table). 1-2 day build; unblocks competitive mixed-model cells on coalition scenarios. Run 17 R1 + V3 expansion cells are interesting but additive; Path B is foundational.
+2. **§3.5 rank-among-factions lens** — ~50 LOC, ships alongside or independently of Path B. Required competitive metric.
+3. **Mixed-model dispatcher extension** + **§11.b Path A calibration** — cheap pair (~$1-2, 1 hour build). Produces the first heterogeneous-population data and informs whether to prioritize Path B (if signal in transcripts) or Path C (if no signal in unanimity frame).
+4. **Path C scenario-class authoring** — distributive / asymmetric-BATNA / hidden-value via reverse builder. Independent of Path B, broadens benchmark scenario library.
+5. **Run 17 V3 full n=3 + R1 expansion** — cheap follow-ups to close the Run 17 thread (~$2-5 total, ~30-90 min). Adds confirmed data points to the model matrix.
+6. **N4 pressure on jsm1** + **Phase 41/42 scale verification** — Block C scenario-design work that broadens benchmark coverage.
+7. **Per-run cost capture** + **Pricing audit** — small infrastructure that makes benchmark cost-coverage analysis credible.
 
 ### Sequencing within Tier 2 (operator-queued post-Phase-37)
 
@@ -655,21 +674,94 @@ The third / fourth row is the uncomfortable outcome. **Better to learn it now th
 ### TODOs
 
 - [x] **Phase 34 build** — Closed 2026-06-08. 6 steps: bare module set helper, bare context-assembler path, `--bare-prompt` flag, smoke validation (live cost ~$0.02 vs ~$1 projected — bare mode is ~10-20× cheaper), integration tests (414 passing), documentation. `tests/self_play/bare_mode.py` + `--bare-prompt` flag in `run_simulation.py`.
-- [ ] **Runs 14a-14f** — operator-driven post-Phase-34. Sequencing as above.
-- [ ] **`tools/ablation_summary.py`** — write after the run data accumulates (don't pre-build; the right shape will be obvious once we see real numbers).
-- [ ] **Decision: project direction.** After Run 14f closes, the operator reviews the ablation summary and makes a project-direction call:
-  - If harness load-bearing → continue building harness features (per existing NEXT_STEPS Tier 2 / Tier 3 work).
-  - If mixed → spawn a per-module ablation phase (Phase 35 candidate) to find which modules actually matter.
-  - If harness theater → spawn a "Diplomat-lite" planning phase to scope out a much smaller surface area.
-  - **NEW (2026-06-08):** Consider a fourth option: **§8 reverse builder → game-theoretic scenarios → re-ablation** (per `RESEARCH_NOTES.md` Note 1). The current scenario is "scale-1" on every harness-relevant axis (context, factions, deception, async, horizon), so the modest-lift result may not extrapolate. Validating via richer scenarios is the lowest-risk path before committing project direction either way.
+- [x] **Runs 14a-14e** — Closed 2026-06-11. WR-β only (scenario expansion folded into Run 16 below). 18 runs, ~$10 actual. Canonical narrative in `TUNING_LOG.md` Run 14 entry; cross-cell read above.
+- [x] **Run 16** — Closed 2026-06-12. jsm1 ablation matrix: nano full + nano bare + mid bare + sonnet bare = 12 runs, ~$1.50 actual. Canonical narrative in `TUNING_LOG.md` Run 16 entry. See "Run 16 — jsm1 ablation matrix" subsection below.
+- [ ] **`tools/ablation_summary.py`** — write after the run data accumulates (don't pre-build; the right shape will be obvious once we see real numbers). Now that 30 runs across 2 scenarios are landed, this is closer to "shape obvious enough" than when first noted; small future cleanup.
+- [x] **Decision: project direction.** Reviewed 2026-06-12 after Run 16 close. **Result: harness load-bearing on cooperative-single-Pareto scenarios for weak/mid OpenAI Generators; harness redundant for sonnet on multi-Pareto.** Neither "always load-bearing" nor "theater" — scenario × tier dependent. **Project direction: continue building harness, but stop assuming uniform harness value across scenario shapes.** Specifically: (a) Phase 38 pressure mechanisms are now the highest-leverage Block C investment (per re-framed Note 1, pressure is the un-tried scenario-design lever); (b) per-module ablation (Phase 35 candidate) demoted — Run 16 shows sonnet's harness contribution is 0 on jsm1, so per-module decomposition wouldn't find a load-bearing piece; (c) richer-scenario validation (per `RESEARCH_NOTES.md` Note 1 amendment) requires Phase 41/42 first to enable 4+ faction / 4+ issue scenarios.
 
-### Follow-up flavors (deferred — only if v1 results warrant)
+### Run 16 — jsm1 ablation matrix (2026-06-12)
+
+Filled in the cells Run 14 had skipped (jsm1 wasn't on Run 14's matrix; Run 15 calibration covered mid+strong full only). Final jsm1 cells: nano full × 3, nano bare × 3, mid bare × 3, sonnet bare × 3. Cost ~$1.50, wall clock ~48 min.
+
+**Cross-scenario synthesis (Runs 14 + 16 combined):**
+
+| Tier | Model | WR-β full | WR-β bare | jsm1 full | jsm1 bare |
+|---|---|---|---|---|---|
+| Weak | gpt-4.1-nano | 2/3 | 0/3 | 1/3 (new) | 0/3 (new) |
+| Mid | gpt-5.4-mini | 2/3 | 1/3 | 0/3 | 0/3 (new) |
+| **Strong** | **claude-sonnet-4-6** | **0/3** | **0/3** | **3/3** | **3/3 (new)** |
+
+**Four findings (post-Run-16):**
+
+1. **Sonnet's harness contribution is zero on jsm1.** sonnet-bare = sonnet-full = 3/3, identical deal every run, zero variance across all 6 sonnet jsm1 runs combined. **Partially refutes Note 1's "richness produces harness lift" thesis.** Re-stated thesis in `RESEARCH_NOTES.md` amendment: harness contribution = f(scenario shape, what model already does well).
+2. **jsm1's balanced-consensus deal is a strong scenario attractor, not a harness anchoring effect.** Sonnet picks the same Pareto deal in both modes (6/6 identical). Hypothesis "the harness anchors sonnet on balanced-consensus" refuted.
+3. **Mid-tier failure on jsm1 is harness-immune.** mid-bare = mid-full = 0/3. The "stuck-but-engaged" pattern (substantive 2/3-issue convergence, can't bridge the last issue) persists under bare mode — harness intel doesn't unstick mid. This sharpens the case for Phase 38 pressure as the next lever to try.
+4. **Weak-tier harness lift is scenario-dependent.** +67% on WR-β vs +33% on jsm1. When nano closes on jsm1, it finds the identical balanced-consensus deal sonnet finds (same scores). Harness still load-bearing for weak tier; yield depends on scenario fit.
+
+**Project-direction implications (folded into the decision row above):**
+
+- Production-default recommendation now **scenario-dependent**, not uniform. WR-β shape → cheap+harness (nano-full ~$0.05/run, 2/3 close). jsm1 shape → strong+bare (sonnet-bare ~$0.30/run, 3/3 close).
+- Per-module ablation demoted — sonnet-bare jsm1 = 3/3 with full module suite disabled, so no module is load-bearing for sonnet on jsm1; per-module decomposition would still only find weak/mid-tier-specific lifts.
+- N4 (mid+Phase-38-pressure on jsm1) is now the sharpest residual experiment. Promoted to Tier 1 row above + carry-forward list below.
+
+### Follow-up flavors (deferred — only if Run 14 + 16 results warrant)
 
 - **Scale-up scenarios per `RESEARCH_NOTES.md` Note 1.** Build §8 reverse builder, then compile complexity-axis scenarios (Nash≠Pareto, multiple Pareto, long-horizon Water Rights, wide-Water-Rights, repeated-game, §2-pressured) and re-run the 18-run matrix on each. Tests whether harness contribution grows with scenario complexity as the thesis predicts. ~$50-150 + Phase-35-sized build for §8.
 - **Add second scenario** (Three-Party Coalition compile, OR new Trade Summit compile): doubles runs to 36. Justified if Water Rights β-squeezed v1 result is scenario-suspect.
 - **Thorough flavor** (~$150-250, 81 runs): adds a "medium harness" mode (full minus adversarial + minus reconciliation) and a third scenario. Use only if v1 + scenario-add results are interesting AND we want to find the harness elbow.
 - **Per-module ablation** (Phase 35 candidate): full minus extraction, full minus analyst, full minus reconciliation, etc. Use only if v1 shows mixed results that justify finding which pieces help.
 - **Per-faction mixed-mode games**: one bare faction vs two full opponents (adversarial bare). Different question — measures "does harness help when other agents have it" rather than "does harness help in symmetric games." Deferred.
+
+---
+
+## 11. `[C][A]` Competitive scoring — making mixed-model runs produce winners
+
+**Status:** Diagnosed 2026-06-12 mid-Run-17. Full discussion: `RESEARCH_NOTES.md` Note 2.
+
+**The problem.** Current scoring + unanimity model rewards agreeableness, not adversarial-negotiation skill. When two good models negotiate alongside one bad model, the bad model's "block" punishes everyone equally (all fall to BATNA) rather than the two good models forming a coalition and beating the bad one. The "X model wins, Y model loses" outcome that mixed-model testing wants is structurally suppressed by:
+
+1. **Unanimity requirement** — `score_game()` needs all factions to agree on every issue; any holdout kills the deal.
+2. **BATNA-floor scoring** — discrete WIN/LOSE on BATNA-clear; "barely beat" and "extracted max" both register as WIN.
+3. **Pareto-efficiency as group-level metric** — `negotiated_surplus_share` measures *whether the team* found joint value, not *who outperformed whom*.
+
+All four ASSESSMENT §3 lenses compound this. Mixed-model populations (already supported via `--per-faction-providers` — every Run 14, 15, 16, 17 cell has used homogeneous populations by convention, not by harness limitation) would produce real signal only after one of three paths below lands.
+
+**Three paths forward** (full detail in Note 2):
+
+- **Path A — Run mixed-model on existing scenario, accept the unanimity limit.** Behavioral signal via transcripts (which model pairs recognize each other as competent partners; differential R4 positions). Real but weaker than "X wins, Y loses." Cheapest test (Three-Party Coalition compile + mixed + position rotation, ~$3-5).
+- **Path B — Engineer coalition-exclusion scoring in the harness.** Extend `scenario_analysis.json` with `coalition_values: {AB: 118, AC: 84, ...}`; modify `score_game()` to detect partial-agreement coalitions and assign coalition value to the agreeing subset; assign BATNA to excluded faction. 1-2 day build. Unblocks proper competitive testing on coalition-coercive scenarios (Susskind-style). Promote to a real phase number when ready.
+- **Path C — New scenario class that doesn't need harness changes.** Distributive bargaining (divide fixed pie), asymmetric-BATNA-with-walkaway, hidden-value bluff scenarios. Skill = "outperform on absolute score within unanimous deal" or "extract max surplus before walkaway." Designed with existing Phase 35-37 reverse builder + Phase 38 pressure mechanisms.
+
+**Cheapest immediate test (when ready to act).** Path A, n=1 calibration first. Compile `three_party_coalition.md` (no `scenario_analysis.json` exists yet — Run 6/7 used live-compile, didn't commit) via `tools.scenario_compiler --scenario three_party_coalition.md --output-dir tests/self_play/scenarios/three_party_coalition_v1/` (~$0.01). Then run 9 cells (3 model permutations × 3 rotated positions × n=1) with `--per-faction-providers` set to a mixed population. ~$1-2 calibration, ~$3-5 if expanded to n=3.
+
+**Open questions before committing to Path B or C** (per Note 2 "What would refute"):
+
+1. Does Path A produce transcript differentiation rich enough that the rank-based scoring lens (Option B from Note 2 — ~50 LOC) is sufficient without coalition-exclusion scoring?
+2. Does the compiler's mapping of Susskind narrative → standard issue/outcome schema preserve the coalition-coercive structure, or does it soften it into cooperative-flavored issues?
+3. Does Path C scenario design produce rank-discriminating outcomes on the existing harness, making Path B optional?
+
+**Two product directions this surfaces** (also detailed in Note 2):
+
+- **Diplomat as operator coaching tool** (current PROJECT.md vision). Audience: human operator. Cooperative scoring is *correct* — real diplomacy rewards joint value.
+- **Diplomat as model-evaluation harness.** Audience: researchers comparing models. Competitive scoring is *required* — rank-based outcomes on coalition-coercive / zero-sum scenarios.
+
+Not mutually exclusive. Same infra, different scoring conventions, different scenario design priorities. Worth an explicit decision in `DECISIONS.md` before building Path B/C infra.
+
+### TODOs (post-D-56 status — see closure tags)
+
+- [x] **11.a Compile Three-Party Coalition once + commit.** **DONE 2026-06-12.** `tools.scenario_compiler` produced `tests/self_play/scenarios/three_party_coalition_v1/scenario_analysis.json` + per-faction personas. **Hand-patched 2026-06-12** to restore Susskind coalition-coercive structure (BATNAs `5/5/4`→`0/0/0`; excluded-faction scores `1/2/1`→`0`; ABC scores `8/7/8`→`7/7/7` for `sum=21` knife-edge above AB `sum=19`; pressure stripped for clean baseline). Verified via `verify_scenario_optimum.py`. Patch rationale documented in `tests/self_play/scenarios/three_party_coalition_v1/NOTES.md`. **First consumer = Path B build (§3.6 coalition-value scoring engine).**
+- [ ] **11.b Path A calibration — mixed-model Three-Party Coalition × position rotation × n=1.** Tier 1 under D-56. 3 model permutations (suggested post-Run-17: sonnet / gpt-5.4-mini / deepseek-v3) × 3 position rotations × n=1 = 9 cells. ~$1-2, ~30 min. **Gated on:** mixed-model dispatcher extension to `tools/ablation_multi.sh` (~1 hour build). Reads transcript differentiation in addition to scoring outcomes — under D-56 useful even without Path B since rank-based scoring (§3.5) gives meaningful results once it ships.
+- [x] **11.c Decision: which path (B or C) to invest in.** **CLOSED by D-56 (2026-06-16).** D-56 chose **both** rather than picking one: Path B (coalition-exclusion scoring engine, §3.6) is a Tier 1 build; Path C (adversarial-scoring scenario class — distributive / asymmetric-BATNA / hidden-value) is a Tier 1 scenario-authoring track. Original framing assumed parallel pursuit was wasteful; benchmark-direction reframe makes both load-bearing for different scenario classes.
+- [x] **11.d Promote chosen path to a phase.** **DONE via D-56.** Path B is queued as a Tier 1 build (no phase number assigned yet — next phase number is the natural slot). Path C is queued as scenario-authoring work (not a single phase — runs as operator-driven authoring per scenario class). Phase assignment per ASSESSMENT §5 Block C active items + NEXT_STEPS Tier 1 entries.
+- [x] **11.e Rank-based scoring lens (Option B from Note 2).** **PROMOTED to ASSESSMENT §3.5 as a queued lens; Tier 1 build under D-56.** ~50 LOC scope unchanged. Implementation specifics live in ASSESSMENT §3.5 + Tier 1 row.
+- [ ] **11.f Tournament harness (Option D from Note 2).** Still deferred under D-56. Tied to Phase 40 (cascade scoring, indefinitely deferred). Promote when (a) Path B + §3.5 lens both ship + (b) a benchmark campaign explicitly needs multi-game round-robin with cross-game state. Per ASSESSMENT §5 Block C "tournament-style benchmark cells are demanded" trigger.
+
+### Connection to other sections
+
+- **§5 game-platform exploration** — competitive scoring is orthogonal to platform choice. Clankmates/Discord transport carries whatever scoring convention we pick.
+- **§7 per-role model strategy** — mixed-model runs *are* the natural per-role experimental setup. Section §7's question ("which model per slot?") gains a competitive-tournament answer mode once §11 lands.
+- **§10 ablation** — bare-mode + mixed-model + competitive scoring would produce a 3-axis matrix; potentially the most informative single campaign Diplomat could run. Not prioritized until at least Path A signal is in hand.
+- **`ASSESSMENT.md` §3 scoring lenses** — Path B / Option B add §3.5 (rank-based) and §3.6 (coalition-value) lenses. Worth updating §3.5 cross-reference table when those land.
 
 ---
 
@@ -785,11 +877,25 @@ Closed items have been moved to **Appendix A**.
       Produces the first non-trivial edit log with `revise_directives` populated
       and `edit_classifications` populated. (Renumbered from "Run 14"
       2026-06-07 to free that number for the ablation series in §10.)
-- [ ] **Runs 14a-14f — bare-prompt vs full-harness ablation matrix**
-      (§10). 36 runs total: 3 model tiers × 2 modes × 2 scenarios × 3 runs.
-      Estimated $60-100. Gated on Phase 34 close (bare-mode plumbing). The
-      foundational design-bet test: does the harness contribute, or is it
-      theater? Result drives the post-Phase 34 project-direction decision.
+- [x] **Runs 14a-14e — bare-prompt vs full-harness ablation matrix on Water Rights β-squeezed**
+      (§10). Closed 2026-06-11. 18 runs, ~$10. Canonical narrative in
+      `TUNING_LOG.md` Run 14 entry.
+- [x] **Run 16 — bare-vs-full ablation matrix on jsm1**
+      (§10). Closed 2026-06-12. 12 runs, ~$1.50. Note 1 partially refuted;
+      revised harness-contribution framing in `RESEARCH_NOTES.md` amendment.
+      Canonical narrative in `TUNING_LOG.md` Run 16 entry.
+- [ ] **Run 17 candidate — N4 mid-tier + Phase 38 pressure × 3 on jsm1**
+      (§10 / §2). Cleanest residual experiment after Run 16. Mid-tier is
+      0/3 in both modes on jsm1 with substantive 2/3-issue convergence;
+      Phase 38 round-cost decay is the un-tried lever. ~$1.50 + ~36 min.
+      Tests "harness via scenario design" — if pressure unsticks mid-tier
+      on jsm1, that's a clean win for Phase 38; if not, the mid-tier-stuck
+      pattern is robust and Phase 38 has lower leverage than hoped.
+- [ ] **Run 17 candidate (alternate) — N4b sonnet + Phase 38 pressure × 3 on WR-β**
+      (§10). Carried from Run 14e follow-up. Tests strategic-refusal mechanism:
+      if pressure converts sonnet 0/3 → 2-3/3 on WR-β, "BATNA-survivable
+      coalition" mechanism wins; if no change, persona-rule weighting more
+      likely. ~$2 + ~50 min.
 - [ ] **Persona payment rigidity** — recurring across Runs 7-10. Run 9
       post-mortem partially deflated this: under squeeze, the rule isn't
       binding. Still worth an A/B in a future run (Tier 3 `[B]`).
@@ -911,3 +1017,6 @@ corresponding phase or Phase 19 ad-hoc entries, and `TUNING_LOG.md` /
 | 2026-06-08 | **Cleanup pass.** Tier 1 Open Items table: removed closed rows (Coached game UX fixes, OpenRouter integration). Updated Bare-prompt ablation row to reflect Phase 34 close. Pure-build extensions table: removed closed rows (1.6 OpenRouter, ASSESSMENT 3.3 vs-Naive baseline). Sequencing list: dropped stale "Coached game UX fixes" entry; renumbered (now 1=Run 14a-14f ablation, 2=Pricing audit, 3=Game-platform). Deleted closed sections in their entirety: 1.6 (OpenRouter, closed Phase 30), 1.9 (Near-miss diagnostics, closed Phase 28), 9 (Voice templates, WON'T DO). Backlog: removed empty "Outstanding tooling debt (None)" subsection. 10 Build status updated from "prerequisite/queued" to "closed 2026-06-08". File shrunk ~80 lines. | Operator: "clean up the next_steps doc - remove closed items from Open Items table - if the info is in devlog, just delete, otherwise consider where it should go but don't keep them in the open table" |
 | 2026-06-08 | **10 matrix locked.** Final design: 3 model tiers (gpt-4.1-nano weak / gpt-5.4-mini mid / claude-sonnet-4-6 strong) x 2 modes (full/bare) x 1 scenario (Water Rights beta-squeezed) x 3 runs = 18 runs, ~$20-40. Dropped second scenario (Trade Summit not in repo; Three-Party Coalition viable as v1.5 follow-up if results warrant). Mid bumped to gpt-5.4-mini per operator pin (was gpt-4.1-mini). Strong bumped to claude-sonnet-4-6 from haiku self-play default since haiku is tier-equivalent to mid - no real tier separation. BATNA fixed at beta-squeezed per operator (~50% historical deal rate gives leeway for harness/bare differentiation, vs symmetric where everyone sits at BATNA). Run order sequenced cheap-first: gpt-5.4-mini cells -> gpt-4.1-nano cells -> sonnet-bare -> sonnet-full last. | Operator: "let's bump mid-tier to 5.4, strong tier whatever is default, drop second scenario, use beta-squeezed - we want something that produces agreement ~half the time so models have some leeway" |
 | 2026-06-08 | **Run 14 mid-campaign sync.** Cells 14a-14c complete (12 runs); 14d/14e pending. State-as-of bumped (Phase 34 closed, 14a-c done with cross-tier picture). 10 Run sequencing table got Status column with results + revised cost figures (sonnet-bare ~$0.50, sonnet-full conditional). New "Cross-cell read" subsection summarizing the three headline findings (harness contribution is close-rate-not-quality; harness substitutes for ~1+ model tier; bare degrades steeply with weaker models). All findings caveated by RESEARCH_NOTES.md Note 1 scale-1 scenario warning. Canonical narrative + per-cell detail moved to TUNING_LOG.md Run 14 campaign entry. | Operator wrap of work-session: "document our outcomes for completed runs + discuss implications + document 14d/14e as potential next runs and why + update next steps as per results" |
+| 2026-06-12 | **Run 16 sync.** State-as-of refreshed to "Phases 20–38 closed + Runs 14 + 16 complete." Added cross-tier, cross-scenario findings paragraph capturing the Note 1 partial refutation (sonnet-bare = sonnet-full = 3/3 on jsm1; harness contribution scenario-dependent, not richness-dependent). Tier 1 "Bare-prompt ablation" row updated to reflect Run 14 + 16 close + Note 1 amendment. New Tier 1 row "Phase 38 pressure × mid-tier jsm1 (N4)" added as the sharpest residual experiment. §10 TODOs marked done for Runs 14 + 16; project-direction decision row populated with the post-Run-16 read (harness load-bearing on cooperative-single-Pareto for weak/mid OpenAI; harness redundant for sonnet on multi-Pareto; production default now scenario-dependent). §10 Run 16 sub-section added with cross-scenario matrix + four findings. Sequencing within Tier 1 list re-numbered: Run 17 (N4 pressure on jsm1 mid-tier) → pricing audit → game-platform. Carry-Forward: Run 14 + 16 marked done; Run 17 candidate added (N4 primary, N4b alternate). Companion edits in `TUNING_LOG.md` Run 16 entry + `RESEARCH_NOTES.md` Note 1 amendment. | Operator: "Sync NEXT_STEPS.md + ASSESSMENT.md with Run 16" |
+| 2026-06-12 | **Competitive scoring documented (§11 + RESEARCH_NOTES Note 2).** Operator question mid-Run-17 surfaced the agreeableness-bias structural problem: current setup makes mixed-model runs produce deadlock-at-BATNA rather than "X model wins, Y loses." New §11 in NEXT_STEPS captures three paths forward (Path A: behavioral signal via existing scenarios + transcript analysis; Path B: engineer coalition-exclusion scoring in harness, 1-2 day build; Path C: new scenario class — distributive bargaining / asymmetric-BATNA / hidden-value — that produces rank-discriminating outcomes via scenario design alone). Tier 2 table gets new row pointing to §11. Full conceptual discussion (origin, diagnosis, four design options, harness-engineering gap, two product directions — cooperative coaching vs competitive benchmark) lifted to `RESEARCH_NOTES.md` Note 2 in the long-form thesis space. Cheapest immediate test (Path A on existing Three-Party Coalition compile, ~$1-2 calibration) queued as 11.a + 11.b TODOs; product-direction lift-to-`DECISIONS.md` flagged. No work shipped yet — this is queue + framing only. | Operator: "meanwhile can we document competitive scenarios as the next step forward?" |
+| 2026-06-16 | **D-56 direction pivot — Diplomat is now an LLM negotiation benchmark.** Tier-priority restructure flipped: Tier 1 is now `[C]` benchmark direction (Path B coalition scoring engine, §3.5/3.6 lenses, mixed-model dispatcher, scenario-class authoring, Phase 41/42 scale verification, Run 17 follow-ups, N4 pressure on jsm1, per-run cost capture, pricing audit) — was previously Tier 2 under cooperative framing. Tier 2 is `[A]`/`[X]` infrastructure that serves the benchmark (provider-native structured output, TurnBasedFlow / position rotation, reconciliation live validation, identify-the-blocker). Deferred — coaching product (infrastructure preserved): Run 13b, §4 Pi coaching loop, §5 Clankmates/Discord exploration, TelegramReviewGate production default, strategy routing, per-role model strategy, provider consistency tests, persona tuning items. State-as-of bumped to 2026-06-16. Tier-priority rationale paragraph rewritten. Sequencing within Tier 1 rewritten to put Path B build first (load-bearing for benchmark v2 per `PROJECT.md` MVP table) → §3.5 lens → mixed-model dispatcher + §11.b → Path C scenario authoring → Run 17 follow-ups → N4 + Phase 41/42 → cost capture + pricing audit. Companion edits in `PROJECT.md` (Spark/scope/MVP reframe), `ASSESSMENT.md` (§3.5/3.6 lenses queued, workstream tier banners), `RESEARCH_NOTES.md` Note 2 (resolved), `DECISIONS.md` D-56 (canonical decision). Run 17 wrap entry + per-section detail (§1.7, §1.8, §2.5, §3, §4, §5, §7) preserved historically; D-56 deferral applies to which items are Tier 1, not whether they exist. | Operator: "I'd like to pursue the negotiation benchmark direction; please update our docs to reflect that, then we'll work on closing open threads and defining the next steps that serve the benchmark" |

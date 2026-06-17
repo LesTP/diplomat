@@ -406,9 +406,11 @@ negotiated_surplus_share = (45 - 25) / (46 - 25) = 20/21 = 0.952
 (Where 25 = sum of BATNAs: 10 + 8 + 7.)
 
 The group captured 95% of the available surplus above BATNA. The missing
-5% went to the Strict-vs-Moderate pollution tradeoff — South gained 3
-points on pollution (8 vs 5), but North lost 3 (1 vs 4). A wash for the
-group, but redistributive. That's negotiation at work.
+5% is the Strict-vs-Moderate pollution choice: the example deal picks Strict
+(South's preference, 8 vs 5 for Moderate), but Strict costs North 3 points
+(1 vs 4) and Central 1 point (5 vs 6). South's +3 doesn't offset the other
+two factions' −4, so the group loses 1 point of value — redistributed
+toward South. That's negotiation at work.
 
 **3. vs Naive baselines:**
 
