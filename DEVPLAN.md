@@ -78,7 +78,7 @@ steps_remaining: 0
 
 ## Phase 39: Scenario compiler `--fill-narrative` mode — Complete
 
-Closed 2026-06-11. `tools.scenario_compiler` now has permanent `--fill-narrative-only` and `--domain-context-file` support via `fill_narrative()`, and the temporary helper was removed. See `DEVLOG.md` "Phase 39 close".
+Closed 2026-06-11. `scenario_authoring.scenario_compiler` now has permanent `--fill-narrative-only` and `--domain-context-file` support via `fill_narrative()`, and the temporary helper was removed. See `DEVLOG.md` "Phase 39 close".
 
 ## Phase 38: Pressure mechanisms small bundle — Complete
 
@@ -90,20 +90,20 @@ Closed 2026-06-11. Pressure mechanisms shipped as a small bundle: round-cost dec
 
 ## Phase 37: Add `pareto_outcome_diversity` metric — Complete
 
-Closed 2026-06-11. Added `pareto_outcome_diversity` metric to `src/tools/scenario_fitness.py` (distinct-winner-fraction: `distinct_winners / min(frontier_size, n_factions)`) and `pareto_outcome_diversity: float = 0.0` field to `ScenarioSpec` in `src/tools/scenario_spec.py`. 5 new unit tests. Updated `joint_space_mission_v1/spec.json` with `pareto_outcome_diversity: 0.66`. `CLI_REFERENCE.md` updated with side-by-side metric cross-reference (intra-faction-uniformity vs inter-deal-diversity). VERIFY PASSED; 435→440 tests. See `DEVLOG_archive.md` Phase 37 close.
+Closed 2026-06-11. Added `pareto_outcome_diversity` metric to `src/scenario_authoring/scenario_fitness.py` (distinct-winner-fraction: `distinct_winners / min(frontier_size, n_factions)`) and `pareto_outcome_diversity: float = 0.0` field to `ScenarioSpec` in `src/scenario_authoring/scenario_spec.py`. 5 new unit tests. Updated `joint_space_mission_v1/spec.json` with `pareto_outcome_diversity: 0.66`. `CLI_REFERENCE.md` updated with side-by-side metric cross-reference (intra-faction-uniformity vs inter-deal-diversity). VERIFY PASSED; 435→440 tests. See `DEVLOG_archive.md` Phase 37 close.
 
 <!-- history -->
 
 
 ## Phase 36: Scenario Builder Search Improvements — Complete
 
-Closed 2026-06-11. Shipped four algorithm improvements to `src/tools/scenario_builder.py`: structured per-restart logging + `--debug-search` flag (36.1), weighted fitness budget + `target_weights: dict[str,float]` on `ScenarioSpec` with categorical-default weight 0.3 (36.2), simulated annealing `_anneal_local` replacing greedy flip loop (36.3), seeded initialization biased toward spec-requested categorical structure (36.4). Validation on `tests/self_play/scenarios/joint_space_mission_v1/spec.json` PASSED in 3.6s after operator investigation revealed a misspecified `pareto_distribution_spread` target; spec fixed with `target_weights: {pareto_distribution_spread: 0.0}` (36.5). 9 new tests; 426→435 total. Reference docs updated in 36.6; DEVLOG close in 36.7. See `DEVLOG.md` Phase 36 close. Phase 37 queued (operator-gated): add `pareto_outcome_diversity` metric.
+Closed 2026-06-11. Shipped four algorithm improvements to `src/scenario_authoring/scenario_builder.py`: structured per-restart logging + `--debug-search` flag (36.1), weighted fitness budget + `target_weights: dict[str,float]` on `ScenarioSpec` with categorical-default weight 0.3 (36.2), simulated annealing `_anneal_local` replacing greedy flip loop (36.3), seeded initialization biased toward spec-requested categorical structure (36.4). Validation on `scenarios/joint_space_mission_v1/spec.json` PASSED in 3.6s after operator investigation revealed a misspecified `pareto_distribution_spread` target; spec fixed with `target_weights: {pareto_distribution_spread: 0.0}` (36.5). 9 new tests; 426→435 total. Reference docs updated in 36.6; DEVLOG close in 36.7. See `DEVLOG.md` Phase 36 close. Phase 37 queued (operator-gated): add `pareto_outcome_diversity` metric.
 
 <!-- history -->
 
 ## Phase 35: Reverse Scenario Builder — Complete
 
-Closed 2026-06-10. Shipped `src/tools/scenario_builder.py`: constraint-driven reverse scenario generator. Operator writes a `ScenarioSpec` (Pareto count target, distribution spread, BATNA gap, logrolling requirement, asymmetric BATNAs); tool searches scoring-table space via random-restart hill-climb and emits `scenario_analysis.json` + per-faction `.txt` personas via the existing compiler helpers. `logrolling` and `deception_tactics` emitted as stubs for operator hand-authoring. CLI: `python -m tools.scenario_builder --spec <spec.json> --output-dir <dir> --verify`. 6 new files (3 source, 3 test); 12 new tests; 426 total (up from 414). See `DEVLOG.md` Phase 35 close.
+Closed 2026-06-10. Shipped `src/scenario_authoring/scenario_builder.py`: constraint-driven reverse scenario generator. Operator writes a `ScenarioSpec` (Pareto count target, distribution spread, BATNA gap, logrolling requirement, asymmetric BATNAs); tool searches scoring-table space via random-restart hill-climb and emits `scenario_analysis.json` + per-faction `.txt` personas via the existing compiler helpers. `logrolling` and `deception_tactics` emitted as stubs for operator hand-authoring. CLI: `python -m scenario_authoring.scenario_builder --spec <spec.json> --output-dir <dir> --verify`. 6 new files (3 source, 3 test); 12 new tests; 426 total (up from 414). See `DEVLOG.md` Phase 35 close.
 
 <!-- history -->
 

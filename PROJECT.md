@@ -17,8 +17,8 @@ The coaching product (live Telegram games via `OperatorReviewGate`, coached self
 
 ### Core (benchmark direction)
 - Self-play multi-agent harness (`GameEnvironment`, `RoundSteppedFlow`) with configurable per-faction providers and bare-mode toggle
-- Scenario compiler: narrative description → scored persona files with point tables, BATNAs, deception tactics, pressure metadata, game-mode classification (`src/tools/scenario_compiler.py`)
-- Reverse scenario builder: `ScenarioSpec` → fitness-search → committed scenario_analysis.json (`src/tools/scenario_builder.py`)
+- Scenario compiler: narrative description → scored persona files with point tables, BATNAs, deception tactics, pressure metadata, game-mode classification (`src/scenario_authoring/scenario_compiler.py`)
+- Reverse scenario builder: `ScenarioSpec` → fitness-search → committed scenario_analysis.json (`src/scenario_authoring/scenario_builder.py`)
 - Post-game scoring: BATNA-relative, Pareto efficiency, vs-naive baselines, process signatures, near-miss diagnostic
 - Pre-game tooling: probe_providers, dry-run, verify_scenario_optimum
 - Multi-provider integration: OpenAI, Anthropic, Google (Gemini), OpenRouter (DeepSeek V3/R1, Llama, Qwen, etc.) — all via `toolkit/llm_client`
@@ -86,7 +86,7 @@ The coaching product (live Telegram games via `OperatorReviewGate`, coached self
 | Surface | MVP Scope | Status |
 |---|---|---|
 | Self-play harness | `GameEnvironment` + `RoundSteppedFlow` + `--per-faction-providers` | ✓ Operational |
-| Scenario authoring | `tools.scenario_compiler` + `tools.scenario_builder` (3×3×3 validated) | ✓ Operational |
+| Scenario authoring | `scenario_authoring.scenario_compiler` + `scenario_authoring.scenario_builder` (3×3×3 validated) | ✓ Operational |
 | Scoring | BATNA-relative, Pareto efficiency, vs-naive baselines, 5 process signatures | ✓ Operational |
 | Multi-provider | OpenAI, Anthropic, Google, OpenRouter (incl. reasoning models post-toolkit `606e309`) | ✓ Operational |
 | Ablation | Bare-mode toggle (Phase 34) | ✓ Operational |
@@ -119,7 +119,7 @@ The original coaching MVP closed Phases 1-33. `OperatorReviewGate`, coached self
 - New LLM providers via toolkit/llm_client — provider-side; no Diplomat code changes
 - New Flow implementations (TurnBasedFlow, tournament round-robin) — additive against the Pipeline contract per ARCH_flow.md
 - New scoring lenses — add to `tests/self_play/game_environment.py::score_game` + rendering in `tests/self_play/analysis.py`
-- New scenario classes — author via `tools.scenario_builder` with a `ScenarioSpec` targeting the desired property profile
+- New scenario classes — author via `scenario_authoring.scenario_builder` with a `ScenarioSpec` targeting the desired property profile
 - Post-game replay and analysis from the append-only event store + state_change_log + per-run JSON
 
 ## Size Estimate

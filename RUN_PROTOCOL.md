@@ -35,7 +35,7 @@ failure. Don't skip without an explicit reason.
 
 Before any commands, write down on a notepad or task description:
 
-- **Scenario**: which `tests/self_play/scenarios/*.md` file?
+- **Scenario**: which `scenarios/*.md` file?
 - **Analysis JSON**: live-compile, or load a pre-edited one via `--analysis-json`?
 - **Factions**: which faction ids?
 - **Provider assignments**: which provider for each faction?
@@ -51,7 +51,7 @@ For any new scenario or after editing BATNAs/scoring:
 
 ```bash
 python tests/self_play/verify_scenario_optimum.py \
-    --analysis tests/self_play/scenarios/<name>_compiled/scenario_analysis.json
+    --analysis scenarios/<name>_compiled/scenario_analysis.json
 ```
 
 Confirm:
@@ -109,8 +109,8 @@ Before any live run:
 ```bash
 python -m tests.self_play.run_simulation \
     --dry-run \
-    --scenario tests/self_play/scenarios/<name>.md \
-    --analysis-json tests/self_play/scenarios/<name>_compiled/scenario_analysis.json \
+    --scenario scenarios/<name>.md \
+    --analysis-json scenarios/<name>_compiled/scenario_analysis.json \
     --per-faction-providers $providers \
     --rounds 4 \
     --output tests/self_play/results/dryrun_<name>.json
@@ -144,8 +144,8 @@ Only after steps 2-4 pass cleanly:
 
 ```bash
 python -m tests.self_play.run_simulation \
-    --scenario tests/self_play/scenarios/<name>.md \
-    --analysis-json tests/self_play/scenarios/<name>_compiled/scenario_analysis.json \
+    --scenario scenarios/<name>.md \
+    --analysis-json scenarios/<name>_compiled/scenario_analysis.json \
     --per-faction-providers $providers \
     --rounds 4 \
     --output tests/self_play/results/run<N>_<descriptor>.json \
@@ -249,7 +249,7 @@ Gemini, either:
 - `tests/self_play/verify_scenario_optimum.py` — scenario sanity checker
 - `tests/self_play/run_simulation.py` — main runner (supports `--dry-run`)
 - `tests/self_play/verify_dryrun.py` — invariant checker (works on dry-run AND live results)
-- `tests/self_play/scenarios/` — scenario .md files + compiled analyses
+- `scenarios/` — scenario .md files + compiled analyses
 - `tests/self_play/results/` — canonical run results (most `*.json` are gitignored; commit specific runs with `git add -f`)
 - `TUNING_LOG.md` — history of all runs with hypotheses, observations, learnings
 - `DEVLOG.md` — structured per-change audit trail

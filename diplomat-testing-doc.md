@@ -1250,7 +1250,7 @@ Self-play runs multiple agent instances against each other in a simulated enviro
 | GameEnvironment | `tests/self_play/game_environment.py` | Orchestrates N agents: config generation, message routing, round lifecycle, results collection, post-game scoring |
 | LoggingLLMClient | `tests/self_play/game_environment.py` | Wraps any LLM client; records every call with full prompts, responses, and timing |
 | FakeLLMClient | `tests/self_play/fake_llm_client.py` | Deterministic LLM client for unit tests (no API calls) |
-| Scenario Compiler | `src/tools/scenario_compiler.py` | Converts narrative scenario descriptions into scored persona files via LLM |
+| Scenario Compiler | `src/scenario_authoring/scenario_compiler.py` | Converts narrative scenario descriptions into scored persona files via LLM |
 | Simulation Runner | `tests/self_play/run_simulation.py` | CLI entry point with `--scenario` flag for auto-compiled personas |
 | Coached Game Runner | `tests/self_play/coached_game.py` | Self-play runner that routes one faction through OperatorReviewGate/TelegramBotTransport; `--dry-run` uses a local stand-in (Phase 28) |
 | Analysis | `tests/self_play/analysis.py` | Post-game report: promises, coalitions, communication patterns, process signatures, near-miss diagnostic, promise cross-reference |
@@ -1271,7 +1271,7 @@ python -m tests.self_play.run_simulation \
 **With auto-compiled scenario (recommended):**
 ```bash
 python -m tests.self_play.run_simulation \
-  --scenario tests/self_play/scenarios/three_party_coalition.md \
+  --scenario scenarios/three_party_coalition.md \
   --scenario-title "Three-Party Coalition" \
   --factions a,b,c --rounds 4 \
   --output tests/self_play/results/run.json
@@ -1283,8 +1283,8 @@ The `--scenario` flag compiles the scenario description into per-faction persona
 ```bash
 python -m tests.self_play.coached_game \
   --coach-faction beta --rounds 4 \
-  --scenario tests/self_play/scenarios/water_rights.md \
-  --analysis-json tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json \
+  --scenario scenarios/water_rights.md \
+  --analysis-json scenarios/water_rights_compiled/scenario_analysis.json \
   --factions alpha,beta,gamma \
   --output tests/self_play/results/coached.json
 ```
@@ -1323,14 +1323,14 @@ Bare-prompt mode (Phase 34) runs an all-bare game for ablation experiments — m
 ```bash
 # Dry-run (validates plumbing, ~$0)
 python -m tests.self_play.run_simulation --dry-run --bare-prompt \
-    --rounds 4 --scenario tests/self_play/scenarios/water_rights.md \
-    --analysis-json tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json \
+    --rounds 4 --scenario scenarios/water_rights.md \
+    --analysis-json scenarios/water_rights_compiled/scenario_analysis.json \
     --output tests/self_play/results/bare_dryrun.json
 
 # Live bare-prompt game
 python -m tests.self_play.run_simulation --bare-prompt \
-    --rounds 4 --scenario tests/self_play/scenarios/water_rights.md \
-    --analysis-json tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json \
+    --rounds 4 --scenario scenarios/water_rights.md \
+    --analysis-json scenarios/water_rights_compiled/scenario_analysis.json \
     --output tests/self_play/results/bare_live.json
 ```
 
@@ -1348,7 +1348,7 @@ Compare bare vs full runs at the same model tier and scenario to measure the har
 
 ### 6.3 Scenario Compiler
 
-The compiler (`src/tools/scenario_compiler.py`) is a pre-game preparation tool, usable for both self-play testing and real game deployment. It uses `structured_call` to extract from a narrative:
+The compiler (`src/scenario_authoring/scenario_compiler.py`) is a pre-game preparation tool, usable for both self-play testing and real game deployment. It uses `structured_call` to extract from a narrative:
 
 - **Issues and outcomes** — what's being negotiated, possible positions
 - **Per-faction scoring** — private point values per outcome (1-10 scale)
@@ -1390,11 +1390,11 @@ Key findings from 17 runs across multiple scenario types (see `TUNING_LOG.md` an
 | Scenario | File | Type | Factions |
 |----------|------|------|----------|
 | Territory Dispute | `tests/self_play/scenario.py` (legacy) | Cooperative | 3 generic |
-| Water Rights | `tests/self_play/scenarios/water_rights.md` | Mixed | 3 asymmetric (alpha/beta/gamma) |
+| Water Rights | `scenarios/water_rights.md` | Mixed | 3 asymmetric (alpha/beta/gamma) |
 | Dirty Bargaining | `tests/self_play/scenario.py` (current) | Mixed | 3 with scoring |
-| Three-Party Coalition | `tests/self_play/scenarios/three_party_coalition.md` | Competitive | 3 (Susskind) |
+| Three-Party Coalition | `scenarios/three_party_coalition.md` | Competitive | 3 (Susskind) |
 
-Pre-compiled BATNA variants exist in `tests/self_play/scenarios/` for Water Rights:
+Pre-compiled BATNA variants exist in `scenarios/` for Water Rights:
 `water_rights_compiled/`, `water_rights_symmetric_050/`, `water_rights_alpha_squeezed/`,
 `water_rights_beta_squeezed/`, `water_rights_dual_squeezed/`.
 
@@ -1523,7 +1523,7 @@ python -m tests.prompt_regression.runner \
 
 ```bash
 python -m tests.self_play.run_simulation \
-  --scenario tests/self_play/scenarios/three_party_coalition.md \
+  --scenario scenarios/three_party_coalition.md \
   --factions a,b,c --rounds 4 \
   --output tests/self_play/results/run.json
 ```
@@ -1542,16 +1542,16 @@ python -m tests.self_play.run_simulation \
 # Dry-run first (no Telegram needed)
 python -m tests.self_play.coached_game \
   --coach-faction beta --rounds 4 \
-  --scenario tests/self_play/scenarios/water_rights.md \
-  --analysis-json tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json \
+  --scenario scenarios/water_rights.md \
+  --analysis-json scenarios/water_rights_compiled/scenario_analysis.json \
   --factions alpha,beta,gamma --dry-run \
   --output tests/self_play/results/coached_dry.json
 
 # Live (requires TELEGRAM_BOT_TOKEN + channel IDs)
 python -m tests.self_play.coached_game \
   --coach-faction beta --rounds 4 \
-  --scenario tests/self_play/scenarios/water_rights.md \
-  --analysis-json tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json \
+  --scenario scenarios/water_rights.md \
+  --analysis-json scenarios/water_rights_compiled/scenario_analysis.json \
   --factions alpha,beta,gamma \
   --output tests/self_play/results/coached.json
 ```
@@ -1560,7 +1560,7 @@ python -m tests.self_play.coached_game \
 
 ```bash
 python -m tests.self_play.verify_scenario_optimum \
-  --analysis tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json
+  --analysis scenarios/water_rights_compiled/scenario_analysis.json
 ```
 
 ### Probe providers before a live run
@@ -1573,7 +1573,7 @@ python -m tests.self_play.probe_providers \
 ### Compile a scenario into personas
 
 ```bash
-python -m tools.scenario_compiler \
+python -m scenario_authoring.scenario_compiler \
   --scenario scenario.md --output-dir output/
 ```
 

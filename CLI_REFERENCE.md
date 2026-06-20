@@ -21,8 +21,8 @@ Cross-references point at fuller discussion in `TUNING.md`, `DEVPLAN.md`,
 | Run a multi-agent self-play game | [`tests.self_play.run_simulation`](#testsself_playrun_simulation--multi-agent-self-play-runner) |
 | Run a self-play game with one Telegram-coached faction | [`tests.self_play.coached_game`](#testsself_playcoached_game--coached-self-play-runner) |
 | Validate plumbing without spending money | `--dry-run` flag on `run_simulation` |
-| Compile a narrative scenario into personas | [`tools.scenario_compiler`](#toolsscenario_compiler--narrative--scored-personas) |
-| Generate a scenario from outcome-shape constraints | [`tools.scenario_builder`](#toolsscenario_builder--constraint-driven-scenario-generator) |
+| Compile a narrative scenario into personas | [`scenario_authoring.scenario_compiler`](#toolsscenario_compiler--narrative--scored-personas) |
+| Generate a scenario from outcome-shape constraints | [`scenario_authoring.scenario_builder`](#toolsscenario_builder--constraint-driven-scenario-generator) |
 | Check providers are reachable before a live run | [`tests.self_play.probe_providers`](#testsself_playprobe_providers--live-provider-auth--parse-check) |
 | Assert dry-run output meets invariants | [`tests.self_play.verify_dryrun`](#testsself_playverify_dryrun--assert-dry-run-output-invariants) |
 | Check a scenario has a non-trivial optimum before running | [`tests.self_play.verify_scenario_optimum`](#testsself_playverify_scenario_optimum--enumerate-scenario-outcomes) |
@@ -116,20 +116,20 @@ operational context.
 ```bash
 # Free dry-run (validates plumbing, no API cost)
 python -m tests.self_play.run_simulation --dry-run \
-    --rounds 4 --scenario tests/self_play/scenarios/water_rights.md \
-    --analysis-json tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json \
+    --rounds 4 --scenario scenarios/water_rights.md \
+    --analysis-json scenarios/water_rights_compiled/scenario_analysis.json \
     --factions alpha,beta,gamma \
     --output tests/self_play/results/smoke.json
 
 # Live single-provider game
 python -m tests.self_play.run_simulation \
-    --rounds 4 --scenario tests/self_play/scenarios/water_rights.md \
+    --rounds 4 --scenario scenarios/water_rights.md \
     --output tests/self_play/results/run9.json
 
 # Live multi-provider game (per-faction Generator)
 python -m tests.self_play.run_simulation \
-    --rounds 4 --scenario tests/self_play/scenarios/water_rights.md \
-    --analysis-json tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json \
+    --rounds 4 --scenario scenarios/water_rights.md \
+    --analysis-json scenarios/water_rights_compiled/scenario_analysis.json \
     --per-faction-providers '{"alpha":{"provider":"openai","model":"gpt-4.1-mini"},"beta":{"provider":"anthropic","model":"claude-haiku-4-5"},"gamma":{"provider":"google","model":"gemini-2.5-flash-lite"}}' \
 # OpenRouter example — access 200+ models via one API key
 # python -m tests.self_play.run_simulation ... \
@@ -163,16 +163,16 @@ python -m tests.self_play.run_simulation \
 # Dry-run wiring check: no Telegram access required
 python -m tests.self_play.coached_game --dry-run \
     --coach-faction beta --rounds 4 \
-    --scenario tests/self_play/scenarios/water_rights.md \
-    --analysis-json tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json \
+    --scenario scenarios/water_rights.md \
+    --analysis-json scenarios/water_rights_compiled/scenario_analysis.json \
     --factions alpha,beta,gamma \
     --output tests/self_play/results/coached_dryrun.json
 
 # Live coached run: one faction uses OperatorReviewGate + TelegramBotTransport
 python -m tests.self_play.coached_game \
     --coach-faction beta --rounds 4 \
-    --scenario tests/self_play/scenarios/water_rights.md \
-    --analysis-json tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json \
+    --scenario scenarios/water_rights.md \
+    --analysis-json scenarios/water_rights_compiled/scenario_analysis.json \
     --factions alpha,beta,gamma \
     --output tests/self_play/results/coached_live.json
 ```
@@ -238,7 +238,7 @@ Invariants checked include: per-round GEN counts, EXTRACT count, ADV count, endg
 
 ```bash
 python -m tests.self_play.verify_scenario_optimum \
-    --analysis tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json \
+    --analysis scenarios/water_rights_compiled/scenario_analysis.json \
     --top-n 10
 ```
 
@@ -269,35 +269,35 @@ and a promise cross-reference table.
 
 ## Tools
 
-### `tools.scenario_compiler` — narrative → scored personas
+### `scenario_authoring.scenario_compiler` — narrative → scored personas
 
 ```bash
 # Default 0.50 BATNA fraction (moderate pressure)
-python -m tools.scenario_compiler \
-    --scenario tests/self_play/scenarios/water_rights.md \
-    --output-dir tests/self_play/scenarios/water_rights_compiled \
+python -m scenario_authoring.scenario_compiler \
+    --scenario scenarios/water_rights.md \
+    --output-dir scenarios/water_rights_compiled \
     --title "Clearwater River Basin"
 
 # High-pressure variant for skill-testing runs
-python -m tools.scenario_compiler \
-    --scenario tests/self_play/scenarios/water_rights.md \
+python -m scenario_authoring.scenario_compiler \
+    --scenario scenarios/water_rights.md \
     --batna-fraction 0.65
 
 # Asymmetric BATNAs: alpha squeezed, beta comfortable
-python -m tools.scenario_compiler \
-    --scenario tests/self_play/scenarios/water_rights.md \
+python -m scenario_authoring.scenario_compiler \
+    --scenario scenarios/water_rights.md \
     --batna-fractions '{"alpha":0.65,"beta":0.35,"gamma":0.50}'
 
 # Force-clamp LLM-produced BATNAs to the target fractions (no narrative drift)
-python -m tools.scenario_compiler \
-    --scenario tests/self_play/scenarios/water_rights.md \
+python -m scenario_authoring.scenario_compiler \
+    --scenario scenarios/water_rights.md \
     --batna-fraction 0.55 \
     --force-batna-fraction
 
 # Fill narrative fields on an existing reverse-builder output
-python -m tools.scenario_compiler \
-    --fill-narrative-only tests/self_play/scenarios/joint_space_mission_v1/scenario_analysis.json \
-    --domain-context-file tests/self_play/scenarios/joint_space_mission.md \
+python -m scenario_authoring.scenario_compiler \
+    --fill-narrative-only scenarios/joint_space_mission_v1/scenario_analysis.json \
+    --domain-context-file scenarios/joint_space_mission.md \
     --title "Joint Space Mission"
 ```
 
@@ -318,9 +318,9 @@ After compilation, prints any per-faction BATNA pressure warnings from
 
 ---
 
-### `tools.scenario_builder` — constraint-driven scenario generator
+### `scenario_authoring.scenario_builder` — constraint-driven scenario generator
 
-Reverse of `tools.scenario_compiler`. Operator writes a `ScenarioSpec` JSON
+Reverse of `scenario_authoring.scenario_compiler`. Operator writes a `ScenarioSpec` JSON
 file declaring desired outcome-shape properties; the tool searches scoring-table
 space via random-restart hill-climb and emits a `scenario_analysis.json` +
 per-faction `.txt` persona directory compatible with `run_simulation.py`.
@@ -331,19 +331,19 @@ fitness distance, the exit reason, and the per-target distances at exit.
 
 No LLM calls — pure combinatorial search. `logrolling` and `deception_tactics`
 fields are emitted as stubs; fill them by hand or by running
-`tools.scenario_compiler --fill-narrative-only` over the generated tables.
+`scenario_authoring.scenario_compiler --fill-narrative-only` over the generated tables.
 
 ```bash
 # Build a scenario from a spec, verify the Pareto count matches the target
-python -m tools.scenario_builder \
-    --spec tests/self_play/specs/multi_pareto.json \
-    --output-dir tests/self_play/scenarios/multi_pareto_v1 \
+python -m scenario_authoring.scenario_builder \
+    --spec scenarios/specs/multi_pareto.json \
+    --output-dir scenarios/multi_pareto_v1 \
     --title "Multi-Pareto River Basin" \
     --verify
 
 # Reproducible run with fixed seed
-python -m tools.scenario_builder \
-    --spec tests/self_play/specs/multi_pareto.json \
+python -m scenario_authoring.scenario_builder \
+    --spec scenarios/specs/multi_pareto.json \
     --output-dir /tmp/scenario_test \
     --seed 42 \
     --max-iterations 2000 \
@@ -618,7 +618,7 @@ Relevant toolkit functions used by Diplomat CLIs above:
 **Tune-then-run loop:**
 ```bash
 # 1. Compile scenario at target pressure (warnings print if LLM under-sets BATNAs)
-python -m tools.scenario_compiler --scenario X.md --batna-fraction 0.55
+python -m scenario_authoring.scenario_compiler --scenario X.md --batna-fraction 0.55
 
 # 2. Confirm the resulting analysis has a non-trivial optimum
 python -m tests.self_play.verify_scenario_optimum --analysis X_compiled/scenario_analysis.json
@@ -658,7 +658,7 @@ procedure to validate the Diplomat bot on the Raspberry Pi after code changes.
 | 2026-05-30 | Expanded: added inspection-tools section, env-var table for `main.py`, workflow examples, by-purpose quick index, toolkit cross-reference, examples for every command. |
 | 2026-05-30 | Documented `tools/service.sh` (the actual bot-lifecycle mechanism — nohup-based wrapper around `src/main.py`). Updated `tools/inspect_ledger.py` entry to match the new flag-driven version (`--selfplay`, `--path`, `--show`). Updated by-purpose quick index to route "run the bot" at `service.sh`. |
 | 2026-06-07 | Phase 33: added `tools/classify_edit_log.py` entry (bulk edit-log classifier); added "classify the review-gate edit log" row to quick index. |
-| 2026-06-10 | Phase 35: added `tools.scenario_builder` section (constraint-driven scenario generator; `--spec`, `--output-dir`, `--title`, `--seed`, `--max-iterations`, `--verify`); added quick-index row. |
-| 2026-06-10 | Phase 36 Step 36.1: added `--debug-search` to `tools.scenario_builder` and documented its JSON restart logs. |
+| 2026-06-10 | Phase 35: added `scenario_authoring.scenario_builder` section (constraint-driven scenario generator; `--spec`, `--output-dir`, `--title`, `--seed`, `--max-iterations`, `--verify`); added quick-index row. |
+| 2026-06-10 | Phase 36 Step 36.1: added `--debug-search` to `scenario_authoring.scenario_builder` and documented its JSON restart logs. |
 | 2026-06-11 | Phase 36 Step 36.6: added `target_weights` spec field to schema and field table; added metric-semantics note distinguishing `pareto_distribution_spread` (intra-faction uniformity) from `pareto_outcome_diversity` (queued Phase 37, inter-deal diversity). |
 | 2026-06-11 | Phase 37 Step 37.6: added `pareto_outcome_diversity` spec field (`float 0–1`, default `0.0`); expanded metric-semantics note into a full cross-reference block explaining what each metric measures and when to use each. |
