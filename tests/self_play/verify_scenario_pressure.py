@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from modules.persona import CoachingContext, render_round_context_section
-from tools.scenario_compiler import max_possible_score
+from scenario_authoring.scenario_compiler import max_possible_score
 
 
 def effective_batna(

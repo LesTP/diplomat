@@ -19,11 +19,11 @@ import json
 import sys
 from pathlib import Path
 
-# Allow `from tools.scenario_compiler import ...` when invoked from project root.
+# Allow `from scenario_authoring.scenario_compiler import ...` when invoked from project root.
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_PROJECT_ROOT / "src"))
 
-from tools.scenario_compiler import (  # noqa: E402
+from scenario_authoring.scenario_compiler import (  # noqa: E402
     force_batna_targets,
     generate_persona,
     save_analysis,

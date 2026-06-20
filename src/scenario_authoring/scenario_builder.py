@@ -21,15 +21,15 @@ from typing import Any
 
 from tests.self_play.verify_scenario_optimum import enumerate_deals, find_pareto_frontier
 
-from tools.scenario_compiler import (
+from scenario_authoring.scenario_compiler import (
     DEFAULT_BATNA_FRACTION,
     force_batna_targets,
     generate_persona,
     save_analysis,
     save_persona,
 )
-from tools.scenario_fitness import FitnessResult, compute_fitness
-from tools.scenario_spec import ScenarioSpec, load_spec
+from scenario_authoring.scenario_fitness import FitnessResult, compute_fitness
+from scenario_authoring.scenario_spec import ScenarioSpec, load_spec
 
 
 logger = logging.getLogger(__name__)

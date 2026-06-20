@@ -412,7 +412,7 @@ def _parse_operator_user_ids(raw_value: str) -> set[str]:
 async def _run(args: argparse.Namespace) -> None:
     faction_ids = [f.strip() for f in args.factions.split(",") if f.strip()]
 
-    from tools.scenario_compiler import parse_batna_fractions_json
+    from scenario_authoring.scenario_compiler import parse_batna_fractions_json
 
     try:
         batna_fractions = (

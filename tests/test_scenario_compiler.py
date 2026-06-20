@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from tools.scenario_compiler import (
+from scenario_authoring.scenario_compiler import (
     DEFAULT_BATNA_FRACTION,
     SCENARIO_ANALYSIS_SCHEMA,
     build_compiler_system_prompt,
@@ -188,7 +188,7 @@ class TestBuildCompilerSystemPrompt:
 class TestParseArgs:
     def test_supports_fill_narrative_only_and_domain_context(self, monkeypatch: object) -> None:
         import sys
-        from tools.scenario_compiler import _parse_args
+        from scenario_authoring.scenario_compiler import _parse_args
 
         monkeypatch.setattr(
             sys,
@@ -211,7 +211,7 @@ class TestParseArgs:
 
     def test_title_alias_still_works(self, monkeypatch: object) -> None:
         import sys
-        from tools.scenario_compiler import _parse_args
+        from scenario_authoring.scenario_compiler import _parse_args
 
         monkeypatch.setattr(
             sys,
@@ -356,21 +356,21 @@ def _make_result(success: bool, data: dict | None = None, error: str | None = No
 
 class TestBuildFillNarrativeUserPrompt:
     def test_includes_title_factions_issues(self) -> None:
-        from tools.scenario_compiler import build_fill_narrative_user_prompt
+        from scenario_authoring.scenario_compiler import build_fill_narrative_user_prompt
         prompt = build_fill_narrative_user_prompt(_SAMPLE_ANALYSIS, "Trade Deal")
         assert "Trade Deal" in prompt
         assert "alpha" in prompt
         assert "Tariffs" in prompt
 
     def test_includes_domain_context_when_provided(self) -> None:
-        from tools.scenario_compiler import build_fill_narrative_user_prompt
+        from scenario_authoring.scenario_compiler import build_fill_narrative_user_prompt
         prompt = build_fill_narrative_user_prompt(
             _SAMPLE_ANALYSIS, "Trade Deal", domain_context="Domain: Custom framing."
         )
         assert "Domain: Custom framing." in prompt
 
     def test_omits_domain_context_section_when_empty(self) -> None:
-        from tools.scenario_compiler import build_fill_narrative_user_prompt
+        from scenario_authoring.scenario_compiler import build_fill_narrative_user_prompt
         prompt = build_fill_narrative_user_prompt(_SAMPLE_ANALYSIS, "Trade Deal")
         assert "Domain:" not in prompt
 
@@ -378,7 +378,7 @@ class TestBuildFillNarrativeUserPrompt:
 class TestFillNarrative:
     def test_merges_logrolling_and_deception(self, monkeypatch: object) -> None:
         import asyncio
-        from tools.scenario_compiler import fill_narrative
+        from scenario_authoring.scenario_compiler import fill_narrative
 
         new_logrolling = ["Alpha trades Labor for Gamma's Environment support"]
         new_deception = {
@@ -401,7 +401,7 @@ class TestFillNarrative:
     def test_does_not_mutate_input(self, monkeypatch: object) -> None:
         import asyncio
         import copy
-        from tools.scenario_compiler import fill_narrative
+        from scenario_authoring.scenario_compiler import fill_narrative
 
         original = copy.deepcopy(_SAMPLE_ANALYSIS)
 
@@ -414,7 +414,7 @@ class TestFillNarrative:
 
     def test_preserves_scoring_batna_factions_issues(self, monkeypatch: object) -> None:
         import asyncio
-        from tools.scenario_compiler import fill_narrative
+        from scenario_authoring.scenario_compiler import fill_narrative
 
         async def fake_sc(*args, **kwargs):
             return _make_result(True, {"logrolling": [], "deception_tactics": {}})
@@ -432,7 +432,7 @@ class TestFillNarrative:
     def test_raises_on_llm_failure(self, monkeypatch: object) -> None:
         import asyncio
         import pytest
-        from tools.scenario_compiler import fill_narrative
+        from scenario_authoring.scenario_compiler import fill_narrative
 
         async def fake_sc(*args, **kwargs):
             return _make_result(False, error="timeout")
@@ -444,7 +444,7 @@ class TestFillNarrative:
 
     def test_domain_context_appears_in_prompt(self, monkeypatch: object) -> None:
         import asyncio
-        from tools.scenario_compiler import fill_narrative
+        from scenario_authoring.scenario_compiler import fill_narrative
 
         captured: dict = {}
 
@@ -469,7 +469,7 @@ class TestFillNarrativeCli:
         import json
         import shutil
         from argparse import Namespace
-        from tools.scenario_compiler import _run
+        from scenario_authoring.scenario_compiler import _run
 
         fixture_dir = Path("tests/self_play/scenarios/joint_space_mission_v1")
         working_dir = tmp_path / "joint_space_mission_v1"

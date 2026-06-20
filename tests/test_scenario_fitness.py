@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from tools.scenario_fitness import FitnessResult, compute_fitness
-from tools.scenario_spec import IssueSpec, ScenarioSpec
+from scenario_authoring.scenario_fitness import FitnessResult, compute_fitness
+from scenario_authoring.scenario_spec import IssueSpec, ScenarioSpec
 
 
 def _water_rights_beta_squeezed_analysis() -> dict[str, object]:

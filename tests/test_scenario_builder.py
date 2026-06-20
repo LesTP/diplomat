@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from modules.persona import FileBasedPersona
-from tools.scenario_builder import (
+from scenario_authoring.scenario_builder import (
     _anneal_local,
     _analysis_from_scoring_table,
     _random_scoring_table,
@@ -22,8 +22,8 @@ from tools.scenario_builder import (
     _search_loop,
     build_and_save_scenario,
 )
-from tools.scenario_fitness import FitnessResult, compute_fitness
-from tools.scenario_spec import IssueSpec, ScenarioSpec, dump_spec
+from scenario_authoring.scenario_fitness import FitnessResult, compute_fitness
+from scenario_authoring.scenario_spec import IssueSpec, ScenarioSpec, dump_spec
 
 from tests.self_play.verify_scenario_optimum import (
     enumerate_deals,
@@ -137,17 +137,17 @@ class TestSearchLoop:
         }
 
         monkeypatch.setattr(
-            "tools.scenario_builder._random_scoring_table",
+            "scenario_authoring.scenario_builder._random_scoring_table",
             lambda *args, **kwargs: copy.deepcopy(scoring),
         )
-        monkeypatch.setattr("tools.scenario_builder._candidate_is_acceptable", lambda *a, **k: False)
-        caplog.set_level(logging.INFO, logger="tools.scenario_builder")
+        monkeypatch.setattr("scenario_authoring.scenario_builder._candidate_is_acceptable", lambda *a, **k: False)
+        caplog.set_level(logging.INFO, logger="scenario_authoring.scenario_builder")
 
         def collect_schema() -> list[list[str]]:
             return [
                 sorted(json.loads(record.getMessage()).keys())
                 for record in caplog.records
-                if record.name == "tools.scenario_builder"
+                if record.name == "scenario_authoring.scenario_builder"
             ]
 
         with pytest.raises(RuntimeError):
@@ -244,7 +244,7 @@ class TestAnnealLocal:
             total_distance=start_distance + 0.05,
             per_target_distance={"pareto_count": start_distance + 0.05},
         )
-        monkeypatch.setattr("tools.scenario_builder.compute_fitness", lambda *a: always_worse)
+        monkeypatch.setattr("scenario_authoring.scenario_builder.compute_fitness", lambda *a: always_worse)
 
         # With T=1.0 at start, exp(-0.05/1.0) ≈ 0.951 per-move acceptance prob.
         # P(all 30 rejected) ≈ 0.049^30 ≈ 10^-42 — effectively zero.
@@ -271,7 +271,7 @@ class TestBuildAndSaveScenario:
     ) -> None:
         spec = _feasible_spec()
         monkeypatch.setattr(
-            "tools.scenario_builder._search_loop",
+            "scenario_authoring.scenario_builder._search_loop",
             lambda *args, **kwargs: _emittable_analysis(),
         )
 
@@ -334,7 +334,7 @@ class TestCLI:
             "beta": tmp_path / "beta.txt",
         }
         monkeypatch.setattr(
-            "tools.scenario_builder.build_and_save_scenario",
+            "scenario_authoring.scenario_builder.build_and_save_scenario",
             lambda *a, **kw: (analysis, analysis_path, persona_paths),
         )
 
@@ -373,7 +373,7 @@ class TestCLI:
             "beta": tmp_path / "beta.txt",
         }
         monkeypatch.setattr(
-            "tools.scenario_builder.build_and_save_scenario",
+            "scenario_authoring.scenario_builder.build_and_save_scenario",
             lambda *a, **kw: (analysis, analysis_path, persona_paths),
         )
 

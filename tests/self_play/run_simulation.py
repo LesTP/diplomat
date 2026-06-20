@@ -256,7 +256,7 @@ async def _compile_scenario(
     game_mode_override: str | None = None,
 ) -> dict[str, Path]:
     """Compile a scenario file into per-faction persona files via LLM."""
-    from tools.scenario_compiler import (
+    from scenario_authoring.scenario_compiler import (
         DEFAULT_BATNA_FRACTION,
         analyze_scenario,
         generate_persona,
@@ -350,7 +350,7 @@ def _load_precompiled_analysis(
     Used to preserve hand-tuned BATNAs or any other manual edits to the
     analysis JSON between compile and live run. No LLM call.
     """
-    from tools.scenario_compiler import generate_persona, save_persona
+    from scenario_authoring.scenario_compiler import generate_persona, save_persona
 
     analysis_path = Path(analysis_path_str)
     if not analysis_path.is_file():
@@ -389,7 +389,7 @@ def _load_precompiled_analysis(
 async def _run(args: argparse.Namespace) -> None:
     faction_ids = [f.strip() for f in args.factions.split(",") if f.strip()]
 
-    from tools.scenario_compiler import parse_batna_fractions_json
+    from scenario_authoring.scenario_compiler import parse_batna_fractions_json
 
     # Parse --batna-fractions JSON early so bad inputs fail before any LLM cost.
     try:

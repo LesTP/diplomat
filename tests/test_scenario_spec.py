@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from tools.scenario_spec import IssueSpec, ScenarioSpec, dump_spec, load_spec
+from scenario_authoring.scenario_spec import IssueSpec, ScenarioSpec, dump_spec, load_spec
 
 
 def test_round_trip_preserves_nested_defaults_and_ranges(tmp_path: Path) -> None:

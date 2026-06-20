@@ -9,13 +9,13 @@ Takes a scenario description (text) and uses an LLM to extract:
 Then generates ready-to-use persona files with embedded scoring tables.
 
 Usage:
-    python -m tools.scenario_compiler \\
+    python -m scenario_authoring.scenario_compiler \\
         --scenario scenario.md \\
         --faction alpha \\
         --output-dir output/
 
     # Or generate for all factions at once:
-    python -m tools.scenario_compiler \\
+    python -m scenario_authoring.scenario_compiler \\
         --scenario scenario.md \\
         --output-dir output/
 """
