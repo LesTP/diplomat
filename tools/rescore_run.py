@@ -13,12 +13,12 @@ LLM gave gamma 22 vs canonical 20).
 Usage:
     python3 tools/rescore_run.py \\
         --results tests/self_play/results/run14_bare_gpt54mini_beta_squeezed_2.json \\
-        --analysis tests/self_play/scenarios/water_rights_beta_squeezed/scenario_analysis.json
+        --analysis scenarios/water_rights_beta_squeezed/scenario_analysis.json
 
     # Or batch:
     for f in tests/self_play/results/run14_*.json; do
         python3 tools/rescore_run.py --results "$f" \\
-            --analysis tests/self_play/scenarios/water_rights_beta_squeezed/scenario_analysis.json
+            --analysis scenarios/water_rights_beta_squeezed/scenario_analysis.json
     done
 """
 from __future__ import annotations

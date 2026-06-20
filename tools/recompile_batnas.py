@@ -6,8 +6,8 @@ scenario_analysis.json + personas to a new output directory.
 
 Usage:
     python tools/recompile_batnas.py \\
-        --source tests/self_play/scenarios/water_rights_compiled \\
-        --output-dir tests/self_play/scenarios/water_rights_alpha_squeezed \\
+        --source scenarios/water_rights_compiled \\
+        --output-dir scenarios/water_rights_alpha_squeezed \\
         --batna-fractions '{"alpha":0.70,"beta":0.40,"gamma":0.50}' \\
         --title "Clearwater River Basin"
 """

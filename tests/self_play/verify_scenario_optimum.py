@@ -1,6 +1,6 @@
 """Verify a compiled scenario's point tables produce a non-trivial optimum.
 
-Reads a scenario_analysis.json produced by tools.scenario_compiler and reports:
+Reads a scenario_analysis.json produced by scenario_authoring.scenario_compiler and reports:
 - Per-faction max possible deal value, BATNA, and "good deal" threshold
 - All possible deals (cartesian product of outcomes across issues)
 - Pareto frontier
@@ -10,7 +10,7 @@ Reads a scenario_analysis.json produced by tools.scenario_compiler and reports:
 
 Usage:
     python -m tests.self_play.verify_scenario_optimum \\
-        --analysis tests/self_play/scenarios/scenario_analysis.json
+        --analysis scenarios/scenario_analysis.json
 """
 
 from __future__ import annotations

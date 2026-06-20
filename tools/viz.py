@@ -14,7 +14,7 @@ The dashboard has two sections:
 
 Usage:
     python tools/viz.py \\
-        --analysis tests/self_play/scenarios/water_rights_beta_squeezed/scenario_analysis.json \\
+        --analysis scenarios/water_rights_beta_squeezed/scenario_analysis.json \\
         --results-dir tests/self_play/results \\
         --title "Water Rights (beta-squeezed)" --output viz_wrbeta.html
 

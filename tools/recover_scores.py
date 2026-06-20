@@ -25,7 +25,7 @@ This script:
 Usage:
     python3 tools/recover_scores.py \\
         --results tests/self_play/results/run14_full_gpt54mini_beta_squeezed_2.json \\
-        --analysis tests/self_play/scenarios/water_rights_beta_squeezed/scenario_analysis.json
+        --analysis scenarios/water_rights_beta_squeezed/scenario_analysis.json
 """
 from __future__ import annotations
 

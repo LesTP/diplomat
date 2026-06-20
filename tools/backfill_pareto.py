@@ -8,7 +8,7 @@ using the same _pareto_efficiency_metrics() function that score_game() uses toda
 Usage:
     python tools/backfill_pareto.py \\
         --results tests/self_play/results/run8_water_rights_3provider_v3.json \\
-        --analysis tests/self_play/scenarios/water_rights_compiled/scenario_analysis.json
+        --analysis scenarios/water_rights_compiled/scenario_analysis.json
 """
 
 from __future__ import annotations

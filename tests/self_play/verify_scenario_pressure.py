@@ -8,7 +8,7 @@ pressure:
 
 Usage:
     python -m tests.self_play.verify_scenario_pressure \
-        --analysis tests/self_play/scenarios/scenario_analysis.json
+        --analysis scenarios/scenario_analysis.json
 """
 
 from __future__ import annotations

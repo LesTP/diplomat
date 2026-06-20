@@ -3,7 +3,7 @@
 Usage:
     python tools/backfill_scoring_metrics.py \\
         --results tests/self_play/results/run9_symmetric_live.json \\
-        --analysis tests/self_play/scenarios/water_rights_symmetric_050/scenario_analysis.json
+        --analysis scenarios/water_rights_symmetric_050/scenario_analysis.json
 """
 
 from __future__ import annotations
