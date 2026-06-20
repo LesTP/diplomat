@@ -208,6 +208,26 @@ Rules:
   "cooperative" — mutual gains possible, expanding the pie benefits everyone
   "competitive" — fixed pie, one faction's gain is another's loss
   "mixed" — some cooperative elements, some zero-sum
+- coalition_values (OPTIONAL — leave as an empty list for most scenarios):
+  Populate this ONLY if the narrative explicitly describes payoffs for proper
+  subsets of factions — i.e., the value some coalition would get if it forms
+  WITHOUT one or more of the other factions. This is characteristic of
+  coalition-coercive scenarios (Susskind-style three-party games, cooperative
+  game theory exercises) where partial coalitions are a meaningful outcome.
+  For each described coalition, emit one entry of the form:
+    {{"members": [<faction ids>], "values": {{<faction id>: <points>}}}}
+  Constraints:
+  * `members` must be a strict subset of `factions` (proper subset preferred;
+    the grand coalition is implicit in the full-agreement scoring tables and
+    typically does NOT need to appear here unless its split differs from what
+    `scoring` implies).
+  * `values` keys must equal `members` exactly (one entry per coalition member).
+  * Excluded factions are NOT listed — they fall back to their `batna` at
+    scoring time.
+  * Values should reflect each member's share of the coalition's joint value,
+    on the same 1-10 point scale as `scoring`.
+  Leave `coalition_values` as an empty list if the scenario assumes full
+  agreement among all factions (no partial-coalition payoffs described).
 """
 
 

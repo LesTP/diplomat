@@ -196,6 +196,16 @@ class TestBuildCompilerSystemPrompt:
         with pytest.raises(ValueError):
             build_compiler_system_prompt(batna_fraction=-0.1)
 
+    def test_prompt_mentions_coalition_values(self) -> None:
+        # Compiler must instruct the LLM on when/how to populate coalition_values.
+        prompt = build_compiler_system_prompt()
+        assert "coalition_values" in prompt
+        # Should be explicitly flagged as optional / leave empty by default.
+        assert "OPTIONAL" in prompt or "empty list" in prompt
+        # Must spell out the entry shape so the LLM produces valid JSON.
+        assert '"members"' in prompt
+        assert '"values"' in prompt
+
 
 class TestParseArgs:
     def test_supports_fill_narrative_only_and_domain_context(self, monkeypatch: object) -> None:
