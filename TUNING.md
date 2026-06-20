@@ -113,7 +113,7 @@ preemptively on the basis of a commodity-tier finding.
 
 ### Scenario BATNA tuning (`--batna-fraction`)
 
-Available on both `tools.scenario_compiler` and `tests.self_play.run_simulation`. Sets the target BATNA value as a fraction of each faction's maximum possible score across all issues.
+Available on both `scenario_authoring.scenario_compiler` and `tests.self_play.run_simulation`. Sets the target BATNA value as a fraction of each faction's maximum possible score across all issues.
 
 **Semantics — which direction does what?**
 
@@ -139,7 +139,7 @@ Available on both `tools.scenario_compiler` and `tests.self_play.run_simulation`
 
 ### Asymmetric BATNAs (`--batna-fractions`)
 
-Available on both `tools.scenario_compiler` and `tests.self_play.run_simulation`. JSON map `{faction_id: fraction}`. Overrides `--batna-fraction` only for listed factions; unlisted factions use the scalar fallback. Same parsing pattern as `--per-faction-providers`.
+Available on both `scenario_authoring.scenario_compiler` and `tests.self_play.run_simulation`. JSON map `{faction_id: fraction}`. Overrides `--batna-fraction` only for listed factions; unlisted factions use the scalar fallback. Same parsing pattern as `--per-faction-providers`.
 
 Use when the scenario should put one faction under structural pressure while others are comfortable — e.g. testing whether a high-BATNA agent extracts concessions from a low-BATNA one, or whether the squeezed faction holds out for a Pareto move instead of capitulating.
 
@@ -151,7 +151,7 @@ Use when the scenario should put one faction under structural pressure while oth
 
 ### Force-clamp narrative BATNAs (`--force-batna-fraction`)
 
-`tools.scenario_compiler` flag. After the LLM produces the analysis JSON, post-process each faction's BATNA to `target_fraction × max_possible_score`. Uses `--batna-fractions` per-faction targets if supplied; otherwise the scalar `--batna-fraction`. **Default off** — narrative-explicit BATNAs are preserved by default.
+`scenario_authoring.scenario_compiler` flag. After the LLM produces the analysis JSON, post-process each faction's BATNA to `target_fraction × max_possible_score`. Uses `--batna-fractions` per-faction targets if supplied; otherwise the scalar `--batna-fraction`. **Default off** — narrative-explicit BATNAs are preserved by default.
 
 Use when:
 - The narrative includes explicit BATNA hints that pull the LLM away from your target pressure
@@ -423,6 +423,6 @@ date        | what changed                          | why                       
 2026-05-30  | gemini-2.5-flash-lite set as default  | Avoid thinking-token gotcha   | Cheapest ($0.10/MTok), no thinking-mode overhead; revisit during dedicated provider/tier testing
 2026-05-30  | toolkit complete_with_retry shipped   | Transient 429/5xx/empty handling at scale | Exponential backoff + retry-after honoring; wired through CostAccountant + Diplomat adapter; 15 new toolkit tests; live 3-provider probe green
 2026-05-30  | LoggingLLMClient SCORE/RECON unwrap fixed | Calls were bypassing the logger; verify_dryrun couldn't assert on them | _TaggedLLMClient wrapper applies recon:<faction> / scorer tags; verify_dryrun invariant 7 now asserts SCORE >= 1; 5 new tests
-2026-05-30  | scenario compiler BATNA hardcode removed | Run 8 needed hand-patched BATNAs because compiler forced "4-8 total" regardless of scenario size | Replaced with fraction-of-max formula (default 50%); new --batna-fraction CLI on tools.scenario_compiler AND tests.self_play.run_simulation; validate_batna_pressure() warns when LLM under-sets; 13 new tests
+2026-05-30  | scenario compiler BATNA hardcode removed | Run 8 needed hand-patched BATNAs because compiler forced "4-8 total" regardless of scenario size | Replaced with fraction-of-max formula (default 50%); new --batna-fraction CLI on scenario_authoring.scenario_compiler AND tests.self_play.run_simulation; validate_batna_pressure() warns when LLM under-sets; 13 new tests
 2026-05-30  | toolkit cost_accountant date-suffix lookup + updated prices | Past run reports were ~41.6x overstated because dated model IDs (gpt-4.1-mini-2025-04-14, claude-haiku-4-5-20251001) missed every pricing entry and hit conservative fallback | normalize_model_name() strips OpenAI/Anthropic date suffixes; estimate_cost falls back to normalized; gpt-5.x prices updated to operator-confirmed; Gemini 2.5 family added explicitly; 13 new toolkit tests; live cost-ledger re-audit shows real spend $0.59 vs reported $24.38
 ```

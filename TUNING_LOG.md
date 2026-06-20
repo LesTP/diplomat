@@ -106,7 +106,7 @@ summarized below in "Summary of All Changes" and live canonically in
 | `structured_call()` | `toolkit/structured_llm/core.py` | Reusable prompt+schema+examples+retry |
 | Cost accountant wiring | `src/adapters.py`, `src/main.py` | Budget enforcement was a no-op |
 | OpenAI pricing | `toolkit/cost_accountant/types.py` | Only Anthropic models were priced |
-| Scenario compiler | `src/tools/scenario_compiler.py` | Auto-generate scored personas from narratives |
+| Scenario compiler | `src/scenario_authoring/scenario_compiler.py` | Auto-generate scored personas from narratives |
 | Post-game scorer | `tests/self_play/game_environment.py` | Determine winners/losers objectively |
 | LoggingLLMClient | `tests/self_play/game_environment.py` | Full prompt/response/timing capture for analysis |
 | Self-play round-boundary mirror | `tests/self_play/game_environment.py` | Self-play harness now sets `current_round`, `total_rounds`, and calls `_reset_round_budget()` per round; production orchestrator's `handle_round_boundary` only fires on `^ROUND N` signals the harness never sends |
@@ -597,8 +597,8 @@ Ranking by information-per-dollar: **N1 → N2 → N3 → N4 → N5**. N1 isolat
 
 ### Process notes
 
-- **The scenario+persona pipeline works end-to-end:** reverse builder produces scoring tables + stubs (Phase 35-37) → LLM-fill produces logrolling + deception_tactics (one-off `tools/_temp_fill_narrative.py` script; Phase 39 promotes this to a `tools.scenario_compiler --fill-narrative` mode) → personas re-rendered automatically → `run_simulation --analysis-json --scenario <md>` consumes the result with no other changes.
-- **The scenario .md file** (`tests/self_play/scenarios/joint_space_mission.md`) is the moderator's seed message at game start; required by `run_simulation`. Authored by operator with NASA-style/ESA-style/commercial framing matching the LLM-fill domain context.
+- **The scenario+persona pipeline works end-to-end:** reverse builder produces scoring tables + stubs (Phase 35-37) → LLM-fill produces logrolling + deception_tactics (one-off `tools/_temp_fill_narrative.py` script; Phase 39 promotes this to a `scenario_authoring.scenario_compiler --fill-narrative` mode) → personas re-rendered automatically → `run_simulation --analysis-json --scenario <md>` consumes the result with no other changes.
+- **The scenario .md file** (`scenarios/joint_space_mission.md`) is the moderator's seed message at game start; required by `run_simulation`. Authored by operator with NASA-style/ESA-style/commercial framing matching the LLM-fill domain context.
 - **`tools/_temp_run_jsm1_calib.sh`** is the working dispatcher script for Run 15 cells. Equivalent of `tools/ablation.sh` but for `joint_space_mission_v1`. Should be folded into a generalized `ablation.sh --scenario <dir>` mode as a small future cleanup.
 
 ### Results files (Run 15, full set)

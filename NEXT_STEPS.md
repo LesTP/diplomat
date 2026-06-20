@@ -130,7 +130,7 @@ If working down the tiers, the immediate decision is which Tier 1 item to do fir
 
 ### Sequencing within Tier 2 (operator-queued post-Phase-37)
 
-All three queued phases share the `tools.scenario_builder` codebase but are independent of each other; can be dispatched in any order once Phase 37 closes. Suggested order by leverage:
+All three queued phases share the `scenario_authoring.scenario_builder` codebase but are independent of each other; can be dispatched in any order once Phase 37 closes. Suggested order by leverage:
 
 1. **Phase 38 — pressure mechanisms small bundle (closed)** (round-cost decay + penalty floor + asymmetric clocks). High leverage: directly addresses the Run 8/10 "agents sit at BATNA" finding and enables the divorce scenario. Builder is mostly pass-through; pipeline does the work.
 2. **Phase 41 — scale matrix verification** (cheap instrumentation). Reveals which shapes work and which need algorithm fixes. Low cost, high information; can run before or after Phase 38 since they touch different parts of the code.
@@ -564,7 +564,7 @@ baseline, §1.8 cross-scenario) are higher-leverage and cheaper to run first.
 
 ## 8. `[C]` Reverse scenario builder — evolution (Phase 37 / 41 / 42)
 
-**Status (2026-06-11).** Phase 35 shipped the tool; Phase 36 added soft-weighted fitness + simulated annealing + biased init; **Phase 37 complete** (`pareto_outcome_diversity` metric); **Phase 38 closed** (pressure mechanisms, see §2), Phase 41 (scale-matrix verification), Phase 42 (algorithm fixes from Phase 41 findings) are the queued continuation. Canonical implementation: `src/tools/scenario_builder.py`, `src/tools/scenario_spec.py`, `src/tools/scenario_fitness.py`. CLI flags: `CLI_REFERENCE.md` `tools.scenario_builder`. Conceptual overview: `ASSESSMENT.md` §4.5. First operator spec: `tests/self_play/scenarios/joint_space_mission_v1/spec.json` (converges in ~4 seconds, produces 3 distinct Pareto deals + 2 logrolling-quality deals).
+**Status (2026-06-11).** Phase 35 shipped the tool; Phase 36 added soft-weighted fitness + simulated annealing + biased init; **Phase 37 complete** (`pareto_outcome_diversity` metric); **Phase 38 closed** (pressure mechanisms, see §2), Phase 41 (scale-matrix verification), Phase 42 (algorithm fixes from Phase 41 findings) are the queued continuation. Canonical implementation: `src/scenario_authoring/scenario_builder.py`, `src/scenario_authoring/scenario_spec.py`, `src/scenario_authoring/scenario_fitness.py`. CLI flags: `CLI_REFERENCE.md` `scenario_authoring.scenario_builder`. Conceptual overview: `ASSESSMENT.md` §4.5. First operator spec: `scenarios/joint_space_mission_v1/spec.json` (converges in ~4 seconds, produces 3 distinct Pareto deals + 2 logrolling-quality deals).
 
 ### Phase 37 — `pareto_outcome_diversity` (in progress)
 
@@ -601,7 +601,7 @@ Note 1 (`RESEARCH_NOTES.md`) predicts harness contribution grows with scenario c
 ### Out of scope for this section
 
 - **Pressure mechanisms** — see §2 (Phase 38 closed / Phase 39 deferred / Phase 40 deferred).
-- **LLM narrative wrap** — closed 2026-06-11: use `tools.scenario_compiler --fill-narrative-only <analysis.json>` over the builder's emitted scoring tables to fill `logrolling` + `deception_tactics`; hand-author also works.
+- **LLM narrative wrap** — closed 2026-06-11: use `scenario_authoring.scenario_compiler --fill-narrative-only <analysis.json>` over the builder's emitted scoring tables to fill `logrolling` + `deception_tactics`; hand-author also works.
 - **Cascade scoring** — needs cross-game state (Phase 40, indefinitely deferred).
 
 ---
@@ -732,7 +732,7 @@ All four ASSESSMENT §3 lenses compound this. Mixed-model populations (already s
 - **Path B — Engineer coalition-exclusion scoring in the harness.** Extend `scenario_analysis.json` with `coalition_values: {AB: 118, AC: 84, ...}`; modify `score_game()` to detect partial-agreement coalitions and assign coalition value to the agreeing subset; assign BATNA to excluded faction. 1-2 day build. Unblocks proper competitive testing on coalition-coercive scenarios (Susskind-style). Promote to a real phase number when ready.
 - **Path C — New scenario class that doesn't need harness changes.** Distributive bargaining (divide fixed pie), asymmetric-BATNA-with-walkaway, hidden-value bluff scenarios. Skill = "outperform on absolute score within unanimous deal" or "extract max surplus before walkaway." Designed with existing Phase 35-37 reverse builder + Phase 38 pressure mechanisms.
 
-**Cheapest immediate test (when ready to act).** Path A, n=1 calibration first. Compile `three_party_coalition.md` (no `scenario_analysis.json` exists yet — Run 6/7 used live-compile, didn't commit) via `tools.scenario_compiler --scenario three_party_coalition.md --output-dir tests/self_play/scenarios/three_party_coalition_v1/` (~$0.01). Then run 9 cells (3 model permutations × 3 rotated positions × n=1) with `--per-faction-providers` set to a mixed population. ~$1-2 calibration, ~$3-5 if expanded to n=3.
+**Cheapest immediate test (when ready to act).** Path A, n=1 calibration first. Compile `three_party_coalition.md` (no `scenario_analysis.json` exists yet — Run 6/7 used live-compile, didn't commit) via `scenario_authoring.scenario_compiler --scenario three_party_coalition.md --output-dir scenarios/three_party_coalition_v1/` (~$0.01). Then run 9 cells (3 model permutations × 3 rotated positions × n=1) with `--per-faction-providers` set to a mixed population. ~$1-2 calibration, ~$3-5 if expanded to n=3.
 
 **Open questions before committing to Path B or C** (per Note 2 "What would refute"):
 
@@ -749,7 +749,7 @@ Not mutually exclusive. Same infra, different scoring conventions, different sce
 
 ### TODOs (post-D-56 status — see closure tags)
 
-- [x] **11.a Compile Three-Party Coalition once + commit.** **DONE 2026-06-12.** `tools.scenario_compiler` produced `tests/self_play/scenarios/three_party_coalition_v1/scenario_analysis.json` + per-faction personas. **Hand-patched 2026-06-12** to restore Susskind coalition-coercive structure (BATNAs `5/5/4`→`0/0/0`; excluded-faction scores `1/2/1`→`0`; ABC scores `8/7/8`→`7/7/7` for `sum=21` knife-edge above AB `sum=19`; pressure stripped for clean baseline). Verified via `verify_scenario_optimum.py`. Patch rationale documented in `tests/self_play/scenarios/three_party_coalition_v1/NOTES.md`. **First consumer = Path B build (§3.6 coalition-value scoring engine).**
+- [x] **11.a Compile Three-Party Coalition once + commit.** **DONE 2026-06-12.** `scenario_authoring.scenario_compiler` produced `scenarios/three_party_coalition_v1/scenario_analysis.json` + per-faction personas. **Hand-patched 2026-06-12** to restore Susskind coalition-coercive structure (BATNAs `5/5/4`→`0/0/0`; excluded-faction scores `1/2/1`→`0`; ABC scores `8/7/8`→`7/7/7` for `sum=21` knife-edge above AB `sum=19`; pressure stripped for clean baseline). Verified via `verify_scenario_optimum.py`. Patch rationale documented in `scenarios/three_party_coalition_v1/NOTES.md`. **First consumer = Path B build (§3.6 coalition-value scoring engine).**
 - [ ] **11.b Path A calibration — mixed-model Three-Party Coalition × position rotation × n=1.** Tier 1 under D-56. 3 model permutations (suggested post-Run-17: sonnet / gpt-5.4-mini / deepseek-v3) × 3 position rotations × n=1 = 9 cells. ~$1-2, ~30 min. **Gated on:** mixed-model dispatcher extension to `tools/ablation_multi.sh` (~1 hour build). Reads transcript differentiation in addition to scoring outcomes — under D-56 useful even without Path B since rank-based scoring (§3.5) gives meaningful results once it ships.
 - [x] **11.c Decision: which path (B or C) to invest in.** **CLOSED by D-56 (2026-06-16).** D-56 chose **both** rather than picking one: Path B (coalition-exclusion scoring engine, §3.6) is a Tier 1 build; Path C (adversarial-scoring scenario class — distributive / asymmetric-BATNA / hidden-value) is a Tier 1 scenario-authoring track. Original framing assumed parallel pursuit was wasteful; benchmark-direction reframe makes both load-bearing for different scenario classes.
 - [x] **11.d Promote chosen path to a phase.** **DONE via D-56.** Path B is queued as a Tier 1 build (no phase number assigned yet — next phase number is the natural slot). Path C is queued as scenario-authoring work (not a single phase — runs as operator-driven authoring per scenario class). Phase assignment per ASSESSMENT §5 Block C active items + NEXT_STEPS Tier 1 entries.

@@ -176,7 +176,7 @@ Outcome: Added `_compute_baselines()` to `tests/self_play/game_environment.py` a
 
 Tests:
 - `python3 -m pytest tests/test_self_play.py -v -k "baseline or nash or equal_split or no_deal_aware_scoring"`
-- `python3 tools/backfill_scoring_metrics.py --results tests/self_play/results/run9_beta_squeezed_live.json --analysis tests/self_play/scenarios/water_rights_beta_squeezed/scenario_analysis.json`
+- `python3 tools/backfill_scoring_metrics.py --results tests/self_play/results/run9_beta_squeezed_live.json --analysis scenarios/water_rights_beta_squeezed/scenario_analysis.json`
 
 Notes:
 - The BATNA-clearing normalization returns `0.0` when the faction max equals BATNA, matching the existing metric style of avoiding division-by-zero noise.
@@ -607,7 +607,7 @@ Phase 37 closed with `pareto_outcome_diversity` added to the scenario fitness sc
 
 ## 2026-06-11 - Phase 39 step 39.2: scenario compiler fill-narrative CLI
 
-Extended `tools.scenario_compiler` with `--fill-narrative-only <analysis_path>` and `--domain-context-file <path>`, plus a `--scenario-title` alias that preserves the existing `--title` flag. The CLI now skips forward scenario analysis when fill-only mode is set, loads an existing `scenario_analysis.json`, threads optional domain framing into `fill_narrative()`, and re-renders personas in place. Added parser coverage and a fill-only integration test that rewrites a copied joint-space fixture back to the checked-in analysis output shape while asserting the domain context prompt payload. Focused verification passed: `python3 -m pytest -q tests/test_scenario_compiler.py` (`44 passed`).
+Extended `scenario_authoring.scenario_compiler` with `--fill-narrative-only <analysis_path>` and `--domain-context-file <path>`, plus a `--scenario-title` alias that preserves the existing `--title` flag. The CLI now skips forward scenario analysis when fill-only mode is set, loads an existing `scenario_analysis.json`, threads optional domain framing into `fill_narrative()`, and re-renders personas in place. Added parser coverage and a fill-only integration test that rewrites a copied joint-space fixture back to the checked-in analysis output shape while asserting the domain context prompt payload. Focused verification passed: `python3 -m pytest -q tests/test_scenario_compiler.py` (`44 passed`).
 
 ### Step 39.3: fill-narrative integration and temp helper removal
 Mode: Build
@@ -617,27 +617,27 @@ The existing integration test in `tests/test_scenario_compiler.py` already exerc
 
 ### Step 39.4: fill-narrative docs update
 Mode: Build
-Outcome: Updated the CLI reference, assessment note, and next-steps backlog to document `tools.scenario_compiler --fill-narrative-only`, the optional `--domain-context-file` framing input, and the reverse-builder flow from `ScenarioSpec` through narrative fill.
+Outcome: Updated the CLI reference, assessment note, and next-steps backlog to document `scenario_authoring.scenario_compiler --fill-narrative-only`, the optional `--domain-context-file` framing input, and the reverse-builder flow from `ScenarioSpec` through narrative fill.
 Contract changes:
 - `CLI_REFERENCE.md` - added a fill-narrative worked example and flag rows for `--fill-narrative-only` / `--domain-context-file`; clarified that `--scenario` is optional in fill-only mode and that `--output-dir` defaults to the analysis directory there.
-- `ASSESSMENT.md` - added an explicit reverse-builder workflow diagram step for `tools.scenario_compiler --fill-narrative-only` and closed out the narrative-wrap note.
+- `ASSESSMENT.md` - added an explicit reverse-builder workflow diagram step for `scenario_authoring.scenario_compiler --fill-narrative-only` and closed out the narrative-wrap note.
 - `NEXT_STEPS.md` - marked the LLM narrative-wrap backlog item closed and pointed it at the new fill-only CLI mode.
 
 ## 2026-06-11 — Phase 39 close: scenario compiler fill-narrative mode complete
 
-Phase 39 promoted the one-off `tools/_temp_fill_narrative.py` into a permanent `--fill-narrative-only` mode of `tools.scenario_compiler`. 4 steps, all 🔨 pure build, no live LLM spend during development.
+Phase 39 promoted the one-off `tools/_temp_fill_narrative.py` into a permanent `--fill-narrative-only` mode of `scenario_authoring.scenario_compiler`. 4 steps, all 🔨 pure build, no live LLM spend during development.
 
 **What was built:**
 
-- **Step 39.1 (fill_narrative function):** `fill_narrative(analysis, scenario_title, llm_client, llm_config, tier, *, domain_context: str = "") -> dict` async function added to `src/tools/scenario_compiler.py`. Builds prompt from scoring tables + BATNAs + issue list, calls `structured_call` with a `{logrolling: list[str], deception_tactics: dict[faction, str]}` schema, merges fields into the analysis dict, returns updated dict. 8 new unit tests covering merge behavior and schema validation via fake LLM client.
+- **Step 39.1 (fill_narrative function):** `fill_narrative(analysis, scenario_title, llm_client, llm_config, tier, *, domain_context: str = "") -> dict` async function added to `src/scenario_authoring/scenario_compiler.py`. Builds prompt from scoring tables + BATNAs + issue list, calls `structured_call` with a `{logrolling: list[str], deception_tactics: dict[faction, str]}` schema, merges fields into the analysis dict, returns updated dict. 8 new unit tests covering merge behavior and schema validation via fake LLM client.
 
-- **Step 39.2 (CLI flags):** `--fill-narrative-only <analysis_path>` and `--domain-context-file <path>` flags added to the `tools.scenario_compiler` CLI. When fill-only mode is set, the forward narrative-to-analysis path is skipped; the tool loads an existing `scenario_analysis.json`, threads optional domain framing into `fill_narrative()`, and re-renders personas in place. `--scenario-title` alias added for consistency. Fill-only integration test added.
+- **Step 39.2 (CLI flags):** `--fill-narrative-only <analysis_path>` and `--domain-context-file <path>` flags added to the `scenario_authoring.scenario_compiler` CLI. When fill-only mode is set, the forward narrative-to-analysis path is skipped; the tool loads an existing `scenario_analysis.json`, threads optional domain framing into `fill_narrative()`, and re-renders personas in place. `--scenario-title` alias added for consistency. Fill-only integration test added.
 
 - **Step 39.3 (integration + cleanup):** Verified fill-only path against the checked-in `joint_space_mission_v1/scenario_analysis.json` fixture. Stubbed LLM response rewrites a temp copy back to expected prose payload. `tools/_temp_fill_narrative.py` removed once integration test confirmed equivalent coverage. `44 passed`.
 
 - **Step 39.4 (docs):** `CLI_REFERENCE.md` (fill-narrative worked example + flag rows), `ASSESSMENT.md` (reverse-builder workflow step added), `NEXT_STEPS.md` (narrative-wrap item closed).
 
-**Files changed:** `src/tools/scenario_compiler.py` (+222 lines), `tests/test_scenario_compiler.py` (+228 lines). `tools/_temp_fill_narrative.py` removed.
+**Files changed:** `src/scenario_authoring/scenario_compiler.py` (+222 lines), `tests/test_scenario_compiler.py` (+228 lines). `tools/_temp_fill_narrative.py` removed.
 
 **Tests:** 460 passed (up from 440 at Phase 37 close; Phase 38 pressure bundle + Phase 39 fill-narrative together added 20 tests). 1 pre-existing toolkit regression failure unrelated to this project.
 

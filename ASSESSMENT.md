@@ -269,7 +269,7 @@ the builder doesn't yet cover.
 
 ## 4.5. The reverse scenario builder — operationalizing §4
 
-`tools.scenario_builder` (shipped Phase 35; search improvements Phase 36)
+`scenario_authoring.scenario_builder` (shipped Phase 35; search improvements Phase 36)
 generates a scenario file from a target outcome-shape specification.
 Operator writes a `ScenarioSpec` JSON describing what properties the
 scenario should have; the tool searches scoring-table space and emits the
@@ -282,7 +282,7 @@ The §4 properties are easy to *recognize* in a finished scenario and easy
 to *fail to produce* when authoring one. Two existing paths each have a
 gap:
 
-- **`tools.scenario_compiler` (forward, LLM-driven)** — takes a narrative
+- **`scenario_authoring.scenario_compiler` (forward, LLM-driven)** — takes a narrative
   and asks an LLM to invent a coherent scoring table. Coherence is enforced
   by the prompt; no §4 property is structurally guaranteed. Runs 1-10 used
   this path; Run 8 needed hand-patching to create BATNA pressure.
@@ -304,12 +304,12 @@ A scenario directory matching the existing pipeline contract:
 - `<faction>.txt` per faction — rendered from `PERSONA_TEMPLATE`.
 - `logrolling` and `deception_tactics` fields emitted as stubs until the
   reverse-builder output is passed through
-  `tools.scenario_compiler --fill-narrative-only` (or hand-authored).
+  `scenario_authoring.scenario_compiler --fill-narrative-only` (or hand-authored).
 
 Workflow:
 
-`ScenarioSpec` -> `tools.scenario_builder` -> `scenario_analysis.json` +
-persona stubs -> `tools.scenario_compiler --fill-narrative-only
+`ScenarioSpec` -> `scenario_authoring.scenario_builder` -> `scenario_analysis.json` +
+persona stubs -> `scenario_authoring.scenario_compiler --fill-narrative-only
 [--domain-context-file ...]` -> enriched `scenario_analysis.json` +
 persona files
 
@@ -336,9 +336,9 @@ game mode); set 0.0 to drop a target from the fitness sum.
 ### Sample workflow
 
 ```
-python -m tools.scenario_builder \
-  --spec tests/self_play/scenarios/joint_space_mission_v1/spec.json \
-  --output-dir tests/self_play/scenarios/joint_space_mission_v1/ \
+python -m scenario_authoring.scenario_builder \
+  --spec scenarios/joint_space_mission_v1/spec.json \
+  --output-dir scenarios/joint_space_mission_v1/ \
   --title "Joint Space Mission" \
   --seed 42 \
   --verify
@@ -354,7 +354,7 @@ records when a spec doesn't converge in expected time.
   penalty floor now sit in `scenario_analysis.json` as `pressure` and flow
   through `PERSONA_TEMPLATE`; exogenous events still sit outside the schema
   and remain deferred to Phase 39. `NEXT_STEPS.md` §2.
-- **LLM narrative wrap.** Closed via `tools.scenario_compiler
+- **LLM narrative wrap.** Closed via `scenario_authoring.scenario_compiler
   --fill-narrative-only`; logrolling text and deception tactics are filled
   from the fixed scoring tables, with an optional domain-context file for
   operator framing.
@@ -371,7 +371,7 @@ records when a spec doesn't converge in expected time.
 ### Status
 
 Built and validated 2026-06-11. First operator spec
-(`tests/self_play/scenarios/joint_space_mission_v1/spec.json`) converges
+(`scenarios/joint_space_mission_v1/spec.json`) converges
 in ~4 seconds and produces 3 distinct Pareto-optimal deals plus 2
 logrolling-quality deals — the multi-Pareto spectrum that motivated the
 tool. Phase B (LLM-author personas, optional self-play smoke) is the
@@ -537,7 +537,7 @@ scoring metrics (`negotiated_surplus_share`, `delta_above_batna_sum`,
 `nash_deal_scores`, `nash_product`, `vs_nash_efficiency`) + 5th process
 signature (near-miss diagnostic — `converging_factions`,
 `dissenting_faction`, `defection_event_log`) ✓ Phase 28. Reverse
-scenario builder (`tools.scenario_builder`, `ScenarioSpec`, fitness
+scenario builder (`scenario_authoring.scenario_builder`, `ScenarioSpec`, fitness
 search, simulated annealing, biased init, `--verify` /
 `--debug-search`) ✓ Phase 35-36. `pareto_outcome_diversity` metric ✓
 Phase 37. Pressure mechanisms small bundle (round-cost decay +

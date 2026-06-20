@@ -413,7 +413,7 @@ Note 1 stays open as an active thesis container under `DECISIONS.md` D-56 (bench
 The Run 16 amendment's "revised thesis" — *harness contribution = f(scenario shape, what the model already does well)* — remains the canonical formulation. Future campaign findings should refine this in place rather than overwriting; the original five-axis claim is preserved here for historical context.
 
 **What's open under D-56** (vs being "speculative validation questions"):
-- Build scenarios along each axis using `tools.scenario_builder` post-Phase-41/42.
+- Build scenarios along each axis using `scenario_authoring.scenario_builder` post-Phase-41/42.
 - Re-run bare-vs-full ablation matrices on those scenarios.
 - See whether the harness-contribution function picks up new structure beyond the current "scenario rewards reasoning model can/can't do unaided" frame.
 
@@ -459,7 +459,7 @@ Every Run 14, 15, 16, 17 cell to date uses the same model for all three factions
 ### Four design options for competitive scoring
 
 **Option A — Coalition-coercive scenarios (uses existing infra at the scenario layer).**
-Scenarios where `v(2-party) ≈ v(grand)` — two-party coalitions are nearly as valuable as the grand coalition, so excluding the weakest player costs almost nothing per included player. The clean game-theoretic template is Susskind's Three-Party Coalition (already in `tests/self_play/scenarios/three_party_coalition.md`, used in Runs 6-7): `v(AB)=118`, `v(AC)=84`, `v(BC)=50`, `v(ABC)=121`. Existing infra runs the scenario but cannot score coalition-exclusion outcomes — see Path B below.
+Scenarios where `v(2-party) ≈ v(grand)` — two-party coalitions are nearly as valuable as the grand coalition, so excluding the weakest player costs almost nothing per included player. The clean game-theoretic template is Susskind's Three-Party Coalition (already in `scenarios/three_party_coalition.md`, used in Runs 6-7): `v(AB)=118`, `v(AC)=84`, `v(BC)=50`, `v(ABC)=121`. Existing infra runs the scenario but cannot score coalition-exclusion outcomes — see Path B below.
 
 **Option B — Rank-based scoring lens (5th lens for ASSESSMENT §3).**
 Add `rank_among_factions` — 1st/2nd/3rd by absolute score per game, accumulates over multiple games. Skill = "consistently score higher than your opponents." Already implicit in per-faction scores; needs aggregation + reporting + optional position-rotation harness to control for scenario asymmetry across faction slots. ~50 LOC build. Meaningful only in mixed populations AND only when scenarios have score asymmetry (your win is at least partly someone else's loss).

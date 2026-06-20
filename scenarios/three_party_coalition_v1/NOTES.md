@@ -2,9 +2,9 @@
 
 ## Source
 
-Generated 2026-06-12 from `tests/self_play/scenarios/three_party_coalition.md`
-via `tools.scenario_compiler --scenario ... --output-dir
-tests/self_play/scenarios/three_party_coalition_v1/ --scenario-title
+Generated 2026-06-12 from `scenarios/three_party_coalition.md`
+via `scenario_authoring.scenario_compiler --scenario ... --output-dir
+scenarios/three_party_coalition_v1/ --scenario-title
 "Three-Party Coalition"`.
 
 Narrative source: Susskind / Harvard PON Three-Party Coalition Exercise per
@@ -93,5 +93,5 @@ preserve verbatim.
 - `RESEARCH_NOTES.md` Note 2 — coalition-exclusion gap diagnosis
 - `ASSESSMENT.md` §3.6 — coalition-value scoring lens specification
 - `DECISIONS.md` D-56 — direction commit putting Path B + Path A on Tier 1
-- `tests/self_play/scenarios/three_party_coalition.md` — original narrative
+- `scenarios/three_party_coalition.md` — original narrative
 - Conversation log 2026-06-12 — patch decisions discussed in detail
