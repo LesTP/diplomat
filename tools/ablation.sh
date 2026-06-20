@@ -49,8 +49,8 @@ else
   PY="python3"
 fi
 
-SCENARIO_MD="tests/self_play/scenarios/water_rights.md"
-ANALYSIS_JSON="tests/self_play/scenarios/water_rights_beta_squeezed/scenario_analysis.json"
+SCENARIO_MD="scenarios/water_rights.md"
+ANALYSIS_JSON="scenarios/water_rights_beta_squeezed/scenario_analysis.json"
 RESULTS_DIR="tests/self_play/results"
 
 # Map model name → provider for --per-faction-providers.

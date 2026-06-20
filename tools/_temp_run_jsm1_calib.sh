@@ -27,8 +27,8 @@ esac
 
 TAG=$(echo "$MODEL" | tr -d '.-' | tr '[:upper:]' '[:lower:]')
 
-SCENARIO_MD="tests/self_play/scenarios/joint_space_mission.md"
-ANALYSIS_JSON="tests/self_play/scenarios/joint_space_mission_v1/scenario_analysis.json"
+SCENARIO_MD="scenarios/joint_space_mission.md"
+ANALYSIS_JSON="scenarios/joint_space_mission_v1/scenario_analysis.json"
 OUTPUT="tests/self_play/results/run15_calib_${TAG}_jsm1_${RUN_N}.json"
 
 PROVIDERS_JSON=$(printf '{"alpha":{"provider":"%s","model":"%s"},"beta":{"provider":"%s","model":"%s"},"gamma":{"provider":"%s","model":"%s"}}' \

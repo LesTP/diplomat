@@ -28,8 +28,8 @@ else
   PY="python3"
 fi
 
-SCENARIO_MD="tests/self_play/scenarios/joint_space_mission.md"
-ANALYSIS_JSON="tests/self_play/scenarios/joint_space_mission_v1/scenario_analysis.json"
+SCENARIO_MD="scenarios/joint_space_mission.md"
+ANALYSIS_JSON="scenarios/joint_space_mission_v1/scenario_analysis.json"
 RESULTS_DIR="tests/self_play/results"
 
 provider_for_model() {

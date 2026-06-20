@@ -14,12 +14,12 @@ RESULTS = ROOT / "tests/self_play/results"
 
 JOBS = [
     (
-        "tests/self_play/scenarios/water_rights_beta_squeezed/scenario_analysis.json",
+        "scenarios/water_rights_beta_squeezed/scenario_analysis.json",
         "Water Rights (beta-squeezed)",
         "viz_wrbeta.html",
     ),
     (
-        "tests/self_play/scenarios/joint_space_mission_v1/scenario_analysis.json",
+        "scenarios/joint_space_mission_v1/scenario_analysis.json",
         "Joint Space Mission v1",
         "viz_jsm1.html",
     ),

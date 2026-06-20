@@ -471,7 +471,7 @@ class TestFillNarrativeCli:
         from argparse import Namespace
         from scenario_authoring.scenario_compiler import _run
 
-        fixture_dir = Path("tests/self_play/scenarios/joint_space_mission_v1")
+        fixture_dir = Path("scenarios/joint_space_mission_v1")
         working_dir = tmp_path / "joint_space_mission_v1"
         working_dir.mkdir()
         for source in fixture_dir.iterdir():

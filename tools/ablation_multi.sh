@@ -71,16 +71,16 @@ model_tag() {
 scenario_paths() {
   case "$1" in
     wrbeta)
-      echo "tests/self_play/scenarios/water_rights.md|tests/self_play/scenarios/water_rights_beta_squeezed/scenario_analysis.json|Water Rights"
+      echo "scenarios/water_rights.md|scenarios/water_rights_beta_squeezed/scenario_analysis.json|Water Rights"
       ;;
     wrsym)
-      echo "tests/self_play/scenarios/water_rights.md|tests/self_play/scenarios/water_rights_symmetric_050/scenario_analysis.json|Water Rights"
+      echo "scenarios/water_rights.md|scenarios/water_rights_symmetric_050/scenario_analysis.json|Water Rights"
       ;;
     wralpha)
-      echo "tests/self_play/scenarios/water_rights.md|tests/self_play/scenarios/water_rights_alpha_squeezed/scenario_analysis.json|Water Rights"
+      echo "scenarios/water_rights.md|scenarios/water_rights_alpha_squeezed/scenario_analysis.json|Water Rights"
       ;;
     jsm1)
-      echo "tests/self_play/scenarios/joint_space_mission.md|tests/self_play/scenarios/joint_space_mission_v1/scenario_analysis.json|Joint Space Mission"
+      echo "scenarios/joint_space_mission.md|scenarios/joint_space_mission_v1/scenario_analysis.json|Joint Space Mission"
       ;;
     *)
       echo "ERROR: unknown scenario '$1' (expected: wrbeta | wrsym | wralpha | jsm1)" >&2
