@@ -182,6 +182,7 @@ def _compile_response() -> str:
                 "c": "dryrun: stub tactic",
             },
             "logrolling": ["dryrun: stub trade"],
+            "coalition_values": [],
             "game_mode": "competitive",
             "pressure_profile": {
                 "time_pressure": "medium",

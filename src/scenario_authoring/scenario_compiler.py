@@ -144,6 +144,34 @@ SCENARIO_ANALYSIS_SCHEMA: dict[str, Any] = {
                 },
             },
         },
+        "coalition_values": {
+            "type": "array",
+            "description": (
+                "Optional. Per-coalition payoff table for coalition-coercive scenarios. "
+                "Each entry maps a proper subset of factions (the coalition) to the "
+                "per-faction values awarded when that coalition forms (excluding the "
+                "remaining factions, who fall back to BATNA). Empty or omitted when the "
+                "scenario does not describe coalition-specific payoffs."
+            ),
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["members", "values"],
+                "properties": {
+                    "members": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 1,
+                        "description": "Faction identifiers that form this coalition",
+                    },
+                    "values": {
+                        "type": "object",
+                        "additionalProperties": {"type": "number"},
+                        "description": "Per-member payoff; keys must equal members",
+                    },
+                },
+            },
+        },
     },
 }
 

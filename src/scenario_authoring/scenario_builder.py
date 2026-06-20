@@ -128,6 +128,7 @@ def _analysis_from_scoring_table(
         "batna": {faction: 0 for faction in spec.factions},
         "deception_tactics": {faction: "" for faction in spec.factions},
         "logrolling": [],
+        "coalition_values": [],
         "game_mode": spec.game_mode,
         "priority_collision": spec.priority_collision,
         "pressure": spec.pressure.to_dict(),

@@ -142,6 +142,18 @@ class TestSchema:
             "external_shock",
         ]
 
+    def test_schema_has_optional_coalition_values(self) -> None:
+        # Coalition values are scenario-property, not universal; field is optional.
+        properties = SCENARIO_ANALYSIS_SCHEMA["properties"]
+        assert "coalition_values" in properties
+        assert "coalition_values" not in SCENARIO_ANALYSIS_SCHEMA["required"]
+        cv = properties["coalition_values"]
+        assert cv["type"] == "array"
+        item = cv["items"]
+        assert item["required"] == ["members", "values"]
+        assert item["properties"]["members"]["items"]["type"] == "string"
+        assert item["properties"]["values"]["additionalProperties"]["type"] == "number"
+
 
 class TestBuildCompilerSystemPrompt:
     def test_default_fraction_renders_as_percent(self) -> None:

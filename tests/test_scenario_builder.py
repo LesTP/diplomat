@@ -191,6 +191,14 @@ class TestSearchLoop:
             for deal in enumerate_deals(analysis)
         )
 
+    def test_builder_output_includes_empty_coalition_values_stub(self) -> None:
+        # Builder always stubs coalition_values: []; operator fills manually for
+        # coalition-coercive scenarios.
+        spec = _biased_spec()
+        scoring = _seed_scoring_table(spec, random.Random(0))
+        analysis = _analysis_from_scoring_table(spec, scoring)
+        assert analysis["coalition_values"] == []
+
     def test_seeded_tables_start_with_lower_average_fitness_than_random(self) -> None:
         spec = _biased_spec()
         seeded_total = 0.0
