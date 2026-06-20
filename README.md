@@ -26,7 +26,7 @@ work, read [`NEXT_STEPS.md`](NEXT_STEPS.md).
 | See what experiments have run | [`TUNING_LOG.md`](TUNING_LOG.md) (active arc) + [`TUNING_LOG_archive.md`](TUNING_LOG_archive.md) (early runs) |
 | Find work to do | [`NEXT_STEPS.md`](NEXT_STEPS.md) |
 | Understand how skill is measured | [`ASSESSMENT.md`](ASSESSMENT.md) |
-| See architectural diagrams | [`_arch_diagrams.md`](_arch_diagrams.md) (mermaid; render via `Markdown Preview Mermaid Support` extension or `render_mermaid_file`) |
+| See architectural diagrams | [`DIAGRAMS.md`](DIAGRAMS.md) (layered: Overview + Lifecycle + per-phase drill-downs with flowcharts and sequence diagrams; render via `Markdown Preview Mermaid Support` extension or `render_mermaid_file`) |
 | **Coaching product** (deferred per D-56) | Run the production Telegram bot via [`CLI_REFERENCE.md`](CLI_REFERENCE.md) → `tools/service.sh`; Pi smoke runbook in [`SMOKE_RUNBOOK.md`](SMOKE_RUNBOOK.md); coached self-play via `tests.self_play.coached_game` per [`diplomat-testing-doc.md`](diplomat-testing-doc.md) §5b. Infrastructure operational; no new investment under D-56. |
 
 ---
