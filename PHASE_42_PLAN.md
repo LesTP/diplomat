@@ -24,7 +24,7 @@ wall is algorithmic, not spec-semantic (see C5a findings below). PROJECT.md
 - `257b1e0` — Phase 42 C2: Relative `pareto_count_target` (spec language)
 - `d16248c` — Phase 42 C3: Skyline Pareto (9.7× speedup at D=256)
 - `4c67abb` — Phase 42 C4: Re-probe + Phase 3 C3 decision
-- `<C5A_HASH>` — Phase 42 C5a: Relative `batna_clearing_count_target` (spec
+- `19e6a39` — Phase 42 C5a: Relative `batna_clearing_count_target` (spec
   language) + probe `--relative-batna` flag
 
 **Where to look:**
