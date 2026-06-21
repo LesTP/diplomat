@@ -6,7 +6,10 @@ from dataclasses import dataclass
 from statistics import pstdev
 from typing import Any
 
-from scenario_authoring.scenario_spec import resolve_pareto_count_target
+from scenario_authoring.scenario_spec import (
+    resolve_batna_clearing_count_target,
+    resolve_pareto_count_target,
+)
 from scenario_authoring.verify_scenario_optimum import (
     beats_batna,
     enumerate_deals,
@@ -137,8 +140,11 @@ def compute_fitness(analysis: dict[str, Any], spec: Any) -> FitnessResult:
         for deal in deals
         if beats_batna(analysis, {faction: faction_score(analysis, faction, deal) for faction in factions})
     )
+    resolved_batna_clearing_count_target = resolve_batna_clearing_count_target(
+        spec.batna_clearing_count_target, len(deals)
+    )
     per_target_distance["batna_clearing_count"] = _count_distance(
-        batna_clearing_count, spec.batna_clearing_count_target
+        batna_clearing_count, resolved_batna_clearing_count_target
     )
 
     pareto_clearing_gaps: list[float] = []

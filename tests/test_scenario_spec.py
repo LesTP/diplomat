@@ -222,3 +222,88 @@ def test_relative_target_round_trips_through_json(tmp_path: Path) -> None:
     dump_spec(spec, spec_path)
     loaded = load_spec(spec_path)
     assert loaded.pareto_count_target == (0.05, 0.15)
+
+
+# ── Relative batna_clearing_count_target (Phase 42 Commit 5a) ─────────
+
+
+def test_accepts_absolute_int_batna_target() -> None:
+    spec = ScenarioSpec(**_basic_kwargs(), batna_clearing_count_target=5)
+    assert spec.batna_clearing_count_target == 5
+
+
+def test_accepts_zero_batna_target() -> None:
+    # Zero is legal for batna clearing (no deal need beat every BATNA);
+    # this preserves the pre-C5a non-negative semantics.
+    spec = ScenarioSpec(**_basic_kwargs(), batna_clearing_count_target=0)
+    assert spec.batna_clearing_count_target == 0
+
+
+def test_accepts_absolute_int_range_batna_target() -> None:
+    spec = ScenarioSpec(**_basic_kwargs(), batna_clearing_count_target=(3, 7))
+    assert spec.batna_clearing_count_target == (3, 7)
+
+
+def test_accepts_relative_float_batna_target() -> None:
+    spec = ScenarioSpec(**_basic_kwargs(), batna_clearing_count_target=0.2)
+    assert spec.batna_clearing_count_target == 0.2
+
+
+def test_accepts_relative_float_range_batna_target() -> None:
+    spec = ScenarioSpec(**_basic_kwargs(), batna_clearing_count_target=(0.1, 0.3))
+    assert spec.batna_clearing_count_target == (0.1, 0.3)
+
+
+def test_rejects_mixed_int_float_range_batna_target() -> None:
+    with pytest.raises(ValueError, match="mixed types"):
+        ScenarioSpec(**_basic_kwargs(), batna_clearing_count_target=(3, 0.3))
+
+
+def test_rejects_boolean_batna_target() -> None:
+    with pytest.raises(ValueError, match="boolean"):
+        ScenarioSpec(**_basic_kwargs(), batna_clearing_count_target=True)
+
+
+def test_rejects_negative_int_batna_target() -> None:
+    with pytest.raises(ValueError, match="non-negative integer"):
+        ScenarioSpec(**_basic_kwargs(), batna_clearing_count_target=-1)
+
+
+def test_rejects_float_batna_target_above_1() -> None:
+    with pytest.raises(ValueError, match=r"\(0.0, 1.0\]"):
+        ScenarioSpec(**_basic_kwargs(), batna_clearing_count_target=1.5)
+
+
+def test_resolve_passes_through_absolute_int_batna() -> None:
+    from scenario_authoring.scenario_spec import resolve_batna_clearing_count_target
+    assert resolve_batna_clearing_count_target(5, deal_count=27) == 5
+
+
+def test_resolve_passes_through_absolute_range_batna() -> None:
+    from scenario_authoring.scenario_spec import resolve_batna_clearing_count_target
+    assert resolve_batna_clearing_count_target((3, 7), deal_count=27) == (3, 7)
+
+
+def test_resolve_converts_float_to_absolute_batna() -> None:
+    from scenario_authoring.scenario_spec import resolve_batna_clearing_count_target
+    # 0.20 of 256 deals -> 51 (rounded)
+    assert resolve_batna_clearing_count_target(0.20, deal_count=256) == 51
+
+
+def test_resolve_converts_float_range_to_absolute_batna() -> None:
+    from scenario_authoring.scenario_spec import resolve_batna_clearing_count_target
+    assert resolve_batna_clearing_count_target((0.1, 0.3), deal_count=256) == (26, 77)
+
+
+def test_resolve_floors_at_1_for_small_deal_count_batna() -> None:
+    # 0.05 of 10 = 0.5, would round to 0; floor to 1 to keep target satisfiable.
+    from scenario_authoring.scenario_spec import resolve_batna_clearing_count_target
+    assert resolve_batna_clearing_count_target(0.05, deal_count=10) == 1
+
+
+def test_relative_batna_target_round_trips_through_json(tmp_path: Path) -> None:
+    spec = ScenarioSpec(**_basic_kwargs(), batna_clearing_count_target=(0.1, 0.3))
+    spec_path = tmp_path / "spec.json"
+    dump_spec(spec, spec_path)
+    loaded = load_spec(spec_path)
+    assert loaded.batna_clearing_count_target == (0.1, 0.3)

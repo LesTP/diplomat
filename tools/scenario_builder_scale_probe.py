@@ -69,6 +69,7 @@ def synthesize_spec(
     *,
     seed: int,
     relative_targets: bool = False,
+    relative_batna: bool = False,
 ) -> ScenarioSpec:
     """Build a synthetic spec with anonymous labels + fixed fitness targets.
 
@@ -80,12 +81,18 @@ def synthesize_spec(
     pareto_count_target=(0.05, 0.15) (5-15% of D) instead of the fixed
     absolute (3, 5). Tests whether the spec-language change resolves the
     I-axis cliff.
+
+    relative_batna=True uses the Phase 42 Commit 5a fractional form for
+    batna_clearing_count_target=0.20 (20% of D) instead of the fixed
+    absolute 5. Combined with relative_targets, this is the multi-target
+    relativization condition C5a is designed to test.
     """
     faction_ids = [f"f{i}" for i in range(factions)]
     if relative_targets:
         pareto_target: Any = (0.05, 0.15)
     else:
         pareto_target = (3, 5)
+    batna_target: Any = 0.20 if relative_batna else 5
     return ScenarioSpec(
         factions=faction_ids,
         issues=[
@@ -99,7 +106,7 @@ def synthesize_spec(
         pareto_count_target=pareto_target,
         pareto_distribution_spread=0.35,
         pareto_outcome_diversity=0.66,
-        batna_clearing_count_target=5,
+        batna_clearing_count_target=batna_target,
         batna_to_pareto_gap_pct=0.20,
         requires_logrolling=True,
         priority_collision="soft",
@@ -119,11 +126,13 @@ def run_cell(
     max_restarts: int,
     max_local_moves: int,
     relative_targets: bool = False,
+    relative_batna: bool = False,
 ) -> dict:
     """Run the builder once on a synthetic spec; capture timing + outcome."""
     spec = synthesize_spec(
         factions, issues, outcomes_per_issue,
         seed=seed, relative_targets=relative_targets,
+        relative_batna=relative_batna,
     )
     deal_space = outcomes_per_issue ** issues
     base_record: dict = {
@@ -135,6 +144,7 @@ def run_cell(
         "max_restarts": max_restarts,
         "max_local_moves": max_local_moves,
         "relative_targets": relative_targets,
+        "relative_batna": relative_batna,
     }
     with tempfile.TemporaryDirectory() as td:
         t0 = time.monotonic()
@@ -173,6 +183,7 @@ def run_matrix(
     max_local_moves: int,
     output_path: Path,
     relative_targets: bool = False,
+    relative_batna: bool = False,
 ) -> list[dict]:
     """Iterate cells x seeds, write JSONL, return all records."""
     results: list[dict] = []
@@ -188,6 +199,7 @@ def run_matrix(
                     max_restarts=max_restarts,
                     max_local_moves=max_local_moves,
                     relative_targets=relative_targets,
+                    relative_batna=relative_batna,
                 )
                 fp.write(json.dumps(record, sort_keys=True) + "\n")
                 fp.flush()
@@ -296,6 +308,15 @@ def main(argv: list[str] | None = None) -> int:
             "the spec-language change resolves the I-axis cliff."
         ),
     )
+    parser.add_argument(
+        "--relative-batna", action="store_true",
+        help=(
+            "Use the Phase 42 Commit 5a relative batna_clearing_count_target "
+            "form 0.20 (20%% of D) instead of the absolute 5. Combined with "
+            "--relative-targets, this is the multi-target relativization "
+            "condition that tests whether the I-axis cliff is spec-semantic."
+        ),
+    )
     args = parser.parse_args(argv)
 
     # Quiet the builder's per-restart INFO logging so the probe progress stays
@@ -313,7 +334,11 @@ def main(argv: list[str] | None = None) -> int:
         flush=True,
     )
     print(
-        f"Target form: {'relative (5-15%% of D)' if args.relative_targets else 'absolute (3, 5)'}",
+        f"Pareto target form: {'relative (5-15%% of D)' if args.relative_targets else 'absolute (3, 5)'}",
+        flush=True,
+    )
+    print(
+        f"BATNA-clearing target form: {'relative (20%% of D)' if args.relative_batna else 'absolute (5)'}",
         flush=True,
     )
     print(f"Output JSONL: {args.output}", flush=True)
@@ -328,6 +353,7 @@ def main(argv: list[str] | None = None) -> int:
         max_local_moves=args.max_local_moves,
         output_path=args.output,
         relative_targets=args.relative_targets,
+        relative_batna=args.relative_batna,
     )
     total_elapsed = time.monotonic() - t_total
 

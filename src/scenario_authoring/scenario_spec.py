@@ -155,6 +155,101 @@ def resolve_pareto_count_target(
     raise TypeError(f"Unrecognized pareto_count_target shape: {target!r}")
 
 
+def _validate_batna_clearing_count_target(
+    value: Any, *, label: str
+) -> int | float | tuple[int, int] | tuple[float, float]:
+    """Accept either absolute counts (int / int-range) or relative fractions
+    (float / float-range in (0.0, 1.0]). Reject mixed-type ranges as ambiguous.
+
+    Mirrors `_validate_pareto_count_target`, but absolute counts may be zero
+    (a scenario where no deal beats every BATNA is legal), so the int paths
+    require non-negative rather than strictly positive values.
+
+    Booleans (which subclass int in Python) are rejected explicitly.
+    """
+    if isinstance(value, bool):
+        raise ValueError(f"{label} must not be a boolean")
+    if isinstance(value, int):
+        if value < 0:
+            raise ValueError(
+                f"{label} must be a non-negative integer (absolute count) "
+                f"or a float in (0.0, 1.0] (fraction of deal space)"
+            )
+        return value
+    if isinstance(value, float):
+        if not 0.0 < value <= 1.0:
+            raise ValueError(
+                f"{label} float must be in (0.0, 1.0] when used as a fraction"
+            )
+        return value
+    if isinstance(value, (list, tuple)) and len(value) == 2:
+        low, high = value
+        if isinstance(low, bool) or isinstance(high, bool):
+            raise ValueError(f"{label} range must not contain booleans")
+        low_is_int = isinstance(low, int)
+        high_is_int = isinstance(high, int)
+        low_is_float = isinstance(low, float)
+        high_is_float = isinstance(high, float)
+        if low_is_int and high_is_int:
+            if low < 0 or high < 0 or low > high:
+                raise ValueError(
+                    f"{label} integer range must satisfy 0 <= low <= high"
+                )
+            return (low, high)
+        if low_is_float and high_is_float:
+            if not (0.0 < low <= 1.0 and 0.0 < high <= 1.0 and low <= high):
+                raise ValueError(
+                    f"{label} float range must satisfy 0.0 < low <= high <= 1.0"
+                )
+            return (low, high)
+        raise ValueError(
+            f"{label} range must be either both integers (absolute counts) "
+            f"or both floats (fractions of deal space); got mixed types"
+        )
+    raise ValueError(
+        f"{label} must be a non-negative integer, a float in (0.0, 1.0], "
+        f"an int-range, or a float-range"
+    )
+
+
+def resolve_batna_clearing_count_target(
+    target: int | float | tuple[int, int] | tuple[float, float] | list,
+    deal_count: int,
+) -> int | tuple[int, int]:
+    """Resolve a possibly-fractional `batna_clearing_count_target` to absolute form.
+
+    Absolute (int / int-range) targets pass through unchanged. Fractional
+    (float / float-range in (0.0, 1.0]) targets are converted to absolute
+    via `round(fraction * deal_count)`, with a minimum floor of 1 to prevent
+    a degenerate zero target at small deal counts (a fractional target asks
+    for a positive share, so it resolves to at least one deal).
+
+    Booleans are rejected (bool subclasses int in Python).
+    """
+    if isinstance(target, bool):
+        raise TypeError("batna_clearing_count_target must not be a boolean")
+    if isinstance(target, int):
+        return target
+    if isinstance(target, float):
+        return max(1, round(target * deal_count))
+    if isinstance(target, (tuple, list)) and len(target) == 2:
+        low, high = target
+        if isinstance(low, bool) or isinstance(high, bool):
+            raise TypeError(
+                "batna_clearing_count_target range must not contain booleans"
+            )
+        if isinstance(low, int) and isinstance(high, int):
+            return (low, high)
+        if isinstance(low, float) and isinstance(high, float):
+            return (
+                max(1, round(low * deal_count)),
+                max(1, round(high * deal_count)),
+            )
+    raise TypeError(
+        f"Unrecognized batna_clearing_count_target shape: {target!r}"
+    )
+
+
 def _validate_fraction(value: Any, *, label: str) -> float:
     if not isinstance(value, (int, float)):
         raise ValueError(f"{label} must be a number")
@@ -287,7 +382,7 @@ class ScenarioSpec:
     pareto_count_target: int | float | tuple[int, int] | tuple[float, float] = _DEFAULT_PARETO_COUNT_TARGET
     pareto_distribution_spread: float = 0.0
     pareto_outcome_diversity: float = 0.0
-    batna_clearing_count_target: int = _DEFAULT_BATNA_CLEARING_COUNT_TARGET
+    batna_clearing_count_target: int | float | tuple[int, int] | tuple[float, float] = _DEFAULT_BATNA_CLEARING_COUNT_TARGET
     batna_to_pareto_gap_pct: float = _DEFAULT_BATNA_TO_PARETO_GAP_PCT
     requires_logrolling: bool = False
     priority_collision: str = _DEFAULT_PRIORITY_COLLISION
@@ -323,8 +418,9 @@ class ScenarioSpec:
         self.pareto_outcome_diversity = _validate_probability(
             self.pareto_outcome_diversity, label="pareto_outcome_diversity"
         )
-        if not isinstance(self.batna_clearing_count_target, int) or self.batna_clearing_count_target < 0:
-            raise ValueError("batna_clearing_count_target must be a non-negative integer")
+        self.batna_clearing_count_target = _validate_batna_clearing_count_target(
+            self.batna_clearing_count_target, label="batna_clearing_count_target"
+        )
         self.batna_to_pareto_gap_pct = _validate_probability(
             self.batna_to_pareto_gap_pct, label="batna_to_pareto_gap_pct"
         )
@@ -369,6 +465,8 @@ class ScenarioSpec:
         data["score_range"] = list(self.score_range)
         if isinstance(self.pareto_count_target, tuple):
             data["pareto_count_target"] = list(self.pareto_count_target)
+        if isinstance(self.batna_clearing_count_target, tuple):
+            data["batna_clearing_count_target"] = list(self.batna_clearing_count_target)
         return data
 
     @classmethod
