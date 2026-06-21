@@ -4,6 +4,40 @@
      Newest entries at the top. Each step or milestone gets a structured entry.
      This is the audit trail.
 
+## 2026-06-21 — Session close: scenario tooling reorg + Phase 42 C1-C4
+
+Action: MULTI-PHASE (operator-supervised)
+Mode: Cross-cutting (architecture, schema, algorithm, docs)
+Outcome: Five workstreams shipped across a single long session. Scenario tooling is now a first-class subsystem with deliberate public API, first-class coalition support, empirical scaling data, and partial algorithm fixes.
+
+Resumes via: `PHASE_42_PLAN.md` "Cold Start" section at top. That file alone has everything a future session needs to pick up Phase 42 Commit 5 (I-axis convergence).
+
+Phases shipped this session (in execution order):
+- **DIAGRAMS reorg** — replaced single dense `_arch_diagrams.md` with layered `DIAGRAMS.md` (Overview + Lifecycle + 3 per-phase drill-downs each with structural flowchart + sequence diagram). Old file deleted; README pointer updated.
+- **Phase 1 (modularization, 5 commits)** — `src/tools/` → `src/scenario_authoring/`; `tests/self_play/scenarios/` → top-level `scenarios/`; 78 files touched; doc updates across the live doc set.
+- **Phase 2a (`coalition_values` schema, 4 commits + skip C5)** — optional schema field for coalition-coercive scenarios. Compiler extracts it; `score_game` routes partial coalitions through it; Three-Party Coalition re-compiled, hand-patch retired. New tests cover all four scoring branches.
+- **Portability fix** — `test_round_boundary_time_mode` rewritten as poll-with-timeout (Windows asyncio 15.6ms timer resolution made the fixed 20ms budget unsatisfiable). Full non-integration suite went from 425+1F to 426+0F.
+- **Phase 3 (scale probe, 2 of 3 commits)** — new `tools/scenario_builder_scale_probe.py` tool. Matrix sweep characterized convergence + wall-clock across 11 (F,I,O) cells × 3 seeds. Headline: I-axis is the real pain point (3×3×4 D=64 succeeds 3/3 while 3×4×3 D=81 fails 0/3); F=6 fragile; 4×4×4 0/3 with fixed `pareto_count_target=(3,5)`.
+- **D-58 (post-Phase-1 cleanup)** — moved `verify_scenario_optimum.py` into `scenario_authoring` package; removed `sys.path` hacks. Production code no longer depends on `tests/`. Closes D-52 which had said "don't refactor".
+- **Public API definition** — curated `__init__.py` for `scenario_authoring`. Tests pin the exported surface.
+- **Tracker updates** — D-57 declines `tools/` rename (Phase-1 motivation now obsolete since `src/tools/` is gone). NEXT_STEPS backlog gains "coalition_formation synthetic issue redundancy" as Phase 2b candidate.
+- **Phase 4 (docs, 3 commits)** — `ARCH_scenario_authoring.md` (383 lines, first-class architecture doc for the subsystem); `SCENARIO_GUIDE.md` (328 lines, operator walkthrough); README and ARCHITECTURE.md updated to link them.
+- **Phase 42 Commits 1-4** — algorithm + spec-language work driven by Phase 3 data. C1 cheap wins (F-aware biasing + deepcopy removal; 6×3×3 went 1/3 → 2/3). C2 relative `pareto_count_target` (spec language extends to fractional form; but C2 probe refuted the hypothesis that relativizing one target fixes the I-axis cliff). C3 Skyline Pareto (9.7× wall-clock speedup at D=256; convergence unchanged as expected). C4 post-Phase-42 full re-probe (matrix in 8.5 min vs 51 min pre-42; 6×3×3 reaches 3/3; 4×4×4 still 0/3; PROJECT.md "scales to 4+ factions/4+ issues" success criterion half-met; Phase 3 C3 regression test stays deferred).
+
+What is queued (resume from `PHASE_42_PLAN.md`):
+- Phase 42 Commit 5 (sub-plan in PHASE_42_PLAN.md): C5a relativize `batna_clearing_count_target`; C5b algorithmic neighborhood broadening; C5c (optional) target-weight rebalancing. C5a is the lowest-risk start.
+
+What is deferred (tracked in NEXT_STEPS.md or out-of-scope notes):
+- Phase 2b (runtime partial-agreement detection in `RoundSteppedFlow`).
+- `ScenarioSpec.requires_coalition_values` builder flag.
+- `fill_narrative()` extension for `coalition_values`.
+- `coalition_formation` synthetic issue redundancy cleanup in Three-Party (Phase 2b candidate).
+- `tools/` → `scripts/` rename (declined per D-57).
+
+Commits this session (in order): `6b956a6` (DIAGRAMS reorg) → `f338dce` `6f8afbc` `c680d07` `4ef77a0` `f7cbf41` (Phase 1) → `c324f69` `9f26454` `67003a7` `f388a95` (Phase 2a) → `b4c7cca` (portability fix) → `0215eb2` `38f54d2` (Phase 3 C1-C2) → `8be36c8` (D-58) → `0680a62` (public API) → `a1485eb` (tracker) → `e7f7392` `3bc678b` `ae7e4fa` (Phase 4) → `551caa9` `257b1e0` `d16248c` `4c67abb` (Phase 42 C1-C4).
+
+Test status at session close: 426 passed, 1 skipped, 0 failed in non-integration suite (with PYTHONPATH=src). Scale-probe data: `scenarios/scale_probe_results.jsonl` (pre-42 baseline) + `scenarios/scale_probe_results_post_phase42_absolute.jsonl` (post-42, 6× faster overall).
+
 ## 2026-06-05 — Coaching module extracted to toolkit
 
 Action: REFACTOR
