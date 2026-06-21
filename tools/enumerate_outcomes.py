@@ -12,7 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from tests.self_play.verify_scenario_optimum import (
+from scenario_authoring.verify_scenario_optimum import (
     enumerate_deals,
     faction_score,
     find_pareto_frontier,

@@ -18,7 +18,7 @@ import json
 import sys
 from pathlib import Path
 
-from tests.self_play.verify_scenario_optimum import (
+from scenario_authoring.verify_scenario_optimum import (
     enumerate_deals,
     find_pareto_frontier,
 )

@@ -591,7 +591,7 @@ class GameEnvironment:
             return {"error": "No scenario analysis available for scoring"}
 
         from toolkit.structured_llm import structured_call
-        from tests.self_play.verify_scenario_optimum import faction_score
+        from scenario_authoring.verify_scenario_optimum import faction_score
 
         # LLM extracts agreed outcomes only — the math is deterministic.
         # Asking the LLM to compute faction points (sum lookup values) was
@@ -789,7 +789,7 @@ def _pareto_efficiency_metrics(
     score_data: dict[str, Any],
 ) -> dict[str, Any]:
     """Calculate aggregate Pareto and BATNA-normalized metrics."""
-    from tests.self_play.verify_scenario_optimum import (
+    from scenario_authoring.verify_scenario_optimum import (
         enumerate_deals,
         find_pareto_frontier,
     )
@@ -848,7 +848,7 @@ def _compute_baselines(
     score_data: dict[str, Any],
 ) -> dict[str, Any]:
     """Calculate baseline comparisons against equal split, BATNA, and Nash bargaining."""
-    from tests.self_play.verify_scenario_optimum import (
+    from scenario_authoring.verify_scenario_optimum import (
         beats_batna,
         enumerate_deals,
         faction_score,

@@ -32,12 +32,9 @@ import tempfile
 import time
 from pathlib import Path
 
-# Allow `from scenario_authoring.* import ...` when invoked from project root,
-# AND allow scenario_authoring's import of `tests.self_play.verify_scenario_optimum`
-# (the Phase 1 coupling we flagged) to resolve.
+# Allow `from scenario_authoring.* import ...` when invoked from project root.
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_PROJECT_ROOT / "src"))
-sys.path.insert(0, str(_PROJECT_ROOT))
 
 from scenario_authoring.scenario_builder import build_and_save_scenario  # noqa: E402
 from scenario_authoring.scenario_fitness import compute_fitness  # noqa: E402

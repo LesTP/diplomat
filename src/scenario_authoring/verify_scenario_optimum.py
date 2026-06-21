@@ -9,7 +9,7 @@ Reads a scenario_analysis.json produced by scenario_authoring.scenario_compiler 
 - Logrolling structure (does the "everyone gets priority" deal exist and clear all BATNAs?)
 
 Usage:
-    python -m tests.self_play.verify_scenario_optimum \\
+    python -m scenario_authoring.verify_scenario_optimum \\
         --analysis scenarios/scenario_analysis.json
 """
 

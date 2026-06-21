@@ -50,7 +50,7 @@ MODEL_PRETTY = {
 
 
 # --------------------------------------------------------------------------- #
-# deal-space math (mirrors tests/self_play/verify_scenario_optimum.py)
+# deal-space math (mirrors src/scenario_authoring/verify_scenario_optimum.py)
 # --------------------------------------------------------------------------- #
 def faction_score(analysis: dict[str, Any], faction: str, deal: dict[str, str]) -> float:
     scoring = analysis["scoring"][faction]

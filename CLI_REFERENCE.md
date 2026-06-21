@@ -25,7 +25,7 @@ Cross-references point at fuller discussion in `TUNING.md`, `DEVPLAN.md`,
 | Generate a scenario from outcome-shape constraints | [`scenario_authoring.scenario_builder`](#toolsscenario_builder--constraint-driven-scenario-generator) |
 | Check providers are reachable before a live run | [`tests.self_play.probe_providers`](#testsself_playprobe_providers--live-provider-auth--parse-check) |
 | Assert dry-run output meets invariants | [`tests.self_play.verify_dryrun`](#testsself_playverify_dryrun--assert-dry-run-output-invariants) |
-| Check a scenario has a non-trivial optimum before running | [`tests.self_play.verify_scenario_optimum`](#testsself_playverify_scenario_optimum--enumerate-scenario-outcomes) |
+| Check a scenario has a non-trivial optimum before running | [`scenario_authoring.verify_scenario_optimum`](#testsself_playverify_scenario_optimum--enumerate-scenario-outcomes) |
 | Get a post-game report | [`tests.self_play.analysis`](#testsself_playanalysis--post-game-report) |
 | Run prompt-quality regression scenarios | [`tests.prompt_regression.runner`](#testsprompt_regressionrunner--scenario-based-prompt-eval) |
 | Classify the review-gate edit log (post-game) | [`tools/classify_edit_log.py`](#toolsclassify_edit_logpy--bulk-edit-log-classifier) |
@@ -234,10 +234,10 @@ python -m tests.self_play.verify_dryrun \
 
 Invariants checked include: per-round GEN counts, EXTRACT count, ADV count, endgame marker placement, **SCORE call presence** (added 2026-05-30 after LoggingLLMClient unwrap fix), per-faction provider routing.
 
-### `tests.self_play.verify_scenario_optimum` — enumerate scenario outcomes
+### `scenario_authoring.verify_scenario_optimum` — enumerate scenario outcomes
 
 ```bash
-python -m tests.self_play.verify_scenario_optimum \
+python -m scenario_authoring.verify_scenario_optimum \
     --analysis scenarios/water_rights_compiled/scenario_analysis.json \
     --top-n 10
 ```
@@ -621,7 +621,7 @@ Relevant toolkit functions used by Diplomat CLIs above:
 python -m scenario_authoring.scenario_compiler --scenario X.md --batna-fraction 0.55
 
 # 2. Confirm the resulting analysis has a non-trivial optimum
-python -m tests.self_play.verify_scenario_optimum --analysis X_compiled/scenario_analysis.json
+python -m scenario_authoring.verify_scenario_optimum --analysis X_compiled/scenario_analysis.json
 
 # 3. Dry-run end-to-end (free)
 python -m tests.self_play.run_simulation --dry-run --rounds 4 \

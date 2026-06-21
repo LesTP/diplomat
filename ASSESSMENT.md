@@ -288,7 +288,7 @@ gap:
   this path; Run 8 needed hand-patching to create BATNA pressure.
 - **Hand-authored scoring tables** — full control, but each scenario takes
   ~30 minutes of careful design and the §4 properties have to be re-verified
-  by `tests.self_play.verify_scenario_optimum` after each tweak.
+  by `scenario_authoring.verify_scenario_optimum` after each tweak.
 
 The reverse builder inverts the relationship: operator specifies the
 properties, tool searches scoring-table space until it finds a candidate
@@ -344,7 +344,7 @@ python -m scenario_authoring.scenario_builder \
   --verify
 ```
 
-`--verify` re-runs `tests.self_play.verify_scenario_optimum` on the emitted
+`--verify` re-runs `scenario_authoring.verify_scenario_optimum` on the emitted
 JSON and exits non-zero on FAIL. `--debug-search` emits per-restart fitness
 records when a spec doesn't converge in expected time.
 

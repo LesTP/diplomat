@@ -43,7 +43,7 @@ The modular architecture in the main spec was partly designed with testability i
 | Prompt regression runner | `tests/prompt_regression/runner.py` | Scenario loader, structural checks, LLM-as-judge checks, CLI |
 | Prompt regression scenarios | `tests/prompt_regression/scenarios/` | 4 extraction scenarios + 2 generation scenarios |
 | Self-play infrastructure | `tests/self_play/` | GameEnvironment, simulation runner, coached game runner, analysis, scenario compiler, verification tools |
-| Scenario verification | `tests/self_play/verify_scenario_optimum.py`, `verify_dryrun.py` | Pareto frontier enumeration and dry-run plumbing checks |
+| Scenario verification | `src/scenario_authoring/verify_scenario_optimum.py`, `verify_dryrun.py` | Pareto frontier enumeration and dry-run plumbing checks |
 | Provider probing | `tests/self_play/probe_providers.py` | Pre-flight API key + model verification (~$0.001) |
 | Structured logging config | `config/pipeline.yaml`, `config/pipeline_smoke.yaml`, `src/logging_config.py` | `logging.level` / `logging.format`, with `DIPLOMAT_LOG_LEVEL` override |
 | Extraction examples | `config/examples/extraction_examples.json` | Few-shot examples for LLM extraction (Phase 24.5) |
@@ -1254,7 +1254,7 @@ Self-play runs multiple agent instances against each other in a simulated enviro
 | Simulation Runner | `tests/self_play/run_simulation.py` | CLI entry point with `--scenario` flag for auto-compiled personas |
 | Coached Game Runner | `tests/self_play/coached_game.py` | Self-play runner that routes one faction through OperatorReviewGate/TelegramBotTransport; `--dry-run` uses a local stand-in (Phase 28) |
 | Analysis | `tests/self_play/analysis.py` | Post-game report: promises, coalitions, communication patterns, process signatures, near-miss diagnostic, promise cross-reference |
-| Scenario Verifier | `tests/self_play/verify_scenario_optimum.py` | Enumerates all deals, reports Pareto frontier, BATNA-clearing count, logrolling quality |
+| Scenario Verifier | `src/scenario_authoring/verify_scenario_optimum.py` | Enumerates all deals, reports Pareto frontier, BATNA-clearing count, logrolling quality |
 | Dry-Run Verifier | `tests/self_play/verify_dryrun.py` | Validates dry-run plumbing (provider routing, DryRunLLMClient classification) |
 | Provider Prober | `tests/self_play/probe_providers.py` | Pre-flight API key + model verification (~$0.001 per probe) |
 | Scenario Library | `Multi-Party Negotiation Scenarios.md` | Catalogue of academic, historical, and game-theoretic negotiation scenarios |
@@ -1559,7 +1559,7 @@ python -m tests.self_play.coached_game \
 ### Verify scenario optimum
 
 ```bash
-python -m tests.self_play.verify_scenario_optimum \
+python -m scenario_authoring.verify_scenario_optimum \
   --analysis scenarios/water_rights_compiled/scenario_analysis.json
 ```
 

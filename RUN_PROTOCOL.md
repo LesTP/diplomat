@@ -50,7 +50,7 @@ If you can't articulate the hypothesis, you're not ready to run.
 For any new scenario or after editing BATNAs/scoring:
 
 ```bash
-python tests/self_play/verify_scenario_optimum.py \
+python src/scenario_authoring/verify_scenario_optimum.py \
     --analysis scenarios/<name>_compiled/scenario_analysis.json
 ```
 
@@ -246,7 +246,7 @@ Gemini, either:
 ## Reference
 
 - `tests/self_play/probe_providers.py` — live integration probe
-- `tests/self_play/verify_scenario_optimum.py` — scenario sanity checker
+- `src/scenario_authoring/verify_scenario_optimum.py` — scenario sanity checker
 - `tests/self_play/run_simulation.py` — main runner (supports `--dry-run`)
 - `tests/self_play/verify_dryrun.py` — invariant checker (works on dry-run AND live results)
 - `scenarios/` — scenario .md files + compiled analyses

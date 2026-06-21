@@ -19,7 +19,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from typing import Any
 
-from tests.self_play.verify_scenario_optimum import enumerate_deals, find_pareto_frontier
+from scenario_authoring.verify_scenario_optimum import enumerate_deals, find_pareto_frontier
 
 from scenario_authoring.scenario_compiler import (
     DEFAULT_BATNA_FRACTION,
@@ -405,7 +405,7 @@ def _run(args: argparse.Namespace) -> None:
         print(f"  Persona ({faction_id}): {path}")
 
     if args.verify:
-        from tests.self_play.verify_scenario_optimum import main as _verify_main
+        from scenario_authoring.verify_scenario_optimum import main as _verify_main
 
         old_argv = sys.argv
         sys.argv = ["verify_scenario_optimum", "--analysis", str(analysis_path)]

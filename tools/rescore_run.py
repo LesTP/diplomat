@@ -36,7 +36,7 @@ from tests.self_play.game_environment import (
     _compute_baselines,
     _pareto_efficiency_metrics,
 )
-from tests.self_play.verify_scenario_optimum import faction_score
+from scenario_authoring.verify_scenario_optimum import faction_score
 
 
 def main() -> None:

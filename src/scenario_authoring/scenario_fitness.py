@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from statistics import pstdev
 from typing import Any
 
-from tests.self_play.verify_scenario_optimum import (
+from scenario_authoring.verify_scenario_optimum import (
     beats_batna,
     enumerate_deals,
     faction_score,

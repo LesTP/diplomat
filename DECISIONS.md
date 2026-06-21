@@ -346,7 +346,7 @@ Revisit if: Larger scenarios (6+ factions, 6+ issues) produce unacceptably long 
 D-52: Reuse verify_scenario_optimum.py pure functions without refactoring
 Date: 2026-06-10 | Status: Closed (Phase 35 complete 2026-06-10; unchanged in Phase 36)
 Priority: Routine
-Decision: Phase 35 imports `enumerate_deals`, `find_pareto_frontier`, `faction_score`, `beats_batna`, and `find_priority_issues` directly from `tests/self_play/verify_scenario_optimum.py` rather than moving them to a shared library.
+Decision: Phase 35 imports `enumerate_deals`, `find_pareto_frontier`, `faction_score`, `beats_batna`, and `find_priority_issues` directly from `src/scenario_authoring/verify_scenario_optimum.py` rather than moving them to a shared library.
 Rationale: These functions are pure (no I/O, no dependencies), already tested in place, and their home in the test tree is appropriate — they validate game outcomes. Moving them to `src/` would be premature abstraction and would force a test-infrastructure change. The fitness module simply imports from `tests/`.
 Revisit if: A third consumer needs the same functions, at which point extracting to a shared utility module is justified.
 

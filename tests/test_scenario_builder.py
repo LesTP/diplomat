@@ -25,7 +25,7 @@ from scenario_authoring.scenario_builder import (
 from scenario_authoring.scenario_fitness import FitnessResult, compute_fitness
 from scenario_authoring.scenario_spec import IssueSpec, ScenarioSpec, dump_spec
 
-from tests.self_play.verify_scenario_optimum import (
+from scenario_authoring.verify_scenario_optimum import (
     enumerate_deals,
     find_pareto_frontier,
     find_priority_issues,
