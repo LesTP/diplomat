@@ -26,6 +26,7 @@ work, read [`NEXT_STEPS.md`](NEXT_STEPS.md).
 | See what experiments have run | [`TUNING_LOG.md`](TUNING_LOG.md) (active arc) + [`TUNING_LOG_archive.md`](TUNING_LOG_archive.md) (early runs) |
 | Find work to do | [`NEXT_STEPS.md`](NEXT_STEPS.md) |
 | Understand how skill is measured | [`ASSESSMENT.md`](ASSESSMENT.md) |
+| Author a new scenario (narrative or constraint-driven) | [`SCENARIO_GUIDE.md`](SCENARIO_GUIDE.md) (operator walkthrough) |
 | See architectural diagrams | [`DIAGRAMS.md`](DIAGRAMS.md) (layered: Overview + Lifecycle + per-phase drill-downs with flowcharts and sequence diagrams; render via `Markdown Preview Mermaid Support` extension or `render_mermaid_file`) |
 | **Coaching product** (deferred per D-56) | Run the production Telegram bot via [`CLI_REFERENCE.md`](CLI_REFERENCE.md) → `tools/service.sh`; Pi smoke runbook in [`SMOKE_RUNBOOK.md`](SMOKE_RUNBOOK.md); coached self-play via `tests.self_play.coached_game` per [`diplomat-testing-doc.md`](diplomat-testing-doc.md) §5b. Infrastructure operational; no new investment under D-56. |
 
@@ -101,6 +102,7 @@ Several also carry schema (`ARCH_state_manager.md` SQL DDL,
 - [`ARCH_orchestrator.md`](ARCH_orchestrator.md) — composition + event loop (also covers `Pipeline` until that gets its own ARCH file)
 - [`ARCH_flow.md`](ARCH_flow.md) — EventDrivenFlow / RoundSteppedFlow scheduling strategies
 - [`ARCH_conversation_model.md`](ARCH_conversation_model.md) — staged migration plan (Stage 1 / 2a / 2b / 3)
+- [`ARCH_scenario_authoring.md`](ARCH_scenario_authoring.md) — pre-game scenario authoring subsystem (compiler / builder / spec / fitness / verify); operator walkthrough lives in [`SCENARIO_GUIDE.md`](SCENARIO_GUIDE.md)
 
 ---
 
