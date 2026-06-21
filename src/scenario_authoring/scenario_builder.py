@@ -29,7 +29,7 @@ from scenario_authoring.scenario_compiler import (
     save_persona,
 )
 from scenario_authoring.scenario_fitness import FitnessResult, compute_fitness
-from scenario_authoring.scenario_spec import ScenarioSpec, load_spec
+from scenario_authoring.scenario_spec import ScenarioSpec, load_spec, resolve_pareto_count_target
 
 
 logger = logging.getLogger(__name__)
@@ -146,8 +146,10 @@ def _analysis_from_scoring_table(
     )
 
 
-def _target_pareto_count_matches(spec: ScenarioSpec, frontier_count: int) -> bool:
-    target = spec.pareto_count_target
+def _target_pareto_count_matches(
+    spec: ScenarioSpec, frontier_count: int, deal_count: int
+) -> bool:
+    target = resolve_pareto_count_target(spec.pareto_count_target, deal_count)
     if isinstance(target, tuple):
         low, high = target
         return low <= frontier_count <= high
@@ -158,8 +160,9 @@ def _candidate_is_acceptable(spec: ScenarioSpec, analysis: dict[str, Any]) -> bo
     fitness = compute_fitness(analysis, spec)
     if not fitness.satisfies(0.10):
         return False
-    frontier = find_pareto_frontier(analysis, enumerate_deals(analysis))
-    return _target_pareto_count_matches(spec, len(frontier))
+    deals = enumerate_deals(analysis)
+    frontier = find_pareto_frontier(analysis, deals)
+    return _target_pareto_count_matches(spec, len(frontier), len(deals))
 
 
 def _log_search_restart(

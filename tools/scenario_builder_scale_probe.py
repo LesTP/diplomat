@@ -31,6 +31,7 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+from typing import Any
 
 # Allow `from scenario_authoring.* import ...` when invoked from project root.
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -67,14 +68,24 @@ def synthesize_spec(
     outcomes_per_issue: int,
     *,
     seed: int,
+    relative_targets: bool = False,
 ) -> ScenarioSpec:
     """Build a synthetic spec with anonymous labels + fixed fitness targets.
 
     Fitness targets are held constant across all cells so the probe measures
     "as deal space grows, does the algorithm still find the requested
     profile?" without confounding spec-difficulty changes.
+
+    relative_targets=True uses the Phase 42 Commit 2 fractional target form:
+    pareto_count_target=(0.05, 0.15) (5-15% of D) instead of the fixed
+    absolute (3, 5). Tests whether the spec-language change resolves the
+    I-axis cliff.
     """
     faction_ids = [f"f{i}" for i in range(factions)]
+    if relative_targets:
+        pareto_target: Any = (0.05, 0.15)
+    else:
+        pareto_target = (3, 5)
     return ScenarioSpec(
         factions=faction_ids,
         issues=[
@@ -85,7 +96,7 @@ def synthesize_spec(
             for i in range(issues)
         ],
         score_range=(1, 10),
-        pareto_count_target=(3, 5),
+        pareto_count_target=pareto_target,
         pareto_distribution_spread=0.35,
         pareto_outcome_diversity=0.66,
         batna_clearing_count_target=5,
@@ -107,9 +118,13 @@ def run_cell(
     seed: int,
     max_restarts: int,
     max_local_moves: int,
+    relative_targets: bool = False,
 ) -> dict:
     """Run the builder once on a synthetic spec; capture timing + outcome."""
-    spec = synthesize_spec(factions, issues, outcomes_per_issue, seed=seed)
+    spec = synthesize_spec(
+        factions, issues, outcomes_per_issue,
+        seed=seed, relative_targets=relative_targets,
+    )
     deal_space = outcomes_per_issue ** issues
     base_record: dict = {
         "F": factions,
@@ -119,6 +134,7 @@ def run_cell(
         "seed": seed,
         "max_restarts": max_restarts,
         "max_local_moves": max_local_moves,
+        "relative_targets": relative_targets,
     }
     with tempfile.TemporaryDirectory() as td:
         t0 = time.monotonic()
@@ -156,6 +172,7 @@ def run_matrix(
     max_restarts: int,
     max_local_moves: int,
     output_path: Path,
+    relative_targets: bool = False,
 ) -> list[dict]:
     """Iterate cells x seeds, write JSONL, return all records."""
     results: list[dict] = []
@@ -170,6 +187,7 @@ def run_matrix(
                     seed=seed,
                     max_restarts=max_restarts,
                     max_local_moves=max_local_moves,
+                    relative_targets=relative_targets,
                 )
                 fp.write(json.dumps(record, sort_keys=True) + "\n")
                 fp.flush()
@@ -270,6 +288,14 @@ def main(argv: list[str] | None = None) -> int:
         "--summary", type=Path, default=None,
         help="Optional markdown summary output path",
     )
+    parser.add_argument(
+        "--relative-targets", action="store_true",
+        help=(
+            "Use the Phase 42 relative pareto_count_target form (0.05, 0.15) "
+            "i.e. 5-15%% of D, instead of the absolute (3, 5). Validates whether "
+            "the spec-language change resolves the I-axis cliff."
+        ),
+    )
     args = parser.parse_args(argv)
 
     # Quiet the builder's per-restart INFO logging so the probe progress stays
@@ -286,6 +312,10 @@ def main(argv: list[str] | None = None) -> int:
         f"Budget per run: max_restarts={args.max_restarts}, max_local_moves={args.max_local_moves}",
         flush=True,
     )
+    print(
+        f"Target form: {'relative (5-15%% of D)' if args.relative_targets else 'absolute (3, 5)'}",
+        flush=True,
+    )
     print(f"Output JSONL: {args.output}", flush=True)
     if args.summary:
         print(f"Summary markdown: {args.summary}", flush=True)
@@ -297,6 +327,7 @@ def main(argv: list[str] | None = None) -> int:
         max_restarts=args.max_restarts,
         max_local_moves=args.max_local_moves,
         output_path=args.output,
+        relative_targets=args.relative_targets,
     )
     total_elapsed = time.monotonic() - t_total
 

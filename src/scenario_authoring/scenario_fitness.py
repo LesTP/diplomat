@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from statistics import pstdev
 from typing import Any
 
+from scenario_authoring.scenario_spec import resolve_pareto_count_target
 from scenario_authoring.verify_scenario_optimum import (
     beats_batna,
     enumerate_deals,
@@ -93,8 +94,14 @@ def compute_fitness(analysis: dict[str, Any], spec: Any) -> FitnessResult:
     per_target_distance: dict[str, float] = {}
 
     observed_pareto_count = len(frontier)
+    # Resolve spec.pareto_count_target to absolute form using D = len(deals)
+    # so float/float-range fractions become concrete int/int-range counts.
+    # Absolute (int/int-range) targets pass through unchanged.
+    resolved_pareto_count_target = resolve_pareto_count_target(
+        spec.pareto_count_target, len(deals)
+    )
     per_target_distance["pareto_count"] = _count_distance(
-        observed_pareto_count, spec.pareto_count_target
+        observed_pareto_count, resolved_pareto_count_target
     )
 
     distinct_winners: set[str] = set()

@@ -137,3 +137,88 @@ def test_validation_rejects_invalid_pressure_profile_value() -> None:
             issues=[IssueSpec(name="Tariffs", outcomes=["Strict", "Relaxed"])],
             pressure_profile={"time_pressure": "urgent", "external_shock": "low"},
         )
+
+
+# ── Relative pareto_count_target (Phase 42 Commit 2) ──────────────────
+
+
+def _basic_kwargs() -> dict:
+    return {
+        "factions": ["alpha"],
+        "issues": [IssueSpec(name="Tariffs", outcomes=["Strict", "Relaxed"])],
+    }
+
+
+def test_accepts_absolute_int_target() -> None:
+    spec = ScenarioSpec(**_basic_kwargs(), pareto_count_target=3)
+    assert spec.pareto_count_target == 3
+
+
+def test_accepts_absolute_int_range_target() -> None:
+    spec = ScenarioSpec(**_basic_kwargs(), pareto_count_target=(3, 5))
+    assert spec.pareto_count_target == (3, 5)
+
+
+def test_accepts_relative_float_target() -> None:
+    spec = ScenarioSpec(**_basic_kwargs(), pareto_count_target=0.1)
+    assert spec.pareto_count_target == 0.1
+
+
+def test_accepts_relative_float_range_target() -> None:
+    spec = ScenarioSpec(**_basic_kwargs(), pareto_count_target=(0.05, 0.15))
+    assert spec.pareto_count_target == (0.05, 0.15)
+
+
+def test_rejects_mixed_int_float_range_target() -> None:
+    with pytest.raises(ValueError, match="mixed types"):
+        ScenarioSpec(**_basic_kwargs(), pareto_count_target=(3, 0.15))
+
+
+def test_rejects_boolean_target() -> None:
+    with pytest.raises(ValueError, match="boolean"):
+        ScenarioSpec(**_basic_kwargs(), pareto_count_target=True)
+
+
+def test_rejects_float_target_above_1() -> None:
+    with pytest.raises(ValueError, match=r"\(0.0, 1.0\]"):
+        ScenarioSpec(**_basic_kwargs(), pareto_count_target=1.5)
+
+
+def test_rejects_float_target_at_zero() -> None:
+    with pytest.raises(ValueError, match=r"\(0.0, 1.0\]"):
+        ScenarioSpec(**_basic_kwargs(), pareto_count_target=0.0)
+
+
+def test_resolve_passes_through_absolute_int() -> None:
+    from scenario_authoring.scenario_spec import resolve_pareto_count_target
+    assert resolve_pareto_count_target(3, deal_count=27) == 3
+
+
+def test_resolve_passes_through_absolute_range() -> None:
+    from scenario_authoring.scenario_spec import resolve_pareto_count_target
+    assert resolve_pareto_count_target((3, 5), deal_count=27) == (3, 5)
+
+
+def test_resolve_converts_float_to_absolute() -> None:
+    from scenario_authoring.scenario_spec import resolve_pareto_count_target
+    # 0.10 of 256 deals -> 26 (rounded)
+    assert resolve_pareto_count_target(0.10, deal_count=256) == 26
+
+
+def test_resolve_converts_float_range_to_absolute() -> None:
+    from scenario_authoring.scenario_spec import resolve_pareto_count_target
+    assert resolve_pareto_count_target((0.05, 0.15), deal_count=256) == (13, 38)
+
+
+def test_resolve_floors_at_1_for_small_deal_count() -> None:
+    # 0.05 of 10 = 0.5, would round to 0; floor to 1 to keep target satisfiable.
+    from scenario_authoring.scenario_spec import resolve_pareto_count_target
+    assert resolve_pareto_count_target(0.05, deal_count=10) == 1
+
+
+def test_relative_target_round_trips_through_json(tmp_path: Path) -> None:
+    spec = ScenarioSpec(**_basic_kwargs(), pareto_count_target=(0.05, 0.15))
+    spec_path = tmp_path / "spec.json"
+    dump_spec(spec, spec_path)
+    loaded = load_spec(spec_path)
+    assert loaded.pareto_count_target == (0.05, 0.15)
