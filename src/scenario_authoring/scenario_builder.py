@@ -97,13 +97,21 @@ def _seed_scoring_table(spec: ScenarioSpec, rng: random.Random) -> dict[str, dic
             remaining_issues = list(spec.issues)
 
         issue_assignment: dict[str, str] = {
-            faction: consensus_issue.name for faction in shared_factions
+            faction: consensus_issue.name
+            for faction in spec.factions
+            if faction in shared_factions
         }
         for index, faction in enumerate(remaining_factions):
             issue_assignment[faction] = remaining_issues[index % len(remaining_issues)].name
 
         priority_cap = max(low, high - 1)
-        for faction, issue_name in issue_assignment.items():
+        # Iterate factions in the spec's fixed list order (not set/dict
+        # iteration order) so RNG is consumed deterministically. Set/dict
+        # iteration of faction-name strings is PYTHONHASHSEED-dependent, which
+        # previously made the builder non-reproducible across processes and
+        # broke the scale probe as a regression gate.
+        for faction in spec.factions:
+            issue_name = issue_assignment[faction]
             issue = issue_lookup[issue_name]
             issue_scores = scoring[faction][issue_name]
             priority_outcome = rng.choice(issue.outcomes)
@@ -213,6 +221,11 @@ def _anneal_local(
     Temperature cools geometrically from T_start=1.0 to T_end=0.01 over
     max_local_moves steps. Better candidates are always accepted; worse
     candidates are accepted with probability exp(-Δdistance / T).
+
+    C5b note (Phase 42): a broadened neighborhood (multi-cell flips +
+    issue-scoped / outcome-rank swaps) was prototyped and probed, and it made
+    high-D convergence *worse* once the builder was made deterministic — see
+    PHASE_42_PLAN.md "Commit 5b". The single-cell neighborhood is kept.
 
     Returns (scoring, analysis, fitness, exit_reason) where exit_reason is
     "accepted" when the candidate satisfies the spec, or "budget_exhausted".

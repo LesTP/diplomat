@@ -7,7 +7,11 @@ import asyncio
 import copy
 import json
 import logging
+import os
 import random
+import subprocess
+import sys
+import textwrap
 from pathlib import Path
 
 import pytest
@@ -271,6 +275,52 @@ class TestAnnealLocal:
 
         assert fitness.satisfies(0.10)
         assert len(frontier) == 3
+
+
+class TestBuilderDeterminism:
+    """C5b — builder reproducibility across processes (PYTHONHASHSEED fix)."""
+
+    def test_seed_scoring_table_is_pythonhashseed_independent(self) -> None:
+        # Regression for the Phase 42 C5b determinism fix. _seed_scoring_table
+        # must not depend on set/dict iteration order of faction-name strings,
+        # which Python randomizes per process via PYTHONHASHSEED. Before the
+        # fix, the same seed produced different scoring tables across processes,
+        # which silently broke the scale probe as a regression gate.
+        project_root = Path(__file__).resolve().parent.parent
+        snippet = textwrap.dedent(
+            """
+            import hashlib, json, random
+            from scenario_authoring.scenario_builder import _seed_scoring_table
+            from scenario_authoring.scenario_spec import IssueSpec, ScenarioSpec
+            spec = ScenarioSpec(
+                factions=[f"f{i}" for i in range(4)],
+                issues=[
+                    IssueSpec(name=f"i{i}", outcomes=[f"o{j}" for j in range(3)])
+                    for i in range(4)
+                ],
+                priority_collision="soft",
+                requires_logrolling=True,
+                seed=0,
+            )
+            table = _seed_scoring_table(spec, random.Random(0))
+            print(hashlib.md5(json.dumps(table, sort_keys=True).encode()).hexdigest())
+            """
+        )
+        digests: set[str] = set()
+        for hashseed in ("0", "1", "2", "12345"):
+            env = dict(os.environ)
+            env["PYTHONHASHSEED"] = hashseed
+            env["PYTHONPATH"] = str(project_root / "src")
+            result = subprocess.run(
+                [sys.executable, "-c", snippet],
+                capture_output=True,
+                text=True,
+                env=env,
+                cwd=str(project_root),
+            )
+            assert result.returncode == 0, result.stderr
+            digests.add(result.stdout.strip())
+        assert len(digests) == 1, f"non-deterministic across PYTHONHASHSEED: {digests}"
 
 
 class TestBuildAndSaveScenario:
