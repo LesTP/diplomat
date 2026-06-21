@@ -853,10 +853,21 @@ async def test_round_boundary_time_mode(tmp_path):
 
     orchestrator._running = True
     task = asyncio.create_task(orchestrator._time_round_loop())
-    await asyncio.sleep(0.02)
-    task.cancel()
-    with pytest.raises(asyncio.CancelledError):
-        await task
+    try:
+        # Poll for >=2 ticks with a generous timeout. The original code waited
+        # a fixed 20ms after the interval_seconds=0.01 setup, which assumed
+        # asyncio.sleep resolution near 1ms. On Windows, the asyncio timer
+        # resolution is ~15.6ms, so sleep(0.01) in a loop only fires once in
+        # 20ms — making `>=2` unsatisfiable regardless of machine speed.
+        # Polling decouples the assertion from sleep resolution.
+        for _ in range(200):
+            if orchestrator.current_round >= 2:
+                break
+            await asyncio.sleep(0.01)
+    finally:
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
 
     assert orchestrator.current_round >= 2
     assert state_manager.intelligence
