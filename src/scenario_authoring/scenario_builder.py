@@ -83,7 +83,13 @@ def _seed_scoring_table(spec: ScenarioSpec, rng: random.Random) -> dict[str, dic
 
     if spec.priority_collision == "soft" and len(spec.factions) >= 2:
         consensus_issue = rng.choice(spec.issues)
-        shared_count = min(2, len(spec.factions))
+        # F.1 (Phase 42): scale the shared-priority bias with faction count.
+        # Previously fixed at min(2, F), which left F>=6 with only 1/3 of
+        # factions in the collision pattern -- too weak a signal for the
+        # search to reliably converge (Phase 3 finding: F=6 was fragile).
+        # max(2, F // 2) keeps the F<=5 behavior (still 2 factions) and
+        # scales up at F>=6 so at least half the factions share a priority.
+        shared_count = max(2, len(spec.factions) // 2)
         shared_factions = set(rng.sample(spec.factions, k=shared_count))
         remaining_factions = [faction for faction in spec.factions if faction not in shared_factions]
         remaining_issues = [issue for issue in spec.issues if issue.name != consensus_issue.name]
@@ -224,18 +230,26 @@ def _anneal_local(
             continue
         new_value = rng.choice(other_values)
 
-        candidate_scoring = copy.deepcopy(scoring)
-        candidate_scoring[cell.faction][cell.issue][cell.outcome] = new_value
-        candidate_analysis = _analysis_from_scoring_table(spec, candidate_scoring)
+        # A.4 (Phase 42): mutate-revert instead of deepcopy per move.
+        # The old code did `copy.deepcopy(scoring)` here; that's O(F*I*O)
+        # per move and was the dominant constant-factor cost in inner-loop
+        # wall-clock. force_batna_targets() (called by
+        # _analysis_from_scoring_table) does its own internal deepcopy on
+        # the analysis it builds, so we don't risk leaving the scoring
+        # dict in a partial state visible to anything downstream.
+        scoring[cell.faction][cell.issue][cell.outcome] = new_value
+        candidate_analysis = _analysis_from_scoring_table(spec, scoring)
         candidate_fitness = compute_fitness(candidate_analysis, spec)
 
         delta = candidate_fitness.total_distance - fitness.total_distance
         if delta < 0 or rng.random() < math.exp(-delta / T):
-            scoring = candidate_scoring
             analysis = candidate_analysis
             fitness = candidate_fitness
             if _candidate_is_acceptable(spec, analysis):
                 return scoring, analysis, fitness, "accepted"
+        else:
+            # Revert the single-cell mutation.
+            scoring[cell.faction][cell.issue][cell.outcome] = current_value
 
     return scoring, analysis, fitness, "budget_exhausted"
 
