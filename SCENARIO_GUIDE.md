@@ -276,7 +276,6 @@ python tools/scenario_builder_scale_probe.py \
 The probe runs the builder against synthetic specs at the listed
 dimensions, captures convergence + wall-clock + final fitness, and emits
 a JSONL + summary markdown. See
-[`PHASE_3_PLAN.md`](PHASE_3_PLAN.md) and
 [`scenarios/scale_probe_summary.md`](scenarios/scale_probe_summary.md) for
 the canonical sweep + findings.
 
@@ -322,7 +321,7 @@ tools/
 ## Further reading
 
 - [`ARCH_scenario_authoring.md`](ARCH_scenario_authoring.md) — types, schema, public API
-- [`PHASE_3_PLAN.md`](PHASE_3_PLAN.md) — scale-probe scope + matrix
-- [`scenarios/scale_probe_summary.md`](scenarios/scale_probe_summary.md) — empirical scaling data + Phase 42 hand-off
+- [`scenarios/scale_probe_summary.md`](scenarios/scale_probe_summary.md) — empirical scaling data (pre-Phase-42 baseline)
+- [`scenarios/scale_probe_summary_post_phase42_absolute.md`](scenarios/scale_probe_summary_post_phase42_absolute.md) — post-Phase-42 results + Phase 42 C5 hand-off
 - [`CLI_REFERENCE.md`](CLI_REFERENCE.md) — all subcommand flags + defaults
 - [`Multi-Party Negotiation Scenarios.md`](Multi-Party%20Negotiation%20Scenarios.md) — source catalogue (Harvard PON, historical congresses, Susskind coalition templates)
