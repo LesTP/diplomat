@@ -4,10 +4,54 @@
     "b": 0,
     "c": 0
   },
+  "coalition_values": [
+    {
+      "members": [
+        "a",
+        "b"
+      ],
+      "values": {
+        "a": 6,
+        "b": 7
+      }
+    },
+    {
+      "members": [
+        "a",
+        "c"
+      ],
+      "values": {
+        "a": 5,
+        "c": 6
+      }
+    },
+    {
+      "members": [
+        "b",
+        "c"
+      ],
+      "values": {
+        "b": 4,
+        "c": 3
+      }
+    },
+    {
+      "members": [
+        "a",
+        "b",
+        "c"
+      ],
+      "values": {
+        "a": 7,
+        "b": 6,
+        "c": 5
+      }
+    }
+  ],
   "deception_tactics": {
-    "a": "Overstate interest in BC coalition to appear less essential and gain concessions in AB or ABC",
-    "b": "Overstate interest in AC coalition to pressure A and C",
-    "c": "Overstate interest in AB coalition to pressure A and B"
+    "a": "overstate interest in coalition a_c",
+    "b": "overstate interest in coalition b_c",
+    "c": "overstate interest in coalition b_c"
   },
   "factions": [
     "a",
@@ -17,26 +61,26 @@
   "game_mode": "competitive",
   "issues": [
     {
-      "description": "Which coalition to form and how to split the coalition value",
-      "name": "coalition_choice",
+      "description": "Which coalition is formed and how the value is split",
+      "name": "coalition_formation",
       "outcomes": [
-        "AB coalition formed and value split",
-        "AC coalition formed and value split",
-        "BC coalition formed and value split",
-        "ABC grand coalition formed and value split"
+        "a_b",
+        "a_c",
+        "b_c",
+        "a_b_c"
       ]
     }
   ],
   "logrolling": [
-    "A concedes some surplus share in AB coalition in exchange for blocking side deal from C",
-    "C concedes on share in AC coalition to gain blocking power against AB coalition",
-    "B concedes on share in BC coalition to maintain leverage in grand coalition"
+    "A concedes the a_c coalition in exchange for stronger terms in the a_b coalition",
+    "B concedes the b_c coalition in exchange for favorable terms in the a_b coalition",
+    "C concedes the b_c coalition in exchange for a better share in the a_c coalition"
   ],
   "pressure": {
     "asymmetric_clocks": {
       "a": 10,
-      "b": 8,
-      "c": 6
+      "b": 10,
+      "c": 10
     },
     "penalty_floor_offset": 0,
     "round_cost_decay": 0
@@ -47,27 +91,27 @@
   },
   "scoring": {
     "a": {
-      "coalition_choice": {
-        "AB coalition formed and value split": 9,
-        "ABC grand coalition formed and value split": 7,
-        "AC coalition formed and value split": 7,
-        "BC coalition formed and value split": 0
+      "coalition_formation": {
+        "a_b": 9,
+        "a_b_c": 10,
+        "a_c": 7,
+        "b_c": 1
       }
     },
     "b": {
-      "coalition_choice": {
-        "AB coalition formed and value split": 10,
-        "ABC grand coalition formed and value split": 7,
-        "AC coalition formed and value split": 0,
-        "BC coalition formed and value split": 6
+      "coalition_formation": {
+        "a_b": 10,
+        "a_b_c": 7,
+        "a_c": 1,
+        "b_c": 4
       }
     },
     "c": {
-      "coalition_choice": {
-        "AB coalition formed and value split": 0,
-        "ABC grand coalition formed and value split": 7,
-        "AC coalition formed and value split": 9,
-        "BC coalition formed and value split": 7
+      "coalition_formation": {
+        "a_b": 1,
+        "a_b_c": 7,
+        "a_c": 9,
+        "b_c": 2
       }
     }
   }

@@ -1,97 +1,84 @@
-# Three-Party Coalition v1 — Scenario Notes
+# Three-Party Coalition — Scenario Notes
 
-## Source
+Source narrative: `../three_party_coalition.md`
+Compiled: 2026-06-20 via `python -m scenario_authoring.scenario_compiler` with
+the Phase 2a `coalition_values` support landed.
 
-Generated 2026-06-12 from `scenarios/three_party_coalition.md`
-via `scenario_authoring.scenario_compiler --scenario ... --output-dir
-scenarios/three_party_coalition_v1/ --scenario-title
-"Three-Party Coalition"`.
+## Structure
 
-Narrative source: Susskind / Harvard PON Three-Party Coalition Exercise per
-`Multi-Party Negotiation Scenarios.md` — three organizations A, B, C, with
-confirmed coalition values v(AB)=118, v(AC)=84, v(BC)=50, v(ABC)=121,
-singletons=0. The "barely better than AB" knife-edge on grand coalition
-plus the indifference dynamic for excluded factions is what makes the
-scenario interesting as a coalition-formation test.
+This is a **coalition-coercive** scenario (cooperative game theory). The
+narrative gives the characteristic function directly:
 
-## Hand-patched 2026-06-12 — restore Susskind structure
+| Coalition | Total value | Source |
+|---|---|---|
+| A alone | 0 | narrative |
+| B alone | 0 | narrative |
+| C alone | 0 | narrative |
+| A+B | 118 | narrative |
+| A+C | 84 | narrative |
+| B+C | 50 | narrative |
+| A+B+C | 121 | narrative |
 
-The compiler softened the coalition-coercive structure into cooperative-flavored
-issues. Direct edits applied to `scenario_analysis.json` to restore the
-Susskind dynamics. All patches are surgical — schema unchanged, no field
-additions or removals.
+The compiler maps these onto Diplomat's 1-10 point scale via the new
+`coalition_values` field on `scenario_analysis.json`. The values preserve
+the narrative ordering (ABC > AB > AC > BC) within the available range:
 
-| Field | Compiler default | Patched value | Rationale |
+| Coalition | a's share | b's share | c's share | Sum (compiled) | Narrative |
+|---|---|---|---|---|---|
+| A+B | 6 | 7 | — | 13 | 118 |
+| A+C | 5 | — | 6 | 11 | 84 |
+| B+C | — | 4 | 3 | 7 | 50 |
+| A+B+C | 7 | 6 | 5 | 18 | 121 |
+
+The 1-10 scale compresses the dynamic range, but the ordering and relative
+gaps are preserved enough for the negotiation dynamic (ABC barely beats AB;
+BC is the worst pair).
+
+## Manual edits after compilation
+
+The compiler was re-run on 2026-06-20 with default settings; the operator's
+prior calibration was restored via a small hand-edit before commit:
+
+| Field | Compiler default | Operator value | Why |
 |---|---|---|---|
-| `batna.a` | 5 | **0** | Match narrative "A alone: 0" |
-| `batna.b` | 5 | **0** | Match narrative "B alone: 0" |
-| `batna.c` | 4 | **0** | Match narrative "C alone: 0" |
-| `scoring.a.coalition_choice["BC coalition formed and value split"]` | 1 | **0** | Excluded faction in 2-party coalition gets nothing |
-| `scoring.b.coalition_choice["AC coalition formed and value split"]` | 2 | **0** | Excluded faction in 2-party coalition gets nothing |
-| `scoring.c.coalition_choice["AB coalition formed and value split"]` | 1 | **0** | Excluded faction in 2-party coalition gets nothing |
-| `scoring.a.coalition_choice["ABC ..."]` | 8 | **7** | Drop ABC `sum` from 23 to 21, restoring the AB=19 ≈ ABC=21 knife-edge |
-| `scoring.b.coalition_choice["ABC ..."]` | 7 | **7** | (unchanged — already 7) |
-| `scoring.c.coalition_choice["ABC ..."]` | 8 | **7** | Drop ABC `sum` from 23 to 21 |
-| `pressure.round_cost_decay` | 0.5 | **0** | Strip pressure for clean Path A baseline; can re-enable later for pressure variant |
-| `pressure_profile.time_pressure` | medium | **low** | Strip pressure for clean Path A baseline |
+| `batna.{a,b,c}` | 5 (50% of max score) | 0 | Narrative is explicit: "alone: 0" |
+| `pressure.round_cost_decay` | 0.5 | 0 | Narrative has no time-pressure language |
+| `pressure_profile.time_pressure` | medium | low | Same |
 
-Asymmetric clocks (`pressure.asymmetric_clocks`) left as compiler default
-since they're informational rather than penalty-applying in the current
-schema rendering.
+Persona `.txt` files were regenerated from the patched JSON so they
+reflect the BATNA=0 calibration.
 
-## Resulting landscape
+## Why coalition_values matters
 
-After patches, `verify_scenario_optimum.py` reports:
+Before Phase 2a, partial-coalition payoffs were encoded by hand in the
+`scoring` tables of a synthetic `coalition_choice` issue (e.g., setting
+`scoring.a["BC coalition formed"] = 0` to represent A being excluded).
+That workaround had two problems:
 
-| Deal | a | b | c | Sum | Pareto? | Beats all BATNAs? |
-|---|---|---|---|---|---|---|
-| **ABC** | 7 | 7 | 7 | 21 | **P+** | **YES (strict)** |
-| AB | 9 | 10 | 0 | 19 | P- | No (c=0=BATNA, tied) |
-| AC | 7 | 0 | 9 | 16 | P- | No (b=0=BATNA, tied) |
-| BC | 0 | 6 | 7 | 13 | dominated | No (a=0=BATNA, tied) |
+1. The "everyone agreed on the BC coalition outcome" interpretation
+   doesn't make sense — BC by definition excludes A; A wouldn't agree.
+2. The scoring engine couldn't distinguish partial agreement from full
+   agreement; both went through `faction_score()` on agreed outcomes.
 
-**Three Pareto-optimal deals** (ABC strict, AB and AC tied with one
-excluded faction). **Only ABC strictly beats all BATNAs** because excluded
-factions in 2-party coalitions get exactly BATNA = 0.
+With Phase 2a's `coalition_values` field and the updated `score_game()`
+branching, partial coalitions are first-class: the LLM scorer identifies
+the agreeing subset (`coalition_members`), the engine looks up
+`coalition_values` for that subset, members get their values, and
+excluded factions fall back to BATNA.
 
-**The key dynamic for Path A / B testing:** AB is reachable only if C
-agrees to a deal that gives C nothing (= BATNA). C is **indifferent**
-between agreeing to AB (gets 0) and blocking (gets 0). What C *does* in
-that indifference determines whether the harness produces "no deal,
-everyone at BATNA" or "A+B coalition forms and splits 19."
+The `scoring` tables remain populated (for the synthetic
+`coalition_formation` issue) because Phase 2a runtime detection of
+partial coalitions still happens at scoring time, not during gameplay
+(that is Phase 2b). The grand-coalition entry in `coalition_values` is
+documentation; it is unused at scoring time because `score_game()`
+routes full agreement through the `scoring` tables, not
+`coalition_values`.
 
-Under the current `score_game()` unanimity logic, "C agrees to AB" still
-produces an outcome where A+B share the 19 (assuming the deal-detection
-treats AB as a valid agreed outcome). Under Path B (§3.6 coalition-value
-scoring engine), C dissent on `coalition_choice = AB` triggers a partial
-agreement detection → A+B split coalition_value(AB) → C scored at BATNA.
+## Outstanding
 
-## First consumer
-
-Path B build (`ASSESSMENT.md` §3.6 coalition-value scoring engine, queued
-as Tier 1 under `DECISIONS.md` D-56). When that lands, this scenario is
-the first test case — exercises the partial-agreement detection,
-coalition value lookup, split-share extraction from transcript, and
-excluded-faction BATNA assignment.
-
-Until Path B lands, Path A (`NEXT_STEPS.md` §11.b) uses this scenario in
-the existing unanimity frame — useful for transcript inspection of
-mixed-model coalition behavior even without proper exclusion scoring.
-
-## Re-generation
-
-If the compiler output ever needs to be re-generated (e.g., to test
-compiler improvements), the patches above are mechanical and should be
-re-applied to the fresh compile. Alternative: extract the post-patch
-scoring tables into a fixture file that the compiler can be asked to
-preserve verbatim.
-
-## Cross-references
-
-- `Multi-Party Negotiation Scenarios.md` — Susskind narrative source
-- `NEXT_STEPS.md` §11 — competitive scoring path discussion + §11.b Path A test
-- `RESEARCH_NOTES.md` Note 2 — coalition-exclusion gap diagnosis
-- `ASSESSMENT.md` §3.6 — coalition-value scoring lens specification
-- `DECISIONS.md` D-56 — direction commit putting Path B + Path A on Tier 1
-- `scenarios/three_party_coalition.md` — original narrative
-- Conversation log 2026-06-12 — patch decisions discussed in detail
+- Phase 2b would surface partial-coalition formation during gameplay
+  (in `RoundSteppedFlow` / round loop), not just at game end. Today the
+  LLM scorer at game-end is the only consumer.
+- The synthetic `coalition_formation` issue is now somewhat redundant
+  with `coalition_values` as the canonical source for partial outcomes.
+  Future cleanup could deprecate it.
