@@ -33,7 +33,7 @@ criterion, and the prototyped broadening moves (multi-cell flips, issue-scoped
 - `4c67abb` — Phase 42 C4: Re-probe + Phase 3 C3 decision
 - `19e6a39` — Phase 42 C5a: Relative `batna_clearing_count_target` (spec
   language) + probe `--relative-batna` flag
-- `<C5B_HASH>` — Phase 42 C5b: Builder determinism fix (PYTHONHASHSEED-
+- `8a384c3` — Phase 42 C5b: Builder determinism fix (PYTHONHASHSEED-
   independent `_seed_scoring_table`) + 4×4×4 / determinism regression tests.
   Broadening hypothesis refuted & reverted.
 
