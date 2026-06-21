@@ -275,22 +275,32 @@ no module-level state, no caches that persist across calls.
 - `scenario_authoring.verify_scenario_optimum`: prints its report to stdout
   (not via logger).
 
-## Scaling expectations (Phase 3 / Phase 41)
+## Scaling expectations (Phases 3 / 41 / 42)
 
 `tools/scenario_builder_scale_probe.py` characterized convergence across
-dimensions; see `scenarios/scale_probe_summary.md` for the full data.
-Headline (with fixed `pareto_count_target=(3, 5)`):
+dimensions; see `scenarios/scale_probe_summary.md` for the original data and
+`scenarios/c5b_final_singlecell_summary.md` for the post-Phase-42 matrix.
+
+Post-Phase-42 (deterministic builder, relative `batna_clearing_count_target`,
+`max_restarts=50`):
 
 | Axis | Behavior |
 |---|---|
-| Factions (F) | Healthy through F=5; fragile at F=6 even with D=27 |
-| Issues (I) | Hard cliff at I>=4: zero acceptance regardless of wall-clock |
-| Outcomes-per-issue (O) | Graceful degradation; 3/3 at 3x3x4, 1/3 at 3x3x6 |
+| Factions (F) | Healthy through F=5; F=6 reliable after Phase 42 C1 F-aware biasing |
+| Issues (I) | I≥4 reachable after Phase 42 C5a (relative `batna_clearing_count_target`); 3×4×3 reliable (3/3), 4×4×4 ≈2/3 |
+| Outcomes-per-issue (O) | Graceful degradation; 3/3 at 3×3×4, 1/3 at 3×3×6 |
 
-The I-axis cliff is structural to the spec language, not the algorithm:
-fixed `pareto_count_target` becomes infeasible as the natural Pareto
-frontier grows with deal space. Phase 42 (queued) addresses this with
-relative target semantics + F-aware biasing.
+**4+ factions / 4+ issues criterion is MET:** 4×4×4 / D=256 reaches ≥2/3
+acceptance (2/3 seeds=3, 4/6 seeds=6). Two structural lessons from Phase 42:
+
+- The original I-axis "cliff" was **spec-semantic, not algorithmic**: a fixed
+  absolute `batna_clearing_count_target` becomes infeasible as the deal space
+  grows. Relative (fraction-of-D) targets fix it (Phase 42 C5a).
+- The builder is **deterministic across processes** (Phase 42 C5b): it consumes
+  RNG in fixed `spec.factions` order, not `PYTHONHASHSEED`-dependent set/dict
+  iteration order. Probe results are therefore reproducible. A broadened SA
+  move neighborhood (multi-cell / issue-scoped / outcome-rank swaps) was tried
+  and **made high-D convergence worse**; the single-cell neighborhood is kept.
 
 ## Usage Examples
 

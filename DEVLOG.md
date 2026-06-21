@@ -4,13 +4,42 @@
      Newest entries at the top. Each step or milestone gets a structured entry.
      This is the audit trail.
 
+## 2026-06-21 — Phase 42 COMPLETE: C5a + C5b + close-out
+
+Action: MULTI-COMMIT (operator-supervised)
+Mode: Algorithm + spec-language + docs
+Outcome: Phase 42 closed. PROJECT.md "4+ factions / 4+ issues" success
+criterion MET — 4×4×4 / D=256 reaches ≥2/3 probe acceptance, locked by
+`tests/test_scenario_builder_scale.py::test_builds_4x4x4_in_budget`.
+
+- **C5a (`19e6a39`)** — relative `batna_clearing_count_target` (float = fraction
+  of deal space), mirroring C2. Resolves the 3×4×3 (D=81) I-axis cliff outright
+  (0/3 → 3/3) with pareto left absolute, isolating the batna target as the
+  active ingredient. The cliff was spec-semantic, not algorithmic.
+- **C5b (`8a384c3`)** — builder determinism fix. `_seed_scoring_table` consumed
+  RNG in `PYTHONHASHSEED`-randomized set/dict iteration order of faction
+  strings, making the builder non-reproducible across processes and the scale
+  probe unreliable. Fixed to iterate `spec.factions` in fixed order. The planned
+  neighborhood-broadening (multi-cell / issue-scoped / outcome-rank swaps) was
+  prototyped, probed, and REFUTED — it made high-D convergence *worse* — and
+  reverted. With determinism, single-cell already meets the 4×4×4 criterion
+  (4/6 seeds=6 vs multi-cell 2/6). See D-59. Locked by `TestBuilderDeterminism`
+  + `test_builds_4x4x4_in_budget`. Gate: `pytest tests/test_scenario_*` = 114 passed.
+- **Close-out** — PROJECT.md criterion marked MET; `ARCH_scenario_authoring.md`
+  + `SCENARIO_GUIDE.md` scaling sections updated with post-Phase-42 data;
+  `DECISIONS.md` D-59 added (+ D-54 revisit-fired note); `PHASE_42_PLAN.md`
+  deleted (transient plan — findings live in D-59 + the ARCH/GUIDE docs).
+
+Evidence: `scenarios/c5a_probe_*.jsonl`, `scenarios/c5b2_*.jsonl`,
+`scenarios/c5b_final_singlecell*.{jsonl,md}`.
+
 ## 2026-06-21 — Session close: scenario tooling reorg + Phase 42 C1-C4
 
 Action: MULTI-PHASE (operator-supervised)
 Mode: Cross-cutting (architecture, schema, algorithm, docs)
 Outcome: Five workstreams shipped across a single long session. Scenario tooling is now a first-class subsystem with deliberate public API, first-class coalition support, empirical scaling data, and partial algorithm fixes.
 
-Resumes via: `PHASE_42_PLAN.md` "Cold Start" section at top. That file alone has everything a future session needs to pick up Phase 42 Commit 5 (I-axis convergence).
+Resumes via: `PHASE_42_PLAN.md` "Cold Start" section at top. That file alone has everything a future session needs to pick up Phase 42 Commit 5 (I-axis convergence). *(SUPERSEDED 2026-06-21: Phase 42 is complete and `PHASE_42_PLAN.md` was deleted — see the top entry + DECISIONS.md D-59.)*
 
 Phases shipped this session (in execution order):
 - **DIAGRAMS reorg** — replaced single dense `_arch_diagrams.md` with layered `DIAGRAMS.md` (Overview + Lifecycle + 3 per-phase drill-downs each with structural flowchart + sequence diagram). Old file deleted; README pointer updated.
@@ -25,7 +54,7 @@ Phases shipped this session (in execution order):
 - **Phase 42 Commits 1-4** — algorithm + spec-language work driven by Phase 3 data. C1 cheap wins (F-aware biasing + deepcopy removal; 6×3×3 went 1/3 → 2/3). C2 relative `pareto_count_target` (spec language extends to fractional form; but C2 probe refuted the hypothesis that relativizing one target fixes the I-axis cliff). C3 Skyline Pareto (9.7× wall-clock speedup at D=256; convergence unchanged as expected). C4 post-Phase-42 full re-probe (matrix in 8.5 min vs 51 min pre-42; 6×3×3 reaches 3/3; 4×4×4 still 0/3; PROJECT.md "scales to 4+ factions/4+ issues" success criterion half-met; Phase 3 C3 regression test stays deferred).
 
 What is queued (resume from `PHASE_42_PLAN.md`):
-- Phase 42 Commit 5 (sub-plan in PHASE_42_PLAN.md): C5a relativize `batna_clearing_count_target`; C5b algorithmic neighborhood broadening; C5c (optional) target-weight rebalancing. C5a is the lowest-risk start.
+- Phase 42 Commit 5 (sub-plan in PHASE_42_PLAN.md): C5a relativize `batna_clearing_count_target`; C5b algorithmic neighborhood broadening; C5c (optional) target-weight rebalancing. C5a is the lowest-risk start. *(DONE 2026-06-21: C5a shipped; C5b shipped as a determinism fix — broadening refuted; C5c not needed. Phase 42 complete.)*
 
 What is deferred (tracked in NEXT_STEPS.md or out-of-scope notes):
 - Phase 2b (runtime partial-agreement detection in `RoundSteppedFlow`).

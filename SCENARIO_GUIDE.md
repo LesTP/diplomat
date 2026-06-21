@@ -83,18 +83,20 @@ data, absolute `pareto_count_target=(3, 5)`):
 | Axis | What works reliably | Where it breaks |
 |---|---|---|
 | **Factions (F)** | F=3, 4, 5, **6** (Phase 42 C1 fixed the F=6 cliff) | F=7+ unmeasured |
-| **Issues (I)** | I=3 only | **I ≥ 4 fails 0/3** under fixed targets (Phase 42 C5 work pending) |
+| **Issues (I)** | I=3 reliable; **I=4 reachable** with relative `batna_clearing_count_target` (Phase 42 C5a) | I=5+ unmeasured under default targets |
 | **Outcomes (O)** | O=3, 4 healthy | O=5: 2/3 acceptance; O=6: 1/3 acceptance (graceful degradation) |
 | **Wall-clock** | ~25s for 4×4×4 (D=256); ~65s for 3×6×3 (D=729) | Phase 42 C3 Skyline algorithm dropped these ~10× from the pre-Phase-42 baseline |
 
 PROJECT.md's "scales to 4+ factions / 4+ issues" success criterion:
-**4+ factions ✅ met, 4+ issues ❌ not yet** — gated on Phase 42 C5
-work (queued; sub-plan in `PHASE_42_PLAN.md`).
+**MET (Phase 42)** — 4 factions ✅ (C1) and 4 issues ✅ (C5a relative
+`batna_clearing_count_target`); 4×4×4 reaches ≥2/3 acceptance with the
+deterministic builder (C5b). See `DECISIONS.md` D-59.
 
 ### What's NOT yet supported
 
-- **4+ issue scenarios with default fitness targets** — work them around
-  by trying relaxed `pareto_count_target` ranges; reliable fix in Phase 42 C5
+- **4+ issue scenarios with default fitness targets** — use relative
+  `batna_clearing_count_target` (fraction of D) instead of absolute counts;
+  this is the Phase 42 C5a fix that made I≥4 reliable
 - **Runtime partial-coalition detection during gameplay** — today
   `score_game` (post-game scorer) is the only consumer of `coalition_values`.
   Phase 2b would surface coalition formation in `RoundSteppedFlow` so
@@ -353,31 +355,31 @@ JSON to populate it.
 
 ## Scaling expectations
 
-Empirical scaling data from Phase 3's matrix sweep
-(`scenarios/scale_probe_summary.md`). With fixed
-`pareto_count_target=(3, 5)`:
+Original Phase 3 matrix sweep (`scenarios/scale_probe_summary.md`) with a
+**fixed absolute** `pareto_count_target=(3, 5)` showed hard cliffs. Phase 42
+resolved them; post-Phase-42 data is in
+`scenarios/c5b_final_singlecell_summary.md`.
 
-| Axis | What works | What breaks |
-|---|---|---|
-| **Factions (F)** | 3, 4, 5 healthy | 6 fragile (1/3 acceptance) |
-| **Issues (I)** | 3 only | I ≥ 4 fails 0/3 — the natural Pareto frontier grows with deal space, fixed target becomes infeasible |
-| **Outcomes-per-issue (O)** | Up to ~4 healthy | 5, 6 gradual degradation |
-| **Balanced (e.g., 4×4×4)** | — | Fails 0/3 |
+| Axis | Post-Phase-42 (relative targets, deterministic builder) |
+|---|---|
+| **Factions (F)** | 3–5 healthy; 6 reliable (C1 F-aware biasing) |
+| **Issues (I)** | I ≥ 4 reachable with relative `batna_clearing_count_target` (3×4×3 reliable) |
+| **Outcomes-per-issue (O)** | Up to ~4 healthy; 5, 6 gradual degradation |
+| **Balanced 4×4×4 (D=256)** | ≈2/3 acceptance — PROJECT.md criterion MET |
 
-**Practical authoring rules of thumb (pre-Phase-42):**
+**Practical authoring rules of thumb (post-Phase-42):**
 
-- Stay at I ≤ 3 (issues per scenario)
-- F ≤ 5 (factions)
-- O ≤ 4 (outcomes per issue) for reliable convergence
-- If you need more dimension on one axis, drop others
-- If the builder fails to converge on a spec you believe is feasible:
-  loosen `pareto_count_target` (try a wider range, e.g., `[3, 12]`) — the
-  frontier may simply be bigger than expected
-
-Phase 42 (queued; gated on `PHASE_42_PLAN.md`) will add scale-aware spec
-language (`pareto_count_target` as a fraction of deal space) which is
-expected to make 4×4×4 and beyond reliably convergent without changing
-the algorithm.
+- Use **relative** targets at higher dimensions: set `batna_clearing_count_target`
+  (and optionally `pareto_count_target`) as a *fraction of the deal space*
+  (a float in (0, 1], e.g. `0.20`) instead of an absolute count. Absolute
+  counts become structurally infeasible as the deal space grows — this was the
+  real cause of the old I-axis "cliff", not the search algorithm.
+- 4×4×4 is reliable; 4 factions / 4 issues is the validated ceiling. Beyond
+  that (5×5×5+) is unmeasured/out of scope — drop other axes if you push one.
+- If a spec you believe is feasible won't converge, prefer relativizing its
+  count targets before loosening ranges.
+- The builder is deterministic: same seed → same scenario, reproducibly across
+  machines and processes.
 
 ## Probing scaling for new dimensions
 

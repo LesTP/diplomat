@@ -31,7 +31,7 @@ The coaching product (live Telegram games via `OperatorReviewGate`, coached self
 - [in] Path B coalition-exclusion scoring engine (NEXT_STEPS §11) — extends scenario schema with `coalition_values`, modifies `score_game()` to detect partial-agreement coalitions
 - [in] Rank-based scoring lens (`rank_among_factions`) for mixed-model populations
 - [in] Scenario library expansion: distributive bargaining, asymmetric-BATNA-with-walkaway, hidden-value bluff, Susskind coalition variants
-- [in] Phase 41/42 scale-matrix verification → 4+ factions / 4+ issues scenarios
+- [done] Phase 41/42 scale-matrix verification → 4+ factions / 4+ issues scenarios (criterion MET at 4×4×4; see Success Criteria)
 - [in] Phase 39 exogenous events (mid-round shocks recomputing BATNAs)
 - [deferred] Tournament harness (multi-game round-robin with position rotation; cross-game state) — Phase 40 candidate, promote when benchmark scale demands it
 
@@ -73,7 +73,7 @@ The coaching product (live Telegram games via `OperatorReviewGate`, coached self
 - Multi-model populations produce rank-discriminating outcomes on at least one scenario class (validates Note 2 Path A/B/C — required before "X model wins" claims are meaningful)
 - Scoring lenses surface meaningful differentiation across at least 5 distinct behaviors observed to date: strategic refusal, balanced-consensus coordination, stuck-but-engaged convergence, identity-confusion failure, BATNA-floored deadlock
 - Scenario library covers at least 4 axes: BATNA-Pareto gap, Pareto count, coalition coerciveness, pressure profile (with reverse builder validating each spec mechanically)
-- Reverse scenario builder scales to 4+ factions / 4+ issues (Phase 41/42)
+- Reverse scenario builder scales to 4+ factions / 4+ issues — **MET** (Phase 42): 4×4×4 / D=256 reaches ≥2/3 probe acceptance at `max_restarts=50` (relative `batna_clearing_count_target` + deterministic builder). Locked by `tests/test_scenario_builder_scale.py::test_builds_4x4x4_in_budget`.
 - Per-cell run cost is predictable and bounded — no toolkit-side bugs (e.g., empty-content retry loops) silently burn budget
 - Campaigns produce findings that survive cross-model and cross-scenario testing (the Note 1 / Note 2 framings continue to evolve with data)
 
@@ -86,7 +86,7 @@ The coaching product (live Telegram games via `OperatorReviewGate`, coached self
 | Surface | MVP Scope | Status |
 |---|---|---|
 | Self-play harness | `GameEnvironment` + `RoundSteppedFlow` + `--per-faction-providers` | ✓ Operational |
-| Scenario authoring | `scenario_authoring.scenario_compiler` + `scenario_authoring.scenario_builder` (3×3×3 validated) | ✓ Operational |
+| Scenario authoring | `scenario_authoring.scenario_compiler` + `scenario_authoring.scenario_builder` (4×4×4 validated, Phase 42) | ✓ Operational |
 | Scoring | BATNA-relative, Pareto efficiency, vs-naive baselines, 5 process signatures | ✓ Operational |
 | Multi-provider | OpenAI, Anthropic, Google, OpenRouter (incl. reasoning models post-toolkit `606e309`) | ✓ Operational |
 | Ablation | Bare-mode toggle (Phase 34) | ✓ Operational |
