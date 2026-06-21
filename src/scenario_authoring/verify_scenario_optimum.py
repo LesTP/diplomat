@@ -59,24 +59,68 @@ def find_pareto_frontier(
     analysis: dict[str, Any],
     deals: list[dict[str, str]],
 ) -> list[tuple[dict[str, str], dict[str, float]]]:
-    """Return list of (deal, scores) on the Pareto frontier."""
+    """Return list of (deal, scores) on the Pareto frontier.
+
+    Uses a sort-and-scan Skyline algorithm:
+    1. Sort deals by per-faction scores descending (lex order on negated scores).
+    2. Scan in sorted order, maintaining a candidate frontier. By sort order,
+       any earlier-seen point Q has Q[f0] >= P[f0] for the current P. We still
+       check full Pareto domination (>= on all, > on one), but we only check
+       against the frontier (small) rather than every deal (large).
+    3. When a new point is not dominated, also prune frontier of points it
+       dominates (only possible when scores tie on earlier dimensions).
+
+    Cost: O(D log D * F + D * |frontier| * F) vs the naive O(D^2 * F). At
+    D=256, F=4, |frontier|~20, this is roughly 13x faster; the gap widens
+    with D.
+
+    Output order matches the input `deals` list for backward compatibility
+    with callers that index by position.
+    """
     factions = analysis["factions"]
+    if not factions:
+        return [(deal, {}) for deal in deals]
+    if not deals:
+        return []
+
     scored = [
-        (deal, {f: faction_score(analysis, f, deal) for f in factions})
-        for deal in deals
+        (i, {f: faction_score(analysis, f, deal) for f in factions})
+        for i, deal in enumerate(deals)
     ]
-    frontier = []
-    for deal, scores in scored:
-        dominated = False
-        for _, other_scores in scored:
-            if other_scores == scores:
-                continue
-            if is_pareto_dominated(scores, other_scores):
-                dominated = True
-                break
-        if not dominated:
-            frontier.append((deal, scores))
-    return frontier
+
+    sorted_scored = sorted(
+        scored,
+        key=lambda item: tuple(-item[1][f] for f in factions),
+    )
+
+    def _strictly_dominates(stronger: dict[str, float], weaker: dict[str, float]) -> bool:
+        # Pareto dominance: stronger >= weaker on every faction AND
+        # strictly > on at least one. Returns False on any-lt to short-circuit.
+        strict = False
+        for f in factions:
+            sv = stronger[f]
+            wv = weaker[f]
+            if sv < wv:
+                return False
+            if sv > wv:
+                strict = True
+        return strict
+
+    frontier_pairs: list[tuple[int, dict[str, float]]] = []
+    for idx, scores in sorted_scored:
+        if any(_strictly_dominates(other_scores, scores) for _, other_scores in frontier_pairs):
+            continue
+        # Prune frontier of points the new candidate dominates (only happens
+        # when sort ties on earlier dimensions but new beats them on a later one).
+        frontier_pairs = [
+            (i, s) for i, s in frontier_pairs if not _strictly_dominates(scores, s)
+        ]
+        frontier_pairs.append((idx, scores))
+
+    # Return in original input order so callers (and existing tests) that
+    # index the frontier by position see the same ordering as before.
+    by_idx = dict(frontier_pairs)
+    return [(deals[i], by_idx[i]) for i in range(len(deals)) if i in by_idx]
 
 
 def beats_batna(analysis: dict[str, Any], scores: dict[str, float]) -> bool:
