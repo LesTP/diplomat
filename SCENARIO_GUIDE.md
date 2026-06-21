@@ -7,6 +7,126 @@ module details, see the same.
 
 ---
 
+## What this subsystem does (capabilities snapshot, 2026-06-21)
+
+A pre-game subsystem for constructing negotiation scenarios that the
+self-play harness (`tests/self_play/`) consumes. Two directions, one
+canonical artifact format, plus shared verification + fitness libraries
+and an empirical scaling probe.
+
+### Currently supported scenario classes
+
+| Class | Status | Authoring path |
+|---|---|---|
+| **Full-cooperation** (everyone agrees on a deal) | ✅ Reliable | Compiler (narrative) or Builder (constraint) |
+| **Coalition-coercive** (partial-agreement payoffs matter; Susskind-style) | ✅ Schema + scoring first-class as of Phase 2a | Compiler extracts `coalition_values` from narratives; builder stubs `[]` for operator hand-fill |
+| **Distributive bargaining / hidden-value / adversarial** | Queued | Add scenario class definitions; share compiler/builder |
+
+### What you can do today
+
+**Authoring:**
+- Compile a narrative `.md` into structured analysis + per-faction personas via LLM
+- Reverse-build a scenario from a `ScenarioSpec` (constraint-driven search; no LLM)
+- Layer LLM-authored prose onto a builder-emitted stub via `--fill-narrative-only`
+- Compose with the **scale-aware spec language** introduced in Phase 42 C2:
+  `pareto_count_target` accepts either absolute counts (`(3, 5)`) or
+  fractions of deal space (`(0.05, 0.15)` = 5–15% of D)
+- Hand-edit a compiled analysis (BATNAs, pressure, coalition_values) and
+  regenerate personas without re-running the compiler
+
+**Verification + characterization:**
+- `verify_scenario_optimum` — payoff-structure report for any
+  `scenario_analysis.json` (Pareto frontier, batna-clearing count,
+  priority issues, logrolling availability)
+- `verify_scenario_pressure` — round-pressure invariants check
+- `tools/scenario_builder_scale_probe.py` — characterize builder
+  convergence + wall-clock across (F, I, O) cells; outputs JSONL +
+  auto-summary markdown; serves as a regression gate for future
+  algorithm changes
+
+**Scoring** (in `GameEnvironment.score_game`):
+- Full-agreement deals: standard faction-score on agreed outcomes
+- Partial coalitions with `coalition_values` match: members get their
+  values; excluded factions fall back to BATNA
+- Partial coalitions without matching values: treated as no-deal (all
+  BATNA, conservative)
+- No deal: all BATNA
+
+### Programmatic surface
+
+```python
+from scenario_authoring import (
+    # Spec types
+    ScenarioSpec, IssueSpec, load_spec, dump_spec,
+    # Construction entry points
+    build_and_save_scenario,           # constraint-driven (builder)
+    analyze_scenario, fill_narrative,  # narrative-driven (compiler)
+    # Fitness
+    compute_fitness, FitnessResult,
+    # Analysis utilities
+    enumerate_deals, find_pareto_frontier, faction_score, beats_batna,
+    # Constants
+    SCENARIO_ANALYSIS_SCHEMA, DEFAULT_BATNA_FRACTION,
+)
+```
+
+15 curated symbols pinned by a contract test. Internal helpers
+(`generate_persona`, `save_persona`, `force_batna_targets`,
+`parse_batna_fractions_json`, etc.) remain importable from submodules
+but are deliberately not re-exported.
+
+### Empirical scaling characteristics
+
+From `scenarios/scale_probe_summary_post_phase42_absolute.md` (post-Phase-42
+data, absolute `pareto_count_target=(3, 5)`):
+
+| Axis | What works reliably | Where it breaks |
+|---|---|---|
+| **Factions (F)** | F=3, 4, 5, **6** (Phase 42 C1 fixed the F=6 cliff) | F=7+ unmeasured |
+| **Issues (I)** | I=3 only | **I ≥ 4 fails 0/3** under fixed targets (Phase 42 C5 work pending) |
+| **Outcomes (O)** | O=3, 4 healthy | O=5: 2/3 acceptance; O=6: 1/3 acceptance (graceful degradation) |
+| **Wall-clock** | ~25s for 4×4×4 (D=256); ~65s for 3×6×3 (D=729) | Phase 42 C3 Skyline algorithm dropped these ~10× from the pre-Phase-42 baseline |
+
+PROJECT.md's "scales to 4+ factions / 4+ issues" success criterion:
+**4+ factions ✅ met, 4+ issues ❌ not yet** — gated on Phase 42 C5
+work (queued; sub-plan in `PHASE_42_PLAN.md`).
+
+### What's NOT yet supported
+
+- **4+ issue scenarios with default fitness targets** — work them around
+  by trying relaxed `pareto_count_target` ranges; reliable fix in Phase 42 C5
+- **Runtime partial-coalition detection during gameplay** — today
+  `score_game` (post-game scorer) is the only consumer of `coalition_values`.
+  Phase 2b would surface coalition formation in `RoundSteppedFlow` so
+  agents/operator can see it forming, not just at the end
+- **Builder emission of non-empty `coalition_values`** — currently always
+  stubbed `[]`; operator hand-edits the JSON for coalition-coercive specs.
+  Phase 42 / Phase 2b deferred item: `ScenarioSpec.requires_coalition_values`
+  flag
+- **`fill_narrative()` extension for `coalition_values`** — today only
+  fills `logrolling` and `deception_tactics`. Deferred to Phase 2b
+
+### Newly answerable benchmark questions (after Phase 2a)
+
+These were not cleanly answerable before this session's work; coalition
+support was hand-patched into scoring tables of synthetic issues, and the
+scoring engine treated agreement as binary deal/no-deal:
+
+- **"Does model X get excluded by others forming a coalition without it?"**
+  `score_game` now returns distinct outcomes for partial-coalition formation
+  (AB-against-C scored differently from no-deal)
+- **"Which models recognize partial-coalition Pareto outcomes?"** Scorable
+  distinctly from full-agreement Pareto deals
+- **"What's a model's strategic-refusal pattern on coalition-coercive
+  scenarios?"** Observable in scoring + process signatures
+- **"Does the agreeableness-bias problem hold when partial-coalition
+  payoffs are first-class data?"** Mixed-model runs can now produce
+  "X wins via coalition AB without Y" instead of always deadlocking at
+  BATNA — the structural blocker on RESEARCH_NOTES Note 2 Path B is
+  cleared at the schema level
+
+---
+
 ## When to use what
 
 There are two ways to author a scenario for the harness. Pick by what you
