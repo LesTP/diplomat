@@ -344,11 +344,12 @@ Rationale: The fitness landscape over integer scoring tables is discrete and rel
 Revisit if: Larger scenarios (6+ factions, 6+ issues) produce unacceptably long search times with hill-climb, indicating a need for a better-than-random global strategy.
 
 D-52: Reuse verify_scenario_optimum.py pure functions without refactoring
-Date: 2026-06-10 | Status: Closed (Phase 35 complete 2026-06-10; unchanged in Phase 36)
+Date: 2026-06-10 | Status: **Superseded by D-58** (2026-06-21)
 Priority: Routine
 Decision: Phase 35 imports `enumerate_deals`, `find_pareto_frontier`, `faction_score`, `beats_batna`, and `find_priority_issues` directly from `src/scenario_authoring/verify_scenario_optimum.py` rather than moving them to a shared library.
 Rationale: These functions are pure (no I/O, no dependencies), already tested in place, and their home in the test tree is appropriate — they validate game outcomes. Moving them to `src/` would be premature abstraction and would force a test-infrastructure change. The fitness module simply imports from `tests/`.
 Revisit if: A third consumer needs the same functions, at which point extracting to a shared utility module is justified.
+Update (2026-06-21): superseded by D-58. The revisit trigger fired implicitly when direct-Python entry points (the Phase 3 scale probe) needed the production code to NOT depend on `tests/` to avoid sys.path workarounds. File moved to `src/scenario_authoring/verify_scenario_optimum.py`.
 
 D-53: Logrolling and deception_tactics emitted as stubs in Phase 35
 Date: 2026-06-10 | Status: Closed (Phase 35 complete 2026-06-10; stub approach still in place)
@@ -384,3 +385,17 @@ What changes downstream:
 - **Reframed.** ASSESSMENT §5 workstream blocks: Block C (game creation, scoring, assessment) becomes the primary investment surface; Block A (architecture/memory) stays infrastructure; Block B (prompt tuning) demotes to "tunings that affect benchmark results" only — persona-tuning for live-game performance drops out.
 
 Revisit if: (a) a real game opportunity emerges with a concrete deadline (e.g., Clanker Courts live deployment, a hosted multiplayer Diplomacy event) that makes the coaching product immediately useful, (b) benchmark findings stall — three+ consecutive experimental campaigns produce no new discrimination signal — suggesting the benchmark surface itself has hit a ceiling, or (c) external pressure makes the operator-coaching framing more valuable than the research framing (Meta product use case, paper deadline, etc.).
+
+D-57: Decline `tools/` directory rename to `scripts/`
+Date: 2026-06-21 | Status: Closed
+Priority: Routine
+Decision: The repo's top-level `tools/` directory (shell scripts + helper Python) stays as `tools/`. The Phase 1 motivation for considering a rename — ambiguity between `src/tools/` (the scenario package) and `tools/` (the shell dir) — is now obsolete because Phase 1 Commit 1 deleted `src/tools/`. The remaining `tools/` at root has one unambiguous meaning by convention.
+Rationale: The rename's blast radius is ~25 files (17 Python + 8 shell) plus ~133 doc lines across live docs, for a payoff that no longer exists. Better to spend the effort elsewhere.
+Revisit if: A second project-internal directory with `tools` in its name appears AND ambiguity becomes a documented friction point.
+
+D-58: Move verify_scenario_optimum.py into scenario_authoring package
+Date: 2026-06-21 | Status: Closed (commit 8be36c8)
+Priority: Routine
+Decision: `verify_scenario_optimum.py` (247 lines: 7 pure library functions + CLI main) moved from `tests/self_play/` to `src/scenario_authoring/`. Filename unchanged; namespace shifts from `tests.self_play.verify_scenario_optimum` to `scenario_authoring.verify_scenario_optimum`.
+Rationale: D-52 documented the prior decision to keep this in tests/, expecting a third consumer would justify extraction. The implicit trigger fired during Phase 3 — the scale probe needed direct Python import of the production code, but the `tests.self_play.*` namespace required a project-root sys.path hack to resolve. Moving the file removed the coupling, eliminated the hack, and the CLI now reads naturally as `python -m scenario_authoring.verify_scenario_optimum`.
+Revisit if: Some unforeseen consumer in `tests/self_play/` would benefit from a closer co-location, but unlikely given the file's pure-library shape.

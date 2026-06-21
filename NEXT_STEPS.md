@@ -767,6 +767,25 @@ Not mutually exclusive. Same infra, different scoring conventions, different sce
 
 ## Backlog — still-open items
 
+### `coalition_formation` synthetic issue redundancy (Phase 2b candidate)
+
+After Phase 2a landed `coalition_values` as a first-class field on
+`scenario_analysis.json`, the synthetic `coalition_formation` issue in
+`scenarios/three_party_coalition_v1/` (with outcomes a_b, a_c, b_c, a_b_c
+and per-faction scoring tables encoding the same payoffs that
+`coalition_values` now expresses) is **partially redundant** but NOT cleanly
+removable. The issue is still what agents negotiate over (the schema
+requires `issues` non-empty; the outcomes give agents a vocabulary).
+
+- [ ] **Rationalize coalition-coercive scenario representation.** When
+      Phase 2b reworks the agents-vs-engine semantics for partial-coalition
+      detection, decide whether the synthetic issue stays as-is (current
+      shape, slightly redundant), simplifies (only ABC outcome scored
+      explicitly; partial coalitions purely via `coalition_values`), or is
+      replaced by a different agent-facing surface entirely. Out of scope
+      for Phase 3 cleanup pass — this is a real design decision, not a
+      mechanical refactor.
+
 ### Surplus distribution favors the un-pressured neutral-on-bottleneck faction
 
 In both deal-reaching runs to date — Run 9 β-squeezed (deltas [+6, +3, +11])
