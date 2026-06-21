@@ -803,6 +803,116 @@ class TestBaselines:
         assert scores["max_pareto_sum"] == 20
 
 
+def _coalition_scenario() -> dict:
+    # 3-faction coalition-coercive: AB pair has defined coalition value,
+    # AC and BC do not (will fall through to no-deal at BATNA).
+    return {
+        "factions": ["a", "b", "c"],
+        "issues": [{"name": "coalition_choice", "outcomes": ["form", "skip"]}],
+        "scoring": {
+            "a": {"coalition_choice": {"form": 7, "skip": 0}},
+            "b": {"coalition_choice": {"form": 7, "skip": 0}},
+            "c": {"coalition_choice": {"form": 7, "skip": 0}},
+        },
+        "batna": {"a": 2, "b": 2, "c": 2},
+        "coalition_values": [
+            {"members": ["a", "b"], "values": {"a": 9, "b": 10}},
+        ],
+    }
+
+
+@pytest.mark.asyncio
+async def test_score_game_partial_coalition_with_values(tmp_path: Path) -> None:
+    # AB coalition forms; coalition_values defines AB -> a:9, b:10. C dissents.
+    env = _make_env(
+        tmp_path,
+        llm_responses=[{
+            "deal_reached": True,
+            "agreed_outcomes": {"coalition_choice": "form"},
+            "coalition_members": ["a", "b"],
+            "reasoning": "A and B agreed; C dissented.",
+        }],
+        scenario_analysis=_coalition_scenario(),
+    )
+
+    scores = await env.score_game({"a": "form", "b": "form", "c": "skip"})
+
+    fs = scores["faction_scores"]
+    assert fs["a"]["points"] == 9
+    assert fs["b"]["points"] == 10
+    assert fs["c"]["points"] == 2  # excluded -> BATNA
+    assert fs["c"]["batna"] == 2
+
+
+@pytest.mark.asyncio
+async def test_score_game_partial_coalition_without_matching_values_falls_back_to_batna(
+    tmp_path: Path,
+) -> None:
+    # AC coalition forms; coalition_values has NO entry for AC -> all at BATNA.
+    env = _make_env(
+        tmp_path,
+        llm_responses=[{
+            "deal_reached": True,
+            "agreed_outcomes": {"coalition_choice": "form"},
+            "coalition_members": ["a", "c"],
+            "reasoning": "A and C agreed; B dissented. No coalition_values for AC.",
+        }],
+        scenario_analysis=_coalition_scenario(),
+    )
+
+    scores = await env.score_game({"a": "form", "b": "skip", "c": "form"})
+
+    fs = scores["faction_scores"]
+    assert fs["a"]["points"] == 2  # all fall back to BATNA
+    assert fs["b"]["points"] == 2
+    assert fs["c"]["points"] == 2
+
+
+@pytest.mark.asyncio
+async def test_score_game_full_agreement_ignores_coalition_members(
+    tmp_path: Path,
+) -> None:
+    # All 3 factions agree; coalition_members may be returned but is not a strict
+    # subset -> falls through to standard faction_score() path.
+    env = _make_env(
+        tmp_path,
+        llm_responses=[{
+            "deal_reached": True,
+            "agreed_outcomes": {"coalition_choice": "form"},
+            "coalition_members": ["a", "b", "c"],  # full set; not partial
+            "reasoning": "All three converged.",
+        }],
+        scenario_analysis=_coalition_scenario(),
+    )
+
+    scores = await env.score_game({"a": "form", "b": "form", "c": "form"})
+
+    fs = scores["faction_scores"]
+    # faction_score(form) = 7 for each per the scenario.
+    assert fs["a"]["points"] == 7
+    assert fs["b"]["points"] == 7
+    assert fs["c"]["points"] == 7
+
+
+@pytest.mark.asyncio
+async def test_score_game_no_deal_all_batna(tmp_path: Path) -> None:
+    env = _make_env(
+        tmp_path,
+        llm_responses=[{
+            "deal_reached": False,
+            "reasoning": "No agreement reached.",
+        }],
+        scenario_analysis=_coalition_scenario(),
+    )
+
+    scores = await env.score_game({"a": "skip", "b": "skip", "c": "skip"})
+
+    fs = scores["faction_scores"]
+    assert fs["a"]["points"] == 2
+    assert fs["b"]["points"] == 2
+    assert fs["c"]["points"] == 2
+
+
 # ── Process signatures ──────────────────────────────────────────────
 
 

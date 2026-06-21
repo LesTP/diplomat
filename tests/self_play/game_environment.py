@@ -164,6 +164,22 @@ class AgentHandle:
     task: asyncio.Task[None]
 
 
+def _find_coalition_value(
+    analysis: dict[str, Any],
+    members: list[str],
+) -> dict[str, Any] | None:
+    """Look up a coalition_values entry matching `members` (by sorted-set equality).
+
+    Returns the entry dict (with `members` and `values` keys) if found, else None.
+    Empty / missing `coalition_values` -> None.
+    """
+    target = sorted(members)
+    for entry in analysis.get("coalition_values") or []:
+        if sorted(entry.get("members", [])) == target:
+            return entry
+    return None
+
+
 class GameEnvironment:
     """Coordinate a multi-agent self-play simulation."""
 
@@ -594,6 +610,16 @@ class GameEnvironment:
                     "additionalProperties": {"type": "string"},
                     "description": "Issue name -> agreed outcome, if deal reached. Required when deal_reached is true.",
                 },
+                "coalition_members": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": (
+                        "If a STRICT SUBSET of factions converged on terms while "
+                        "one or more dissented, list the agreeing factions here. "
+                        "Leave empty or omit if all factions agreed (full deal) "
+                        "or no deal was reached."
+                    ),
+                },
                 "reasoning": {"type": "string"},
             },
         }
@@ -616,19 +642,21 @@ class GameEnvironment:
             system_prompt=(
                 "You are a negotiation game scorer. Given the final round's "
                 "proposals from all factions, determine:\n"
-                "1. Whether a deal was reached (did all factions converge on "
-                "compatible terms?)\n"
+                "1. Whether a deal was reached (did at least a subset of "
+                "factions converge on compatible terms?)\n"
                 "2. If yes, what the agreed outcomes are per issue.\n"
+                "3. If only a STRICT SUBSET of factions converged (a partial "
+                "coalition), list those factions in coalition_members. If ALL "
+                "factions converged, leave coalition_members empty or omit.\n"
                 "Be strict about what counts as agreement — positions must be "
-                "explicitly compatible, not just close. If any issue lacks "
-                "unanimous agreement on a specific outcome, the deal is not "
-                "reached.\n"
+                "explicitly compatible, not just close. Exclude any faction "
+                "whose position is unclear or conflicts on a specific outcome.\n"
                 "\n"
                 "You do NOT compute faction point scores. Just identify the "
                 "agreed outcomes per issue (using the exact outcome strings "
-                "from the issue definitions). Point computation is "
-                "deterministic and handled by the calling code from the "
-                "scoring tables."
+                "from the issue definitions) and which factions agreed. Point "
+                "computation is deterministic and handled by the calling code "
+                "from the scoring tables."
             ),
             user_prompt=(
                 f"Issues and possible outcomes:\n{json.dumps(self.scenario_analysis['issues'], indent=2)}\n\n"
@@ -646,23 +674,55 @@ class GameEnvironment:
 
         score_data = dict(result.data)
 
-        # Deterministic point computation from agreed_outcomes (or BATNA on no-deal).
+        # Deterministic point computation. Three paths:
+        #   1. Full agreement -> faction_score() for all on agreed_outcomes.
+        #   2. Partial coalition w/ matching coalition_values -> members get
+        #      coalition values; excluded factions fall back to BATNA.
+        #   3. Partial coalition w/o matching coalition_values, OR no deal ->
+        #      everyone falls back to BATNA.
         agreed_outcomes = score_data.get("agreed_outcomes") or {}
+        coalition_members = score_data.get("coalition_members") or []
         batnas = self.scenario_analysis.get("batna", {})
-        if score_data.get("deal_reached") and agreed_outcomes:
-            score_data["faction_scores"] = {
-                f: {
-                    "points": float(faction_score(self.scenario_analysis, f, agreed_outcomes)),
-                    "batna": float(batnas.get(f, 0.0)),
-                }
-                for f in self.scenario_analysis.get("factions", [])
-            }
-        else:
-            # No deal — everyone falls back to BATNA.
-            score_data["faction_scores"] = {
+        faction_ids = self.scenario_analysis.get("factions", [])
+
+        def _all_batna() -> dict[str, dict[str, float]]:
+            return {
                 f: {"points": float(batnas.get(f, 0.0)), "batna": float(batnas.get(f, 0.0))}
-                for f in self.scenario_analysis.get("factions", [])
+                for f in faction_ids
             }
+
+        if score_data.get("deal_reached") and agreed_outcomes:
+            is_partial = bool(coalition_members) and len(coalition_members) < len(faction_ids)
+            if is_partial:
+                cv_entry = _find_coalition_value(self.scenario_analysis, coalition_members)
+                if cv_entry is not None:
+                    cv_values = cv_entry.get("values", {})
+                    score_data["faction_scores"] = {}
+                    for f in faction_ids:
+                        if f in coalition_members and f in cv_values:
+                            pts = float(cv_values[f])
+                        else:
+                            pts = float(batnas.get(f, 0.0))
+                        score_data["faction_scores"][f] = {
+                            "points": pts,
+                            "batna": float(batnas.get(f, 0.0)),
+                        }
+                else:
+                    # Partial coalition formed but scenario has no values
+                    # defined for this subset -> treat as no-deal.
+                    score_data["faction_scores"] = _all_batna()
+            else:
+                # Full agreement -> today's behavior.
+                score_data["faction_scores"] = {
+                    f: {
+                        "points": float(faction_score(self.scenario_analysis, f, agreed_outcomes)),
+                        "batna": float(batnas.get(f, 0.0)),
+                    }
+                    for f in faction_ids
+                }
+        else:
+            # No deal -> everyone falls back to BATNA.
+            score_data["faction_scores"] = _all_batna()
 
         score_data.update(_pareto_efficiency_metrics(self.scenario_analysis, score_data))
         score_data.update(_compute_baselines(self.scenario_analysis, score_data))
