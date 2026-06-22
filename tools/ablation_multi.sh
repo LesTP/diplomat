@@ -123,6 +123,15 @@ cmd_run() {
     bare_flag="--bare-prompt"
   fi
 
+  # Optional uniform temperature override via the TEMPERATURE env var, e.g.
+  #   TEMPERATURE=1 bash tools/ablation_multi.sh run gpt-4.1-nano jsm1 bare 1
+  # Lets a tier sweep hold temperature constant (the clean cross-provider
+  # comparison). Unset => the generator uses the toolkit default (0.7).
+  local temp_flag=""
+  if [ -n "${TEMPERATURE:-}" ]; then
+    temp_flag="--temperature ${TEMPERATURE}"
+  fi
+
   echo "[run] model=$model scenario=$scenario mode=$mode run=$run_n output=$output"
   "$PY" -m tests.self_play.run_simulation \
     --scenario "$scenario_md" \
@@ -131,6 +140,7 @@ cmd_run() {
     --rounds 4 \
     --per-faction-providers "$(providers_json "$model")" \
     $bare_flag \
+    $temp_flag \
     --output "$output"
 
   echo "[done] $output"

@@ -18,6 +18,7 @@ class FakeLLMConfig:
     api_key: str
     models: dict[str, str]
     max_tokens: int = 4096
+    temperature: float = 0.7
 
 
 class FakeModelTier(str):
@@ -91,3 +92,33 @@ def test_toolkit_adapter_forwards_attribution_and_purpose_accounted_path():
     assert result == "accounted"
     assert accountant.calls[0]["attribution"] == "beta"
     assert accountant.calls[0]["purpose"] == "analysis"
+
+
+def test_toolkit_adapter_defaults_temperature_to_0_7_when_absent():
+    toolkit = FakeToolkit()
+    adapter = ToolkitLLMAdapter(toolkit)
+
+    adapter.complete(
+        messages=[{"role": "user", "content": "hi"}],
+        config={"provider": "fake", "models": {"default": "fake-model"}},
+        tier="default",
+    )
+
+    assert toolkit.calls[0]["config"].temperature == 0.7
+
+
+def test_toolkit_adapter_forwards_temperature_override():
+    toolkit = FakeToolkit()
+    adapter = ToolkitLLMAdapter(toolkit)
+
+    adapter.complete(
+        messages=[{"role": "user", "content": "hi"}],
+        config={
+            "provider": "fake",
+            "models": {"default": "fake-model"},
+            "temperature": 1.0,
+        },
+        tier="default",
+    )
+
+    assert toolkit.calls[0]["config"].temperature == 1.0

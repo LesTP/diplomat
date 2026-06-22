@@ -1301,6 +1301,7 @@ class _OrchestratorCore:
                 "models": models_dict,
                 "api_key_env": provider_config["api_key_env"],
                 "api_key": os.getenv(provider_config["api_key_env"]),
+                "temperature": provider_config.get("temperature", 0.7),
             }
         return configs
 

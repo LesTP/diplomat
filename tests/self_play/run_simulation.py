@@ -154,6 +154,18 @@ def _parse_args() -> argparse.Namespace:
             "Results JSON will include bare_mode=true in metadata."
         ),
     )
+    parser.add_argument(
+        "--temperature",
+        type=float,
+        default=None,
+        help=(
+            "Override the LLM sampling temperature for the faction generator's "
+            "provider slot (default: toolkit default 0.7). Use to hold "
+            "temperature constant across a model-tier comparison. NOTE: OpenAI "
+            "reasoning models (gpt-5.x / o-series) ignore this and always run "
+            "at temperature=1 (the API rejects other values)."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -517,6 +529,7 @@ async def _run(args: argparse.Namespace) -> None:
             scenario_analysis=scenario_analysis,
             per_faction_providers=per_faction_providers,
             bare_mode=args.bare_prompt,
+            temperature=args.temperature,
         )
 
         await env.setup()

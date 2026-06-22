@@ -55,6 +55,7 @@ class ToolkitLLMAdapter:
             api_key=config.get("api_key") or "",
             models=models,
             max_tokens=max_tokens or 4096,
+            temperature=config.get("temperature", 0.7),
         )
 
         tier_str = tier.value if hasattr(tier, "value") else str(tier or "default")

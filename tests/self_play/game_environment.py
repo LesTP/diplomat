@@ -197,6 +197,7 @@ class GameEnvironment:
         scenario_analysis: dict[str, Any] | None = None,
         per_faction_providers: dict[str, dict[str, str]] | None = None,
         bare_mode: bool = False,
+        temperature: float | None = None,
     ) -> None:
         self.faction_personas = faction_personas
         self.llm_client = llm_client
@@ -209,6 +210,7 @@ class GameEnvironment:
         self.scenario_analysis = scenario_analysis
         self.per_faction_providers = per_faction_providers or {}
         self.bare_mode = bare_mode
+        self.temperature = temperature
         self.agents: dict[str, AgentHandle] = {}
         self.round_flow: RoundSteppedFlow | None = None
         self.channel_log: list[dict[str, Any]] = []
@@ -307,6 +309,14 @@ class GameEnvironment:
             "tier": "commodity",
             "max_tokens": 512,
         }
+        # Optional per-run temperature override, applied to the provider slot
+        # the generator resolves to. In bare mode the generator is the only
+        # active LLM module, so this cleanly sets the faction-agent sampling
+        # temperature; in full mode it also applies to other modules sharing
+        # the same slot. OpenAI reasoning models ignore it (toolkit omits the
+        # param for gpt-5.x / o-series, which require temperature=1).
+        if self.temperature is not None:
+            config["llm_providers"][generator_provider_slot]["temperature"] = self.temperature
         config["modules"]["adversarial"] = {
             "class": "LLMAdversarialReader",
             "provider": "secondary",
