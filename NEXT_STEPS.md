@@ -47,6 +47,35 @@
 > **Reverse scenario builder lineage:** Phase 35 shipped the tool; Phase 36 added soft-weighted fitness + simulated annealing + biased init; Phase 37 added `pareto_outcome_diversity`; Phase 38 closed the pressure-mechanisms small bundle; Phase 41/42 remain queued for larger-search-space verification — promoted to Tier 1 under D-56 — see §8.
 >
 > **Clankmates integration:** deferred under D-56 (coaching-product surface). Toolkit-side `clankmates_client` work continues independently per its own roadmap; diplomat-side `ClankmatesTransport` no longer Tier 1.
+>
+> **State as of 2026-06-22 (session close - section 3.5 competitive scoring built).**
+> The section 3.5 rank-among-factions stack is DONE and validated end-to-end:
+> per-game faction_ranks lens + faction_models persistence + cross-game
+> mean_rank aggregator (tests/self_play/rank_aggregator.py, no-deal filtered) +
+> mixed-model dispatcher (ablation_multi.sh runmix/runrotate) + position-
+> rotation harness. Scoring hardened: deals are credited only when genuine,
+> rational (all factions >= BATNA), and unanimous. gpt-5.5 (Run 18) broke the
+> section 10 tier/provider confound. **Open gap = discriminating scenario
+> design**, surfaced by two experiments on a new constant-sum distributive
+> family: Run 19 (succ, no collision) converged on one focal deal (ranks
+> seat-determined, not skill); Run 20 (succ2, hard priority collision)
+> overshot into deadlock (5/6 no deal). See TUNING_LOG.md Runs 19-20 and
+> RESEARCH_NOTES.md Note 2.
+>
+> **Two open questions that want DIFFERENT scenarios (decide first next session):**
+> - **Q1 model-comparison (section 3.5):** "which model negotiates better?" -
+>   needs a scenario in the *sweet spot*: deals close AND the outcome varies by
+>   skill (no focal point). Neither succ (focal) nor succ2 (deadlock) is there
+>   yet -> build succ-v3 (e.g. lower BATNAs / wider loser compensation so the
+>   contested asset resolves without an obvious focal point).
+> - **Q2 harness-contribution (section 10):** "does the harness help?" - wants
+>   bare to *struggle* so full has room. succ2's bare deadlock is GOOD here: if
+>   FULL mode closes it, that is a clean harness-value result on distributive
+>   bargaining. Test = run succ2 full mode (calibrate cost with 1 game first;
+>   ~$2-5/game).
+> - Not exclusive: a succ2 full run could answer Q2 and, if harness-brokered
+>   deals vary by heartland-winner, also yield Q1 rank signal.
+> - Budget: ~$11-13 API remaining at session close.
 
 ---
 

@@ -4,6 +4,46 @@
      Newest entries at the top. Each step or milestone gets a structured entry.
      This is the audit trail.
 
+## 2026-06-22 - Section 3.5 rank lens + mixed-model benchmark + succ scenarios
+
+Action: MULTI-COMMIT (operator-supervised)
+Mode: Scoring lens + benchmark tooling + scenario design + scoring fixes
+Outcome: Built and validated the section 3.5 competitive-scoring stack
+end-to-end; two distributive-scenario experiments (Runs 19-20) surfaced the
+scenario-design gap and three scoring bugs (all fixed). Both repos pushed.
+
+Shipped this session (in order):
+- Toolkit temperature fix (toolkit d5d575a, pushed) - OpenAI reasoning models
+  (gpt-5.x/o-series) reject temperature != 1; provider now omits it. Unblocked
+  gpt-5.5. Plus diplomat --temperature plumbing (863dd72).
+- Run 18 (gpt-5.5 bare) - broke the section 10 tier/provider confound: gpt-5.5
+  (strong, OpenAI) closes WR-beta bare 3/3 where sonnet (strong, Anthropic)
+  floors 0/3 -> the WR-beta strong-tier failure is sonnet-specific.
+- Section 3.5 rank-among-factions stack: per-game faction_ranks lens (be60b2c);
+  faction_models persistence (e630f0b); succ distributive scenario (b067b9f);
+  cross-game mean_rank aggregator; mixed-model dispatcher runmix/probemix
+  (b23afd6); position-rotation harness runrotate/rotateplan (fde0636); no-deal
+  filter on the aggregator (32372b6). Docs: CLI_REFERENCE + SCENARIO_GUIDE
+  (25142a7).
+- Run 19 (mixed-model on succ) - pipeline works end-to-end, but all 6 games
+  converged on one focal deal -> ranks seat-determined, not skill. Lesson:
+  constant-sum kills the math attractor but not a salience focal point.
+- Run 20 (succ2, hard priority collision) - removed the focal point but
+  overshot into deadlock (5/6 no deal). Lesson: discriminating distributive
+  scenarios need a sweet spot between focal-convergence and deadlock - UNLESS
+  the goal is the bare-vs-full harness question, for which a bare-deadlock
+  scenario is good (headroom for the harness).
+- Three scoring fixes (all from the succ experiments): partial-coalition
+  no-deal left deal_reached=True (cdff1cf); below-BATNA deal accepted
+  (3fa0f75); aggregator no-deal filter (32372b6). Scoring now credits only
+  genuine, rational, unanimous deals.
+
+Resume from: NEXT_STEPS.md "State as of 2026-06-22" (the two open questions +
+next experiments) and TUNING_LOG.md Runs 19-20 + Open-questions table.
+
+Both repos upstream: toolkit (temperature fix) + diplomat (6addc3e). ~$11-13
+API budget remained at session close.
+
 ## 2026-06-21 — Phase 42 COMPLETE: C5a + C5b + close-out
 
 Action: MULTI-COMMIT (operator-supervised)

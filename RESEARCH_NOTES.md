@@ -475,6 +475,23 @@ Add `rank_among_factions` — 1st/2nd/3rd by absolute score per game, accumulate
 
 **Empirical update (Run 19, 2026-06-22):** The rank lens (Option B) shipped and ran end-to-end on the first mixed-model experiment (sonnet / gpt-5.4-mini / deepseek-v3, seat-rotated, on the new constant-sum `succ` scenario). It confirmed the precondition above is *binding but not sufficient*: all 6 games converged on the same "everyone takes their own priority asset" deal, so ranks were seat-determined, not skill-determined. Removing the *mathematical* dominant attractor (constant-sum payoffs) did not remove a *salience* focal point. So "score asymmetry" alone is not enough - the scenario must also lack an obvious coordination focal point, which a 1:1 faction-to-priority mapping fails to provide. Path C scenario design needs **priority collision** (a contested asset) for the rank lens to surface skill. See `TUNING_LOG.md` Run 19.
 
+**Empirical update (Run 20 + framing, 2026-06-22):** Following Run 19, `succ2`
+added a HARD priority collision (alpha & beta both want the heartland) to
+destroy the focal point. It did - but the contest then *deadlocked* (5/6 bare
+games no-deal). So the two distributive scenarios fail to discriminate for
+opposite reasons: succ converges on a focal deal (no variation), succ2
+deadlocks (no deal). **Key framing distinction - whether deadlock is bad
+depends on the question.** For the rank-lens / model-comparison goal (Option B
+above), you want the *sweet spot*: deals close AND vary by skill. For the
+bare-vs-full harness-contribution goal (Note 1), a bare-deadlock scenario is
+*desirable* - it leaves headroom for the harness to demonstrate value (cf. the
+section 10 finding that lift is only measurable where bare is unsaturated). So
+succ2 may be the wrong scenario for Option B but the *right* one for a Note-1
+harness test: run it full-mode and measure close-rate lift. Two scoring bugs
+were fixed along the way (deal_reached normalization, below-BATNA deal
+rejection); the aggregator now excludes no-deal games. See `TUNING_LOG.md`
+Runs 19-20.
+
 **Option C — Adversarial-scoring scenarios (structural shift in scenario design).**
 Scenarios where the score function is at least partly **zero-sum** — divide a fixed pie, ranked-choice voting on a single outcome, allocation of a contested resource. Current scenarios have low zero-sum content; even Water Rights' payment_structure (the most zero-sum issue) doesn't fully zero out. Extending ScenarioSpec to support "fixed pie" issues where outcome scores sum to a constant would enable reverse-builder targeting of these. Tradeoff: pure zero-sum is less interesting negotiation (no logrolling) but cleaner skill testing.
 

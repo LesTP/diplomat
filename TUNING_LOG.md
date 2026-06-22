@@ -53,6 +53,8 @@ conducted via multi-agent self-play simulations.
 
 | Test | Cost | Wall | Isolates |
 |---|---|---|---|
+| **succ2 full-mode** (harness on a hard distributive contest) | ~$6-15 (n=1 = 3 games) | ~30-50 min | Does the FULL harness break succ2's bare deadlock? If full closes where bare deadlocked -> clean harness-contribution result on distributive bargaining (Q2). Calibrate cost with 1 game first. |
+| **succ-v3 sweet-spot scenario** (model-comparison) | design + ~$1-3 bare | ~25 min | Tune succ (lower BATNAs / wider loser compensation) so the contested asset resolves WITHOUT a focal point - deals close AND vary by who wins (Q1 rank lens). |
 | **V3 full n=3 expansion** on both scenarios | ~$0.15 | ~12 min | Solidify V3 baseline — n=1 full samples are the weakest cells in the matrix; n=3 confirms whether 1/1 jsm1 + 0/1 wrbeta is robust or noise. |
 | **R1 cells (toolkit-unblocked)** × 3 on both scenarios | ~$2-4 | ~30-60 min | First reasoning-model data point. Does R1 exhibit V3's hybrid pattern or sonnet's strong pattern? Generation latency on R1 is high (~16-20 min/cell). |
 | **N4** gpt-mini + Phase 38 pressure × 3 on jsm1 | ~$1.50 | ~36 min | Does pressure unstick the mid-tier convergence floor on jsm1? Cleanest Phase 38 value test now that bare-mode confirms harness doesn't help here. |
