@@ -743,6 +743,36 @@ class GameEnvironment:
     # Results collection
     # ------------------------------------------------------------------
 
+    def _resolve_faction_models(self) -> dict[str, dict[str, str]]:
+        """Effective generator (faction-agent) provider/model per faction.
+
+        Persisted into the result JSON so cross-game rank aggregation can
+        attribute each faction's rank to the model that played it. Mirrors the
+        generator-slot resolution in ``_generate_faction_config``: a faction in
+        ``per_faction_providers`` uses that override; otherwise it falls back to
+        the env-default primary commodity model (the generator runs at the
+        ``commodity`` tier). This is the *generator* model only — support
+        modules (analyst / extractor / adversarial) may run on other providers.
+        """
+        import os
+
+        default_provider = os.getenv("DIPLOMAT_PRIMARY_PROVIDER", "openai")
+        default_model = os.getenv("DIPLOMAT_PRIMARY_COMMODITY_MODEL", "gpt-4.1-mini")
+        resolved: dict[str, dict[str, str]] = {}
+        for faction_id in self.agents:
+            override = self.per_faction_providers.get(faction_id)
+            if override:
+                resolved[faction_id] = {
+                    "provider": override["provider"],
+                    "model": override["model"],
+                }
+            else:
+                resolved[faction_id] = {
+                    "provider": default_provider,
+                    "model": default_model,
+                }
+        return resolved
+
     async def collect_results(self) -> dict[str, Any]:
         """Query each agent's state and assemble the results dict."""
         agent_results: dict[str, Any] = {}
@@ -776,6 +806,7 @@ class GameEnvironment:
         result = {
             "agents": agent_results,
             "transcript": self.channel_log,
+            "faction_models": self._resolve_faction_models(),
         }
 
         # Attach LLM call log if available.
@@ -871,10 +902,10 @@ def _rank_among_factions(
     moves that way. Ties use competition ranking (1, 2, 2, 4): tied factions
     share a rank and the next rank skips accordingly.
 
-    The cross-game ``mean_rank(model, scenario)`` aggregator and the
-    rank→model attribution are out of scope here (the faction→model mapping
-    is not persisted to the result JSON) — this helper emits only the
-    per-game ranks.
+    The cross-game ``mean_rank(model, scenario)`` aggregator is out of scope
+    here — this helper emits only the per-game ranks. Rank→model attribution
+    is supported downstream via the ``faction_models`` map that
+    ``collect_results`` persists into the result JSON.
     """
     faction_scores = score_data.get("faction_scores", {})
     factions = list(scenario_analysis.get("factions", faction_scores.keys()))

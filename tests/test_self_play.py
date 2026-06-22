@@ -421,6 +421,7 @@ class TestRoundLifecycle:
             results = await env.collect_results()
             assert "agents" in results
             assert "transcript" in results
+            assert "faction_models" in results
             for fid in ("alpha", "beta", "gamma"):
                 assert fid in results["agents"]
                 agent_data = results["agents"][fid]
@@ -428,6 +429,37 @@ class TestRoundLifecycle:
                 assert "coalitions" in agent_data
                 assert "inconsistencies" in agent_data
                 assert "intelligence" in agent_data
+        finally:
+            await env.teardown()
+
+    @pytest.mark.asyncio
+    async def test_collect_results_emits_faction_models(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        # Pin env defaults so the fallback assertion is deterministic.
+        monkeypatch.delenv("DIPLOMAT_PRIMARY_PROVIDER", raising=False)
+        monkeypatch.delenv("DIPLOMAT_PRIMARY_COMMODITY_MODEL", raising=False)
+        env = _make_env(tmp_path)
+        # alpha overridden; beta/gamma fall back to env-default primary commodity.
+        env.per_faction_providers = {
+            "alpha": {"provider": "anthropic", "model": "claude-haiku-4-5"}
+        }
+        await env.setup()
+        try:
+            results = await env.collect_results()
+            faction_models = results["faction_models"]
+            assert faction_models["alpha"] == {
+                "provider": "anthropic",
+                "model": "claude-haiku-4-5",
+            }
+            assert faction_models["beta"] == {
+                "provider": "openai",
+                "model": "gpt-4.1-mini",
+            }
+            assert faction_models["gamma"] == {
+                "provider": "openai",
+                "model": "gpt-4.1-mini",
+            }
         finally:
             await env.teardown()
 
