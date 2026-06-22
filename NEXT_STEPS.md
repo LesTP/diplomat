@@ -79,6 +79,34 @@
 
 ---
 
+## Tier-1 backlog status snapshot (2026-06-22 session close)
+
+Annotated status of the prior-session Tier-1 backlog. Legend: DONE / IMMEDIATE
+(next supervised work) / FUTURE / DEFERRED. Commit refs in parens; run evidence
+in `TUNING_LOG.md` (Runs 18-20).
+
+| Thread | Status | Notes |
+|---|---|---|
+| section 3.6 Path B coalition-value scoring engine | FUTURE (largest build) | Not built. Partial scaffolding: `_resolve_deal_scores` has a partial-coalition-with-`coalition_values` path. Missing: scenarios defining `coalition_values` + end-to-end coalition-exclusion scoring. |
+| section 3.5 rank-among-factions lens | DONE | Full stack: lens (be60b2c), faction_models (e630f0b), aggregator + no-deal filter (32372b6), dispatcher (b23afd6), rotation (fde0636). |
+| Mixed-model dispatcher extension | DONE | b23afd6 - runmix/probemix + runrotate/rotateplan. |
+| section 11.b Path A calibration (mixed TPC x rotation) | FUTURE | Infra done; first heterogeneous data met via Runs 19-20 on `succ` (not TPC). TPC-specific run gated on Path B. |
+| Path C scenario authoring (distributive / asym-BATNA / hidden-value) | IMMEDIATE (in progress) | Distributive done: succ (b067b9f) + succ2 (priority collision). succ-v3 next. asym-BATNA + hidden-value queued. Finding: hand-authored constant-sum beat the reverse builder here. |
+| Run 17 V3 full n=3 expansion | FUTURE | Not run; in TUNING_LOG open-questions. |
+| Run 17 R1 cells (5 remaining) | FUTURE | Toolkit-unblocked (606e309); run via `ablation_multi.sh run deepseek/deepseek-r1 ...`. |
+| N4 - gpt-mini + Phase 38 pressure x3 on jsm1 | FUTURE | Not run; in TUNING_LOG open-questions. |
+| Phase 41/42 scale-matrix verification | DONE | Phase 42 complete (4x4x4 / D=256 >=2/3, locked by test_builds_4x4x4_in_budget); Phase 41 sweep done via scenario_builder_scale_probe.py. |
+| Per-run cost capture | FUTURE | Not built. Bare results lack token counts -> only rough $ estimates today. |
+| Pricing audit section 6 | FUTURE (operator) | Best after cost-capture lands. |
+| section 3.4 transcript-interpretive process signatures | DEFERRED | Basic process_signatures already emitted; LLM-judge interpretive layer deferred until other Tier 1 lands. |
+
+**New immediate items (emerged this session - the live continuation):**
+- **succ-v3 sweet-spot scenario** (Q1, which model negotiates better): deals close AND vary by skill (no focal point). Tune succ BATNAs / loser compensation.
+- **succ2 full-mode harness test** (Q2, does the harness help): bare deadlock is headroom, not failure; run succ2 full and measure close-rate lift. Calibrate with 1 game (~$2-5/game).
+- Scoring hardened (3 fixes): partial-coalition deal_reached (cdff1cf), below-BATNA deal rejection (3fa0f75), aggregator no-deal filter (32372b6).
+
+**Sequencing note (revised 2026-06-22).** Prior plan led with Path B; this session went section-3.5-first (cheap, unblocked) and it paid off. Revised order: (1) resolve the discriminating-scenario question - succ-v3 (Q1) and/or succ2-full (Q2); (2) Path B coalition scoring (its value depends on having scoreable coalition scenarios); (3) Run 17 follow-ups / N4 (open-future); (4) cost capture + pricing audit.
+
 ## Closed since 2026-05-30
 
 Audit trail moved to **Appendix A** at the end of this document — 30+ closed
