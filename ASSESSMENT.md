@@ -184,7 +184,7 @@ diagnostics that characterize *how* the deal was reached, not just
   remain deferred because they need transcript interpretation beyond exact
   outcome-name matching.
 
-### 3.5 Rank-among-factions (queued — Note 2 Path B companion)
+### 3.5 Rank-among-factions (per-game lens DONE 2026-06-22 — Note 2 Path B companion)
 
 ```
 rank(faction, game) = position in descending order of score_achieved
@@ -196,7 +196,7 @@ mean_rank(model, scenario) = average rank across all games where that model
 
 - Range: integer per game; aggregated to mean across games.
 - Captures: "Did this model score higher than its peers in head-to-head?"
-- Status: **Queued** (Phase TBD). Required for benchmark direction (D-56). Implementation is ~50 LOC — add `rank_among_factions` to `tests/self_play/analysis.py` post-game report; aggregator for cross-game cumulative ranking; optional position-rotation harness for scenario-asymmetry control.
+- Status: **Per-game lens DONE** (2026-06-22). `_rank_among_factions()` in `tests/self_play/game_environment.py` emits `faction_ranks` (absolute points, 1=highest, competition ranking for ties) + `ranked_factions`; wired into `score_game()` and rendered in `analysis.py`. Tested in `tests/test_self_play.py::TestRankAmongFactions`. **Still pending:** the cross-game `mean_rank(model, scenario)` aggregator + persisting the faction→model map into the result JSON (it is not currently serialized, so rank→model attribution can't be done downstream yet), and the optional position-rotation harness for scenario-asymmetry control.
 - Why diagnostic: only competitive metric that's meaningful in **mixed-model populations**. The first four lenses are all cooperative measures (did the *group* find joint value); rank-based is the first that asks "did *this* model beat *those* models." Under D-56 this is the load-bearing benchmark metric for mixed-model campaigns.
 - Required precondition for usefulness: scenarios with non-trivial score asymmetry (your win is partly someone else's loss). Adversarial-scoring scenarios (per §4 Path C) magnify the signal; cooperative scenarios with strong attractors (e.g., jsm1 balanced-consensus) flatten it.
 

@@ -504,6 +504,7 @@ class TestAnalysis:
                 "min_faction_delta": 0.000,
                 "surplus_distribution_stdev": 2.000,
                 "faction_deltas": {"alpha": 0.0, "beta": 4.0},
+                "faction_ranks": {"alpha": 2, "beta": 1},
                 "equal_split_baseline": 10.0,
                 "vs_equal_split": {"alpha": 0.0, "beta": 4.0},
                 "skill_premium_vs_batna": {"alpha": 0.0, "beta": 1.0},
@@ -524,6 +525,8 @@ class TestAnalysis:
         assert "surplus_distribution_stdev: 2.000" in captured.out
         assert "alpha: +0.000" in captured.out
         assert "beta: +4.000" in captured.out
+        assert "faction_ranks" in captured.out
+        assert "1. beta" in captured.out
         assert "BASELINE COMPARISONS" in captured.out
         assert "equal_split_baseline: 10.000" in captured.out
         assert "skill_premium_vs_batna" in captured.out
@@ -633,6 +636,62 @@ class TestParetoEfficiency:
         assert metrics["max_pareto_sum"] == 20
         assert metrics["sum_batnas"] == 20
         assert metrics["negotiated_surplus_share"] == 0.0
+
+
+class TestRankAmongFactions:
+    def test_distinct_scores_rank_descending(self) -> None:
+        from tests.self_play.game_environment import _rank_among_factions
+
+        result = _rank_among_factions(
+            _three_faction_nash_scenario(),
+            {
+                "deal_reached": True,
+                "faction_scores": {
+                    "alpha": {"points": 100, "batna": 0},
+                    "beta": {"points": 30, "batna": 0},
+                    "gamma": {"points": 1, "batna": 0},
+                },
+            },
+        )
+
+        assert result["faction_ranks"] == {"alpha": 1, "beta": 2, "gamma": 3}
+        assert result["ranked_factions"] == ["alpha", "beta", "gamma"]
+
+    def test_ties_use_competition_ranking(self) -> None:
+        from tests.self_play.game_environment import _rank_among_factions
+
+        result = _rank_among_factions(
+            _three_faction_nash_scenario(),
+            {
+                "deal_reached": True,
+                "faction_scores": {
+                    "alpha": {"points": 30, "batna": 0},
+                    "beta": {"points": 30, "batna": 0},
+                    "gamma": {"points": 1, "batna": 0},
+                },
+            },
+        )
+
+        # alpha and beta tie for 1st; gamma is 3rd (competition ranking skips 2).
+        assert result["faction_ranks"] == {"alpha": 1, "beta": 1, "gamma": 3}
+
+    def test_ranks_by_absolute_points_not_delta(self) -> None:
+        from tests.self_play.game_environment import _rank_among_factions
+
+        # beta has the larger gain over BATNA (+7 vs alpha's +1) but lower
+        # absolute points; the literal §3.5 lens ranks by absolute points.
+        result = _rank_among_factions(
+            _pareto_scenario(),
+            {
+                "deal_reached": True,
+                "faction_scores": {
+                    "alpha": {"points": 9, "batna": 8},
+                    "beta": {"points": 7, "batna": 0},
+                },
+            },
+        )
+
+        assert result["faction_ranks"] == {"alpha": 1, "beta": 2}
 
 
 class TestBaselines:

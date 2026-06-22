@@ -736,6 +736,7 @@ class GameEnvironment:
 
         score_data.update(_pareto_efficiency_metrics(self.scenario_analysis, score_data))
         score_data.update(_compute_baselines(self.scenario_analysis, score_data))
+        score_data.update(_rank_among_factions(self.scenario_analysis, score_data))
         return score_data
 
     # ------------------------------------------------------------------
@@ -850,6 +851,49 @@ def _pareto_efficiency_metrics(
         "min_faction_delta": min_faction_delta,
         "surplus_distribution_stdev": surplus_distribution_stdev,
         "negotiated_surplus_share": negotiated_surplus_share,
+    }
+
+
+def _rank_among_factions(
+    scenario_analysis: dict[str, Any],
+    score_data: dict[str, Any],
+) -> dict[str, Any]:
+    """Rank each faction within the game by achieved score (§3.5).
+
+    This is the only *competitive* scoring lens: where the other lenses are
+    cooperative whole-game measures, this asks "did this faction's model
+    out-score its peers?" — meaningful in mixed-model populations.
+
+    Ranks by ABSOLUTE points (``faction_scores[f]["points"]``), 1 = highest,
+    per the literal §3.5 spec ("position in descending order of
+    score_achieved"). An alternative is delta-over-BATNA (``faction_deltas``),
+    which is fairer under asymmetric BATNAs; change ``value_for`` if the spec
+    moves that way. Ties use competition ranking (1, 2, 2, 4): tied factions
+    share a rank and the next rank skips accordingly.
+
+    The cross-game ``mean_rank(model, scenario)`` aggregator and the
+    rank→model attribution are out of scope here (the faction→model mapping
+    is not persisted to the result JSON) — this helper emits only the
+    per-game ranks.
+    """
+    faction_scores = score_data.get("faction_scores", {})
+    factions = list(scenario_analysis.get("factions", faction_scores.keys()))
+
+    def value_for(faction: str) -> float:
+        return float(faction_scores.get(faction, {}).get("points", 0.0))
+
+    faction_ranks: dict[str, int] = {}
+    for faction in factions:
+        points = value_for(faction)
+        faction_ranks[faction] = 1 + sum(
+            1 for other in factions if value_for(other) > points
+        )
+
+    ranked_factions = sorted(factions, key=lambda f: (-value_for(f), f))
+
+    return {
+        "faction_ranks": faction_ranks,
+        "ranked_factions": ranked_factions,
     }
 
 

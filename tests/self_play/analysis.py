@@ -319,6 +319,14 @@ def analyze_results(
         else:
             print("    faction_deltas: n/a")
 
+        faction_ranks = scores.get("faction_ranks", {})
+        if faction_ranks:
+            print("    faction_ranks (by achieved score, 1=highest):")
+            for faction_id, rank in sorted(faction_ranks.items(), key=lambda kv: (kv[1], kv[0])):
+                print(f"      {int(rank)}. {faction_id}")
+        else:
+            print("    faction_ranks: n/a")
+
         print(f"\n    BASELINE COMPARISONS")
         equal_split_baseline = scores.get("equal_split_baseline")
         if equal_split_baseline is None:
