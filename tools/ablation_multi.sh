@@ -150,8 +150,11 @@ scenario_paths() {
     succ)
       echo "scenarios/succession_division.md|scenarios/succession_division_v1/scenario_analysis.json|The Verdanian Succession"
       ;;
+    succ2)
+      echo "scenarios/succession_division_v2.md|scenarios/succession_division_v2/scenario_analysis.json|The Verdanian Succession (Contested Heartland)"
+      ;;
     *)
-      echo "ERROR: unknown scenario '$1' (expected: wrbeta | wrsym | wralpha | jsm1 | succ)" >&2
+      echo "ERROR: unknown scenario '$1' (expected: wrbeta | wrsym | wralpha | jsm1 | succ | succ2)" >&2
       exit 2
       ;;
   esac
@@ -350,7 +353,7 @@ f = '$f'
 d = json.load(open(f))
 s = d.get('scores', {})
 name = os.path.basename(f).replace('.json', '')
-m = re.match(r'run17_(full|bare)_(.+?)_(wrbeta|wrsym|wralpha|jsm1|succ)_(\d+)', name)
+m = re.match(r'run17_(full|bare)_(.+?)_([a-z0-9]+)_(\d+)', name)
 if not m:
     print(f'{name:<60} | ???')
 else:
