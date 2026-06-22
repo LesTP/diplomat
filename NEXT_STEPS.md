@@ -690,6 +690,9 @@ Filled in the cells Run 14 had skipped (jsm1 wasn't on Run 14's matrix; Run 15 c
 | Weak | gpt-4.1-nano | 2/3 | 0/3 | 1/3 (new) | 0/3 (new) |
 | Mid | gpt-5.4-mini | 2/3 | 1/3 | 0/3 | 0/3 (new) |
 | **Strong** | **claude-sonnet-4-6** | **0/3** | **0/3** | **3/3** | **3/3 (new)** |
+| Strong | gpt-5.5 (OpenAI, temp=1) | — | **3/3 (Run 18)** | — | **3/3 (Run 18)** |
+
+> **Run 18 (2026-06-22) — provider confound broken.** gpt-5.5 (strong, OpenAI) closes WR-β bare 3/3 where sonnet (strong, Anthropic) floors 0/3 → the WR-β strong-tier failure was *sonnet-specific*, not a strong-tier property. gpt-5.5 full not run (bare ceilings 3/3 on both → no harness-lift headroom). Temp caveat: gpt-5.5 forced temp=1 vs matrix 0.7 (judged immaterial). See `TUNING_LOG.md` Run 18.
 
 **Four findings (post-Run-16):**
 

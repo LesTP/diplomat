@@ -402,6 +402,15 @@ prediction.
    (OpenAI nano→mini→gpt-5.5, and/or Anthropic haiku→sonnet→opus) is
    required before tier-vs-provider claims about the harness are clean.
    This is the highest-value addition to the matrix.
+   **Update (Run 18, 2026-06-22):** tested on the bare axis — `gpt-5.5`
+   (strong, OpenAI) closes WR-β bare 3/3 where sonnet (strong, Anthropic)
+   floors 0/3. So the WR-β strong-tier "strategic refusal" was
+   **sonnet-specific, not a strong-tier property** — the confound was real
+   and material. Caveat: gpt-5.5 only accepts temperature=1 (vs the matrix's
+   0.7); a temperature flip of that magnitude producing 0/3→3/3 is
+   implausible, so the uniform-temp confirmation was judged low-value and
+   skipped. Strong cells ceiling bare (3/3), so full-mode harness *lift*
+   stays unmeasurable on either provider.
 
 ### Footer 2026-06-16 — Under D-56 (benchmark direction)
 
