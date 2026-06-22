@@ -75,7 +75,7 @@ Active docs (excluding governance — see bottom). Sorted by area of work.
 | Doc | What it is | Status |
 |---|---|---|
 | [`Multi-Party Negotiation Scenarios.md`](Multi-Party%20Negotiation%20Scenarios.md) | Source catalogue: Harvard PON exercises (Harborco, Three-Party Coalition, Chestnut Village), historical congresses (Vienna, Camp David, Six-Party Talks), game-theoretic coalition templates. Provenance for Water Rights and Three-Party Coalition scenarios. | REFERENCE — static catalogue, used as input to scenario design |
-| [`for-clankers.md`](for-clankers.md) | Clankmates platform agent setup guide. Describes inbox, channel posting, key handoff for the eventual `ClankmatesTransport`. | PROSPECTIVE — will become CURRENT when Clankmates work starts (NEXT_STEPS §5) |
+| [`clankdocs/for-clankers.md`](clankdocs/for-clankers.md) | Clankmates platform agent setup guide. Describes inbox, channel posting, key handoff for the eventual `ClankmatesTransport`. | PROSPECTIVE — will become CURRENT when Clankmates work starts (NEXT_STEPS §5) |
 
 ---
 

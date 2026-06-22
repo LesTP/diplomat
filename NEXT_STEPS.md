@@ -458,7 +458,7 @@ Three angles to weigh:
 3. **Hedge** — build a thin Transport interface adapter, mock against
    *expected* API shape, verify against real API when available.
 
-Reference: `for-clankers.md` documents the expected interface (browser for
+Reference: `clankdocs/for-clankers.md` documents the expected interface (browser for
 human, CLI/API for the agent, inbox screening pattern).
 
 ### Discord — parallel hedge candidate (no partner dependency)
@@ -504,7 +504,7 @@ human, CLI/API for the agent, inbox screening pattern).
       hedge across both).
 - [ ] If Clankmates greenlit: docs/API discovery → build `ClankmatesTransport`
       against the real API. If undocumented at the time: build
-      `ClankmatesMockTransport` against `for-clankers.md` expectations + thin
+      `ClankmatesMockTransport` against `clankdocs/for-clankers.md` expectations + thin
       adapter for swap-in later.
 - [ ] If Discord greenlit: API survey → library choice (`discord.py` vs
       `hikari`) → build `DiscordTransport`. Set up a test Discord server with
