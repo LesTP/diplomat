@@ -397,6 +397,19 @@ python -m tests.self_play.rank_aggregator                       # mean_rank lead
 See `CLI_REFERENCE.md` for the full dispatcher + aggregator reference and
 `ASSESSMENT.md` section 3.5 for the scoring lens.
 
+**Empirical caveat (Run 19, 2026-06-22) - constant-sum is necessary but not
+sufficient.** The first mixed-model run on `succ` (sonnet / gpt-5.4-mini /
+deepseek-v3, seat-rotated, 6 bare games) found *every* game converged on the
+same "everyone takes their own priority asset" deal (Alpha-Administered /
+Beta-Custody / Gamma-Command). Removing the *mathematical* dominant attractor
+(constant-sum) did NOT remove a *behavioral* focal point: "each faction takes
+the asset it values most" is a salient, fair-looking Schelling point that models
+coordinate on every time, so the agreed deal - and thus the ranks - were
+determined by *seat, not skill*. Lesson: a 1:1 faction-to-priority-asset mapping
+is itself a focal point. To force a genuine distributive contest the scenario
+needs **priority collision** (two factions want the *same* asset most, so no
+"everyone takes their own" deal exists). See `TUNING_LOG.md` Run 19.
+
 ## Scaling expectations
 
 Original Phase 3 matrix sweep (`scenarios/scale_probe_summary.md`) with a
