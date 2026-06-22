@@ -95,11 +95,12 @@ def test_aggregate_files_pools_across_files(tmp_path: Path):
             json.dumps(result), encoding="utf-8"
         )
 
-    agg, used, skipped = aggregate_files(
+    agg, used, skipped, no_deal = aggregate_files(
         [str(p) for p in tmp_path.glob("*.json")]
     )
     assert used == 2
     assert skipped == 0
+    assert no_deal == 0
     assert agg[("succ", "anthropic/claude-sonnet-4-6")]["mean_rank"] == 1.0
     assert agg[("succ", "anthropic/claude-sonnet-4-6")]["win_rate"] == 1.0
     assert agg[("succ", "openai/gpt-4.1-mini")]["n"] == 4  # 2 slots × 2 games
@@ -111,9 +112,41 @@ def test_aggregate_files_skips_unparseable_and_rankless(tmp_path: Path):
     (tmp_path / "run17_full_x_succ_1.json").write_text(
         json.dumps({"scores": {}}), encoding="utf-8"
     )
-    agg, used, skipped = aggregate_files(
+    agg, used, skipped, no_deal = aggregate_files(
         [str(p) for p in tmp_path.glob("*.json")]
     )
     assert used == 0
     assert skipped == 2
+    assert no_deal == 0
     assert agg == {}
+
+
+def test_aggregate_files_excludes_no_deal_by_default(tmp_path: Path):
+    # A no-deal game (deal_reached False) has BATNA-determined ranks; exclude it.
+    result = _result(
+        {"alpha": 1, "beta": 2, "gamma": 2},
+        {
+            "alpha": {"provider": "anthropic", "model": "claude-sonnet-4-6"},
+            "beta": {"provider": "openai", "model": "gpt-4.1-mini"},
+            "gamma": {"provider": "openrouter", "model": "deepseek/deepseek-chat"},
+        },
+    )
+    result["scores"]["deal_reached"] = False
+    (tmp_path / "run17_bare_mix_succ_1.json").write_text(
+        json.dumps(result), encoding="utf-8"
+    )
+
+    agg, used, skipped, no_deal = aggregate_files(
+        [str(p) for p in tmp_path.glob("*.json")]
+    )
+    assert used == 0
+    assert no_deal == 1
+    assert agg == {}
+
+    # ...but kept when explicitly included
+    agg2, used2, _, no_deal2 = aggregate_files(
+        [str(p) for p in tmp_path.glob("*.json")], include_no_deal=True
+    )
+    assert used2 == 1
+    assert no_deal2 == 0
+    assert agg2[("succ", "anthropic/claude-sonnet-4-6")]["mean_rank"] == 1.0

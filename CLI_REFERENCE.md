@@ -324,6 +324,7 @@ python -m tests.self_play.rank_aggregator --results "tests/self_play/results/run
 | Flag | Default | Notes |
 |---|---|---|
 | `--results` | `tests/self_play/results/run17_*.json` | One or more result-file paths or globs. |
+| `--include-no-deal` | off | Include no-deal games (`deal_reached=False`). Excluded by default - their ranks are BATNA-determined, not negotiated. |
 
 Skips results that predate the rank lens (no `faction_ranks`). The per-game lens
 is produced by `GameEnvironment._rank_among_factions`; see `ASSESSMENT.md` 3.5.

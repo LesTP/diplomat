@@ -13,6 +13,10 @@ Lower is better (1 = won the game). Because the model is read from the
 per-faction ``faction_models`` map (not the filename), this works for both
 homogeneous tier runs and heterogeneous mixed-model games.
 
+No-deal games (``scores.deal_reached`` is False -> every faction at BATNA, so
+ranks are degenerate) are excluded by default; pass ``--include-no-deal`` to
+keep them.
+
 CLI:
     python -m tests.self_play.rank_aggregator \
         --results "tests/self_play/results/run17_*.json"
@@ -86,13 +90,29 @@ def aggregate(
     }
 
 
+def is_no_deal(result: dict[str, Any]) -> bool:
+    """True when the game explicitly reached no deal (``deal_reached`` is False).
+
+    In that case every faction is scored at BATNA, so the ranks are
+    BATNA-determined rather than negotiated. Missing/True deal_reached -> kept.
+    """
+    return result.get("scores", {}).get("deal_reached") is False
+
+
 def aggregate_files(
     paths: list[str],
-) -> tuple[dict[tuple[str, str], dict[str, Any]], int, int]:
-    """Aggregate a list of result-file paths. Returns (agg, n_used, n_skipped)."""
+    include_no_deal: bool = False,
+) -> tuple[dict[tuple[str, str], dict[str, Any]], int, int, int]:
+    """Aggregate result-file paths.
+
+    Returns (agg, n_used, n_skipped, n_no_deal_excluded). No-deal games
+    (deal_reached=False) are excluded by default since their ranks are
+    BATNA-determined; pass include_no_deal=True to keep them.
+    """
     samples: list[tuple[str, str, int]] = []
     used = 0
     skipped = 0
+    no_deal_excluded = 0
     for path in paths:
         try:
             result = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -103,9 +123,12 @@ def aggregate_files(
         if not file_samples:
             skipped += 1
             continue
+        if not include_no_deal and is_no_deal(result):
+            no_deal_excluded += 1
+            continue
         samples.extend(file_samples)
         used += 1
-    return aggregate(samples), used, skipped
+    return aggregate(samples), used, skipped, no_deal_excluded
 
 
 def render(agg: dict[tuple[str, str], dict[str, Any]]) -> str:
@@ -132,6 +155,14 @@ def main(argv: list[str] | None = None) -> int:
         default=["tests/self_play/results/run17_*.json"],
         help="Result JSON file paths or globs (default: run17_*.json).",
     )
+    parser.add_argument(
+        "--include-no-deal",
+        action="store_true",
+        help=(
+            "Include no-deal games (deal_reached=False). Excluded by default "
+            "because their ranks are BATNA-determined, not negotiated."
+        ),
+    )
     args = parser.parse_args(argv)
 
     paths: list[str] = []
@@ -142,15 +173,19 @@ def main(argv: list[str] | None = None) -> int:
         print("No result files matched.")
         return 1
 
-    agg, used, skipped = aggregate_files(paths)
+    agg, used, skipped, no_deal = aggregate_files(
+        paths, include_no_deal=args.include_no_deal
+    )
     if not agg:
         print(
-            f"Matched {len(paths)} file(s) but none had faction_ranks "
-            f"(skipped {skipped}). Re-run games after the §3.5 rank-lens commit."
+            f"Matched {len(paths)} file(s) but none usable for ranking "
+            f"(skipped {skipped}, {no_deal} no-deal excluded). Re-run games "
+            f"after the rank-lens commit, or pass --include-no-deal."
         )
         return 1
 
-    print(f"Aggregated {used} game result(s) ({skipped} skipped).\n")
+    note = "" if args.include_no_deal else f", {no_deal} no-deal excluded"
+    print(f"Aggregated {used} game result(s) ({skipped} skipped{note}).\n")
     print(render(agg))
     return 0
 
