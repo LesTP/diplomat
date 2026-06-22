@@ -1,0 +1,54 @@
+{
+  "batna": { "alpha": 9, "beta": 8, "gamma": 8 },
+  "deception_tactics": {
+    "alpha": "Frame the industrial heartland as a non-negotiable security interest; in reality you would trade away defense command to secure it.",
+    "beta": "Insist treasury custody must remain 'neutral'; you actually intend to hold it yourself and will concede elsewhere to do so.",
+    "gamma": "Signal early flexibility on the heartland to bank goodwill, then extract a hard concession on defense command, your true priority."
+  },
+  "factions": ["alpha", "beta", "gamma"],
+  "game_mode": "mixed",
+  "issues": [
+    {
+      "description": "Which successor state administers the dissolved union's industrial heartland \u2014 its single most valuable asset.",
+      "name": "industrial_heartland",
+      "outcomes": ["Alpha-Administered", "Beta-Administered", "Gamma-Administered"]
+    },
+    {
+      "description": "Which state takes custody of the central treasury and its reserves.",
+      "name": "central_treasury",
+      "outcomes": ["Alpha-Custody", "Beta-Custody", "Gamma-Custody"]
+    },
+    {
+      "description": "Which state assumes command of the unified armed forces.",
+      "name": "defense_command",
+      "outcomes": ["Alpha-Command", "Beta-Command", "Gamma-Command"]
+    }
+  ],
+  "logrolling": [
+    "Each faction's headline asset is a different issue (alpha: heartland, beta: treasury, gamma: defense), so the 'everyone takes their priority' deal is feasible \u2014 but it is NOT a clean equal split, and several other balanced deals tie it on total value, so which one is chosen is a pure distributive contest.",
+    "Alpha and gamma can trade: alpha takes the heartland and concedes defense command to gamma, both leaving the treasury to beta."
+  ],
+  "pressure": {
+    "asymmetric_clocks": {},
+    "penalty_floor_offset": 0.0,
+    "round_cost_decay": 0.0
+  },
+  "priority_collision": "soft",
+  "scoring": {
+    "alpha": {
+      "industrial_heartland": { "Alpha-Administered": 10, "Beta-Administered": 3, "Gamma-Administered": 1 },
+      "central_treasury": { "Alpha-Custody": 7, "Beta-Custody": 2, "Gamma-Custody": 1 },
+      "defense_command": { "Alpha-Command": 8, "Beta-Command": 2, "Gamma-Command": 1 }
+    },
+    "beta": {
+      "industrial_heartland": { "Alpha-Administered": 1, "Beta-Administered": 7, "Gamma-Administered": 3 },
+      "central_treasury": { "Alpha-Custody": 3, "Beta-Custody": 9, "Gamma-Custody": 2 },
+      "defense_command": { "Alpha-Command": 2, "Beta-Command": 7, "Gamma-Command": 1 }
+    },
+    "gamma": {
+      "industrial_heartland": { "Alpha-Administered": 1, "Beta-Administered": 2, "Gamma-Administered": 8 },
+      "central_treasury": { "Alpha-Custody": 2, "Beta-Custody": 1, "Gamma-Custody": 9 },
+      "defense_command": { "Alpha-Command": 2, "Beta-Command": 3, "Gamma-Command": 10 }
+    }
+  }
+}
