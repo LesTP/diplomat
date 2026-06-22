@@ -670,6 +670,57 @@ class TestParetoEfficiency:
         assert metrics["negotiated_surplus_share"] == 0.0
 
 
+class TestResolveDealScores:
+    def test_full_agreement_scores_the_deal(self) -> None:
+        from tests.self_play.game_environment import _resolve_deal_scores
+
+        out = _resolve_deal_scores(
+            _pareto_scenario(),
+            {"deal_reached": True, "agreed_outcomes": {"resource_split": "optimum"}},
+        )
+        assert out["deal_reached"] is True
+        assert out["faction_scores"]["alpha"]["points"] == 10
+        assert out["faction_scores"]["beta"]["points"] == 10
+
+    def test_no_deal_is_all_batna(self) -> None:
+        from tests.self_play.game_environment import _resolve_deal_scores
+
+        out = _resolve_deal_scores(_pareto_scenario(), {"deal_reached": False})
+        assert out["deal_reached"] is False
+        assert out["faction_scores"]["alpha"]["points"] == 4  # BATNA
+        assert out["faction_scores"]["beta"]["points"] == 6
+
+    def test_partial_coalition_without_values_marked_no_deal(self) -> None:
+        # The succ_1 anomaly: deal_reached True + partial coalition + no
+        # coalition_values must score at BATNA AND normalize deal_reached False.
+        from tests.self_play.game_environment import _resolve_deal_scores
+
+        out = _resolve_deal_scores(
+            _three_faction_nash_scenario(),
+            {
+                "deal_reached": True,
+                "agreed_outcomes": {"resource_split": "balanced"},
+                "coalition_members": ["alpha", "beta"],
+            },
+        )
+        assert out["deal_reached"] is False
+        assert out["no_deal_reason"] == "partial_coalition_without_coalition_values"
+        assert all(
+            out["faction_scores"][f]["points"] == 0
+            for f in ("alpha", "beta", "gamma")
+        )
+        # coalition_members preserved for transparency
+        assert out["coalition_members"] == ["alpha", "beta"]
+
+    def test_deal_reached_without_outcomes_marked_no_deal(self) -> None:
+        from tests.self_play.game_environment import _resolve_deal_scores
+
+        out = _resolve_deal_scores(_pareto_scenario(), {"deal_reached": True})
+        assert out["deal_reached"] is False
+        assert out["no_deal_reason"] == "deal_reached_without_agreed_outcomes"
+        assert out["faction_scores"]["alpha"]["points"] == 4
+
+
 class TestRankAmongFactions:
     def test_distinct_scores_rank_descending(self) -> None:
         from tests.self_play.game_environment import _rank_among_factions
