@@ -1,21 +1,31 @@
 #!/bin/bash
 # tools/ablation_multi.sh — Generalized single-cell dispatcher.
 # Accepts MODEL (any provider/model OpenRouter or native), SCENARIO
-# (wrbeta | wrsym | wralpha | jsm1), MODE (full|bare), RUN_N.
+# (wrbeta | wrsym | wralpha | jsm1 | succ), MODE (full|bare), RUN_N.
 #
 # Mirrors tools/ablation.sh + tools/ablation_jsm1.sh, generalized
 # across scenario + provider. Output naming:
 #   run17_<mode>_<modeltag>_<scenariotag>_<n>.json
 # (Run 17 = OpenRouter multi-provider probe, post-Run-16.)
+# Mixed-population runs tag as run17_<mode>_mix-<tagA>-<tagB>-<tagC>_<scen>_<n>.
 #
 # Subcommands:
 #   probe MODEL
 #       One trivial JSON call per faction (~$0.003 native, varies on
 #       OpenRouter) to validate keys + model name.
+#   probemix 'faction=MODEL,faction=MODEL,...'
+#       Same probe for a heterogeneous (mixed-model) population.
 #   run MODEL SCENARIO MODE RUN_N
-#       Examples:
+#       Homogeneous population (same MODEL on every faction). Examples:
 #         tools/ablation_multi.sh run deepseek/deepseek-chat jsm1 full 1
 #         tools/ablation_multi.sh run meta-llama/llama-3.3-70b-instruct wrbeta full 1
+#   runmix 'faction=MODEL,faction=MODEL,...' SCENARIO MODE RUN_N
+#       Heterogeneous population — a different model per faction. Example:
+#         tools/ablation_multi.sh runmix \
+#           'alpha=claude-sonnet-4-6,beta=gpt-5.4-mini,gamma=deepseek/deepseek-chat' \
+#           succ full 1
+#       Per-faction models are recorded in the result JSON's faction_models
+#       map, so tests/self_play/rank_aggregator.py can attribute rank->model.
 #   summary
 #       Print run17_*.json results.
 
@@ -65,6 +75,61 @@ model_tag() {
     m="${m#*/}"
   fi
   echo "$m" | tr -d '.-' | tr '[:upper:]' '[:lower:]'
+}
+
+# Build a per-faction providers JSON from a "faction=MODEL,faction=MODEL,..."
+# spec (heterogeneous / mixed-model population). Provider is inferred per
+# model, exactly like the homogeneous path. Exits non-zero on a bad pair or
+# unknown provider.
+providers_json_mixed() {
+  local spec="$1"
+  local json="{"
+  local first=1
+  local pair faction model provider
+  local saved_ifs="$IFS"
+  IFS=','
+  set -f
+  for pair in $spec; do
+    faction="${pair%%=*}"
+    model="${pair#*=}"
+    if [ "$faction" = "$pair" ] || [ -z "$faction" ] || [ -z "$model" ]; then
+      IFS="$saved_ifs"; set +f
+      echo "ERROR: bad 'faction=model' pair: '$pair'" >&2
+      exit 2
+    fi
+    provider=$(provider_for_model "$model")
+    if [ "$provider" = "unknown" ]; then
+      IFS="$saved_ifs"; set +f
+      echo "ERROR: cannot infer provider for model '$model' (faction '$faction')" >&2
+      exit 2
+    fi
+    [ "$first" -eq 0 ] && json="${json},"
+    json="${json}\"${faction}\":{\"provider\":\"${provider}\",\"model\":\"${model}\"}"
+    first=0
+  done
+  IFS="$saved_ifs"; set +f
+  if [ "$first" -eq 1 ]; then
+    echo "ERROR: empty mixed-model spec" >&2
+    exit 2
+  fi
+  json="${json}}"
+  printf '%s' "$json"
+}
+
+# Filename tag for a mixed population: "mix-<tagA>-<tagB>-<tagC>" in spec order.
+model_tag_mixed() {
+  local spec="$1"
+  local tag="mix"
+  local pair model
+  local saved_ifs="$IFS"
+  IFS=','
+  set -f
+  for pair in $spec; do
+    model="${pair#*=}"
+    tag="${tag}-$(model_tag "$model")"
+  done
+  IFS="$saved_ifs"; set +f
+  printf '%s' "$tag"
 }
 
 # Resolve scenario tag → (scenario.md, analysis.json, scenario-title).
@@ -159,6 +224,72 @@ print(f'  faction_deltas           = {s.get(\"faction_deltas\", \"?\")}')
 "
 }
 
+cmd_probemix() {
+  local spec="$1"
+  echo "[probemix] spec=$spec (python=$PY)"
+  local providers
+  if ! providers=$(providers_json_mixed "$spec"); then
+    exit 2
+  fi
+  "$PY" -m tests.self_play.probe_providers --providers "$providers"
+}
+
+cmd_runmix() {
+  local spec="$1"
+  local scenario="$2"
+  local mode="$3"
+  local run_n="$4"
+
+  if [ "$mode" != "full" ] && [ "$mode" != "bare" ]; then
+    echo "ERROR: mode must be 'full' or 'bare', got '$mode'" >&2
+    exit 2
+  fi
+
+  local providers
+  if ! providers=$(providers_json_mixed "$spec"); then
+    exit 2
+  fi
+
+  local paths
+  paths=$(scenario_paths "$scenario")
+  local scenario_md="${paths%%|*}"
+  local rest="${paths#*|}"
+  local analysis_json="${rest%%|*}"
+  local title="${rest#*|}"
+
+  local tag
+  tag=$(model_tag_mixed "$spec")
+  local output="${RESULTS_DIR}/run17_${mode}_${tag}_${scenario}_${run_n}.json"
+
+  local bare_flag=""
+  [ "$mode" = "bare" ] && bare_flag="--bare-prompt"
+
+  local temp_flag=""
+  [ -n "${TEMPERATURE:-}" ] && temp_flag="--temperature ${TEMPERATURE}"
+
+  echo "[runmix] spec=$spec scenario=$scenario mode=$mode run=$run_n output=$output"
+  "$PY" -m tests.self_play.run_simulation \
+    --scenario "$scenario_md" \
+    --analysis-json "$analysis_json" \
+    --scenario-title "$title" \
+    --rounds 4 \
+    --per-faction-providers "$providers" \
+    $bare_flag \
+    $temp_flag \
+    --output "$output"
+
+  echo "[done] $output"
+  "$PY" -c "
+import json
+d = json.load(open('$output'))
+s = d.get('scores', {})
+print(f'  deal_reached   = {s.get(\"deal_reached\")}')
+print(f'  faction_ranks  = {s.get(\"faction_ranks\", \"?\")}')
+print(f'  faction_deltas = {s.get(\"faction_deltas\", \"?\")}')
+print(f'  faction_models = {d.get(\"faction_models\", \"?\")}')
+"
+}
+
 cmd_summary() {
   echo "model                | scenario | mode | run | deal? | surplus_share | pareto_eff | deltas"
   echo "---------------------+----------+------+-----+-------+---------------+------------+--------"
@@ -186,27 +317,39 @@ else:
   done
 }
 
-if [ $# -lt 1 ]; then
-  echo "Usage: bash tools/ablation_multi.sh probe MODEL"
-  echo "       bash tools/ablation_multi.sh run MODEL SCENARIO MODE RUN_N"
-  echo "       bash tools/ablation_multi.sh summary"
-  exit 1
-fi
-
-case "$1" in
-  probe)
-    [ $# -eq 2 ] || { echo "Usage: probe MODEL"; exit 1; }
-    cmd_probe "$2"
-    ;;
-  run)
-    [ $# -eq 5 ] || { echo "Usage: run MODEL SCENARIO MODE RUN_N"; exit 1; }
-    cmd_run "$2" "$3" "$4" "$5"
-    ;;
-  summary)
-    cmd_summary
-    ;;
-  *)
-    echo "Unknown subcommand: $1" >&2
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  if [ $# -lt 1 ]; then
+    echo "Usage: bash tools/ablation_multi.sh probe MODEL"
+    echo "       bash tools/ablation_multi.sh probemix 'faction=MODEL,faction=MODEL,...'"
+    echo "       bash tools/ablation_multi.sh run MODEL SCENARIO MODE RUN_N"
+    echo "       bash tools/ablation_multi.sh runmix 'faction=MODEL,...' SCENARIO MODE RUN_N"
+    echo "       bash tools/ablation_multi.sh summary"
     exit 1
-    ;;
-esac
+  fi
+
+  case "$1" in
+    probe)
+      [ $# -eq 2 ] || { echo "Usage: probe MODEL"; exit 1; }
+      cmd_probe "$2"
+      ;;
+    probemix)
+      [ $# -eq 2 ] || { echo "Usage: probemix 'faction=MODEL,...'"; exit 1; }
+      cmd_probemix "$2"
+      ;;
+    run)
+      [ $# -eq 5 ] || { echo "Usage: run MODEL SCENARIO MODE RUN_N"; exit 1; }
+      cmd_run "$2" "$3" "$4" "$5"
+      ;;
+    runmix)
+      [ $# -eq 5 ] || { echo "Usage: runmix 'faction=MODEL,...' SCENARIO MODE RUN_N"; exit 1; }
+      cmd_runmix "$2" "$3" "$4" "$5"
+      ;;
+    summary)
+      cmd_summary
+      ;;
+    *)
+      echo "Unknown subcommand: $1" >&2
+      exit 1
+      ;;
+  esac
+fi
