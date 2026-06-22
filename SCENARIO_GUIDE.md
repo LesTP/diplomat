@@ -20,7 +20,8 @@ and an empirical scaling probe.
 |---|---|---|
 | **Full-cooperation** (everyone agrees on a deal) | ✅ Reliable | Compiler (narrative) or Builder (constraint) |
 | **Coalition-coercive** (partial-agreement payoffs matter; Susskind-style) | ✅ Schema + scoring first-class as of Phase 2a | Compiler extracts `coalition_values` from narratives; builder stubs `[]` for operator hand-fill |
-| **Distributive bargaining / hidden-value / adversarial** | Queued | Add scenario class definitions; share compiler/builder |
+| **Distributive (no dominant attractor)** — equal-sum Pareto deals, each favoring a different faction | **DONE** — `succ` scenario (2026-06-22) | Hand-authored constant-sum payoffs; see “Authoring a distributive scenario” below |
+| **Hidden-value / adversarial** | Queued | Add scenario class definitions; share compiler/builder |
 
 ### What you can do today
 
@@ -51,6 +52,7 @@ and an empirical scaling probe.
 - Partial coalitions without matching values: treated as no-deal (all
   BATNA, conservative)
 - No deal: all BATNA
+- Competitive ranking: `faction_ranks` (section 3.5) ranks factions by achieved score within the game (1=highest); the per-game lens that `rank_aggregator` pools into a cross-model leaderboard
 
 ### Programmatic surface
 
@@ -352,6 +354,48 @@ For full-cooperation scenarios (Water Rights, Joint Space Mission), leave
 Future Phase 42 work will add `ScenarioSpec.requires_coalition_values`
 for builder-emitted coalition scenarios; today, operator hand-edits the
 JSON to populate it.
+
+## Authoring a distributive scenario (no dominant attractor)
+
+The `succ` scenario (`scenarios/succession_division_v1/`, narrative
+`scenarios/succession_division.md`) is the reference distributive scenario,
+built for the section 3.5 rank-among-factions lens. Unlike `jsm1`/`wrbeta` -
+where one deal is both highest-sum and most balanced, so every model converges
+there (zero outcome diversity) - a distributive scenario has multiple
+(near-)equal-sum Pareto deals, each favoring a different faction, so *which*
+deal is agreed becomes a genuine contest and a stronger negotiator claims more.
+
+**Design principle - use (near-)constant-sum payoffs.** If every outcome of
+every issue sums to the same constant across factions, then every deal sums to
+the same total, which makes Pareto domination impossible - so there is no
+dominant attractor by construction (the cleanest guarantee against the `jsm1`
+failure mode). `succ` does exactly this: each outcome on each of 3 issues sums
+to 12 across the 3 factions, so every deal sums to 36 and all 27 deals are on
+the frontier, none dominating another.
+
+**Remove the equal-split Schelling point.** A symmetric constant-sum game has a
+perfect equal-split deal (12/12/12) that models gravitate to. Break it with a
+*compensated internal shift* - redistribute points within one outcome (keeping
+that outcome's sum constant) so no deal lands on an exact tie, without
+reintroducing domination. In `succ` this yields 6 BATNA-clearing contest deals
+with a balanced 2/2/2 winner spread (alpha/beta/gamma each win two).
+
+**Author + verify loop** (hand-authoring is recommended - the equal-sum property
+is not a `ScenarioSpec` fitness target):
+1. Hand-write `scenario_analysis.json` with constant-sum `scoring` and BATNAs
+   that carve out a balanced contest set (corners where one faction dominates
+   should *not* clear all BATNAs).
+2. Verify with `verify_scenario_optimum --top-n 27` plus a frontier/winner
+   enumeration: confirm near-equal sums, distinct per-deal winners, no exact ties.
+3. Register the scenario tag in `tools/ablation_multi.sh` `scenario_paths()`.
+
+**Run a model comparison on it** (what the distributive scenario unlocks):
+```bash
+bash tools/ablation_multi.sh runrotate 'M1,M2,M3' succ bare 3   # seat-rotated mixed-model games
+python -m tests.self_play.rank_aggregator                       # mean_rank leaderboard
+```
+See `CLI_REFERENCE.md` for the full dispatcher + aggregator reference and
+`ASSESSMENT.md` section 3.5 for the scoring lens.
 
 ## Scaling expectations
 

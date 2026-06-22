@@ -27,6 +27,8 @@ Cross-references point at fuller discussion in `TUNING.md`, `DEVPLAN.md`,
 | Assert dry-run output meets invariants | [`tests.self_play.verify_dryrun`](#testsself_playverify_dryrun--assert-dry-run-output-invariants) |
 | Check a scenario has a non-trivial optimum before running | [`scenario_authoring.verify_scenario_optimum`](#testsself_playverify_scenario_optimum--enumerate-scenario-outcomes) |
 | Get a post-game report | [`tests.self_play.analysis`](#testsself_playanalysis--post-game-report) |
+| Run a benchmark cell (homogeneous, mixed-model, or seat-rotated) | [`tools/ablation_multi.sh`](#toolsablation_multish--benchmark-cell-dispatcher) |
+| Rank models across games (mean_rank leaderboard) | [`tests.self_play.rank_aggregator`](#testsself_playrank_aggregator--cross-game-model-leaderboard) |
 | Run prompt-quality regression scenarios | [`tests.prompt_regression.runner`](#testsprompt_regressionrunner--scenario-based-prompt-eval) |
 | Classify the review-gate edit log (post-game) | [`tools/classify_edit_log.py`](#toolsclassify_edit_logpy--bulk-edit-log-classifier) |
 | Inspect the cost ledger | [`tools/inspect_ledger.py`](#toolsinspect_ledgerpy) |
@@ -264,6 +266,87 @@ python -m tests.self_play.analysis --results tests/self_play/results/run9.json
 
 Prints per-agent summary, communication patterns, round-by-round responses,
 and a promise cross-reference table.
+
+### `tools/ablation_multi.sh` — benchmark-cell dispatcher
+
+Runs a single self-play benchmark cell and writes
+`tests/self_play/results/run17_<mode>_<modeltag>_<scenario>_<n>.json`. Supports
+homogeneous populations (same model on every faction), heterogeneous mixed-model
+populations, and seat-rotation sweeps. Run from the project root with `.env`
+provider keys present. (Historically the "Run 17" multi-provider tool; the
+`run17_` filename prefix is retained.)
+
+```bash
+# Probe providers before any run (RUN_PROTOCOL step 3)
+bash tools/ablation_multi.sh probe gpt-4.1-mini
+bash tools/ablation_multi.sh probemix 'alpha=claude-sonnet-4-6,beta=gpt-5.4-mini,gamma=deepseek/deepseek-chat'
+
+# Single cell - homogeneous (same model on all factions)
+bash tools/ablation_multi.sh run gpt-4.1-mini succ bare 1
+
+# Single cell - mixed-model (a different model per faction)
+bash tools/ablation_multi.sh runmix 'alpha=claude-sonnet-4-6,beta=gpt-5.4-mini,gamma=deepseek/deepseek-chat' succ full 1
+
+# Seat-rotation sweep - every model plays every seat (controls slot asymmetry)
+bash tools/ablation_multi.sh rotateplan 'claude-sonnet-4-6,gpt-5.4-mini,deepseek/deepseek-chat' succ   # preview, no run/cost
+bash tools/ablation_multi.sh runrotate  'claude-sonnet-4-6,gpt-5.4-mini,deepseek/deepseek-chat' succ bare 3   # 3 rotations x 3 = 9 games
+
+# Tabulate all run17_*.json results
+bash tools/ablation_multi.sh summary
+```
+
+| Subcommand | Args | Notes |
+|---|---|---|
+| `probe` | `MODEL` | One trivial call per faction; validates keys + model name (~$0.003). |
+| `probemix` | `'faction=MODEL,...'` | Same probe for a heterogeneous population. |
+| `run` | `MODEL SCENARIO MODE RUN_N` | Homogeneous cell. SCENARIO in `wrbeta｜wrsym｜wralpha｜jsm1｜succ`; MODE in `full｜bare`. |
+| `runmix` | `'faction=MODEL,...' SCENARIO MODE RUN_N` | Heterogeneous cell. Per-faction models recorded in the result's `faction_models` map. |
+| `rotateplan` | `'M1,M2,M3' SCENARIO` | Preview the cyclic seat assignments (no run, no cost). |
+| `runrotate` | `'M1,M2,M3' SCENARIO MODE N` | Run all cyclic rotations x N; each model plays each seat the same number of times. |
+| `summary` | - | Print a table of all `run17_*.json` results. |
+
+- **Provider inference:** `gpt-*`/`o[1-4]*` -> openai, `claude-*` -> anthropic, `gemini-*` -> google, any `vendor/model` -> openrouter.
+- **`TEMPERATURE` env var:** `TEMPERATURE=1 bash tools/ablation_multi.sh run ...` passes `--temperature 1` to the generator (hold temperature constant across a tier comparison; required for OpenAI reasoning models). Unset -> toolkit default 0.7.
+- Mixed runs tag the filename as `mix-<tagA>-<tagB>-<tagC>`; the `summary` and `rank_aggregator` parsers handle it.
+- Per-faction `faction_models` + per-game `faction_ranks` feed `rank_aggregator` (below). Use `runmix`/`runrotate` on a no-dominant-attractor scenario like `succ` so outcomes actually vary.
+
+### `tests.self_play.rank_aggregator` — cross-game model leaderboard
+
+Computes `mean_rank(model, scenario)` + win_rate by pooling per-game
+`faction_ranks` across result JSONs, joining each faction's rank to its model via
+the persisted `faction_models` map (so it works for mixed-model games). Lower
+mean_rank = better.
+
+```bash
+python -m tests.self_play.rank_aggregator --results "tests/self_play/results/run17_*.json"
+```
+
+| Flag | Default | Notes |
+|---|---|---|
+| `--results` | `tests/self_play/results/run17_*.json` | One or more result-file paths or globs. |
+
+Skips results that predate the rank lens (no `faction_ranks`). The per-game lens
+is produced by `GameEnvironment._rank_among_factions`; see `ASSESSMENT.md` 3.5.
+
+### `tests.self_play.position_rotation` — seat-rotation spec generator
+
+Emits the per-game `faction=model,...` specs for a rotation sweep (one per line);
+`ablation_multi.sh runrotate` consumes these. You normally call
+`runrotate`/`rotateplan` rather than this directly.
+
+```bash
+python -m tests.self_play.position_rotation \
+    --analysis scenarios/succession_division_v1/scenario_analysis.json \
+    --models "claude-sonnet-4-6,gpt-5.4-mini,deepseek/deepseek-chat" \
+    --scheme cyclic
+```
+
+| Flag | Default | Notes |
+|---|---|---|
+| `--models` * | - | Comma-separated models, one per faction. |
+| `--analysis` | - | `scenario_analysis.json` to read the faction list/order from. |
+| `--factions` | - | Comma-separated faction ids (overrides `--analysis`). |
+| `--scheme` | `cyclic` | `cyclic` (N games, each model each seat once) or `all` (N! permutations). |
 
 ---
 
@@ -662,3 +745,4 @@ procedure to validate the Diplomat bot on the Raspberry Pi after code changes.
 | 2026-06-10 | Phase 36 Step 36.1: added `--debug-search` to `scenario_authoring.scenario_builder` and documented its JSON restart logs. |
 | 2026-06-11 | Phase 36 Step 36.6: added `target_weights` spec field to schema and field table; added metric-semantics note distinguishing `pareto_distribution_spread` (intra-faction uniformity) from `pareto_outcome_diversity` (queued Phase 37, inter-deal diversity). |
 | 2026-06-11 | Phase 37 Step 37.6: added `pareto_outcome_diversity` spec field (`float 0–1`, default `0.0`); expanded metric-semantics note into a full cross-reference block explaining what each metric measures and when to use each. |
+| 2026-06-22 | section 3.5 benchmark tooling: added `tools/ablation_multi.sh` (probe/probemix/run/runmix/rotateplan/runrotate/summary), `tests.self_play.rank_aggregator` (cross-game mean_rank leaderboard), and `tests.self_play.position_rotation` (seat-rotation specs); added quick-index rows. |
