@@ -720,6 +720,28 @@ class TestResolveDealScores:
         assert out["no_deal_reason"] == "deal_reached_without_agreed_outcomes"
         assert out["faction_scores"]["alpha"]["points"] == 4
 
+    def test_deal_below_batna_for_a_faction_marked_no_deal(self) -> None:
+        # The succ2 case: an "agreement" that leaves a faction below its BATNA
+        # (e.g. covering only a subset of issues) is not a real deal.
+        from tests.self_play.game_environment import _resolve_deal_scores
+
+        scenario = {
+            "factions": ["alpha", "beta"],
+            "issues": [{"name": "x", "outcomes": ["a", "b"]}],
+            "scoring": {
+                "alpha": {"x": {"a": 10, "b": 1}},
+                "beta": {"x": {"a": 1, "b": 10}},
+            },
+            "batna": {"alpha": 5, "beta": 5},
+        }
+        out = _resolve_deal_scores(
+            scenario, {"deal_reached": True, "agreed_outcomes": {"x": "b"}}
+        )
+        assert out["deal_reached"] is False  # alpha scores 1 < BATNA 5
+        assert out["no_deal_reason"] == "deal_below_batna_for_some_faction"
+        assert out["faction_scores"]["alpha"]["points"] == 5
+        assert out["faction_scores"]["beta"]["points"] == 5
+
 
 class TestRankAmongFactions:
     def test_distinct_scores_rank_descending(self) -> None:

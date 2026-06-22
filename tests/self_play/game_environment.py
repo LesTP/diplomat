@@ -858,12 +858,14 @@ def _resolve_deal_scores(
       3. Partial coalition w/o matching coalition_values, OR no deal -> everyone
          falls back to BATNA.
 
-    Also normalizes ``deal_reached`` to stay consistent with the scores: a
-    partial coalition that cannot be scored (no coalition_values), or a
-    ``deal_reached`` verdict with no ``agreed_outcomes``, is recorded as a
-    no-deal (``deal_reached=False`` + ``no_deal_reason``) so downstream
-    consumers never see a deal_reached=True game whose factions are all at
-    BATNA. ``coalition_members`` is preserved for transparency.
+    Also normalizes ``deal_reached`` to stay consistent with the scores. A
+    reported deal is recorded as a no-deal (``deal_reached=False`` +
+    ``no_deal_reason``, everyone at BATNA) when it cannot be a real agreement:
+      - a partial coalition with no matching coalition_values;
+      - a ``deal_reached`` verdict with no ``agreed_outcomes``;
+      - a deal that scores ANY faction below its BATNA (that faction would
+        reject it -- e.g. an agreement covering only a subset of issues).
+    ``coalition_members`` is preserved for transparency.
     """
     from scenario_authoring.verify_scenario_optimum import faction_score
 
@@ -884,7 +886,7 @@ def _resolve_deal_scores(
             cv_entry = _find_coalition_value(scenario_analysis, coalition_members)
             if cv_entry is not None:
                 cv_values = cv_entry.get("values", {})
-                score_data["faction_scores"] = {
+                candidate = {
                     f: {
                         "points": (
                             float(cv_values[f])
@@ -902,14 +904,29 @@ def _resolve_deal_scores(
                 score_data["deal_reached"] = False
                 score_data["no_deal_reason"] = "partial_coalition_without_coalition_values"
                 score_data["faction_scores"] = _all_batna()
+                return score_data
         else:
-            score_data["faction_scores"] = {
+            candidate = {
                 f: {
                     "points": float(faction_score(scenario_analysis, f, agreed_outcomes)),
                     "batna": float(batnas.get(f, 0.0)),
                 }
                 for f in faction_ids
             }
+
+        # Rationality check: a faction would reject any deal that scores it
+        # below its BATNA (worse than walking away), so such a "deal" is not a
+        # real agreement -> record it as no-deal. Catches e.g. an incomplete
+        # agreement covering only a subset of issues that leaves a faction
+        # below BATNA.
+        if any(
+            candidate[f]["points"] < float(batnas.get(f, 0.0)) for f in faction_ids
+        ):
+            score_data["deal_reached"] = False
+            score_data["no_deal_reason"] = "deal_below_batna_for_some_faction"
+            score_data["faction_scores"] = _all_batna()
+        else:
+            score_data["faction_scores"] = candidate
     else:
         # No (full) deal -> everyone falls back to BATNA. If the scorer said
         # deal_reached but gave no agreed_outcomes, normalize the flag to False.
