@@ -290,6 +290,55 @@ print(f'  faction_models = {d.get(\"faction_models\", \"?\")}')
 "
 }
 
+# Position-rotation harness: run a model set across all cyclic slot
+# assignments so each model plays each faction once (controls for slot
+# asymmetry in mean_rank). Rotation specs come from the Python helper.
+cmd_rotateplan() {
+  local models="$1"
+  local scenario="$2"
+  local paths
+  paths=$(scenario_paths "$scenario")
+  local rest="${paths#*|}"
+  local analysis_json="${rest%%|*}"
+  echo "[rotateplan] scenario=$scenario models=$models"
+  "$PY" -m tests.self_play.position_rotation \
+    --analysis "$analysis_json" --models "$models" --scheme cyclic
+}
+
+cmd_runrotate() {
+  local models="$1"
+  local scenario="$2"
+  local mode="$3"
+  local n="$4"
+
+  if [ "$mode" != "full" ] && [ "$mode" != "bare" ]; then
+    echo "ERROR: mode must be 'full' or 'bare', got '$mode'" >&2
+    exit 2
+  fi
+
+  local paths
+  paths=$(scenario_paths "$scenario")
+  local rest="${paths#*|}"
+  local analysis_json="${rest%%|*}"
+
+  local specs
+  if ! specs=$("$PY" -m tests.self_play.position_rotation \
+      --analysis "$analysis_json" --models "$models" --scheme cyclic); then
+    echo "ERROR: failed to compute rotations" >&2
+    exit 2
+  fi
+
+  echo "[runrotate] scenario=$scenario mode=$mode models=$models n_per_rotation=$n"
+  local k=1 spec i
+  while IFS= read -r spec; do
+    [ -z "$spec" ] && continue
+    for ((i = 1; i <= n; i++)); do
+      cmd_runmix "$spec" "$scenario" "$mode" "$k"
+      k=$((k + 1))
+    done
+  done <<< "$specs"
+}
+
 cmd_summary() {
   echo "model                | scenario | mode | run | deal? | surplus_share | pareto_eff | deltas"
   echo "---------------------+----------+------+-----+-------+---------------+------------+--------"
@@ -323,6 +372,8 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     echo "       bash tools/ablation_multi.sh probemix 'faction=MODEL,faction=MODEL,...'"
     echo "       bash tools/ablation_multi.sh run MODEL SCENARIO MODE RUN_N"
     echo "       bash tools/ablation_multi.sh runmix 'faction=MODEL,...' SCENARIO MODE RUN_N"
+    echo "       bash tools/ablation_multi.sh rotateplan 'M1,M2,M3' SCENARIO   # preview rotations (no run)"
+    echo "       bash tools/ablation_multi.sh runrotate 'M1,M2,M3' SCENARIO MODE N_PER_ROTATION"
     echo "       bash tools/ablation_multi.sh summary"
     exit 1
   fi
@@ -343,6 +394,14 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     runmix)
       [ $# -eq 5 ] || { echo "Usage: runmix 'faction=MODEL,...' SCENARIO MODE RUN_N"; exit 1; }
       cmd_runmix "$2" "$3" "$4" "$5"
+      ;;
+    rotateplan)
+      [ $# -eq 3 ] || { echo "Usage: rotateplan 'M1,M2,M3' SCENARIO"; exit 1; }
+      cmd_rotateplan "$2" "$3"
+      ;;
+    runrotate)
+      [ $# -eq 5 ] || { echo "Usage: runrotate 'M1,M2,M3' SCENARIO MODE N_PER_ROTATION"; exit 1; }
+      cmd_runrotate "$2" "$3" "$4" "$5"
       ;;
     summary)
       cmd_summary
