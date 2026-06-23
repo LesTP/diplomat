@@ -111,7 +111,7 @@ is Phase 46.
       `render_scenario_html(...)` and `build_scenario_viz(...)`. Add
       `tests/test_scenario_viz.py` (render markers, `runs=None`/`[]`, pareto-match
       vs `find_pareto_frontier`, file write via `tmp_path`). Run pytest.
-- [ ] 43.2 — Slim `tools/viz.py` to a wrapper: keep run-discovery (`discover_runs`,
+- [x] 43.2 — Slim `tools/viz.py` to a wrapper: keep run-discovery (`discover_runs`,
       `extract_positions`, `_run_meta`, `detect_bottleneck`, `MODEL_PRETTY`, …) +
       the argparse CLI (same flags/output names); import the renderer from
       `scenario_authoring.scenario_viz`; add a `src/` `sys.path` insert. Regression:

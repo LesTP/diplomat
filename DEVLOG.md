@@ -753,3 +753,9 @@ Mode: Build
 Outcome: Moved the scenario-only deal-explorer renderer into `src/scenario_authoring/scenario_viz.py`, switched `tools/viz.py` to a thin run-discovery wrapper, and added regression coverage for the new package API.
 Contract changes: none
 The new module now owns `build_deals`, `build_data`, `build_scenario_html`, `render_scenario_html`, and `build_scenario_viz`, reusing `find_pareto_frontier` instead of the old O(n^2) Pareto scan. `tools/viz.py` keeps only run discovery, bottleneck detection, CLI parsing, and the handoff into the package renderer. Added `tests/test_scenario_viz.py` to lock in render markers, `runs=None`/`[]` handling, frontier parity, and file writing. Verification passed with `python3 -m pytest -q tests/test_scenario_viz.py tests/test_scenario_authoring_api.py` and `python3 tools/build_viz.py`, which regenerated `viz_wrbeta.html` and `viz_jsm1.html`.
+
+### Step 43.2: scenario viz wrapper regression
+Mode: Build
+Outcome: Verified `tools/viz.py` already matched the wrapper contract for run-discovery and CLI passthrough, so no source changes were needed in this step.
+Contract changes: none
+The tool layer already had the `src/` path insert, imported the package renderer, and retained the run-discovery helpers (`discover_runs`, `extract_positions`, `_run_meta`, `detect_bottleneck`, `MODEL_PRETTY`). Validation passed with `./.venv/bin/python -m pytest tests/test_scenario_viz.py` and `./.venv/bin/python tools/build_viz.py`, which regenerated both dashboard outputs.
