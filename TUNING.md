@@ -92,8 +92,9 @@ the same R3 contingent verbatim at R4 and the deal closed.
 seats (the faction most likely to make convergence-critical contingent
 commitments — typically the bottleneck-holder), prefer Anthropic
 claude-haiku-4-5 over OpenAI gpt-4.1-mini until cross-scenario data says
-otherwise. See NEXT_STEPS §1.7 / §1.8 for the open follow-up experiments
-(all-Anthropic baseline + cross-scenario defection test).
+otherwise. See `RESEARCH_NOTES.md` Note 3 (provider consistency as a deal-making
+variable) for the thesis and the deferred follow-up experiments (all-Anthropic
+baseline + cross-scenario defection test).
 
 **Practical implication for production target:** unknown. We have no data on
 whether gpt-5.5 exhibits the same defection pattern as gpt-4.1-mini. The

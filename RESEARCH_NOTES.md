@@ -589,3 +589,48 @@ Operator decision after the 2026-06-16 consolidation discussion: **commit to the
 - The open questions above remain open under the benchmark direction; they're now empirical questions to answer with future campaigns rather than fork-deciding questions.
 
 **Note 2 stays open** as an active thesis container for future Path A/B/C evidence. Append new findings under their respective Path headers when campaigns run.
+
+---
+
+## Note 3 — Provider consistency as a deal-making variable
+
+**Date:** 2026-06-23 (consolidated from the former `NEXT_STEPS.md` §1.7 / §1.8; evidence in `TUNING_LOG.md` Runs 9 / 10 / 18)
+**Status:** Active finding. The follow-up *tests* are deferred under D-56 (they would still produce benchmark-relevant data, but are not Tier-1 priority).
+**Cross-refs:** `TUNING_LOG.md` Runs 9 / 10 / 18, Note 1 provider-confound bullets (2026-06-16 + Run 18 update), `DECISIONS.md` D-56.
+
+### Finding
+
+Run 10 B' (α-squeezed BATNAs, beta's Generator re-routed from OpenAI
+`gpt-4.1-mini` to Anthropic `claude-haiku-4-5`) reached the Pareto-optimal deal
+that Run 9 α-squeezed (all-OpenAI) had missed. The breaking pattern was an
+**R3→R4 defection**: a faction on `gpt-4.1-mini` textually commits at R3 to the
+position the other two are converging on, then proposes a personally-preferred
+alternative at R4, killing consensus. Observed **two-of-two times on
+`gpt-4.1-mini`**, different factions (Run 9 α-squeezed beta; Run 10 C' gamma).
+Anthropic `claude-haiku-4-5` honored beta's R3 contingent verbatim at R4 (Run 10 B').
+
+### Thesis
+
+BATNA pressure and provider consistency reached the *same* Pareto deal via
+different mechanisms: BATNA pressure *forced* the OpenAI agent to stay consistent
+(defecting back to BATNA was too costly), while Anthropic was consistent by
+default. So **BATNA pressure is a *substitute* for native cross-round consistency
+on consistency-flaky models, and a *no-op* on consistency-reliable ones.**
+
+**Tuning implication:** consistency-critical seats (bottleneck-holders whose R3
+contingent everyone else is converging toward) should default to a
+consistency-reliable provider for multi-round games.
+
+### Open scope question (deferred under D-56)
+
+Is the `gpt-4.1-mini` R3→R4 defection **Water-Rights-specific or general**? Two
+cheap cross-scenario checks would generalize it (re-run Three-Party Coalition and
+Trade Summit on all-`gpt-4.1-mini`, watch R3→R4 transitions). Plus an
+all-Anthropic baseline across the three BATNA variants (symmetric / α / β) to
+confirm Anthropic reaches Pareto across the spectrum. All deferred — see the
+NEXT_STEPS "Deferred (icebox)" list.
+
+Run 18 (2026-06-22) added a strong-tier data point on the same provider axis:
+`gpt-5.5` (OpenAI) closes WR-β bare 3/3 where `claude-sonnet-4-6` (Anthropic)
+floors 0/3 — i.e. the WR-β strong-tier failure was sonnet-specific, not a
+strong-tier property (see Note 1 amendment bullet 5).
