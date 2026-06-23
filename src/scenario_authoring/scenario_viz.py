@@ -9,7 +9,6 @@ Run-discovery over self-play result JSONs stays in `tools/viz.py`.
 from __future__ import annotations
 
 import html as _html
-import itertools
 import json
 import re
 from datetime import datetime, timezone
@@ -17,7 +16,6 @@ from pathlib import Path
 from typing import Any
 
 from scenario_authoring.verify_scenario_optimum import (
-    beats_batna,
     enumerate_deals,
     faction_score,
     find_pareto_frontier,

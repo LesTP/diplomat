@@ -1,7 +1,7 @@
 ---
 phase: 43
 blocked: false
-state: execute
+state: close
 steps_remaining: 0
 ---
 
