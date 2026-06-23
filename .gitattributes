@@ -1,0 +1,15 @@
+# Normalize line endings: store and check out LF for all text files.
+# Prevents CRLF churn when the working tree is edited via the Windows Samba
+# mount (p:\shared) while commits happen on the Pi. git auto-detects binary
+# files and leaves them untouched.
+* text=auto eol=lf
+
+# Explicit binaries (never normalize).
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.pdf  binary
+*.db   binary
+*.sqlite  binary
+*.sqlite3 binary
