@@ -134,12 +134,13 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 | 15 | Pipeline | Per-agent capability surface extracted from Orchestrator: persistence, extraction, coaching dispatch, round advancement, reconciliation/analysis, response generation, and query APIs. | Phase 22 complete |
 | 16 | Flow | Scheduling strategies that drive one or more Pipelines, starting with event-driven production and round-stepped self-play. | Phase 22 complete |
 | 17 | Scenario Builder | Constraint-driven reverse scenario generator. Operator writes a `ScenarioSpec`; tool searches scoring-table space via simulated-annealing hill-climb and emits `scenario_analysis.json` + per-faction `.txt` personas, including the scenario `pressure` object. Not a pipeline module — design tool only. | Complete |
+| 18 | Scenario Viz | Deal-explorer HTML renderer extracted from `tools/viz.py` into `src/scenario_authoring/scenario_viz.py`. Reuses `find_pareto_frontier` from `verify_scenario_optimum` (no math duplication). Wired into `verify_scenario_optimum --viz` and `scenario_builder --viz`; exported on public API. `tools/viz.py` slimmed to run-discovery wrapper. | Phase 43 complete |
 
 ## Testing Status
 
 | Layer | Status |
 |-------|--------|
-| Unit and regression tests | Complete — 440 tests after Phase 37 (Phase 37 added 5 tests: pareto_outcome_diversity low-diversity, high-diversity, mixed, default-zero-no-constraint, and ScenarioSpec field validation; 1 replay test is flaky in full-suite ordering, passes in isolation) |
+| Unit and regression tests | Complete — 535 passed, 1 skipped after Phase 43 (Phase 43 added 4 scenario_viz tests + updated API surface test; 1 replay test is flaky in full-suite ordering, passes in isolation) |
 | Pipeline integration | Complete — 23 fake-backed Orchestrator integration tests (Phase 18 path coverage added Phase 20) |
 | Transcript replay | Complete — 2 transcript fixtures, 5 replay tests |
 | Prompt regression | Complete — 6 starter scenarios (4 extraction free, 2 generation require live LLM) |

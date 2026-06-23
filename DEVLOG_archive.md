@@ -3113,3 +3113,38 @@ This step was doc-only. No code or test changes were needed. The next action is 
 ## 2026-06-11 - Phase 38 close: pressure mechanisms small bundle complete
 
 Phase 38 closed after the pressure small bundle shipped end to end: `pressure` now carries round-cost decay, asymmetric clocks, penalty floor, and pressure-profile metadata; persona rendering and the final-round marker are pressure-aware; verifier coverage is in place. Close verification passed on the focused phase slice (`python3 -m pytest -q tests/test_persona.py tests/test_scenario_pressure.py tests/test_scenario_compiler.py tests/test_scenario_spec.py` — `61 passed`). `DEVPLAN.md` now shows Phase 38 as complete with a DEVLOG reference.
+
+## 2026-06-23 — Archived Phase 43 step entries
+
+### Step 43.1: scenario viz module extraction and wrapper delegation
+Mode: Build
+Outcome: Moved the scenario-only deal-explorer renderer into `src/scenario_authoring/scenario_viz.py`, switched `tools/viz.py` to a thin run-discovery wrapper, and added regression coverage for the new package API.
+Contract changes: none
+The new module now owns `build_deals`, `build_data`, `build_scenario_html`, `render_scenario_html`, and `build_scenario_viz`, reusing `find_pareto_frontier` instead of the old O(n^2) Pareto scan. `tools/viz.py` keeps only run discovery, bottleneck detection, CLI parsing, and the handoff into the package renderer. Added `tests/test_scenario_viz.py` to lock in render markers, `runs=None`/`[]` handling, frontier parity, and file writing. Verification passed with `python3 -m pytest -q tests/test_scenario_viz.py tests/test_scenario_authoring_api.py` and `python3 tools/build_viz.py`, which regenerated `viz_wrbeta.html` and `viz_jsm1.html`.
+
+### Step 43.2: scenario viz wrapper regression
+Mode: Build
+Outcome: Verified `tools/viz.py` already matched the wrapper contract for run-discovery and CLI passthrough, so no source changes were needed in this step.
+Contract changes: none
+The tool layer already had the `src/` path insert, imported the package renderer, and retained the run-discovery helpers (`discover_runs`, `extract_positions`, `_run_meta`, `detect_bottleneck`, `MODEL_PRETTY`). Validation passed with `./.venv/bin/python -m pytest tests/test_scenario_viz.py` and `./.venv/bin/python tools/build_viz.py`, which regenerated both dashboard outputs.
+
+### Step 43.3: add scenario viz CLI flags
+Mode: Build
+Outcome: Added optional deal-explorer rendering to the scenario verification and reverse-builder CLIs. `verify_scenario_optimum` now accepts `--viz [PATH]` plus `--viz-title`, defaulting to `scenario_analysis.html` when no path is supplied. `scenario_builder` now accepts `--viz` plus `--viz-output`, defaulting to `scenario_analysis.html` beside the emitted analysis when the override is omitted. Focused tests cover the optional-path parser flow and the builder output override.
+Contract changes: `CLI_REFERENCE.md`
+Validation: `python3 -m pytest -q tests/test_verify_scenario_optimum.py tests/test_scenario_builder.py`
+
+### Step 43.4: export scenario viz public API
+Mode: Build
+Outcome: Re-exported `render_scenario_html` and `build_scenario_viz` from the `scenario_authoring` package root and pinned the public-surface test to include the new visualization group. The package root API now exposes the reusable deal-explorer renderer alongside the existing scenario-authoring helpers.
+Contract changes: `ARCH_scenario_authoring.md` (Phase 43.5 sync pending), `tests/test_scenario_authoring_api.py`
+Validation: `python3 -m pytest -q tests/test_scenario_authoring_api.py tests/test_scenario_viz.py` (`6 passed`)
+
+### Step 43.5: scenario viz documentation sync
+Mode: Build
+Outcome: Documented the new scenario visualization entry points and CLI surface. `SCENARIO_GUIDE.md` now describes rendering the deal explorer from `verify_scenario_optimum` or `scenario_builder`, `CLI_REFERENCE.md` now covers `--viz` / `--viz-title` / `--viz-output` plus the `tools/viz.py` wrapper, and `ARCH_scenario_authoring.md` now includes the `scenario_viz` module and public visualization symbols.
+Contract changes:
+- `ARCH_scenario_authoring.md`
+- `SCENARIO_GUIDE.md`
+- `CLI_REFERENCE.md`
+Validation: docs-only change; no test run required.

@@ -748,37 +748,26 @@ Phase 39 promoted the one-off `tools/_temp_fill_narrative.py` into a permanent `
 
 **Contract changes scan:** No cross-module contract changes. `fill_narrative()` is a new function in the tools module with no runtime pipeline wiring. Existing `scenario_compiler` forward-path behavior unchanged.
 
-### Step 43.1: scenario viz module extraction and wrapper delegation
-Mode: Build
-Outcome: Moved the scenario-only deal-explorer renderer into `src/scenario_authoring/scenario_viz.py`, switched `tools/viz.py` to a thin run-discovery wrapper, and added regression coverage for the new package API.
-Contract changes: none
-The new module now owns `build_deals`, `build_data`, `build_scenario_html`, `render_scenario_html`, and `build_scenario_viz`, reusing `find_pareto_frontier` instead of the old O(n^2) Pareto scan. `tools/viz.py` keeps only run discovery, bottleneck detection, CLI parsing, and the handoff into the package renderer. Added `tests/test_scenario_viz.py` to lock in render markers, `runs=None`/`[]` handling, frontier parity, and file writing. Verification passed with `python3 -m pytest -q tests/test_scenario_viz.py tests/test_scenario_authoring_api.py` and `python3 tools/build_viz.py`, which regenerated `viz_wrbeta.html` and `viz_jsm1.html`.
+## 2026-06-23 — Phase 43 close: deal-explorer viz integration complete
 
-### Step 43.2: scenario viz wrapper regression
-Mode: Build
-Outcome: Verified `tools/viz.py` already matched the wrapper contract for run-discovery and CLI passthrough, so no source changes were needed in this step.
-Contract changes: none
-The tool layer already had the `src/` path insert, imported the package renderer, and retained the run-discovery helpers (`discover_runs`, `extract_positions`, `_run_meta`, `detect_bottleneck`, `MODEL_PRETTY`). Validation passed with `./.venv/bin/python -m pytest tests/test_scenario_viz.py` and `./.venv/bin/python tools/build_viz.py`, which regenerated both dashboard outputs.
+Phase 43 extracted the deal-explorer renderer from `tools/viz.py` into a first-class `src/scenario_authoring/scenario_viz.py` package module, wired it into the `verify_scenario_optimum` and `scenario_builder` CLIs, exported it on the public API, and synchronized all reference docs. 5 steps, all 🔨 pure build.
 
-### Step 43.3: add scenario viz CLI flags
-Mode: Build
-Outcome: Added optional deal-explorer rendering to the scenario verification and reverse-builder CLIs. `verify_scenario_optimum` now accepts `--viz [PATH]` plus `--viz-title`, defaulting to `scenario_analysis.html` when no path is supplied. `scenario_builder` now accepts `--viz` plus `--viz-output`, defaulting to `scenario_analysis.html` beside the emitted analysis when the override is omitted. Focused tests cover the optional-path parser flow and the builder output override.
-Contract changes: `CLI_REFERENCE.md`
-Validation: `python3 -m pytest -q tests/test_verify_scenario_optimum.py tests/test_scenario_builder.py`
+**What was built:**
 
-### Step 43.4: export scenario viz public API
-Mode: Build
-Outcome: Re-exported `render_scenario_html` and `build_scenario_viz` from the `scenario_authoring` package root and pinned the public-surface test to include the new visualization group. The package root API now exposes the reusable deal-explorer renderer alongside the existing scenario-authoring helpers.
-Contract changes: `ARCH_scenario_authoring.md` (Phase 43.5 sync pending), `tests/test_scenario_authoring_api.py`
-Validation: `python3 -m pytest -q tests/test_scenario_authoring_api.py tests/test_scenario_viz.py` (`6 passed`)
-Next step: 43.5 doc sync for `SCENARIO_GUIDE.md`, `CLI_REFERENCE.md`, and `ARCH_scenario_authoring.md`.
+- **Step 43.1 (new scenario_viz module):** `src/scenario_authoring/scenario_viz.py` now owns `build_deals`, `build_data`, `build_scenario_html`, `render_scenario_html`, and `build_scenario_viz`. The O(n²) Pareto scan was replaced with a call to `find_pareto_frontier` (imported from `verify_scenario_optimum`), eliminating the last math duplication. `tools/viz.py` was slimmed to a run-discovery wrapper that delegates all rendering to the package. Added `tests/test_scenario_viz.py` (4 tests: render markers, `runs=None`/`[]` handling, frontier parity, file write).
 
-### Step 43.5: scenario viz documentation sync
-Mode: Build
-Outcome: Documented the new scenario visualization entry points and CLI surface. `SCENARIO_GUIDE.md` now describes rendering the deal explorer from `verify_scenario_optimum` or `scenario_builder`, `CLI_REFERENCE.md` now covers `--viz` / `--viz-title` / `--viz-output` plus the `tools/viz.py` wrapper, and `ARCH_scenario_authoring.md` now includes the `scenario_viz` module and public visualization symbols.
-Contract changes:
-- `ARCH_scenario_authoring.md`
-- `SCENARIO_GUIDE.md`
-- `CLI_REFERENCE.md`
-Validation: docs-only change; no test run required.
-Next step: Phase 43 close after the plan is updated and state advances.
+- **Step 43.2 (wrapper regression):** `tools/viz.py` already matched the wrapper contract (src/ path insert, package import, run-discovery helpers retained); no source changes needed. Both `viz_wrbeta.html` and `viz_jsm1.html` regenerated cleanly via `python3 tools/build_viz.py`.
+
+- **Step 43.3 (CLI flags):** `verify_scenario_optimum` now accepts `--viz [PATH]` and `--viz-title`; `scenario_builder` now accepts `--viz` and `--viz-output`. Both default to `scenario_analysis.html` when the optional path override is omitted. Pure-additive; existing behavior unchanged when the flag is absent.
+
+- **Step 43.4 (public API):** Re-exported `render_scenario_html` and `build_scenario_viz` in `src/scenario_authoring/__init__.py` under a new "Visualization" group in `__all__`. `tests/test_scenario_authoring_api.py` updated to pin the extended stable surface.
+
+- **Step 43.5 (doc sync):** `SCENARIO_GUIDE.md` (Visualize subsection + quick-ref card row + file-layout note corrected), `CLI_REFERENCE.md` (`--viz`/`--viz-title`/`--viz-output` on verify + builder; `tools/viz.py` wrapper entry), `ARCH_scenario_authoring.md` (new `scenario_viz` module + public visualization symbols).
+
+**Files changed:** `src/scenario_authoring/scenario_viz.py` (new), `src/scenario_authoring/__init__.py`, `src/scenario_authoring/verify_scenario_optimum.py`, `src/scenario_authoring/scenario_builder.py`, `tools/viz.py` (slimmed), `tests/test_scenario_viz.py` (new), `tests/test_scenario_authoring_api.py`, `SCENARIO_GUIDE.md`, `CLI_REFERENCE.md`, `ARCH_scenario_authoring.md`.
+
+**Tests:** 535 passed, 1 skipped (full suite).
+
+**DEVLOG learning review:** No new trial-and-error patterns. Step 43.2 found the wrapper contract already satisfied — a clean zero-change regression step. The O(n²) → frontier-membership swap was the only non-trivial algorithmic change and was straightforward given the existing `find_pareto_frontier` function.
+
+**Contract changes scan:** No cross-module contract changes. `scenario_viz` depends only on `verify_scenario_optimum` (intra-package) and stdlib — the standalone coupling constraint was maintained. `tools/viz.py` now delegates rendering rather than owning it; its CLI flags and output filenames are unchanged.
