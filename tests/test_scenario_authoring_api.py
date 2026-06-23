@@ -37,6 +37,9 @@ def test_public_surface_is_stable() -> None:
         "find_pareto_frontier",
         "faction_score",
         "beats_batna",
+        # Visualization
+        "render_scenario_html",
+        "build_scenario_viz",
         # Constants
         "SCENARIO_ANALYSIS_SCHEMA",
         "DEFAULT_BATNA_FRACTION",

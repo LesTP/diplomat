@@ -16,6 +16,7 @@ Public surface:
     Fitness          : compute_fitness, FitnessResult
     Analysis utils   : enumerate_deals, find_pareto_frontier, faction_score,
                        beats_batna
+    Visualization    : render_scenario_html, build_scenario_viz
     Constants        : SCENARIO_ANALYSIS_SCHEMA, DEFAULT_BATNA_FRACTION
 """
 
@@ -39,6 +40,7 @@ from scenario_authoring.verify_scenario_optimum import (
     faction_score,
     find_pareto_frontier,
 )
+from scenario_authoring.scenario_viz import build_scenario_viz, render_scenario_html
 
 __all__ = [
     # Spec types
@@ -59,6 +61,9 @@ __all__ = [
     "find_pareto_frontier",
     "faction_score",
     "beats_batna",
+    # Visualization
+    "render_scenario_html",
+    "build_scenario_viz",
     # Constants
     "SCENARIO_ANALYSIS_SCHEMA",
     "DEFAULT_BATNA_FRACTION",

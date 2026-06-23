@@ -765,3 +765,10 @@ Mode: Build
 Outcome: Added optional deal-explorer rendering to the scenario verification and reverse-builder CLIs. `verify_scenario_optimum` now accepts `--viz [PATH]` plus `--viz-title`, defaulting to `scenario_analysis.html` when no path is supplied. `scenario_builder` now accepts `--viz` plus `--viz-output`, defaulting to `scenario_analysis.html` beside the emitted analysis when the override is omitted. Focused tests cover the optional-path parser flow and the builder output override.
 Contract changes: `CLI_REFERENCE.md`
 Validation: `python3 -m pytest -q tests/test_verify_scenario_optimum.py tests/test_scenario_builder.py`
+
+### Step 43.4: export scenario viz public API
+Mode: Build
+Outcome: Re-exported `render_scenario_html` and `build_scenario_viz` from the `scenario_authoring` package root and pinned the public-surface test to include the new visualization group. The package root API now exposes the reusable deal-explorer renderer alongside the existing scenario-authoring helpers.
+Contract changes: `ARCH_scenario_authoring.md` (Phase 43.5 sync pending), `tests/test_scenario_authoring_api.py`
+Validation: `python3 -m pytest -q tests/test_scenario_authoring_api.py tests/test_scenario_viz.py` (`6 passed`)
+Next step: 43.5 doc sync for `SCENARIO_GUIDE.md`, `CLI_REFERENCE.md`, and `ARCH_scenario_authoring.md`.
