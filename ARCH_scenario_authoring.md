@@ -25,6 +25,7 @@ post-hoc verification of any analysis JSON's payoff structure.
 | `scenario_spec` | `ScenarioSpec` + `IssueSpec` + `PressureSpec` dataclasses with JSON load/validate. | No |
 | `scenario_fitness` | `compute_fitness(analysis, spec) → FitnessResult`; the acceptance gate consumed by the builder's search loop. | No |
 | `verify_scenario_optimum` | Pure analysis utilities (`faction_score`, `enumerate_deals`, `find_pareto_frontier`, `beats_batna`, `find_priority_issues`) + a CLI verifier that prints a payoff report for an existing analysis JSON. | No |
+| `scenario_viz` | Scenario-only deal-explorer HTML renderer built on verifier math; exposes `render_scenario_html()` and `build_scenario_viz()`. | No |
 
 ## Public API
 
@@ -44,6 +45,8 @@ from scenario_authoring import (
     compute_fitness, FitnessResult,
     # Analysis utils
     enumerate_deals, find_pareto_frontier, faction_score, beats_batna,
+    # Visualization
+    render_scenario_html, build_scenario_viz,
     # Constants
     SCENARIO_ANALYSIS_SCHEMA, DEFAULT_BATNA_FRACTION,
 )
@@ -221,12 +224,23 @@ fields load fine via `json.loads`.
 - Pure library + CLI. Run as `python -m
   scenario_authoring.verify_scenario_optimum --analysis path/to/analysis.json`
   for a payoff report (max-deal-value, BATNA, Pareto frontier, batna-
-  clearing count, priority issues, logrolling availability).
+  clearing count, priority issues, logrolling availability). Pass `--viz`
+  or `--viz <path>` to also render the deal-explorer HTML with the scenario
+  narrative automatically attached when a matching `.md` file is found.
 - Library callers (`scenario_builder`, `scenario_fitness`,
   `game_environment.score_game`) consume `enumerate_deals`,
   `find_pareto_frontier`, `faction_score`, `beats_batna`. Originally lived
   in `tests/self_play/` for historical reasons; moved into the package in
   2026-06-21 (D-58) to eliminate the production → tests coupling.
+
+### `scenario_viz`
+
+- Scenario-only HTML renderer for the deal explorer. It depends only on the
+  verifier math and stdlib, so it can be reused from both
+  `verify_scenario_optimum` and `scenario_builder` without coupling back into
+  the runtime pipeline.
+- `build_scenario_viz()` writes HTML to disk; `render_scenario_html()` returns
+  the HTML string for embedding or tests.
 
 ## Inputs
 

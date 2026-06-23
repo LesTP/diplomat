@@ -458,6 +458,36 @@ a JSONL + summary markdown. See
 [`scenarios/scale_probe_summary.md`](scenarios/scale_probe_summary.md) for
 the canonical sweep + findings.
 
+## Visualizing a scenario
+
+The deal explorer HTML is produced by the same package renderer from either
+entry point:
+
+```bash
+# Render from a compiled analysis; auto-attaches a matching scenario .md when found
+python -m scenario_authoring.verify_scenario_optimum \
+    --analysis scenarios/water_rights_compiled/scenario_analysis.json \
+    --viz
+
+# Choose an explicit output file and title
+python -m scenario_authoring.verify_scenario_optimum \
+    --analysis scenarios/water_rights_compiled/scenario_analysis.json \
+    --viz scenarios/water_rights_compiled/deal_explorer.html \
+    --viz-title "Water Rights deal explorer"
+
+# Builder emits the same HTML after writing the scenario bundle
+python -m scenario_authoring.scenario_builder \
+    --spec scenarios/specs/multi_pareto.json \
+    --output-dir scenarios/multi_pareto_v1 \
+    --verify \
+    --viz \
+    --viz-output scenarios/multi_pareto_v1/deal_explorer.html
+```
+
+`verify_scenario_optimum --viz` and `scenario_builder --viz` both call
+`scenario_authoring.scenario_viz`; the builder flag is just a convenience
+wrapper around the same renderer.
+
 ## File layout reference
 
 ```
@@ -478,12 +508,13 @@ src/scenario_authoring/                     # Subsystem code
     scenario_spec.py                        # Spec types
     scenario_fitness.py                     # Fitness function
     verify_scenario_optimum.py              # Analysis utilities + CLI
+    scenario_viz.py                         # Deal-explorer HTML renderer
 
 tools/
     scenario_builder_scale_probe.py         # Phase 3 scaling probe
     recompile_batnas.py                     # Re-derive BATNAs without re-compile
     backfill_pareto.py / rescore_run.py /   # Post-hoc analysis helpers
-    viz.py / etc.
+    viz.py                                  # Self-play result dashboard wrapper
 ```
 
 ## Quick reference card
@@ -492,6 +523,7 @@ tools/
 |---|---|
 | Compile a narrative | `python -m scenario_authoring.scenario_compiler --scenario <md> --output-dir <dir>` |
 | Build from constraints | `python -m scenario_authoring.scenario_builder --spec <json> --output-dir <dir> --verify` |
+| Render a deal explorer | `python -m scenario_authoring.verify_scenario_optimum --analysis <analysis> --viz [<html>]` |
 | Layer prose on a stub | `python -m scenario_authoring.scenario_compiler --fill-narrative-only <analysis> [--domain-context-file <md>]` |
 | Verify payoff structure | `python -m scenario_authoring.verify_scenario_optimum --analysis <analysis>` |
 | Probe scaling | `python tools/scenario_builder_scale_probe.py --cells <FxIxO> --seeds N --output <jsonl>` |

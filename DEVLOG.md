@@ -772,3 +772,13 @@ Outcome: Re-exported `render_scenario_html` and `build_scenario_viz` from the `s
 Contract changes: `ARCH_scenario_authoring.md` (Phase 43.5 sync pending), `tests/test_scenario_authoring_api.py`
 Validation: `python3 -m pytest -q tests/test_scenario_authoring_api.py tests/test_scenario_viz.py` (`6 passed`)
 Next step: 43.5 doc sync for `SCENARIO_GUIDE.md`, `CLI_REFERENCE.md`, and `ARCH_scenario_authoring.md`.
+
+### Step 43.5: scenario viz documentation sync
+Mode: Build
+Outcome: Documented the new scenario visualization entry points and CLI surface. `SCENARIO_GUIDE.md` now describes rendering the deal explorer from `verify_scenario_optimum` or `scenario_builder`, `CLI_REFERENCE.md` now covers `--viz` / `--viz-title` / `--viz-output` plus the `tools/viz.py` wrapper, and `ARCH_scenario_authoring.md` now includes the `scenario_viz` module and public visualization symbols.
+Contract changes:
+- `ARCH_scenario_authoring.md`
+- `SCENARIO_GUIDE.md`
+- `CLI_REFERENCE.md`
+Validation: docs-only change; no test run required.
+Next step: Phase 43 close after the plan is updated and state advances.

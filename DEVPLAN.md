@@ -122,7 +122,7 @@ is Phase 46.
 - [x] 43.4 — Public API: re-export `render_scenario_html` + `build_scenario_viz` in
       `__init__.py` `__all__` (new "Visualization" group); update the pinned set in
       `tests/test_scenario_authoring_api.py`. Run the full scenario-authoring suite.
-- [ ] 43.5 — Doc sync: `SCENARIO_GUIDE.md` (Visualize subsection + quick-ref card
+- [x] 43.5 — Doc sync: `SCENARIO_GUIDE.md` (Visualize subsection + quick-ref card
       row + fix the `tools/ … viz.py` file-layout note), `CLI_REFERENCE.md` (`--viz`
       on verify + builder, and the `tools/viz.py` wrapper), `ARCH_scenario_authoring.md`
       (new `scenario_viz` module + public symbol).

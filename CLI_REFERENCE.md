@@ -23,6 +23,7 @@ Cross-references point at fuller discussion in `TUNING.md`, `DEVPLAN.md`,
 | Validate plumbing without spending money | `--dry-run` flag on `run_simulation` |
 | Compile a narrative scenario into personas | [`scenario_authoring.scenario_compiler`](#toolsscenario_compiler--narrative--scored-personas) |
 | Generate a scenario from outcome-shape constraints | [`scenario_authoring.scenario_builder`](#toolsscenario_builder--constraint-driven-scenario-generator) |
+| Render a scenario deal explorer | [`scenario_authoring.verify_scenario_optimum`](#scenario_authoringverify_scenario_optimum--enumerate-scenario-outcomes) |
 | Check providers are reachable before a live run | [`tests.self_play.probe_providers`](#testsself_playprobe_providers--live-provider-auth--parse-check) |
 | Assert dry-run output meets invariants | [`tests.self_play.verify_dryrun`](#testsself_playverify_dryrun--assert-dry-run-output-invariants) |
 | Check a scenario has a non-trivial optimum before running | [`scenario_authoring.verify_scenario_optimum`](#testsself_playverify_scenario_optimum--enumerate-scenario-outcomes) |
@@ -248,11 +249,36 @@ python -m scenario_authoring.verify_scenario_optimum \
 |---|---|---|
 | `--analysis` * | — | Path to `scenario_analysis.json` |
 | `--top-n` | `10` | Number of top deals (by sum-of-scores) to print |
+| `--viz` | off | Render the deal-explorer HTML next to the analysis file. Use `--viz` alone for `analysis.html`, or `--viz <path>` for an explicit output path. |
+| `--viz-title` | `deal explorer` | Title to use for the optional viz HTML output. |
 
 Reports per-faction max possible deal, BATNA, "good deal" threshold; all
 possible deals (cartesian product); Pareto frontier size; how many deals beat
 all BATNAs; logrolling quality. Use **before** spending money on a live run
-to confirm a non-trivial optimum exists.
+to confirm a non-trivial optimum exists. When `--viz` is supplied, the tool
+also writes the deal-explorer HTML through `scenario_authoring.scenario_viz`.
+
+### `tools/viz.py` — self-play result dashboard wrapper
+
+`tools/viz.py` keeps the run-discovery logic for self-play result JSONs and
+delegates scenario rendering to `scenario_authoring.scenario_viz`.
+
+```bash
+python tools/viz.py --analysis scenarios/water_rights_compiled/scenario_analysis.json \
+    --results-dir tests/self_play/results --output viz.html
+```
+
+| Flag | Default | Notes |
+|---|---|---|
+| `--analysis` * | — | Path to `scenario_analysis.json` |
+| `--results-dir` | `tests/self_play/results` | Directory of self-play result JSONs to discover and overlay |
+| `--narrative` | auto-detect | Optional scenario narrative `.md`; if omitted, the wrapper tries to infer it from the analysis path |
+| `--title` | `negotiation outcomes` | Title for the rendered dashboard |
+| `--output` | `viz.html` | Output path for the static HTML dashboard |
+
+The wrapper adds `src/` to `sys.path` before importing the package renderer,
+so it can be run directly from the repository root without extra environment
+setup beyond `PYTHONPATH=src` for the rest of the project commands.
 
 ### `tests.self_play.analysis` — post-game report
 
@@ -444,6 +470,8 @@ python -m scenario_authoring.scenario_builder \
 | `--max-iterations` | `1000` | Maximum hill-climb restarts before declaring failure |
 | `--debug-search` | `false` | Emit structured JSON restart logs while searching |
 | `--verify` | `false` | After emission, run `verify_scenario_optimum` on the result; exit non-zero if it reports FAIL |
+| `--viz` | `false` | After emission, also render the deal-explorer HTML. Uses the same package renderer as `verify_scenario_optimum --viz`. |
+| `--viz-output` | `None` | Output path for the optional deal-explorer HTML (defaults to `scenario_analysis.html`). |
 
 **Spec schema** (`ScenarioSpec` JSON):
 
