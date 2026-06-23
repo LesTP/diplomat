@@ -116,7 +116,7 @@ is Phase 46.
       the argparse CLI (same flags/output names); import the renderer from
       `scenario_authoring.scenario_viz`; add a `src/` `sys.path` insert. Regression:
       `python tools/build_viz.py` still emits `viz_wrbeta.html` + `viz_jsm1.html`.
-- [ ] 43.3 — Add `--viz [PATH]` + `--viz-title` to `verify_scenario_optimum` and
+- [x] 43.3 — Add `--viz [PATH]` + `--viz-title` to `verify_scenario_optimum` and
       `--viz` + `--viz-output` to `scenario_builder` (mirror the existing `--verify`
       wiring). Pure-additive; default behavior unchanged when the flag is absent.
 - [ ] 43.4 — Public API: re-export `render_scenario_html` + `build_scenario_viz` in

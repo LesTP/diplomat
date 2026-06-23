@@ -17,6 +17,7 @@ from pathlib import Path
 import pytest
 
 from modules.persona import FileBasedPersona
+import scenario_authoring.scenario_viz as scenario_viz
 from scenario_authoring.scenario_builder import (
     _anneal_local,
     _analysis_from_scoring_table,
@@ -406,6 +407,51 @@ class TestCLI:
         )
         _run(args)  # must not raise
 
+    def test_run_with_viz_writes_requested_output(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        spec_path = _write_spec_file(tmp_path)
+        analysis = _emittable_analysis()
+        analysis_path = tmp_path / "scenario_analysis.json"
+        persona_paths = {
+            "alpha": tmp_path / "alpha.txt",
+            "beta": tmp_path / "beta.txt",
+        }
+        rendered: dict[str, object] = {}
+
+        def fake_build_scenario_viz(analysis_arg, output_arg, **kwargs):
+            rendered["analysis"] = analysis_arg
+            rendered["output"] = output_arg
+            rendered["kwargs"] = kwargs
+            return output_arg
+
+        monkeypatch.setattr(
+            "scenario_authoring.scenario_builder.build_and_save_scenario",
+            lambda *a, **kw: (analysis, analysis_path, persona_paths),
+        )
+        monkeypatch.setattr(
+            "scenario_authoring.scenario_viz.build_scenario_viz",
+            fake_build_scenario_viz,
+        )
+
+        viz_output = tmp_path / "custom-viz.html"
+        args = argparse.Namespace(
+            spec=str(spec_path),
+            output_dir=str(tmp_path),
+            title="Test Scenario",
+            seed=42,
+            max_iterations=5,
+            verify=False,
+            viz=True,
+            viz_output=str(viz_output),
+        )
+        _run(args)  # must not raise
+
+        assert rendered["analysis"] == analysis
+        assert rendered["output"] == viz_output
+        assert rendered["kwargs"]["title"] == "Test Scenario"
+        assert rendered["kwargs"]["fallback_title"] == "Test Scenario"
+
     def test_run_exits_1_on_missing_spec(self, tmp_path: Path) -> None:
         args = argparse.Namespace(
             spec=str(tmp_path / "nonexistent.json"),
@@ -414,6 +460,8 @@ class TestCLI:
             seed=None,
             max_iterations=10,
             verify=False,
+            viz=False,
+            viz_output=None,
         )
         with pytest.raises(SystemExit) as exc_info:
             _run(args)
@@ -442,5 +490,7 @@ class TestCLI:
             seed=1,
             max_iterations=5,
             verify=True,
+            viz=False,
+            viz_output=None,
         )
         _run(args)  # must not raise — valid analysis produces rc=0 from verifier

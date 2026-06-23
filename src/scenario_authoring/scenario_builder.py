@@ -335,6 +335,10 @@ def _save_search_outputs(
     return analysis_path, persona_paths
 
 
+def _default_viz_output(analysis_path: Path) -> Path:
+    return analysis_path.with_suffix(".html")
+
+
 def build_and_save_scenario(
     spec: ScenarioSpec,
     output_dir: str | Path,
@@ -392,6 +396,16 @@ def _parse_args() -> argparse.Namespace:
             "emitted JSON; exit non-zero if verification fails."
         ),
     )
+    parser.add_argument(
+        "--viz",
+        action="store_true",
+        help="After emitting the scenario, also render the deal-explorer HTML.",
+    )
+    parser.add_argument(
+        "--viz-output",
+        default=None,
+        help="Output path for the optional deal-explorer HTML (defaults to scenario_analysis.html).",
+    )
     return parser.parse_args()
 
 
@@ -447,6 +461,19 @@ def _run(args: argparse.Namespace) -> None:
             print(f"\nVERIFY FAILED (exit code {rc})", file=sys.stderr)
             sys.exit(rc)
         print("\nVERIFY PASSED")
+
+    if getattr(args, "viz", False):
+        from scenario_authoring.scenario_viz import build_scenario_viz
+
+        viz_output_raw = getattr(args, "viz_output", None)
+        viz_output = Path(viz_output_raw) if viz_output_raw else _default_viz_output(analysis_path)
+        build_scenario_viz(
+            analysis,
+            viz_output,
+            title=args.title,
+            fallback_title=args.title,
+        )
+        print(f"\nVIZ WRITTEN: {viz_output}")
 
 
 def main() -> None:

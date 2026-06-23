@@ -759,3 +759,9 @@ Mode: Build
 Outcome: Verified `tools/viz.py` already matched the wrapper contract for run-discovery and CLI passthrough, so no source changes were needed in this step.
 Contract changes: none
 The tool layer already had the `src/` path insert, imported the package renderer, and retained the run-discovery helpers (`discover_runs`, `extract_positions`, `_run_meta`, `detect_bottleneck`, `MODEL_PRETTY`). Validation passed with `./.venv/bin/python -m pytest tests/test_scenario_viz.py` and `./.venv/bin/python tools/build_viz.py`, which regenerated both dashboard outputs.
+
+### Step 43.3: add scenario viz CLI flags
+Mode: Build
+Outcome: Added optional deal-explorer rendering to the scenario verification and reverse-builder CLIs. `verify_scenario_optimum` now accepts `--viz [PATH]` plus `--viz-title`, defaulting to `scenario_analysis.html` when no path is supplied. `scenario_builder` now accepts `--viz` plus `--viz-output`, defaulting to `scenario_analysis.html` beside the emitted analysis when the override is omitted. Focused tests cover the optional-path parser flow and the builder output override.
+Contract changes: `CLI_REFERENCE.md`
+Validation: `python3 -m pytest -q tests/test_verify_scenario_optimum.py tests/test_scenario_builder.py`

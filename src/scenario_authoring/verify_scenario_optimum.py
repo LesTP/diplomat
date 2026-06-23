@@ -150,12 +150,29 @@ def format_deal(deal: dict[str, str]) -> str:
     return " | ".join(f"{k}={v}" for k, v in deal.items())
 
 
+def _default_viz_output(analysis_path: Path) -> Path:
+    return analysis_path.with_suffix(".html")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--analysis", required=True, help="Path to scenario_analysis.json")
     parser.add_argument(
         "--top-n", type=int, default=10,
         help="How many top deals (by sum-of-scores) to show",
+    )
+    parser.add_argument(
+        "--viz",
+        nargs="?",
+        const="",
+        default=None,
+        metavar="PATH",
+        help="Render the scenario deal-explorer HTML to PATH (or analysis.html when omitted).",
+    )
+    parser.add_argument(
+        "--viz-title",
+        default="deal explorer",
+        help="Title to use for the optional viz HTML output.",
     )
     args = parser.parse_args()
 
@@ -321,6 +338,25 @@ def main() -> int:
         print(f"  - {len(frontier)} Pareto-optimal deals")
     else:
         print(f"  REVIEW NEEDED: {'; '.join(reasons) if reasons else 'edge case, inspect manually'}")
+
+    if args.viz is not None:
+        from scenario_authoring.scenario_viz import build_scenario_viz, find_narrative
+
+        output = _default_viz_output(analysis_path) if args.viz == "" else Path(args.viz)
+        narrative_path = find_narrative(analysis_path)
+        narrative_text = (
+            narrative_path.read_text(encoding="utf-8")
+            if narrative_path is not None and narrative_path.exists()
+            else ""
+        )
+        build_scenario_viz(
+            analysis,
+            output,
+            title=args.viz_title,
+            narrative_text=narrative_text,
+            fallback_title=args.viz_title,
+        )
+        print(f"\nWrote viz HTML: {output}")
 
     return 0
 
