@@ -119,7 +119,7 @@ is Phase 46.
 - [x] 43.3 — Add `--viz [PATH]` + `--viz-title` to `verify_scenario_optimum` and
       `--viz` + `--viz-output` to `scenario_builder` (mirror the existing `--verify`
       wiring). Pure-additive; default behavior unchanged when the flag is absent.
-- [ ] 43.4 — Public API: re-export `render_scenario_html` + `build_scenario_viz` in
+- [x] 43.4 — Public API: re-export `render_scenario_html` + `build_scenario_viz` in
       `__init__.py` `__all__` (new "Visualization" group); update the pinned set in
       `tests/test_scenario_authoring_api.py`. Run the full scenario-authoring suite.
 - [ ] 43.5 — Doc sync: `SCENARIO_GUIDE.md` (Visualize subsection + quick-ref card
