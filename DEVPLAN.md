@@ -1,7 +1,7 @@
-## Phase 38: Pressure mechanisms small bundle - Complete
-phase: 39
-blocked: true
-state: close
+---
+phase: 43
+blocked: false
+state: execute
 steps_remaining: 0
 ---
 
@@ -72,10 +72,60 @@ steps_remaining: 0
   - **`pareto_distribution_spread` ? "deals favor different factions":** `pareto_distribution_spread` measures per-faction frontier-range stdev (intra-faction uniformity). "Do different deals favor different factions?" is `pareto_outcome_diversity` (Phase 37). The spec author misread this in Phase B, causing a 3m27s wasted search run (Phase 36.5). When authoring a `ScenarioSpec`, double-check the metric definition in `CLI_REFERENCE.md` before setting a target value.
   - **Operator-supervised scenario-tooling reorg (2026-06-20/21):** scenario tools moved from `src/tools/` to dedicated `src/scenario_authoring/` package; scenarios data moved from `tests/self_play/scenarios/` to top-level `scenarios/`. `coalition_values` schema field added (Phase 2a). `verify_scenario_optimum` moved into the package (D-58). Public API curated in `__init__.py`. `tools/scenario_builder_scale_probe.py` characterizes builder convergence + wall-clock across F/I/O dimensions. Phase 42 algorithm work complete (PROJECT.md "4+ factions / 4+ issues" criterion MET at 4×4×4); see `DECISIONS.md` D-59 and commits `551caa9`..`8a384c3`.
 ## Current Status
-- **Phase** - Phase 39 complete; see `DEVLOG.md` "Phase 39 close". Queued operator-driven work remains Run 14a-14f bare-prompt ablation matrix (`NEXT_STEPS.md` 10) and Run 13b coached re-test (`NEXT_STEPS.md` 4).
+- **Phase** — Phase 43 (deal-explorer viz integration) queued **loop-ready** (Build, 🔨); see `## Phase 43` section below. Roadmap (per 2026-06-23 discuss): Phase 44 (scenario design-brief + verify-against-brief + auto-doc), Phase 45 (narrative-integration tool — numbers-first re-skin from the negotiation-scenarios catalogue / free-text), then Phase 46 (make `scenario_authoring` standalone — extract shared round-context renderer to a leaf module to sever the `modules.persona` coupling, toolkit-as-optional-extra, unified `python -m scenario_authoring` CLI, package README). Prior autonomous phase 39 complete; queued operator-driven runs remain Run 14a-14f (`NEXT_STEPS.md` §10) and Run 13b (`NEXT_STEPS.md` §4).
 - **Phase B (proof-of-concept scenario):** Joint Space Mission scenario authoring unblocked. v1 spec produces 3 Pareto-optimal deals with distinct distributions (balanced consensus / alpha+gamma win / beta wins). Next operator session: run the LLM scenario compiler over the generated `scenario_analysis.json` to produce narrative + persona prose, then optionally smoke at flash-lite.
 - **Operator-supervised work (2026-06-21): Phase 42 COMPLETE.** Commits 1-4 + C5a + C5b landed (`551caa9`, `257b1e0`, `d16248c`, `4c67abb`, `19e6a39`, `8a384c3`). PROJECT.md "4+ factions / 4+ issues" success criterion MET: 4×4×4 / D=256 reaches ≥2/3 probe acceptance, locked by `tests/test_scenario_builder_scale.py::test_builds_4x4x4_in_budget`. Key findings: the I-axis cliff was spec-semantic (fixed by C5a relative `batna_clearing_count_target`), and a builder determinism bug (C5b) had masked it; SA neighborhood broadening was tried and rejected (D-59). Phase 3 (scale probe) data at `scenarios/scale_probe_*` + `scenarios/c5b_final_singlecell_summary.md`. Phase 4 docs (`ARCH_scenario_authoring.md`, `SCENARIO_GUIDE.md`) shipped and updated with post-Phase-42 scaling data.
 - **Operator-supervised work (2026-06-22): section 3.5 competitive-scoring benchmark built + pushed.** Per-game `faction_ranks` rank-among-factions lens + `faction_models` persistence + cross-game `mean_rank` aggregator (`tests/self_play/rank_aggregator.py`) + mixed-model dispatcher + position-rotation harness in `tools/ablation_multi.sh`. Three scoring bugs fixed (partial-coalition deal_reached normalization, below-BATNA deal rejection, aggregator no-deal filter). Runs 18-20: gpt-5.5 broke the section 10 tier/provider confound; Runs 19-20 (succ / succ2 distributive scenarios) showed the section 3.5 tooling works but no scenario yet *discriminates* - open gap is discriminating scenario design (sweet-spot for model-comparison vs bare-deadlock-headroom for the harness question; see `NEXT_STEPS.md` "State as of 2026-06-22"). Both repos (toolkit, diplomat) pushed to GitHub.
+
+## Phase 43: Integrate deal-explorer viz into scenario_authoring — In Progress
+
+**Goal.** Make the deal-explorer visualization a first-class, reusable output of
+the scenario-authoring subsystem instead of a standalone tool with a hardcoded
+scenario list. Move the scenario-only renderer out of `tools/viz.py` into a new
+in-package module that reuses the canonical deal-space math from
+`verify_scenario_optimum` (removing today's duplicated math), expose it on the
+public API, and wire `--viz` into `verify_scenario_optimum` and `scenario_builder`
+so any scenario emits its deal-explorer by path. Run-overlay rendering is already
+vestigial and stays scenario-only for now — the run-discovery code stays in
+`tools/viz.py`.
+
+**Regime.** Build (🔨) — deterministic refactor + additive CLI + tests + doc-sync;
+AI-evaluable. Acceptance = structurally-equivalent HTML (relocation + math-reuse +
+new entry points), **not** a visual redesign (that would be Refine → EXIT 2).
+
+**Standalone constraint (2026-06-23 discuss).** Must NOT add new inbound or outbound
+coupling. `scenario_viz` may depend only on `verify_scenario_optimum` (intra-package,
+pure stdlib) — no imports from `modules`, `adapters`, `toolkit`, `tests`, or the
+self-play harness. Run-discovery (reads self_play result JSONs) stays in
+`tools/viz.py`, on the tools side of the artifact boundary. Deeper standalone work
+is Phase 46.
+
+**Steps.**
+- [x] 43.1 — New `src/scenario_authoring/scenario_viz.py`: move the scenario-only
+      renderer + helpers (`build_deals`, `priority_deal_index`, `build_data`,
+      `md_to_html`, `build_scenario_html`, `find_narrative`, `FACTION_COLORS`,
+      `_HEAD`/`_BODY`/`_JS`/`render_html`) from `tools/viz.py`; delete the local
+      `faction_score`/`enumerate_deals` copies and import them — plus
+      `find_pareto_frontier`, `beats_batna` — from `verify_scenario_optimum`;
+      replace `build_deals`' O(n²) Pareto loop with frontier membership. Expose
+      `render_scenario_html(...)` and `build_scenario_viz(...)`. Add
+      `tests/test_scenario_viz.py` (render markers, `runs=None`/`[]`, pareto-match
+      vs `find_pareto_frontier`, file write via `tmp_path`). Run pytest.
+- [ ] 43.2 — Slim `tools/viz.py` to a wrapper: keep run-discovery (`discover_runs`,
+      `extract_positions`, `_run_meta`, `detect_bottleneck`, `MODEL_PRETTY`, …) +
+      the argparse CLI (same flags/output names); import the renderer from
+      `scenario_authoring.scenario_viz`; add a `src/` `sys.path` insert. Regression:
+      `python tools/build_viz.py` still emits `viz_wrbeta.html` + `viz_jsm1.html`.
+- [ ] 43.3 — Add `--viz [PATH]` + `--viz-title` to `verify_scenario_optimum` and
+      `--viz` + `--viz-output` to `scenario_builder` (mirror the existing `--verify`
+      wiring). Pure-additive; default behavior unchanged when the flag is absent.
+- [ ] 43.4 — Public API: re-export `render_scenario_html` + `build_scenario_viz` in
+      `__init__.py` `__all__` (new "Visualization" group); update the pinned set in
+      `tests/test_scenario_authoring_api.py`. Run the full scenario-authoring suite.
+- [ ] 43.5 — Doc sync: `SCENARIO_GUIDE.md` (Visualize subsection + quick-ref card
+      row + fix the `tools/ … viz.py` file-layout note), `CLI_REFERENCE.md` (`--viz`
+      on verify + builder, and the `tools/viz.py` wrapper), `ARCH_scenario_authoring.md`
+      (new `scenario_viz` module + public symbol).
 
 ## Phase 39: Scenario compiler `--fill-narrative` mode — Complete
 

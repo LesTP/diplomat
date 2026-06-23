@@ -747,3 +747,9 @@ Phase 39 promoted the one-off `tools/_temp_fill_narrative.py` into a permanent `
 **DEVLOG learning review:** No new trial-and-error patterns. The fill-narrative function was a clean extraction of the temp script into a permanent async helper. The CLI integration test approach (stub LLM, copy fixture, assert rewrite) followed the existing pattern used for the scenario compiler's forward path.
 
 **Contract changes scan:** No cross-module contract changes. `fill_narrative()` is a new function in the tools module with no runtime pipeline wiring. Existing `scenario_compiler` forward-path behavior unchanged.
+
+### Step 43.1: scenario viz module extraction and wrapper delegation
+Mode: Build
+Outcome: Moved the scenario-only deal-explorer renderer into `src/scenario_authoring/scenario_viz.py`, switched `tools/viz.py` to a thin run-discovery wrapper, and added regression coverage for the new package API.
+Contract changes: none
+The new module now owns `build_deals`, `build_data`, `build_scenario_html`, `render_scenario_html`, and `build_scenario_viz`, reusing `find_pareto_frontier` instead of the old O(n^2) Pareto scan. `tools/viz.py` keeps only run discovery, bottleneck detection, CLI parsing, and the handoff into the package renderer. Added `tests/test_scenario_viz.py` to lock in render markers, `runs=None`/`[]` handling, frontier parity, and file writing. Verification passed with `python3 -m pytest -q tests/test_scenario_viz.py tests/test_scenario_authoring_api.py` and `python3 tools/build_viz.py`, which regenerated `viz_wrbeta.html` and `viz_jsm1.html`.
