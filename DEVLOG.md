@@ -4,6 +4,24 @@
      Each step or milestone gets a structured entry. This is the audit trail.
      Older phases are archived to DEVLOG_archive.md; the active log holds the current phase. -->
 
+## 2026-06-25: Fix flaky integration-test isolation (operator-supervised)
+
+- **Mode:** Debug -> Code
+- **Outcome:** complete
+- **Contract changes:** none (test-only)
+
+Closes the flake flagged in the 46.1 recovery entry below.
+`tests/integration/test_pipeline_flow.py` injected events then waited a fixed
+50ms (`_settle()`) before asserting on resulting state. Under full-suite CPU load
+the round-boundary path (two analyst passes before writing `intelligence`)
+outran the 50ms wait, so `test_round_end_populates_intelligence` queried zero
+rows (IndexError) - failing in the suite but passing in isolation. Replaced the
+fixed sleep with condition-polling (`_wait_for` / `_wait_for_public_output`, 2s
+timeout / 10ms interval) across all six tests, each waiting on its own terminal
+state. `_wait_for_public_output` accumulates across drains since
+`TestTransport.get_output()` is destructive. Full suite now 555 passed, 1
+skipped (deterministic across two consecutive runs).
+
 ## 2026-06-25: Phase 46.1 + loop recovery (operator-supervised)
 
 - **Mode:** Debug -> Code (recover a stuck autonomous loop)
