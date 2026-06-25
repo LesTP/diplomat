@@ -1,8 +1,8 @@
 ---
-phase: 47
-blocked: true
-state: close
-steps_remaining: 0
+phase: 48
+blocked: false
+state: execute
+steps_remaining:
 ---
 
 # Diplomat — Development Plan
@@ -87,11 +87,7 @@ Closed 2026-06-25. `round_context.py` leaf (stdlib-only) created inside the pack
 
 Closed 2026-06-25. 23 unit tests lock `_find_coalition_value` + `_resolve_deal_scores` across all paths (partial coalition, grand coalition full-agreement path, no-deal, below-BATNA, malformed-input edges). `ARCH_scenario_authoring.md` updated with coalition Path B contract section. D-61 closed. 583 tests passing. See `DEVLOG_archive.md` "Phase 47 close".
 
-## Phase 48: Narrative-integration shell — Queued (autonomous Build)
-
-> **Activate** after Phase 47 closes + audit: set frontmatter `phase: 48`, `state: execute`,
-> `blocked: false`, `steps_remaining:` (empty), and change this title to "— In Progress".
-> Depends on Phase 46's `scenario_authoring/__main__.py` (for the `narrative` subcommand).
+## Phase 48: Narrative-integration shell — In Progress (autonomous Build)
 
 **Goal.** Build the deterministic shell for narrative integration (generalized
 `fill_narrative`, the Build slice of roadmap Phase 45): apply an LLM-proposed themed relabel
