@@ -4,8 +4,9 @@ apply_relabel   — rename faction/issue/outcome identifiers under a bijective m
                   preserving all numeric scores/BATNAs/coalition_values unchanged.
 assert_structure_preserved — value-isomorphism guard: raises AssertionError if the
                   reskinned analysis drifts from the source under the relabel_map.
+extract_catalogue_entry — heading-scoped section slice over the prose catalogue.
 
-Both functions are stdlib-only (no LLM, no sibling imports beyond this module).
+All functions are stdlib-only (no LLM, no sibling imports beyond this module).
 The LLM layer that emits the relabel_map + prose lives in reskin_scenario (step 48.3).
 """
 
@@ -299,3 +300,49 @@ def assert_structure_preserved(
                     f"coalition_values[{idx}] value drift for '{new_member}': "
                     f"expected {src_val}, got {res_val}"
                 )
+
+
+def _heading_level(line: str) -> int:
+    """Return the Markdown heading level (1–6) for a line, or 0 if not a heading."""
+    if not line.startswith("#"):
+        return 0
+    stripped = line.lstrip("#")
+    if not stripped.startswith(" "):
+        return 0
+    return len(line) - len(stripped)
+
+
+def extract_catalogue_entry(catalogue_text: str, heading: str) -> str:
+    """Return the heading-scoped section for *heading* from *catalogue_text*.
+
+    Finds the line exactly matching *heading*, then collects all lines until the
+    next heading of equal or higher Markdown level (or end of document).
+
+    Raises ValueError if *heading* is not a valid Markdown heading or is not
+    found in *catalogue_text*.
+    """
+    target_level = _heading_level(heading)
+    if target_level == 0:
+        raise ValueError(
+            f"heading must be a valid Markdown heading starting with '#': {heading!r}"
+        )
+
+    lines = catalogue_text.splitlines()
+
+    start_idx: int | None = None
+    for i, line in enumerate(lines):
+        if line.rstrip() == heading.rstrip():
+            start_idx = i
+            break
+
+    if start_idx is None:
+        raise ValueError(f"Heading not found in catalogue: {heading!r}")
+
+    result_lines = [lines[start_idx]]
+    for line in lines[start_idx + 1 :]:
+        lvl = _heading_level(line)
+        if lvl > 0 and lvl <= target_level:
+            break
+        result_lines.append(line)
+
+    return "\n".join(result_lines)

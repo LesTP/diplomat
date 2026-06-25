@@ -1,4 +1,5 @@
-"""Tests for scenario_narrative.py — apply_relabel + assert_structure_preserved.
+"""Tests for scenario_narrative.py — apply_relabel + assert_structure_preserved +
+extract_catalogue_entry.
 
 All tests are deterministic (no LLM).  Standalone: stdlib + scenario_authoring
 sibling imports only.
@@ -7,13 +8,18 @@ sibling imports only.
 from __future__ import annotations
 
 import copy
+from pathlib import Path
 
 import pytest
 
 from scenario_authoring.scenario_narrative import (
     apply_relabel,
     assert_structure_preserved,
+    extract_catalogue_entry,
 )
+
+# Path to the prose catalogue at the project root (tests run from project root)
+_CATALOGUE_PATH = Path("Multi-Party Negotiation Scenarios.md")
 
 
 # ---------------------------------------------------------------------------
@@ -278,3 +284,44 @@ class TestAssertStructurePreservedRejectsIncomplete:
         src = copy.deepcopy(_BASE_ANALYSIS)
         with pytest.raises(AssertionError, match="incomplete.*closed"):
             assert_structure_preserved(src, src, incomplete)
+
+
+# ---------------------------------------------------------------------------
+# extract_catalogue_entry — against real catalogue file
+# ---------------------------------------------------------------------------
+
+class TestExtractCatalogueEntry:
+    @pytest.fixture(scope="class")
+    def catalogue(self) -> str:
+        return _CATALOGUE_PATH.read_text(encoding="utf-8")
+
+    def test_extracts_known_level4_entry(self, catalogue: str) -> None:
+        heading = "#### Camp David (1978) — trilateral mediation"
+        text = extract_catalogue_entry(catalogue, heading)
+        assert text.startswith(heading)
+
+    def test_extracted_section_ends_before_next_peer_heading(self, catalogue: str) -> None:
+        heading = "#### Camp David (1978) — trilateral mediation"
+        text = extract_catalogue_entry(catalogue, heading)
+        # Section must not bleed into the next #### heading
+        assert "#### Dayton Accords" not in text
+
+    def test_extracted_section_contains_expected_content(self, catalogue: str) -> None:
+        heading = "#### Camp David (1978) — trilateral mediation"
+        text = extract_catalogue_entry(catalogue, heading)
+        assert "Carter" in text
+
+    def test_extracts_level3_category_heading(self, catalogue: str) -> None:
+        heading = "### Category 2 — Structured Academic / Business Case Studies (PON / TNRC)"
+        text = extract_catalogue_entry(catalogue, heading)
+        assert text.startswith(heading)
+        # Must not bleed into Category 3
+        assert "### Category 3" not in text
+
+    def test_unknown_heading_raises_valueerror(self, catalogue: str) -> None:
+        with pytest.raises(ValueError, match="not found"):
+            extract_catalogue_entry(catalogue, "#### This Heading Does Not Exist")
+
+    def test_invalid_heading_raises_valueerror(self) -> None:
+        with pytest.raises(ValueError, match="valid Markdown heading"):
+            extract_catalogue_entry("some text", "Not a heading at all")
