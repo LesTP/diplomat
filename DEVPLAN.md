@@ -2,7 +2,7 @@
 phase: 48
 blocked: false
 state: execute
-steps_remaining:
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -113,7 +113,7 @@ shell+tests boundary.
 pattern; `fill_narrative` schema as a starting point for the prose fields.
 
 **Steps.**
-- [ ] 48.1 — Create `src/scenario_authoring/scenario_narrative.py` deterministic core:
+- [x] 48.1 — Create `src/scenario_authoring/scenario_narrative.py` deterministic core:
   `apply_relabel(analysis, relabel_map) -> analysis` (renames factions/issues/outcomes
   consistently, preserving all numeric scores/BATNAs/coalition_values; relabels
   coalition_values member ids) + `assert_structure_preserved(source, reskinned, relabel_map)`
