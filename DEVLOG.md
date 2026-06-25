@@ -23,3 +23,7 @@
 PLAN: activated Phase 48 (frontmatter phase→48, state→execute; removed activation block; committed).
 
 EXECUTE 48.1: created `src/scenario_authoring/scenario_narrative.py` with `apply_relabel` + `assert_structure_preserved` (deterministic core, no LLM, stdlib + sibling imports only). 27 unit tests cover identity round-trip, themed relabel preserving all values, score/batna/coalition_values numeric drift rejection, non-bijective map rejection, incomplete map rejection. 609 tests passing (+27).
+
+## 2026-06-25 — Phase 48 iteration 2
+
+EXECUTE 48.2: added `extract_catalogue_entry(catalogue_text, heading) -> str` to `scenario_narrative.py`. Deterministic heading-scoped slicer: finds exact heading line (### or ####), collects lines until next heading of equal or higher Markdown level. Raises ValueError for unknown headings or non-heading input. Helper `_heading_level(line) -> int` extracted. 6 new tests against real `Multi-Party Negotiation Scenarios.md`: known #### entry extraction, boundary (does not bleed into next peer), content presence, ### level extraction, unknown heading error, non-heading error. 615 tests passing (+6).

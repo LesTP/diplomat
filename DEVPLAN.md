@@ -120,7 +120,7 @@ pattern; `fill_narrative` schema as a starting point for the prose fields.
   (value-isomorphism guard). Unit tests (NO LLM): identity relabel round-trips; a themed
   relabel preserves all values; a tampered numeric value is REJECTED; a non-bijective or
   incomplete map is REJECTED. Standalone: stdlib + sibling imports only.
-- [ ] 48.2 — Add `extract_catalogue_entry(catalogue_text, heading) -> str`: deterministic
+- [x] 48.2 — Add `extract_catalogue_entry(catalogue_text, heading) -> str`: deterministic
   `###`/`####` heading-scoped section slice over the prose catalogue. Tests against
   `Multi-Party Negotiation Scenarios.md` (extract a known `#### ...` entry; unknown heading
   raises a clear error).
