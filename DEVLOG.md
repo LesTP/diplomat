@@ -27,3 +27,7 @@ EXECUTE 48.1: created `src/scenario_authoring/scenario_narrative.py` with `apply
 ## 2026-06-25 — Phase 48 iteration 2
 
 EXECUTE 48.2: added `extract_catalogue_entry(catalogue_text, heading) -> str` to `scenario_narrative.py`. Deterministic heading-scoped slicer: finds exact heading line (### or ####), collects lines until next heading of equal or higher Markdown level. Raises ValueError for unknown headings or non-heading input. Helper `_heading_level(line) -> int` extracted. 6 new tests against real `Multi-Party Negotiation Scenarios.md`: known #### entry extraction, boundary (does not bleed into next peer), content presence, ### level extraction, unknown heading error, non-heading error. 615 tests passing (+6).
+
+## 2026-06-25 — Phase 48 iteration 3
+
+EXECUTE 48.3: added `reskin_scenario(analysis, source_context, llm_client, llm_config, tier, *, domain_context)` to `scenario_narrative.py`. One `structured_call` emitting `{relabel_map, logrolling, deception_tactics, narrative_md}` against `RESKIN_SCHEMA`; applies `apply_relabel` then `assert_structure_preserved` as the integrity guard; returns `(reskinned_analysis, narrative_md)`. `RESKIN_SYSTEM_PROMPT` authored (quality tuning deferred per D-62). `_build_reskin_user_prompt` helper assembles faction/issue/outcome/scoring/BATNA context. 5 new tests with mocked `structured_call`: happy-path structure preserved + narrative produced, guard rejects value-tampering mock (score drift), LLM failure raises ValueError, input not mutated. 620 tests passing (+5).

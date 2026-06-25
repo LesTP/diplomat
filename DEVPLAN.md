@@ -124,7 +124,7 @@ pattern; `fill_narrative` schema as a starting point for the prose fields.
   `###`/`####` heading-scoped section slice over the prose catalogue. Tests against
   `Multi-Party Negotiation Scenarios.md` (extract a known `#### ...` entry; unknown heading
   raises a clear error).
-- [ ] 48.3 — Add `reskin_scenario(analysis, source_context, llm_client, llm_config, tier=...,
+- [x] 48.3 — Add `reskin_scenario(analysis, source_context, llm_client, llm_config, tier=...,
   *, domain_context="")`: one `structured_call` emitting `{relabel_map, logrolling,
   deception_tactics, narrative_md}` (+ optional persona prose) against a new schema; apply the
   relabel; run `assert_structure_preserved`; return `(reskinned_analysis, narrative_md)`.
