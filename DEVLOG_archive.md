@@ -3913,3 +3913,107 @@ Phase 39 promoted the one-off `tools/_temp_fill_narrative.py` into a permanent `
 
 **Contract changes scan:** No cross-module contract changes. `fill_narrative()` is a new function in the tools module with no runtime pipeline wiring. Existing `scenario_compiler` forward-path behavior unchanged.
 
+
+## Archived 2026-06-25 — Phase 43, 44, and 46 entries
+
+---
+
+## 2026-06-23 — Operator-supervised: Phase 43 planning + NEXT_STEPS overhaul + doc routing
+
+- **Mode:** Discuss → Code (documentation only)
+- **Outcome:** complete
+- **Contract changes:** none (no code/API surfaces touched; documentation routing only)
+
+Operator-supervised session alongside the autonomous Phase 43 run. Two threads:
+
+**1. Phase 43 planning + roadmap.** Discussed integrating the deal-explorer viz
+into the `scenario_authoring` subsystem; wrote Phase 43 into `DEVPLAN.md` as a
+loop-ready Build phase (5 EXECUTE steps, `state: execute`), which the autonomous
+loop then executed (see "Phase 43 close" above). Recorded the forward roadmap in
+DEVPLAN Current Status: **Phase 44** (scenario design-brief + verify-against-brief
++ auto-doc), **Phase 45** (narrative-integration tool — numbers-first re-skin from
+the negotiation-scenarios catalogue / free-text), **Phase 46** (make
+`scenario_authoring` standalone — extract the shared round-context renderer to a
+leaf module to sever the lone `modules.persona` coupling in `scenario_compiler.py`,
+make `toolkit` an optional extra, add a unified `python -m scenario_authoring` CLI
++ package README). Phase 43 carried an explicit "no new inbound/outbound coupling"
+constraint, which the loop honored.
+
+**2. NEXT_STEPS.md overhaul.** The file had grown to ~1106 lines mixing five
+content types (live backlog, closed audit, finding narrative, deferred items,
+process meta). Rewrote it in place to a lean **105-line live forward backlog**:
+header + Current state + Now (sequencing) + Tier 1 (open) + Tier 2 (open) +
+Deferred (icebox) + Where-things-live pointers. Routing applied (verify-before-
+delete, no information loss).
+
+**Files changed:** `NEXT_STEPS.md` (rewritten 1106 → 105 lines),
+`RESEARCH_NOTES.md` (added Note 3), `TUNING.md` (fixed §1.7/§1.8 → Note 3 pointer).
+
+## 2026-06-23 — Phase 43 close: deal-explorer viz integration complete
+
+Phase 43 extracted the deal-explorer renderer from `tools/viz.py` into a first-class `src/scenario_authoring/scenario_viz.py` package module, wired it into the `verify_scenario_optimum` and `scenario_builder` CLIs, exported it on the public API, and synchronized all reference docs. 5 steps, all 🔨 pure build.
+
+**Files changed:** `src/scenario_authoring/scenario_viz.py` (new), `src/scenario_authoring/__init__.py`, `src/scenario_authoring/verify_scenario_optimum.py`, `src/scenario_authoring/scenario_builder.py`, `tools/viz.py` (slimmed), `tests/test_scenario_viz.py` (new), `tests/test_scenario_authoring_api.py`, `SCENARIO_GUIDE.md`, `CLI_REFERENCE.md`, `ARCH_scenario_authoring.md`.
+
+**Tests:** 535 passed, 1 skipped (full suite).
+
+## 2026-06-25 — Phase 44: scenario brief + verify-against-brief + auto-doc
+
+Phase 44 adds a per-scenario **design brief** and a machine-checkable
+verify-against-brief gate. Operator-supervised; scope was full Phase 44.
+
+**What was built:** `src/scenario_authoring/scenario_brief.py` (new): `load_brief()`, `check_brief()` (6 features), `build_brief_readme()`, CLI. `verify_scenario_optimum.py`: extracted `compute_focal_deal()` / `focal_deal_clears_batnas()`; added `--brief` flag. `scenario_compiler.py`: added `--viz [PATH]` + `--viz-title`. Public API: `load_brief`, `check_brief`, `BriefResult` exported. Golden briefs for `succ`/`succ2`.
+
+**Files changed:** `src/scenario_authoring/scenario_brief.py` (new), `src/scenario_authoring/verify_scenario_optimum.py`, `src/scenario_authoring/scenario_compiler.py`, `src/scenario_authoring/__init__.py`, scenario fixtures, `tests/test_scenario_brief.py` (new), `tests/test_scenario_authoring_api.py`, `SCENARIO_GUIDE.md`, `CLI_REFERENCE.md`, `ARCH_scenario_authoring.md`.
+
+**Tests:** 555 passed, 1 skipped.
+
+## 2026-06-25: Operator-supervised - stage autonomous Phases 46-48 + governance
+
+- **Mode:** Discuss -> Code (planning + staging; no production code changed)
+- **Outcome:** complete
+- **Contract changes:** none
+
+DEVPLAN staged for autonomous execution: phase 46, state execute, pre-written Build steps for Phases 46/47/48. Decisions recorded: D-60 (round-context leaf inside package), D-61 (lock coalition scoring contract), D-62 (narrative re-skin value-isomorphism).
+
+**Commits:** `db37ce4`, `1f5b097`, `4ebb875`.
+
+## 2026-06-25: Phase 46.1 + loop recovery (operator-supervised)
+
+- **Mode:** Debug -> Code (recover a stuck autonomous loop)
+- **Outcome:** complete
+- **Contract changes:** none (modules.persona public surface preserved via re-export + restored __all__)
+
+The autonomous loop (Pi, codex backend) ran Phase 46.1 in iter 192 but left it uncommitted. Recovery: verified iter-192 edits, restored `modules/persona/__init__.py` `__all__`, committed 46.1 and checked it off. Commit `4c4ce96`.
+
+**Tests:** 554 passed, 1 skipped, 1 flaky-on-order.
+
+## 2026-06-25: Fix flaky integration-test isolation (operator-supervised)
+
+- **Mode:** Debug -> Code
+- **Outcome:** complete
+
+`test_round_end_populates_intelligence` failed in full-suite ordering (IndexError, zero rows). Replaced fixed `_settle()` sleep with condition-polling (`_wait_for` / `_wait_for_public_output`, 2s/10ms). Full suite 555 passed, 1 skipped (deterministic).
+
+## 2026-06-25: iter-196 loop recovery + codex-cutoff pattern (operator-supervised)
+
+- **Mode:** Debug
+- **Outcome:** complete
+
+iter 196 (codex) committed step 46.3 content but was cut off before finishing bookkeeping (46.3 checkbox unchecked, `steps_remaining` left at 0). Recovery: verified 46.3, checked off, reset. Codex backend repeatedly fails to finish iterations on this project. Full suite 559 passed, 1 skipped.
+
+## Phase 46 — Step 46.2 (2026-06-25)
+
+Added `tests/test_scenario_authoring_standalone.py`: subprocess isolation check (no `modules.*` loaded), ImportError-on-missing-toolkit for `analyze_scenario`/`fill_narrative`. 558 passed, 1 skipped. Commit `4c4ce96`.
+
+## Phase 46 — Step 46.3 (2026-06-25)
+
+Added `src/scenario_authoring/__main__.py`: unified `build|compile|verify|brief` dispatcher via `sys.argv` rewrite. Extended standalone contract test with dispatcher + unknown-subcommand case.
+
+## Phase 46 — Step 46.4 (2026-06-25)
+
+Doc update: `src/scenario_authoring/README.md` (new), `ARCH_scenario_authoring.md` (round_context row + coupling note), `CLI_REFERENCE.md` (unified CLI section + quick-index + change-history). 559 passed, 1 skipped.
+
+## Phase 46 close (2026-06-25)
+
+`scenario_authoring` is a liftable, self-contained package. Standalone coupling severed (round_context.py leaf), contract locked by test, unified CLI added, package README written. D-60 closed. See DEVLOG.md history for full detail.
