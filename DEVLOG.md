@@ -17,3 +17,17 @@
 **Contract changes scan:** No cross-module external contract changes. `modules/persona` public API preserved via re-export. New intra-system direction: `modules.persona` → `scenario_authoring.round_context` (pipeline → package, intentional per D-60).
 
 **Governance updates:** D-60 closed, ARCHITECTURE.md rows 19 + test count + coupling note updated, DEVPLAN Phase 46 condensed, entries archived.
+
+## Phase 47 — Step 47.1 (2026-06-25)
+
+**Mode:** Execute  
+**Outcome:** complete  
+**Tests:** 19 new, all passed
+
+### Step 47.1: Coalition scoring unit tests
+
+Added `tests/self_play/test_game_environment_coalition.py` with 19 tests covering `_find_coalition_value` and `_resolve_deal_scores` imported directly from `game_environment.py` (no live LLM).
+
+`TestFindCoalitionValue` (9 tests): sorted-set match for AB/AC/BC/grand coalitions; reversed-order input normalizes correctly; unknown subset / single-member not in fixture returns None; empty list and missing key return None.
+
+`TestResolveDealScores` (10 tests): AB/AC/BC partial coalition paths verified — members get coalition_values, excluded faction gets BATNA, deal_reached True; grand coalition (members==all factions) uses faction_score() on agreed_outcomes, NOT coalition_values (key distinction — assertion locks that scoring["a"]["coalition_formation"]["a_b_c"]=10, not cv value 7); full deal with empty coalition_members also uses faction_score(); unknown subset no-deal with `partial_coalition_without_coalition_values`; below-BATNA no-deal with custom analysis (a's BATNA=5, gets 3) with `deal_below_batna_for_some_faction`; deal_reached+empty/None agreed_outcomes normalized to `deal_reached_without_agreed_outcomes`; deal_reached=False gives all-BATNA.

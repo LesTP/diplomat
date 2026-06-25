@@ -2,7 +2,7 @@
 phase: 47
 blocked: false
 state: execute
-steps_remaining:
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -106,7 +106,7 @@ validation) is explicitly out of scope (separate supervised phases).
 a+b→{a:6,b:7}, a+c→{a:5,c:6}, b+c→{b:4,c:3}, grand→{a:7,b:6,c:5}; BATNAs 0/0/0).
 
 **Steps.**
-- [ ] 47.1 — Add `tests/self_play/test_game_environment_coalition.py`: unit-test
+- [x] 47.1 — Add `tests/self_play/test_game_environment_coalition.py`: unit-test
   `_find_coalition_value` (sorted-set match / miss / empty-or-missing list) and
   `_resolve_deal_scores` across every path using the fixture values — AB coalition
   (`coalition_members=["a","b"]`, non-empty agreed_outcomes → a:6, b:7, c:BATNA 0,
