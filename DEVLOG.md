@@ -227,3 +227,16 @@ pointers remain in frozen archives (`DEVLOG_archive.md`, `TUNING_LOG_archive.md`
 append-only, not edited) and in `DEVPLAN.md` / `PROJECT.md` / `DECISIONS.md`. The
 filename is unchanged so the links resolve; only the §-anchors are stale. Can be
 swept in the live docs (PROJECT.md, DECISIONS.md) in a later pass.
+
+## Phase 46 — Step 46.2 (2026-06-25)
+
+**Step 46.2:** Added `tests/test_scenario_authoring_standalone.py` locking the standalone contract.
+
+- Test (a): subprocess check that importing `scenario_authoring` and its six pure-core modules
+  (`scenario_spec`, `scenario_fitness`, `verify_scenario_optimum`, `scenario_viz`,
+  `scenario_brief`, `round_context`) does not load any `modules.*` namespace.
+- Test (b): `sys.modules` patching to block `toolkit.structured_llm` and confirm that
+  `analyze_scenario` and `fill_narrative` raise `ImportError` (not `AttributeError`).
+  Both async functions tested with `asyncio.run()` — deterministic and offline.
+
+Full suite: 558 passed, 1 skipped (+3 new tests). Commit `4c4ce96`.

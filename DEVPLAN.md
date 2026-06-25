@@ -2,7 +2,7 @@
 phase: 46
 blocked: false
 state: execute
-steps_remaining:
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -122,7 +122,7 @@ requires an Explore/Refine decision.
   `orchestrator.py:23`, `tests/test_persona.py:7`, `tests/self_play/verify_scenario_pressure.py:22`
   may keep importing from `modules.persona` (re-export covers them) — leave them unless a circular
   import appears, in which case point them at the leaf. Run the full suite; must stay green.
-- [ ] 46.2 — Add `tests/test_scenario_authoring_standalone.py` locking the standalone contract:
+- [x] 46.2 — Add `tests/test_scenario_authoring_standalone.py` locking the standalone contract:
   (a) assert `scenario_authoring` and its pure-core modules (`scenario_spec`, `scenario_fitness`,
   `verify_scenario_optimum`, `scenario_viz`, `scenario_brief`, `round_context`) import with NO
   `modules.*` module loaded (e.g. via a subprocess with `modules` shadowed/blocked, or assert
