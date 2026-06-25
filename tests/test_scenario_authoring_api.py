@@ -44,6 +44,9 @@ def test_public_surface_is_stable() -> None:
         "load_brief",
         "check_brief",
         "BriefResult",
+        # Narrative
+        "reskin_scenario",
+        "assert_structure_preserved",
         # Constants
         "SCENARIO_ANALYSIS_SCHEMA",
         "DEFAULT_BATNA_FRACTION",

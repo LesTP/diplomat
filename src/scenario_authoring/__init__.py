@@ -18,6 +18,7 @@ Public surface:
                        beats_batna
     Visualization    : render_scenario_html, build_scenario_viz
     Brief            : load_brief, check_brief, BriefResult
+    Narrative        : reskin_scenario, assert_structure_preserved
     Constants        : SCENARIO_ANALYSIS_SCHEMA, DEFAULT_BATNA_FRACTION
 """
 
@@ -47,6 +48,10 @@ from scenario_authoring.scenario_brief import (
     check_brief,
     load_brief,
 )
+from scenario_authoring.scenario_narrative import (
+    assert_structure_preserved,
+    reskin_scenario,
+)
 
 __all__ = [
     # Spec types
@@ -74,6 +79,9 @@ __all__ = [
     "load_brief",
     "check_brief",
     "BriefResult",
+    # Narrative
+    "reskin_scenario",
+    "assert_structure_preserved",
     # Constants
     "SCENARIO_ANALYSIS_SCHEMA",
     "DEFAULT_BATNA_FRACTION",

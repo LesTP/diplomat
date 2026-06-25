@@ -534,3 +534,117 @@ async def reskin_scenario(
     assert_structure_preserved(analysis, reskinned, relabel_map)
 
     return reskinned, data["narrative_md"]
+
+
+def main() -> None:
+    """CLI entry point: python -m scenario_authoring narrative [args]"""
+    import argparse
+    import asyncio
+    import json
+    import os
+    import sys
+    from pathlib import Path
+
+    parser = argparse.ArgumentParser(
+        prog="scenario_authoring narrative",
+        description=(
+            "Apply a themed LLM re-skin to a scenario_analysis.json. "
+            "Emits scenario_analysis_reskinned.json + narrative.md."
+        ),
+    )
+    parser.add_argument(
+        "--analysis", required=True, metavar="PATH",
+        help="Path to source scenario_analysis.json",
+    )
+    parser.add_argument(
+        "--catalogue", metavar="PATH",
+        help="Prose catalogue .md file (e.g. Multi-Party Negotiation Scenarios.md)",
+    )
+    parser.add_argument(
+        "--catalogue-heading", metavar="HEADING",
+        help=(
+            "Markdown heading to extract from --catalogue "
+            "(e.g. '#### Space Mission'). When omitted, the full "
+            "catalogue text is used as source_context."
+        ),
+    )
+    parser.add_argument(
+        "--domain-context", default="", metavar="TEXT",
+        help="Additional domain framing text (appended after source_context)",
+    )
+    parser.add_argument(
+        "--domain-context-file", metavar="PATH",
+        help="File containing domain context (alternative to --domain-context)",
+    )
+    parser.add_argument(
+        "--output-dir", metavar="PATH",
+        help="Output directory (default: same directory as --analysis)",
+    )
+    args = parser.parse_args()
+
+    analysis_path = Path(args.analysis)
+    if not analysis_path.exists():
+        print(f"ERROR: analysis not found: {analysis_path}", file=sys.stderr)
+        sys.exit(1)
+    analysis = json.loads(analysis_path.read_text(encoding="utf-8"))
+
+    domain_context = args.domain_context or ""
+    if args.domain_context_file:
+        dc_path = Path(args.domain_context_file)
+        if not dc_path.exists():
+            print(f"ERROR: domain context file not found: {dc_path}", file=sys.stderr)
+            sys.exit(1)
+        domain_context = dc_path.read_text(encoding="utf-8")
+
+    source_context = ""
+    if args.catalogue:
+        cat_path = Path(args.catalogue)
+        if not cat_path.exists():
+            print(f"ERROR: catalogue not found: {cat_path}", file=sys.stderr)
+            sys.exit(1)
+        cat_text = cat_path.read_text(encoding="utf-8")
+        if args.catalogue_heading:
+            source_context = extract_catalogue_entry(cat_text, args.catalogue_heading)
+        else:
+            source_context = cat_text
+
+    _src_root = Path(__file__).resolve().parent.parent
+    sys.path.insert(0, str(_src_root))
+    try:
+        from adapters import ToolkitLLMAdapter
+        import toolkit.llm_client as llm_module
+        from dotenv import load_dotenv
+
+        load_dotenv(_src_root.parent / ".env")
+        llm_client = ToolkitLLMAdapter(llm_module)
+        llm_config = {
+            "provider": "openai",
+            "models": {"commodity": "gpt-4.1-mini"},
+            "api_key": os.getenv("OPENAI_API_KEY", ""),
+        }
+    except ImportError:
+        print("ERROR: toolkit not importable.", file=sys.stderr)
+        sys.exit(1)
+
+    output_dir = Path(args.output_dir) if args.output_dir else analysis_path.parent
+
+    async def _run() -> None:
+        print(f"Re-skinning: {analysis_path.name}")
+        reskinned, narrative_md = await reskin_scenario(
+            analysis,
+            source_context,
+            llm_client,
+            llm_config,
+            tier="commodity",
+            domain_context=domain_context,
+        )
+        output_dir.mkdir(parents=True, exist_ok=True)
+        out_analysis = output_dir / "scenario_analysis_reskinned.json"
+        out_narrative = output_dir / "narrative.md"
+        out_analysis.write_text(json.dumps(reskinned, indent=2), encoding="utf-8")
+        out_narrative.write_text(narrative_md, encoding="utf-8")
+        print(f"Reskinned analysis: {out_analysis}")
+        print(f"Narrative: {out_narrative}")
+        print(f"Factions: {', '.join(reskinned['factions'])}")
+
+    asyncio.run(_run())

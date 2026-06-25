@@ -27,6 +27,7 @@ post-hoc verification of any analysis JSON's payoff structure.
 | `verify_scenario_optimum` | Pure analysis utilities (`faction_score`, `enumerate_deals`, `find_pareto_frontier`, `beats_batna`, `find_priority_issues`) + a CLI verifier that prints a payoff report for an existing analysis JSON. | No |
 | `scenario_viz` | Scenario-only deal-explorer HTML renderer built on verifier math; exposes `render_scenario_html()` and `build_scenario_viz()`. | No |
 | `scenario_brief` | Verify-against-brief: `load_brief()` + `check_brief()` measure an analysis's static structure against a declared `features` block (PASS/FAIL per feature); `build_brief_readme()` renders per-scenario auto-doc. Reuses verifier + fitness math. | No |
+| `scenario_narrative` | Themed re-skin: `apply_relabel()` renames faction/issue/outcome identifiers under a bijective map; `assert_structure_preserved()` is the value-isomorphism guard; `extract_catalogue_entry()` slices a heading-scoped section from the prose catalogue; `reskin_scenario()` drives one `structured_call` and runs the guard. | Yes (reskin_scenario only) |
 | `round_context` | Stdlib-only leaf: `CoachingContext` frozen dataclass + `render_round_context_section()`. Extracted from `modules/persona` in Phase 46 to sever the lone load-time coupling. Re-exported by `modules.persona` for pipeline back-compat. Not in the package `__init__.py` `__all__` — access directly via `from scenario_authoring.round_context import CoachingContext, render_round_context_section`. | No |
 
 ## Public API
@@ -51,6 +52,8 @@ from scenario_authoring import (
     render_scenario_html, build_scenario_viz,
     # Brief
     load_brief, check_brief, BriefResult,
+    # Narrative
+    reskin_scenario, assert_structure_preserved,
     # Constants
     SCENARIO_ANALYSIS_SCHEMA, DEFAULT_BATNA_FRACTION,
 )
@@ -99,6 +102,28 @@ async def fill_narrative(
     domain_context: str | None = None,
 ) -> dict[str, Any]
 # In-place fills logrolling + deception_tactics; returns the modified dict.
+
+async def reskin_scenario(
+    analysis: dict[str, Any],
+    source_context: str,
+    llm_client: Any,
+    llm_config: dict[str, Any],
+    tier: str = "commodity",
+    *,
+    domain_context: str = "",
+) -> tuple[dict[str, Any], str]
+# One structured_call → relabel_map + logrolling + deception_tactics + narrative_md.
+# Applies apply_relabel, overlays prose, runs assert_structure_preserved.
+# Returns (reskinned_analysis, narrative_md). Raises AssertionError on numeric drift.
+
+def assert_structure_preserved(
+    source: dict[str, Any],
+    reskinned: dict[str, Any],
+    relabel_map: dict[str, dict[str, str]],
+) -> None
+# Value-isomorphism guard. Raises AssertionError (with descriptive message) on:
+# incomplete map, non-bijective map, count mismatch, score drift, BATNA drift,
+# coalition_values member/value drift.
 
 def load_brief(path: str | Path) -> dict[str, Any]
 # Loads + validates brief.json into {"features": {...}, "goal": str}.
@@ -270,6 +295,34 @@ fields load fine via `json.loads`.
 - `build_scenario_viz()` writes HTML to disk; `render_scenario_html()` returns
   the HTML string for embedding or tests.
 
+### `scenario_narrative`
+
+- `apply_relabel()` does one deep-copy pass over the analysis, renaming
+  faction/issue/outcome keys in `factions`, `issues`, `scoring`, `batna`,
+  `deception_tactics`, `pressure.asymmetric_clocks`, and
+  `coalition_values.members`/`values`. All numeric payoffs pass through
+  unchanged. Does NOT validate bijectivity/completeness — that's the guard's job.
+- `assert_structure_preserved()` runs after `apply_relabel`: completeness check
+  (all source identifiers have a mapping), bijectivity check (no two source ids
+  share a new name), structural counts (faction/issue/outcome), scoring
+  value-isomorphism, BATNA value-isomorphism, coalition_values member-set +
+  value-isomorphism. Raises `AssertionError` with a precise message on the first
+  failure.
+- `extract_catalogue_entry()` finds the exact heading line, collects all lines
+  until the next heading of equal or higher Markdown level (or EOF). Raises
+  `ValueError` for a non-heading input or a heading not found in the text.
+- `reskin_scenario()` assembles a user prompt from the analysis structure
+  (factions, issues, scoring, BATNA, coalition_values) plus `source_context`
+  and `domain_context`; calls `structured_call(schema=RESKIN_SCHEMA)` at the
+  commodity tier; applies `apply_relabel` + prose overlay; runs the guard;
+  returns `(reskinned_analysis, narrative_md)`. PROMPT QUALITY (themed-name
+  aptness, prose faithfulness) is tuning-deferred per D-62 — a later supervised
+  Refine phase adds prompt-regression coverage.
+- Standalone: `apply_relabel`, `assert_structure_preserved`, and
+  `extract_catalogue_entry` depend only on stdlib. `reskin_scenario` imports
+  `toolkit.structured_llm` lazily (inside the coroutine), so the module is
+  importable without toolkit for unit tests.
+
 ### `scenario_brief`
 
 - `load_brief()` validates `brief.json` via a per-feature validator table
@@ -291,6 +344,8 @@ fields load fine via `json.loads`.
   LLM client (via `toolkit/structured_llm`).
 - **Builder:** `ScenarioSpec` JSON file (`--spec`) loaded via `load_spec`.
 - **Verifier:** existing `scenario_analysis.json`.
+- **Narrative re-skin:** existing `scenario_analysis.json` + optional catalogue
+  text (or extracted heading section) + optional domain context; LLM client.
 
 ## Outputs
 

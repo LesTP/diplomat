@@ -29,6 +29,7 @@ Cross-references point at fuller discussion in `TUNING.md`, `DEVPLAN.md`,
 | Assert dry-run output meets invariants | [`tests.self_play.verify_dryrun`](#testsself_playverify_dryrun--assert-dry-run-output-invariants) |
 | Check a scenario has a non-trivial optimum before running | [`scenario_authoring.verify_scenario_optimum`](#testsself_playverify_scenario_optimum--enumerate-scenario-outcomes) |
 | Verify a scenario matches its design brief (PASS/FAIL per feature) | [`scenario_authoring.scenario_brief`](#scenario_authoringscenario_brief--verify-a-scenario-against-a-design-brief) |
+| Apply a themed LLM re-skin to a builder-emitted analysis | [`scenario_authoring.scenario_narrative`](#scenario_authoringscenario_narrative--themed-re-skin) |
 | Get a post-game report | [`tests.self_play.analysis`](#testsself_playanalysis--post-game-report) |
 | Run a benchmark cell (homogeneous, mixed-model, or seat-rotated) | [`tools/ablation_multi.sh`](#toolsablation_multish--benchmark-cell-dispatcher) |
 | Rank models across games (mean_rank leaderboard) | [`tests.self_play.rank_aggregator`](#testsself_playrank_aggregator--cross-game-model-leaderboard) |
@@ -289,6 +290,48 @@ math as `verify_scenario_optimum` + `scenario_fitness` (no re-derivation). This
 is the gate Runs 19/20 lacked — `succ` FAILs `no_focal_point`, `succ2` FAILs
 `batna_clearing_count`.
 
+### `scenario_authoring.scenario_narrative` — themed re-skin
+
+Apply a bijective LLM-proposed rename to a `scenario_analysis.json` produced by the
+builder (or compiler). All numeric payoffs are preserved exactly; only identifiers and
+prose change. Emits `scenario_analysis_reskinned.json` + `narrative.md`. Prompt quality
+(themed-name aptness, prose faithfulness) is tuning-deferred per D-62.
+
+```bash
+# Re-skin using a catalogue heading as domain context
+python -m scenario_authoring.scenario_narrative \
+    --analysis scenarios/my_spec_v1/scenario_analysis.json \
+    --catalogue "Multi-Party Negotiation Scenarios.md" \
+    --catalogue-heading "#### Space Mission" \
+    --output-dir scenarios/my_spec_v1_reskinned
+
+# Re-skin with free-form domain context
+python -m scenario_authoring.scenario_narrative \
+    --analysis scenarios/my_spec_v1/scenario_analysis.json \
+    --domain-context-file scenarios/my_spec_v1/domain_lore.md \
+    --output-dir scenarios/my_spec_v1_reskinned
+```
+
+| Flag | Default | Notes |
+|---|---|---|
+| `--analysis` * | — | Path to source `scenario_analysis.json` |
+| `--catalogue` | off | Path to a prose catalogue `.md` file (e.g. `Multi-Party Negotiation Scenarios.md`) |
+| `--catalogue-heading` | off | Markdown heading to extract from `--catalogue` (e.g. `#### Space Mission`). When omitted, the full catalogue text is used as `source_context`. Requires `--catalogue`. |
+| `--domain-context` | `""` | Inline domain framing text appended after `source_context` |
+| `--domain-context-file` | off | File containing domain context (alternative to `--domain-context`) |
+| `--output-dir` | analysis dir | Directory for output files |
+
+**Outputs:**
+
+| File | Content |
+|---|---|
+| `scenario_analysis_reskinned.json` | Source analysis with all identifiers renamed; numeric payoffs unchanged |
+| `narrative.md` | LLM-authored 2-4 paragraph Markdown narrative using the themed names |
+
+The guard `assert_structure_preserved` runs automatically after the LLM call; any numeric
+drift, non-bijective relabeling, or incomplete map raises an `AssertionError` with a
+descriptive message before the output is written.
+
 ### `tools/viz.py` — self-play result dashboard wrapper
 
 `tools/viz.py` keeps the run-discovery logic for self-play result JSONs and
@@ -412,8 +455,8 @@ python -m tests.self_play.position_rotation \
 
 ### `python -m scenario_authoring` — unified CLI dispatcher
 
-Routes `build`, `compile`, `verify`, and `brief` to the existing submodule
-entry points. Flags are passed through unchanged to the delegated command.
+Routes `build`, `compile`, `verify`, `brief`, and `narrative` to the existing
+submodule entry points. Flags are passed through unchanged to the delegated command.
 
 ```bash
 # Build a scenario from a ScenarioSpec
@@ -434,6 +477,13 @@ python -m scenario_authoring verify \
 python -m scenario_authoring brief \
     --analysis scenarios/water_rights_v1/scenario_analysis.json \
     --brief scenarios/water_rights_v1/brief.json
+
+# Apply a themed re-skin to a builder-emitted analysis
+python -m scenario_authoring narrative \
+    --analysis scenarios/my_spec_v1/scenario_analysis.json \
+    --catalogue "Multi-Party Negotiation Scenarios.md" \
+    --catalogue-heading "#### Space Mission" \
+    --output-dir scenarios/my_spec_v1_reskinned
 ```
 
 | Subcommand | Delegates to | Notes |
@@ -442,6 +492,7 @@ python -m scenario_authoring brief \
 | `compile` | `scenario_authoring.scenario_compiler` | All `--scenario`, `--output-dir`, `--batna-fraction`, `--viz` flags apply |
 | `verify` | `scenario_authoring.verify_scenario_optimum` | All `--analysis`, `--viz`, `--brief` flags apply |
 | `brief` | `scenario_authoring.scenario_brief` | All `--analysis`, `--brief` flags apply |
+| `narrative` | `scenario_authoring.scenario_narrative` | All `--analysis`, `--catalogue`, `--catalogue-heading`, `--domain-context`, `--output-dir` flags apply |
 
 Unknown subcommands exit non-zero and print a usage error.
 
@@ -847,3 +898,4 @@ procedure to validate the Diplomat bot on the Raspberry Pi after code changes.
 | 2026-06-22 | section 3.5 benchmark tooling: added `tools/ablation_multi.sh` (probe/probemix/run/runmix/rotateplan/runrotate/summary), `tests.self_play.rank_aggregator` (cross-game mean_rank leaderboard), and `tests.self_play.position_rotation` (seat-rotation specs); added quick-index rows. |
 | 2026-06-25 | Phase 44: added `scenario_authoring.scenario_brief` (verify-against-brief + auto-doc); added `--brief` to `verify_scenario_optimum` and `--viz`/`--viz-title` to `scenario_compiler`; added quick-index row. |
 | 2026-06-25 | Phase 46: added `python -m scenario_authoring` unified dispatcher (`build`/`compile`/`verify`/`brief`); added quick-index row and dispatcher section. |
+| 2026-06-25 | Phase 48: added `scenario_authoring.scenario_narrative` (themed re-skin + structure-preservation guard); exported `reskin_scenario` + `assert_structure_preserved` from package root; added `narrative` to unified dispatcher; added quick-index row. |

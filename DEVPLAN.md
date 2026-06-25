@@ -1,8 +1,8 @@
 ---
 phase: 48
 blocked: false
-state: execute
-steps_remaining: 0
+state: review
+steps_remaining:
 ---
 
 # Diplomat — Development Plan
@@ -131,7 +131,7 @@ pattern; `fill_narrative` schema as a starting point for the prose fields.
   Author an INITIAL system prompt (quality tuning deferred — D-62). Test with a MOCKED
   `structured_call` (mirror `test_scenario_compiler.py::fake_sc`): structure preserved +
   narrative produced; a value-tampering mock is rejected by the guard.
-- [ ] 48.4 — Add a `narrative` subcommand to `scenario_authoring/__main__.py` (analysis +
+- [x] 48.4 — Add a `narrative` subcommand to `scenario_authoring/__main__.py` (analysis +
   catalogue source → reskinned bundle); export `reskin_scenario` + `assert_structure_preserved`
   in `__init__.__all__` and update `tests/test_scenario_authoring_api.py`. Doc update:
   `SCENARIO_GUIDE.md` (narrative-integration section; mark prompt-tuning as the supervised

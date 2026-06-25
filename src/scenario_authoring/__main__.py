@@ -10,6 +10,7 @@ from scenario_authoring import (
     scenario_brief,
     scenario_builder,
     scenario_compiler,
+    scenario_narrative,
     verify_scenario_optimum,
 )
 
@@ -18,6 +19,7 @@ _COMMANDS: dict[str, Callable[[], int | None]] = {
     "compile": scenario_compiler.main,
     "verify": verify_scenario_optimum.main,
     "brief": scenario_brief.main,
+    "narrative": scenario_narrative.main,
 }
 
 
@@ -29,7 +31,7 @@ def main() -> int:
     parser.add_argument(
         "command",
         nargs="?",
-        help="Subcommand: build, compile, verify, or brief",
+        help="Subcommand: build, compile, verify, brief, or narrative",
     )
     args, remaining = parser.parse_known_args()
 

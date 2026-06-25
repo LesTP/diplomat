@@ -556,6 +556,61 @@ python -m scenario_authoring.scenario_builder \
 `scenario_authoring.scenario_viz`; the builder flag is just a convenience
 wrapper around the same renderer.
 
+## Theming a builder-emitted scenario (narrative re-skin)
+
+The narrative re-skin applies a bijective LLM-proposed rename to any
+`scenario_analysis.json` — renaming faction, issue, and outcome identifiers to
+themed names while preserving every numeric payoff exactly. This makes the
+scenario vivid and concrete without touching the underlying game-theory structure.
+
+**When to use:** after the builder (or compiler without narrative prose) has
+produced a structurally clean analysis. The re-skin is the final theming step
+before a live game.
+
+**Structure-preservation guarantee:** `assert_structure_preserved` runs after
+the LLM call and rejects any output with numeric drift, non-bijective renaming,
+or incomplete coverage. The guard raises an `AssertionError` with a precise
+message before writing any output.
+
+**Workflow:**
+
+1. Build a structurally correct analysis:
+   ```bash
+   python -m scenario_authoring build \
+       --spec scenarios/specs/my_spec.json \
+       --output-dir scenarios/my_spec_v1 --verify
+   ```
+
+2. Pick a domain theme from the catalogue or provide domain text:
+   ```bash
+   # Extract a specific heading from the catalogue:
+   python -m scenario_authoring narrative \
+       --analysis scenarios/my_spec_v1/scenario_analysis.json \
+       --catalogue "Multi-Party Negotiation Scenarios.md" \
+       --catalogue-heading "#### Space Mission" \
+       --output-dir scenarios/my_spec_v1_themed
+
+   # Or provide your own domain framing:
+   python -m scenario_authoring narrative \
+       --analysis scenarios/my_spec_v1/scenario_analysis.json \
+       --domain-context-file scenarios/my_lore.md \
+       --output-dir scenarios/my_spec_v1_themed
+   ```
+
+3. Inspect output:
+   - `scenarios/my_spec_v1_themed/scenario_analysis_reskinned.json` — themed
+     analysis with all identifiers renamed; numeric payoffs unchanged.
+   - `scenarios/my_spec_v1_themed/narrative.md` — 2-4 paragraph Markdown
+     scenario description using the new themed names.
+
+4. Run `verify_scenario_optimum` on the reskinned analysis to confirm the
+   Pareto structure is intact before a live game.
+
+**Prompt quality note:** The initial `RESKIN_SYSTEM_PROMPT` ships in this phase.
+Themed-name aptness and prose faithfulness are DEFERRED to a later supervised
+Refine phase via `tests/prompt_regression/` (per D-62). Treat the first run
+as a starting point to hand-edit if names are generic.
+
 ## File layout reference
 
 ```
@@ -593,6 +648,7 @@ tools/
 | Build from constraints | `python -m scenario_authoring.scenario_builder --spec <json> --output-dir <dir> --verify` |
 | Render a deal explorer | `python -m scenario_authoring.verify_scenario_optimum --analysis <analysis> --viz [<html>]` |
 | Layer prose on a stub | `python -m scenario_authoring.scenario_compiler --fill-narrative-only <analysis> [--domain-context-file <md>]` |
+| Apply themed re-skin | `python -m scenario_authoring narrative --analysis <analysis> [--catalogue <md>] [--catalogue-heading <heading>] --output-dir <dir>` |
 | Verify payoff structure | `python -m scenario_authoring.verify_scenario_optimum --analysis <analysis>` |
 | Verify against a design brief | `python -m scenario_authoring.scenario_brief --analysis <analysis> --brief <brief.json> [--doc README.md]` |
 | Probe scaling | `python tools/scenario_builder_scale_probe.py --cells <FxIxO> --seeds N --output <jsonl>` |
