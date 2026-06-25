@@ -2,7 +2,7 @@
 phase: 46
 blocked: false
 state: execute
-steps_remaining: 0
+steps_remaining:
 ---
 
 # Diplomat — Development Plan
@@ -129,7 +129,7 @@ requires an Explore/Refine decision.
   `modules` not in `sys.modules` after a fresh import in a subprocess); (b) assert the LLM paths
   (`analyze_scenario` / `fill_narrative`) raise a clear ImportError (not AttributeError) when
   `toolkit` is unavailable. Keep it deterministic and offline (no real LLM calls).
-- [ ] 46.3 — Add `src/scenario_authoring/__main__.py`: an argparse dispatcher mapping
+- [x] 46.3 — Add `src/scenario_authoring/__main__.py`: an argparse dispatcher mapping
   `build|compile|verify|brief` to the existing submodule `main()`s (rewrite `sys.argv` then call;
   compiler/builder mains are async-wrapped already). Add a test invoking the dispatcher
   (`monkeypatch sys.argv` to `["scenario_authoring","verify","--analysis",<tmp>]` and assert rc 0,

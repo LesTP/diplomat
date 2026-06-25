@@ -4,6 +4,33 @@
      Each step or milestone gets a structured entry. This is the audit trail.
      Older phases are archived to DEVLOG_archive.md; the active log holds the current phase. -->
 
+## 2026-06-25: iter-196 loop recovery + codex-cutoff pattern (operator-supervised)
+
+- **Mode:** Debug
+- **Outcome:** complete
+- **Contract changes:** none
+
+iter 196 (codex) completed step 46.3 content - committed `__main__.py` + a CLI
+dispatcher test + a DEVLOG entry (commit 909eeab) - but was cut off (57 turns /
+340s, past the WORKER_SPEC turns>steps*50 circuit breaker) before finishing the
+iteration bookkeeping: the 46.3 checkbox stayed unchecked, `steps_remaining` was
+left at 0 (which makes the next dispatch EXIT immediately), and no output
+contract was emitted (exit 1, empty fields).
+
+Distinct from the earlier failures: iter 192 left work UNCOMMITTED (dirty tree);
+the integration-test flake was a timing race. iter 196 COMMITTED its work but
+stalled on bookkeeping. Common thread: the codex backend keeps getting cut off
+mid-iteration on this project (192 budget re-dispatch, 196 turn/time limit); the
+one claude iter (195) finished 46.2 cleanly.
+
+Recovery: verified 46.3 (6 standalone + CLI tests pass; `python -m
+scenario_authoring` dispatches build/compile/verify/brief); checked off 46.3;
+reset `steps_remaining` to empty. Full suite 559 passed, 1 skipped.
+
+Recommendation: run the remaining loop steps (46.4, 47, 48) on the CLAUDE
+backend, or raise codex's turn/time budget, since codex is repeatedly failing to
+finish iterations here.
+
 ## 2026-06-25: Fix flaky integration-test isolation (operator-supervised)
 
 - **Mode:** Debug -> Code
