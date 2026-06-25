@@ -4,6 +4,71 @@
      Each step or milestone gets a structured entry. This is the audit trail.
      Older phases are archived to DEVLOG_archive.md; the active log holds the current phase. -->
 
+## 2026-06-25 — Phase 44: scenario brief + verify-against-brief + auto-doc
+
+Phase 44 adds a per-scenario **design brief** and a machine-checkable
+verify-against-brief gate — the structural check Runs 19/20 lacked. A brief
+declares the discriminating properties a scenario is supposed to have; the check
+measures the actual static structure and reports PASS/FAIL per feature, exiting
+non-zero so it works as a pre-flight gate before a paid run. Operator-supervised;
+scope was full Phase 44 (core + auto-doc + compiler `--viz`).
+
+**What was built:**
+
+- **`src/scenario_authoring/scenario_brief.py` (new):** `load_brief()` (validates
+  `brief.json`; rejects unknown/malformed features), `check_brief()` (6 features:
+  `constant_sum`, `priority_collision`, `no_focal_point`, `winner_spread`,
+  `batna_clearing_count`, `no_exact_ties`), `FeatureCheck`/`BriefResult`,
+  `build_brief_readme()` (auto-doc), and a `main()` CLI (`--analysis --brief
+  [--doc] [--title] [--viz-rel-path]`). Reuses verifier + fitness math; depends
+  only on `verify_scenario_optimum` + `scenario_fitness` + stdlib (standalone
+  constraint held).
+
+- **`verify_scenario_optimum.py`:** extracted the inline "everyone-gets-priority"
+  focal-deal computation from `main()` into reusable `compute_focal_deal()` /
+  `focal_deal_clears_batnas()` (last math duplication removed, Phase-43 pattern);
+  added `--brief` flag (runs `check_brief`, rc 2 on any FAIL).
+
+- **`scenario_compiler.py`:** added `--viz [PATH]` + `--viz-title` so the
+  narrative creation path emits the deal explorer too (mirrors verify).
+
+- **Public API:** exported `load_brief`, `check_brief`, `BriefResult`; pinned in
+  `tests/test_scenario_authoring_api.py`.
+
+- **Golden fixtures:** `brief.json` + `brief.md` in `succession_division_v1`
+  (`succ`) and `_v2` (`succ2`). `succ` FAILs `no_focal_point` (the Run 19 focal
+  deal scores 13/11/12 and clears all BATNAs) + `no_exact_ties`; `succ2` FAILs
+  `batna_clearing_count` (only 4 clearing deals vs intended ≥6) + `winner_spread`
+  + `no_exact_ties`. These prove the gate would have caught both runs.
+
+- **Doc sync:** `SCENARIO_GUIDE.md` (new brief section + capabilities + quick-ref),
+  `CLI_REFERENCE.md` (`scenario_brief` entry, `--brief` on verify, `--viz` on
+  compiler, quick-index + change-history), `ARCH_scenario_authoring.md` (module
+  map, public API, key signatures, feature table, implementation + standalone
+  notes).
+
+**Files changed:** `src/scenario_authoring/scenario_brief.py` (new),
+`src/scenario_authoring/verify_scenario_optimum.py`,
+`src/scenario_authoring/scenario_compiler.py`,
+`src/scenario_authoring/__init__.py`,
+`scenarios/succession_division_v1/{brief.json,brief.md}` (new),
+`scenarios/succession_division_v2/{brief.json,brief.md}` (new),
+`tests/test_scenario_brief.py` (new), `tests/test_scenario_authoring_api.py`,
+`tests/test_verify_scenario_optimum.py`, `tests/test_scenario_compiler.py`,
+`SCENARIO_GUIDE.md`, `CLI_REFERENCE.md`, `ARCH_scenario_authoring.md`.
+
+**Tests:** 555 passed, 1 skipped (full suite). The two golden regression tests
+assert `succ` FAILs `no_focal_point` and `succ2` FAILs `batna_clearing_count`.
+
+**Process note:** measured the real `succ` structure before authoring its brief —
+SCENARIO_GUIDE's claimed "balanced 2/2/2 winner spread, no exact ties" was
+aspirational; the actual structure is 1/1/2 with exact ties present, which the
+gate now surfaces. Briefs were authored against measured reality, not the prose
+claim.
+
+**Contract changes scan:** additive only — three new public exports; no existing
+signatures changed. `scenario_brief` honors the standalone constraint.
+
 ## 2026-06-23 — Phase 43 close: deal-explorer viz integration complete
 
 Phase 43 extracted the deal-explorer renderer from `tools/viz.py` into a first-class `src/scenario_authoring/scenario_viz.py` package module, wired it into the `verify_scenario_optimum` and `scenario_builder` CLIs, exported it on the public API, and synchronized all reference docs. 5 steps, all 🔨 pure build.

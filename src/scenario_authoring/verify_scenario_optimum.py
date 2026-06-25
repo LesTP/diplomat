@@ -146,6 +146,61 @@ def find_priority_issues(analysis: dict[str, Any]) -> dict[str, tuple[str, str, 
     return result
 
 
+def compute_focal_deal(
+    analysis: dict[str, Any],
+    priorities: dict[str, tuple[str, str, float]] | None = None,
+) -> dict[str, str] | None:
+    """Return the 'everyone-gets-priority' deal, or None when faction
+    priorities collide on the same issue (no single focal deal exists).
+
+    Each faction's single highest-scoring outcome fixes one issue. Issues not
+    claimed by any faction's priority are filled with the outcome that maximizes
+    the sum of scores across factions. Returns None when two factions' top
+    priorities land on the same issue but disagree on the outcome — i.e. there
+    is no deal where everyone simultaneously gets their #1.
+    """
+    factions = analysis["factions"]
+    issues = analysis["issues"]
+    if priorities is None:
+        priorities = find_priority_issues(analysis)
+
+    deal: dict[str, str] = {}
+    for faction in factions:
+        pri_issue, pri_outcome, _ = priorities[faction]
+        if pri_issue in deal and deal[pri_issue] != pri_outcome:
+            return None
+        deal[pri_issue] = pri_outcome
+
+    for issue in issues:
+        name = issue["name"]
+        if name in deal:
+            continue
+        best_outcome = None
+        best_sum = float("-inf")
+        for outcome in issue["outcomes"]:
+            outcome_sum = sum(
+                analysis["scoring"][faction].get(name, {}).get(outcome, 0)
+                for faction in factions
+            )
+            if outcome_sum > best_sum:
+                best_sum = outcome_sum
+                best_outcome = outcome
+        deal[name] = best_outcome
+    return deal
+
+
+def focal_deal_clears_batnas(analysis: dict[str, Any]) -> bool:
+    """Return True when an 'everyone-gets-priority' focal deal exists AND beats
+    every faction's BATNA — the behavioral focal point that collapses outcome
+    diversity (the Run 19 failure mode).
+    """
+    focal = compute_focal_deal(analysis)
+    if focal is None:
+        return False
+    scores = {f: faction_score(analysis, f, focal) for f in analysis["factions"]}
+    return beats_batna(analysis, scores)
+
+
 def format_deal(deal: dict[str, str]) -> str:
     return " | ".join(f"{k}={v}" for k, v in deal.items())
 
@@ -173,6 +228,16 @@ def main() -> int:
         "--viz-title",
         default="deal explorer",
         help="Title to use for the optional viz HTML output.",
+    )
+    parser.add_argument(
+        "--brief",
+        default=None,
+        metavar="PATH",
+        help=(
+            "Path to a brief.json declaring intended structural features. "
+            "Checks the analysis against each declared feature (PASS/FAIL) and "
+            "exits non-zero if any feature fails."
+        ),
     )
     args = parser.parse_args()
 
@@ -240,34 +305,12 @@ def main() -> int:
     print(f"  Pareto-optimal AND beat-all-BATNAs: {len(pareto_beating)}")
 
     # The "everyone gets their priority" deal
-    priority_deal = {}
-    for f in factions:
-        pri_issue, pri_outcome, _ = priorities[f]
-        if pri_issue in priority_deal and priority_deal[pri_issue] != pri_outcome:
-            # priorities conflict on same issue
-            priority_deal = None
-            break
-        priority_deal[pri_issue] = pri_outcome
+    priority_deal = compute_focal_deal(analysis, priorities)
 
     print("\n--- 'Everyone-gets-priority' Deal ---")
     if priority_deal is None:
         print("  N/A — faction priorities conflict on the same issue")
     else:
-        # Fill in remaining issues with whatever (use first outcome as filler)
-        for issue in issues:
-            if issue["name"] not in priority_deal:
-                # Pick the outcome that maximizes sum across factions
-                best_outcome = None
-                best_sum = -1
-                for outcome in issue["outcomes"]:
-                    s = sum(
-                        analysis["scoring"][f].get(issue["name"], {}).get(outcome, 0)
-                        for f in factions
-                    )
-                    if s > best_sum:
-                        best_sum = s
-                        best_outcome = outcome
-                priority_deal[issue["name"]] = best_outcome
         scores = {f: faction_score(analysis, f, priority_deal) for f in factions}
         print(f"  Deal: {format_deal(priority_deal)}")
         for f in factions:
@@ -357,6 +400,28 @@ def main() -> int:
             fallback_title=args.viz_title,
         )
         print(f"\nWrote viz HTML: {output}")
+
+    if args.brief is not None:
+        from scenario_authoring.scenario_brief import check_brief, load_brief
+
+        brief_path = Path(args.brief)
+        if not brief_path.is_file():
+            print(f"ERROR: brief not found: {brief_path}", file=sys.stderr)
+            return 1
+        brief = load_brief(brief_path)
+        result = check_brief(analysis, brief)
+        print("\n--- BRIEF CHECK ---")
+        for check in result.checks:
+            mark = "PASS" if check.passed else "FAIL"
+            print(
+                f"  [{mark}] {check.name}: "
+                f"expected={check.expected!r} observed={check.observed!r}"
+            )
+        if not result.all_passed:
+            failed = ", ".join(c.name for c in result.checks if not c.passed)
+            print(f"  -> BRIEF FAILED: {failed}")
+            return 2
+        print("  -> BRIEF PASSED")
 
     return 0
 

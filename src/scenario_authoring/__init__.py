@@ -17,6 +17,7 @@ Public surface:
     Analysis utils   : enumerate_deals, find_pareto_frontier, faction_score,
                        beats_batna
     Visualization    : render_scenario_html, build_scenario_viz
+    Brief            : load_brief, check_brief, BriefResult
     Constants        : SCENARIO_ANALYSIS_SCHEMA, DEFAULT_BATNA_FRACTION
 """
 
@@ -41,6 +42,11 @@ from scenario_authoring.verify_scenario_optimum import (
     find_pareto_frontier,
 )
 from scenario_authoring.scenario_viz import build_scenario_viz, render_scenario_html
+from scenario_authoring.scenario_brief import (
+    BriefResult,
+    check_brief,
+    load_brief,
+)
 
 __all__ = [
     # Spec types
@@ -64,6 +70,10 @@ __all__ = [
     # Visualization
     "render_scenario_html",
     "build_scenario_viz",
+    # Brief
+    "load_brief",
+    "check_brief",
+    "BriefResult",
     # Constants
     "SCENARIO_ANALYSIS_SCHEMA",
     "DEFAULT_BATNA_FRACTION",

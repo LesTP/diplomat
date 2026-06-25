@@ -27,6 +27,7 @@ Cross-references point at fuller discussion in `TUNING.md`, `DEVPLAN.md`,
 | Check providers are reachable before a live run | [`tests.self_play.probe_providers`](#testsself_playprobe_providers--live-provider-auth--parse-check) |
 | Assert dry-run output meets invariants | [`tests.self_play.verify_dryrun`](#testsself_playverify_dryrun--assert-dry-run-output-invariants) |
 | Check a scenario has a non-trivial optimum before running | [`scenario_authoring.verify_scenario_optimum`](#testsself_playverify_scenario_optimum--enumerate-scenario-outcomes) |
+| Verify a scenario matches its design brief (PASS/FAIL per feature) | [`scenario_authoring.scenario_brief`](#scenario_authoringscenario_brief--verify-a-scenario-against-a-design-brief) |
 | Get a post-game report | [`tests.self_play.analysis`](#testsself_playanalysis--post-game-report) |
 | Run a benchmark cell (homogeneous, mixed-model, or seat-rotated) | [`tools/ablation_multi.sh`](#toolsablation_multish--benchmark-cell-dispatcher) |
 | Rank models across games (mean_rank leaderboard) | [`tests.self_play.rank_aggregator`](#testsself_playrank_aggregator--cross-game-model-leaderboard) |
@@ -251,12 +252,41 @@ python -m scenario_authoring.verify_scenario_optimum \
 | `--top-n` | `10` | Number of top deals (by sum-of-scores) to print |
 | `--viz` | off | Render the deal-explorer HTML next to the analysis file. Use `--viz` alone for `analysis.html`, or `--viz <path>` for an explicit output path. |
 | `--viz-title` | `deal explorer` | Title to use for the optional viz HTML output. |
+| `--brief` | off | Path to a `brief.json`. Checks the analysis against each declared structural feature (PASS/FAIL) and exits non-zero (rc 2) if any feature fails. |
 
 Reports per-faction max possible deal, BATNA, "good deal" threshold; all
 possible deals (cartesian product); Pareto frontier size; how many deals beat
 all BATNAs; logrolling quality. Use **before** spending money on a live run
 to confirm a non-trivial optimum exists. When `--viz` is supplied, the tool
 also writes the deal-explorer HTML through `scenario_authoring.scenario_viz`.
+When `--brief` is supplied, it runs the verify-against-brief check (see
+`scenario_authoring.scenario_brief` below).
+
+### `scenario_authoring.scenario_brief` — verify a scenario against a design brief
+
+```bash
+python -m scenario_authoring.scenario_brief \
+    --analysis scenarios/succession_division_v1/scenario_analysis.json \
+    --brief scenarios/succession_division_v1/brief.json \
+    --doc scenarios/succession_division_v1/README.md
+```
+
+| Flag | Default | Notes |
+|---|---|---|
+| `--analysis` * | — | Path to `scenario_analysis.json` |
+| `--brief` * | — | Path to `brief.json` (declares intended `features`) |
+| `--doc` | off | Also write a per-scenario `README.md` (goal → required features → measured result → viz link) to PATH |
+| `--title` | `Scenario` | Title for the generated doc header |
+| `--viz-rel-path` | — | Optional relative path to a deal-explorer HTML to link from the doc |
+
+Measures the analysis's static structure and reports PASS/FAIL per declared
+feature; exits non-zero (rc 2) on any failure, so it works as a pre-flight gate
+before a paid run. Supported features: `constant_sum`, `priority_collision`
+(`none`/`soft`/`hard`), `no_focal_point`, `winner_spread {min_per_faction}`,
+`batna_clearing_count {min,max}`, `no_exact_ties`. The check reuses the same deal
+math as `verify_scenario_optimum` + `scenario_fitness` (no re-derivation). This
+is the gate Runs 19/20 lacked — `succ` FAILs `no_focal_point`, `succ2` FAILs
+`batna_clearing_count`.
 
 ### `tools/viz.py` — self-play result dashboard wrapper
 
@@ -422,6 +452,8 @@ python -m scenario_authoring.scenario_compiler \
 | `--batna-fraction` | `0.50` | Target BATNA as fraction of each faction's max possible score. Scalar fallback when `--batna-fractions` is not supplied. Same flag as on `run_simulation.py`. See `TUNING.md` §1 BATNA tuning for full semantics (higher = more pressure to find Pareto deals; lower = easier to settle for any deal). |
 | `--batna-fractions` | — | JSON map `{faction_id: fraction}` for **asymmetric** BATNAs. Overrides `--batna-fraction` only for listed factions; unlisted use the scalar fallback. Example: `'{"alpha":0.65,"beta":0.35}'`. |
 | `--force-batna-fraction` | `false` | After LLM analysis, **overwrite** each faction's BATNA with `target_fraction × max_possible_score`. Uses `--batna-fractions` per-faction targets when supplied; otherwise uses `--batna-fraction`. Default off, preserving narrative BATNAs. Use when narrative-explicit BATNAs would dilute the target pressure. |
+| `--viz` | off | After writing the analysis + personas, render the deal-explorer HTML. `--viz` alone → `scenario_analysis.html` in the output dir; `--viz <path>` → explicit path. Same renderer as `verify_scenario_optimum --viz`. |
+| `--viz-title` | `deal explorer` | Title for the optional viz HTML output. |
 
 After compilation, prints any per-faction BATNA pressure warnings from
 `validate_batna_pressure()`. Warnings only — never blocks compilation.
@@ -775,3 +807,4 @@ procedure to validate the Diplomat bot on the Raspberry Pi after code changes.
 | 2026-06-11 | Phase 36 Step 36.6: added `target_weights` spec field to schema and field table; added metric-semantics note distinguishing `pareto_distribution_spread` (intra-faction uniformity) from `pareto_outcome_diversity` (queued Phase 37, inter-deal diversity). |
 | 2026-06-11 | Phase 37 Step 37.6: added `pareto_outcome_diversity` spec field (`float 0–1`, default `0.0`); expanded metric-semantics note into a full cross-reference block explaining what each metric measures and when to use each. |
 | 2026-06-22 | section 3.5 benchmark tooling: added `tools/ablation_multi.sh` (probe/probemix/run/runmix/rotateplan/runrotate/summary), `tests.self_play.rank_aggregator` (cross-game mean_rank leaderboard), and `tests.self_play.position_rotation` (seat-rotation specs); added quick-index rows. |
+| 2026-06-25 | Phase 44: added `scenario_authoring.scenario_brief` (verify-against-brief + auto-doc); added `--brief` to `verify_scenario_optimum` and `--viz`/`--viz-title` to `scenario_compiler`; added quick-index row. |

@@ -40,6 +40,10 @@ def test_public_surface_is_stable() -> None:
         # Visualization
         "render_scenario_html",
         "build_scenario_viz",
+        # Brief
+        "load_brief",
+        "check_brief",
+        "BriefResult",
         # Constants
         "SCENARIO_ANALYSIS_SCHEMA",
         "DEFAULT_BATNA_FRACTION",

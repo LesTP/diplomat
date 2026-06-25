@@ -82,3 +82,38 @@ def test_main_can_render_optional_viz_output(
     assert rendered["output"] == analysis_path.with_suffix(".html")
     assert rendered["kwargs"]["title"] == "Viz Demo"
     assert rendered["kwargs"]["fallback_title"] == "Viz Demo"
+
+
+def test_main_brief_pass_returns_zero(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    analysis_path = tmp_path / "scenario_analysis.json"
+    analysis_path.write_text(json.dumps(_analysis()), encoding="utf-8")
+    brief_path = tmp_path / "brief.json"
+    # _analysis() deals all sum to 22, so it IS constant-sum -> declaring True passes.
+    brief_path.write_text(
+        json.dumps({"features": {"constant_sum": True}}), encoding="utf-8"
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["verify_scenario_optimum", "--analysis", str(analysis_path), "--brief", str(brief_path)],
+    )
+    assert verify.main() == 0
+
+
+def test_main_brief_fail_returns_two(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    analysis_path = tmp_path / "scenario_analysis.json"
+    analysis_path.write_text(json.dumps(_analysis()), encoding="utf-8")
+    brief_path = tmp_path / "brief.json"
+    brief_path.write_text(
+        json.dumps({"features": {"constant_sum": False}}), encoding="utf-8"
+    )
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["verify_scenario_optimum", "--analysis", str(analysis_path), "--brief", str(brief_path)],
+    )
+    assert verify.main() == 2

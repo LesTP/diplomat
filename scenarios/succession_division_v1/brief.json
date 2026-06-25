@@ -1,0 +1,11 @@
+{
+  "goal": "A distributive contest with a genuine winner: constant-sum payoffs (no Pareto-dominant attractor) where several BATNA-clearing deals each hand a different faction the largest share, so a stronger negotiator claims more. Must NOT contain a behavioral focal point (an 'everyone-takes-their-own-priority' deal that clears all BATNAs) or exact-tie equal-split deals, since either collapses the contest into seat-determined coordination.",
+  "features": {
+    "constant_sum": true,
+    "priority_collision": "none",
+    "no_focal_point": true,
+    "winner_spread": { "min_per_faction": 1 },
+    "batna_clearing_count": { "min": 4, "max": 12 },
+    "no_exact_ties": true
+  }
+}

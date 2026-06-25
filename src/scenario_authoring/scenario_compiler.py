@@ -826,6 +826,23 @@ def _parse_args() -> argparse.Namespace:
             "--batna-fraction. Default off, preserving narrative BATNAs."
         ),
     )
+    parser.add_argument(
+        "--viz",
+        nargs="?",
+        const="",
+        default=None,
+        metavar="PATH",
+        help=(
+            "After writing the analysis + personas, render the deal-explorer "
+            "HTML to PATH (or scenario_analysis.html in the output dir when "
+            "the flag is given with no value)."
+        ),
+    )
+    parser.add_argument(
+        "--viz-title",
+        default="deal explorer",
+        help="Title to use for the optional viz HTML output.",
+    )
     return parser.parse_args()
 
 
@@ -964,6 +981,24 @@ async def _run(args: argparse.Namespace) -> None:
     print("\nLogrolling opportunities:")
     for trade in analysis.get("logrolling", []):
         print(f"  - {trade}")
+
+    if args.viz is not None:
+        from scenario_authoring.scenario_viz import build_scenario_viz
+
+        viz_output = (
+            output_dir / "scenario_analysis.html"
+            if args.viz == ""
+            else Path(args.viz)
+        )
+        narrative_text = scenario_text or ""
+        build_scenario_viz(
+            analysis,
+            viz_output,
+            title=args.viz_title,
+            narrative_text=narrative_text,
+            fallback_title=args.viz_title,
+        )
+        print(f"Wrote viz HTML: {viz_output}")
 
 
 def main() -> None:

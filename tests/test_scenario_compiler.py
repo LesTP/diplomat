@@ -539,6 +539,8 @@ class TestFillNarrativeCli:
             batna_fraction=DEFAULT_BATNA_FRACTION,
             batna_fractions=None,
             force_batna_fraction=False,
+            viz=None,
+            viz_title="deal explorer",
         )
 
         asyncio.run(_run(args))
@@ -549,3 +551,57 @@ class TestFillNarrativeCli:
         assert "Domain: Joint Space Mission. Three space agencies are negotiating." in captured["user_prompt"]
         assert (working_dir / "alpha.txt").is_file()
         assert "DECEPTION TACTIC" in (working_dir / "alpha.txt").read_text(encoding="utf-8")
+
+
+class TestCompilerViz:
+    def test_viz_flag_renders_html_after_fill(
+        self, tmp_path: Path, monkeypatch: object
+    ) -> None:
+        import asyncio
+        import json
+        from argparse import Namespace
+
+        import scenario_authoring.scenario_viz as scenario_viz
+        from scenario_authoring.scenario_compiler import _run
+
+        analysis_path = tmp_path / "scenario_analysis.json"
+        analysis_path.write_text(json.dumps(_SAMPLE_ANALYSIS), encoding="utf-8")
+
+        async def fake_sc(*args, **kwargs):
+            return _make_result(
+                True,
+                {
+                    "logrolling": _SAMPLE_ANALYSIS["logrolling"],
+                    "deception_tactics": _SAMPLE_ANALYSIS["deception_tactics"],
+                },
+            )
+
+        monkeypatch.setattr("toolkit.structured_llm.structured_call", fake_sc)
+
+        rendered: dict[str, object] = {}
+
+        def fake_build_scenario_viz(analysis_arg, output_arg, **kwargs):
+            rendered["output"] = output_arg
+            rendered["kwargs"] = kwargs
+            return output_arg
+
+        monkeypatch.setattr(scenario_viz, "build_scenario_viz", fake_build_scenario_viz)
+
+        args = Namespace(
+            scenario=None,
+            fill_narrative_only=str(analysis_path),
+            faction=None,
+            output_dir=str(tmp_path),
+            scenario_title="Sample",
+            domain_context_file=None,
+            batna_fraction=DEFAULT_BATNA_FRACTION,
+            batna_fractions=None,
+            force_batna_fraction=False,
+            viz="",
+            viz_title="Sample Explorer",
+        )
+
+        asyncio.run(_run(args))
+
+        assert rendered["output"] == tmp_path / "scenario_analysis.html"
+        assert rendered["kwargs"]["title"] == "Sample Explorer"

@@ -39,6 +39,11 @@ and an empirical scaling probe.
 - `verify_scenario_optimum` — payoff-structure report for any
   `scenario_analysis.json` (Pareto frontier, batna-clearing count,
   priority issues, logrolling availability)
+- `scenario_brief` — verify-against-brief: PASS/FAIL per declared structural
+  feature (`constant_sum`, `priority_collision`, `no_focal_point`,
+  `winner_spread`, `batna_clearing_count`, `no_exact_ties`) + per-scenario
+  auto-doc. The pre-flight gate Runs 19/20 lacked. See "Verifying a scenario
+  against a design brief" below.
 - `verify_scenario_pressure` — round-pressure invariants check
 - `tools/scenario_builder_scale_probe.py` — characterize builder
   convergence + wall-clock across (F, I, O) cells; outputs JSONL +
@@ -305,6 +310,69 @@ python -m scenario_authoring.scenario_builder \
     --debug-search --max-iterations 20
 ```
 
+## Verifying a scenario against a design brief
+
+Runs 19 and 20 both shipped scenarios to live, paid runs whose *structure*
+silently did not match intent (a constant-sum distributive scenario that still
+had a behavioral focal point; a hard-collision variant that deadlocked). A
+**brief** declares the discriminating properties a scenario is supposed to have,
+and the verify-against-brief check measures the actual structure and reports
+PASS/FAIL per feature — *before* spending money.
+
+A brief is two files in the scenario directory:
+
+- `brief.json` — a `goal` string + a `features` object (machine-checkable).
+- `brief.md` — prose: the end goal and the discriminating property targeted.
+
+Example `brief.json`:
+
+```json
+{
+  "goal": "A distributive contest with a genuine winner; no behavioral focal point.",
+  "features": {
+    "constant_sum": true,
+    "priority_collision": "none",
+    "no_focal_point": true,
+    "winner_spread": { "min_per_faction": 1 },
+    "batna_clearing_count": { "min": 4, "max": 12 },
+    "no_exact_ties": true
+  }
+}
+```
+
+Supported features:
+
+| Feature | Meaning |
+|---|---|
+| `constant_sum` | every deal sums to the same total across factions (no Pareto-dominant attractor) |
+| `priority_collision` | measured collision level: `none` / `soft` / `hard` |
+| `no_focal_point` | no "everyone-takes-their-own-priority" deal clears all BATNAs |
+| `winner_spread` `{min_per_faction}` | each faction wins outright on ≥ N BATNA-clearing deals |
+| `batna_clearing_count` `{min,max}` | how many deals beat every BATNA (a healthy contest set, not a deadlock) |
+| `no_exact_ties` | no BATNA-clearing deal leaves the top two factions exactly tied |
+
+Check it (exits non-zero on any failure — usable as a pre-flight gate):
+
+```bash
+# Standalone, with optional auto-doc:
+python -m scenario_authoring.scenario_brief \
+    --analysis scenarios/<name>_v1/scenario_analysis.json \
+    --brief scenarios/<name>_v1/brief.json \
+    --doc scenarios/<name>_v1/README.md \
+    --title "<Human-readable title>"
+
+# Or fold the check into a verify run:
+python -m scenario_authoring.verify_scenario_optimum \
+    --analysis scenarios/<name>_v1/scenario_analysis.json \
+    --brief scenarios/<name>_v1/brief.json
+```
+
+`--doc` writes a per-scenario `README.md` (goal → required features → measured
+result → link to the deal explorer). The reference briefs live in
+`scenarios/succession_division_v1/` (`succ`, FAILs `no_focal_point` — the Run 19
+catch) and `scenarios/succession_division_v2/` (`succ2`, FAILs
+`batna_clearing_count` — the Run 20 catch).
+
 ## Coalition-coercive scenarios
 
 Susskind-style three-party coalition games, where partial coalitions
@@ -526,6 +594,7 @@ tools/
 | Render a deal explorer | `python -m scenario_authoring.verify_scenario_optimum --analysis <analysis> --viz [<html>]` |
 | Layer prose on a stub | `python -m scenario_authoring.scenario_compiler --fill-narrative-only <analysis> [--domain-context-file <md>]` |
 | Verify payoff structure | `python -m scenario_authoring.verify_scenario_optimum --analysis <analysis>` |
+| Verify against a design brief | `python -m scenario_authoring.scenario_brief --analysis <analysis> --brief <brief.json> [--doc README.md]` |
 | Probe scaling | `python tools/scenario_builder_scale_probe.py --cells <FxIxO> --seeds N --output <jsonl>` |
 | Re-derive BATNAs | `python tools/recompile_batnas.py --source <dir> --output-dir <dir> --fractions <json>` |
 

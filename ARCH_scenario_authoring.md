@@ -26,6 +26,7 @@ post-hoc verification of any analysis JSON's payoff structure.
 | `scenario_fitness` | `compute_fitness(analysis, spec) → FitnessResult`; the acceptance gate consumed by the builder's search loop. | No |
 | `verify_scenario_optimum` | Pure analysis utilities (`faction_score`, `enumerate_deals`, `find_pareto_frontier`, `beats_batna`, `find_priority_issues`) + a CLI verifier that prints a payoff report for an existing analysis JSON. | No |
 | `scenario_viz` | Scenario-only deal-explorer HTML renderer built on verifier math; exposes `render_scenario_html()` and `build_scenario_viz()`. | No |
+| `scenario_brief` | Verify-against-brief: `load_brief()` + `check_brief()` measure an analysis's static structure against a declared `features` block (PASS/FAIL per feature); `build_brief_readme()` renders per-scenario auto-doc. Reuses verifier + fitness math. | No |
 
 ## Public API
 
@@ -47,6 +48,8 @@ from scenario_authoring import (
     enumerate_deals, find_pareto_frontier, faction_score, beats_batna,
     # Visualization
     render_scenario_html, build_scenario_viz,
+    # Brief
+    load_brief, check_brief, BriefResult,
     # Constants
     SCENARIO_ANALYSIS_SCHEMA, DEFAULT_BATNA_FRACTION,
 )
@@ -95,7 +98,31 @@ async def fill_narrative(
     domain_context: str | None = None,
 ) -> dict[str, Any]
 # In-place fills logrolling + deception_tactics; returns the modified dict.
+
+def load_brief(path: str | Path) -> dict[str, Any]
+# Loads + validates brief.json into {"features": {...}, "goal": str}.
+# Rejects unknown feature keys and malformed feature shapes.
+
+def check_brief(analysis: dict[str, Any], brief: dict[str, Any]) -> BriefResult
+# Measures analysis structure, returns one FeatureCheck per declared feature.
+# Reuses verify_scenario_optimum + scenario_fitness math (no re-derivation).
 ```
+
+### Brief features (`brief.json`)
+
+A brief declares an optional `goal` (prose) and a non-empty `features` object.
+Only declared features are checked; each yields one `FeatureCheck`
+(`name, expected, observed, passed`). `BriefResult.all_passed` /
+`.failed_features` summarize.
+
+| Feature | Shape | Measured |
+|---|---|---|
+| `constant_sum` | bool | all deals have equal sum-of-faction-scores |
+| `priority_collision` | `none`\|`soft`\|`hard` | `scenario_fitness._priority_collision_level` |
+| `no_focal_point` | bool | no "everyone-gets-priority" deal clears all BATNAs |
+| `winner_spread` | `{min_per_faction: int}` | min over factions of outright wins across BATNA-clearing deals ≥ min |
+| `batna_clearing_count` | `{min?, max?}` | count of deals beating all BATNAs within bounds |
+| `no_exact_ties` | bool | no BATNA-clearing deal has its top score shared by ≥2 factions |
 
 ## Types
 
@@ -241,6 +268,21 @@ fields load fine via `json.loads`.
   the runtime pipeline.
 - `build_scenario_viz()` writes HTML to disk; `render_scenario_html()` returns
   the HTML string for embedding or tests.
+
+### `scenario_brief`
+
+- `load_brief()` validates `brief.json` via a per-feature validator table
+  (`_FEATURE_VALIDATORS`); adding a feature = one validator entry + one branch
+  in `check_brief`.
+- `check_brief()` enumerates deals once and reuses `verify_scenario_optimum`
+  (`enumerate_deals`, `faction_score`, `beats_batna`, `compute_focal_deal`) +
+  `scenario_fitness._priority_collision_level`. No Pareto/BATNA/collision logic
+  is re-derived here.
+- `compute_focal_deal()` / `focal_deal_clears_batnas()` were extracted from
+  `verify_scenario_optimum.main()` (Phase 44) so the focal-point check and the
+  CLI report share one implementation.
+- Standalone constraint: depends only on `verify_scenario_optimum`,
+  `scenario_fitness`, and stdlib — no `toolkit`, no pipeline `modules`.
 
 ## Inputs
 

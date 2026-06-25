@@ -1,0 +1,11 @@
+{
+  "goal": "A distributive contest with a genuine, resolvable winner — the succ-v2 attempt to fix Run 19's focal point by making alpha and beta collide on the industrial heartland. The sweet spot needs enough BATNA-clearing deals that the contest is brokerable (not a deadlock) AND a clear winner per contest deal (so skill shows in WHO wins the contested asset).",
+  "features": {
+    "constant_sum": true,
+    "priority_collision": "soft",
+    "no_focal_point": true,
+    "winner_spread": { "min_per_faction": 1 },
+    "batna_clearing_count": { "min": 6, "max": 18 },
+    "no_exact_ties": true
+  }
+}
