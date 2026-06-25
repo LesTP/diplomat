@@ -327,6 +327,33 @@ no module-level state, no caches that persist across calls.
 - **Upstream `tests/` coupling:** none after D-58. The subsystem is
   importable from any Python entry point with only `src/` on `sys.path`.
 
+## Coalition Path B scoring contract (locked — Phase 47 / D-61)
+
+`tests/self_play/game_environment.py` implements three coalition scoring
+paths keyed off `coalition_members` and `coalition_values` in
+`scenario_analysis.json`. This contract is locked by
+`tests/self_play/test_game_environment_coalition.py` (23 tests). **Do not
+change semantics without updating D-61 and the test suite.**
+
+| Condition | Outcome |
+|---|---|
+| `coalition_members` empty **or** equal to all factions | Full-agreement path — `faction_score()` on `agreed_outcomes`; `coalition_values` ignored |
+| Partial `coalition_members` + matching `coalition_values` entry | Members get stated values; excluded factions fall back to BATNA; member absent from entry's `values` dict also falls back to BATNA |
+| Partial `coalition_members` + **no** matching `coalition_values` entry | No-deal (`deal_reached=False`, `no_deal_reason="partial_coalition_without_coalition_values"`, all-BATNA) |
+| Any deal where a faction score < its BATNA | No-deal (`deal_reached=False`, `no_deal_reason="deal_below_batna_for_some_faction"`) |
+| `deal_reached=True` with empty/missing `agreed_outcomes` | Normalized to no-deal (`no_deal_reason="deal_reached_without_agreed_outcomes"`) |
+
+`_find_coalition_value(analysis, members)` matches by **sorted-set equality**
+(order-insensitive). Returns `None` on miss, empty list, or missing key.
+
+**Deferred (separate supervised phases, not loop-loopable):**
+- Representation rationalization — `coalition_members` schema field alignment
+  with builder output conventions
+- Builder `coalition_values` emission — auto-generate `coalition_values` entries
+  during `scenario_builder.py` search
+- Runtime detection — live game coalition detection and routing
+- Live mixed-model validation — end-to-end smoke with real LLM providers
+
 ## Logging
 
 - `scenario_authoring.scenario_compiler`: warnings only by default; LLM call

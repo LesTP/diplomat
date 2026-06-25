@@ -1,7 +1,7 @@
 ---
 phase: 47
 blocked: false
-state: execute
+state: review
 steps_remaining: 0
 ---
 
@@ -115,12 +115,12 @@ a+b→{a:6,b:7}, a+c→{a:5,c:6}, b+c→{b:4,c:3}, grand→{a:7,b:6,c:5}; BATNAs
   (`deal_below_batna_for_some_faction`), `deal_reached` with empty agreed_outcomes →
   normalized (`deal_reached_without_agreed_outcomes`). Assert `deal_reached`, `no_deal_reason`,
   and exact `faction_scores` per case. Import the module-level functions directly (no live LLM).
-- [ ] 47.2 — Harden malformed inputs surfaced by 47.1 + add a precise contract docstring:
+- [x] 47.2 — Harden malformed inputs surfaced by 47.1 + add a precise contract docstring:
   member in `coalition_members` but absent from the entry's `values` dict → BATNA (test it);
   `coalition_members` with a non-faction id; `coalition_members` == all factions (grand path);
   missing `batna`/`factions` keys default safely. Add explicit handling + tests only where 47.1
   exposes a gap; otherwise lock the edges with assertions. Keep semantics per D-61.
-- [ ] 47.3 — Doc update: add a "coalition Path B scoring contract" note to
+- [x] 47.3 — Doc update: add a "coalition Path B scoring contract" note to
   `ARCH_scenario_authoring.md` (the locked contract + the explicitly deferred supervised items:
   representation rationalization, builder emission, runtime detection, live validation). Append
   a `DEVLOG.md` Phase 47 entry. Run the full suite green.
