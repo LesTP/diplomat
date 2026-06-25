@@ -254,3 +254,91 @@ class TestResolveDealScores:
         assert result["faction_scores"]["b"]["points"] == 0.0
         assert result["faction_scores"]["c"]["points"] == 0.0
         assert result["faction_scores"]["a"]["batna"] == 0.0
+
+    # --- Edge: member in coalition_members absent from values dict → BATNA ---
+
+    def test_coalition_member_absent_from_values_gets_batna(self) -> None:
+        """coalition_values entry has 'a' and 'b' as members but only lists
+        'a' in the values dict; 'b' should fall back to BATNA, not raise KeyError."""
+        analysis = {
+            "factions": ["a", "b", "c"],
+            "batna": {"a": 0, "b": 1, "c": 0},
+            "coalition_values": [
+                # 'b' is in members but absent from values
+                {"members": ["a", "b"], "values": {"a": 6}},
+            ],
+            "issues": [{"name": "x", "outcomes": ["y"]}],
+            "scoring": {
+                "a": {"x": {"y": 6}},
+                "b": {"x": {"y": 4}},
+                "c": {"x": {"y": 0}},
+            },
+        }
+        score_data = {
+            "deal_reached": True,
+            "agreed_outcomes": {"x": "y"},
+            "coalition_members": ["a", "b"],
+        }
+        result = _resolve_deal_scores(analysis, score_data)
+        assert result["deal_reached"] is True
+        assert result["faction_scores"]["a"]["points"] == 6.0  # in values dict
+        assert result["faction_scores"]["b"]["points"] == 1.0  # absent → BATNA(b)=1
+        assert result["faction_scores"]["c"]["points"] == 0.0  # excluded → BATNA(c)=0
+
+    # --- Edge: non-faction id in coalition_members → no-deal ---
+
+    def test_non_faction_id_in_coalition_members_becomes_no_deal(self, analysis: dict) -> None:
+        """coalition_members containing an id not in factions list has no
+        matching coalition_values entry → no-deal (partial_coalition_without_coalition_values)."""
+        score_data = {
+            "deal_reached": True,
+            "agreed_outcomes": {"coalition_formation": "a_b"},
+            "coalition_members": ["a", "unknown_faction"],
+        }
+        result = _resolve_deal_scores(analysis, score_data)
+        assert result["deal_reached"] is False
+        assert result["no_deal_reason"] == "partial_coalition_without_coalition_values"
+        assert result["faction_scores"]["a"]["points"] == 0.0
+        assert result["faction_scores"]["b"]["points"] == 0.0
+        assert result["faction_scores"]["c"]["points"] == 0.0
+
+    # --- Edge: missing batna / factions keys default safely ---
+
+    def test_missing_batna_key_defaults_to_zero(self) -> None:
+        """analysis without a 'batna' key → all points/BATNAs default to 0.0."""
+        analysis_no_batna = {
+            "factions": ["a", "b"],
+            "coalition_values": [
+                {"members": ["a"], "values": {"a": 5}},
+            ],
+            "issues": [{"name": "x", "outcomes": ["y"]}],
+            "scoring": {
+                "a": {"x": {"y": 5}},
+                "b": {"x": {"y": 3}},
+            },
+        }
+        score_data = {
+            "deal_reached": True,
+            "agreed_outcomes": {"x": "y"},
+            "coalition_members": [],
+        }
+        result = _resolve_deal_scores(analysis_no_batna, score_data)
+        # No crash; full-agreement path used; batna defaults to 0.0
+        assert result["deal_reached"] is True
+        assert result["faction_scores"]["a"]["batna"] == 0.0
+        assert result["faction_scores"]["b"]["batna"] == 0.0
+
+    def test_missing_factions_key_returns_empty_scores(self) -> None:
+        """analysis without a 'factions' key → faction_ids is [], returns empty faction_scores."""
+        analysis_no_factions = {
+            "batna": {"a": 0},
+            "issues": [{"name": "x", "outcomes": ["y"]}],
+            "scoring": {"a": {"x": {"y": 5}}},
+        }
+        score_data = {
+            "deal_reached": False,
+            "agreed_outcomes": {},
+            "coalition_members": [],
+        }
+        result = _resolve_deal_scores(analysis_no_factions, score_data)
+        assert result["faction_scores"] == {}

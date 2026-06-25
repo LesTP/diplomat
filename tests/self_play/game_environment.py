@@ -170,8 +170,11 @@ def _find_coalition_value(
 ) -> dict[str, Any] | None:
     """Look up a coalition_values entry matching `members` (by sorted-set equality).
 
-    Returns the entry dict (with `members` and `values` keys) if found, else None.
-    Empty / missing `coalition_values` -> None.
+    Contract:
+    - Match is by sorted-set equality: input order does not matter.
+    - Returns the entry dict (with ``members`` and ``values`` keys) if found, else None.
+    - Empty or missing ``coalition_values`` list → None.
+    - Members containing ids that have no entry (e.g. non-faction ids) → None.
     """
     target = sorted(members)
     for entry in analysis.get("coalition_values") or []:
@@ -852,20 +855,32 @@ def _resolve_deal_scores(
     """Deterministically resolve faction_scores from the scorer's verdict.
 
     Three scoring paths:
-      1. Full agreement -> faction_score() for all on agreed_outcomes.
-      2. Partial coalition w/ matching coalition_values -> members get coalition
-         values; excluded factions fall back to BATNA.
-      3. Partial coalition w/o matching coalition_values, OR no deal -> everyone
-         falls back to BATNA.
+      1. Full agreement (coalition_members empty or == all factions) →
+         faction_score() for all factions on agreed_outcomes.
+      2. Partial coalition (coalition_members strict-subset of factions) with a
+         matching coalition_values entry → members get their stated coalition
+         values; excluded factions fall back to BATNA.  A member present in
+         coalition_members but absent from the entry's ``values`` dict also
+         falls back to BATNA (no KeyError).
+      3. Partial coalition with NO matching coalition_values entry (including
+         unknown / non-faction member ids), OR no deal → everyone falls back to
+         BATNA.
 
-    Also normalizes ``deal_reached`` to stay consistent with the scores. A
+    ``deal_reached`` is normalised to be consistent with the scores.  A
     reported deal is recorded as a no-deal (``deal_reached=False`` +
     ``no_deal_reason``, everyone at BATNA) when it cannot be a real agreement:
-      - a partial coalition with no matching coalition_values;
-      - a ``deal_reached`` verdict with no ``agreed_outcomes``;
-      - a deal that scores ANY faction below its BATNA (that faction would
-        reject it -- e.g. an agreement covering only a subset of issues).
-    ``coalition_members`` is preserved for transparency.
+      - partial coalition with no matching coalition_values
+        (``partial_coalition_without_coalition_values``);
+      - ``deal_reached`` verdict with empty/None ``agreed_outcomes``
+        (``deal_reached_without_agreed_outcomes``);
+      - any faction would score below its BATNA — it would reject the deal
+        (``deal_below_batna_for_some_faction``).
+
+    Missing ``batna`` or ``factions`` keys in ``scenario_analysis`` are
+    handled safely: ``batna`` defaults to {} (all BATNAs → 0.0); ``factions``
+    defaults to [] (returns empty ``faction_scores``).
+
+    ``coalition_members`` is preserved in the returned dict for transparency.
     """
     from scenario_authoring.verify_scenario_optimum import faction_score
 
