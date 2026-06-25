@@ -17,3 +17,9 @@
 **Contract changes scan:** No external contract changes. `game_environment.py` semantics unchanged (tests lock existing behavior, not new behavior). No upstream propagation needed.
 
 **Governance updates:** D-61 closed, ARCHITECTURE.md row 20 + test count updated, DEVPLAN Phase 47 condensed, entries archived.
+
+## 2026-06-25 — Phase 48 iteration 1
+
+PLAN: activated Phase 48 (frontmatter phase→48, state→execute; removed activation block; committed).
+
+EXECUTE 48.1: created `src/scenario_authoring/scenario_narrative.py` with `apply_relabel` + `assert_structure_preserved` (deterministic core, no LLM, stdlib + sibling imports only). 27 unit tests cover identity round-trip, themed relabel preserving all values, score/batna/coalition_values numeric drift rejection, non-bijective map rejection, incomplete map rejection. 609 tests passing (+27).
