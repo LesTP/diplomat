@@ -240,3 +240,11 @@ swept in the live docs (PROJECT.md, DECISIONS.md) in a later pass.
   Both async functions tested with `asyncio.run()` — deterministic and offline.
 
 Full suite: 558 passed, 1 skipped (+3 new tests). Commit `4c4ce96`.
+
+## Phase 46 — Step 46.3 (2026-06-25)
+
+**Mode:** Execute  
+**Outcome:** complete  
+**Contract changes:** unified `python -m scenario_authoring` CLI dispatch added in `src/scenario_authoring/__main__.py`; doc sync pending for `CLI_REFERENCE.md`, `ARCH_scenario_authoring.md`, and `src/scenario_authoring/README.md` in Phase 46.4.
+
+Added a package-level dispatcher that routes `build`, `compile`, `verify`, and `brief` to the existing submodule `main()` functions by rewriting `sys.argv` and delegating. Extended the standalone contract test to exercise the dispatcher with a real `verify` invocation and an unknown-subcommand failure path. Focused tests passed under `python3 -m pytest`.

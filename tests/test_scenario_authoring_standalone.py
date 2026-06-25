@@ -82,3 +82,27 @@ def test_fill_narrative_raises_import_error_without_toolkit() -> None:
     with patch.dict(sys.modules, _TOOLKIT_BLOCKER):
         with pytest.raises(ImportError):
             asyncio.run(fill_narrative({}, "title", object(), {}, "commodity"))
+
+
+def test_unified_dispatcher_routes_subcommands(tmp_path, monkeypatch) -> None:
+    """The package dispatcher should route subcommands without altering behavior."""
+    from scenario_authoring.__main__ import main as dispatch_main
+
+    analysis_path = tmp_path / "analysis.json"
+    analysis_path.write_text(
+        (
+            '{"factions":["a"],"issues":[{"name":"x","outcomes":["y"],'
+            '"description":""}],"scoring":{"a":{"x":{"y":1}}},"batna":{"a":0}}'
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["scenario_authoring", "verify", "--analysis", str(analysis_path)],
+    )
+    assert dispatch_main() == 0
+
+    monkeypatch.setattr(sys, "argv", ["scenario_authoring", "does-not-exist"])
+    assert dispatch_main() == 2
