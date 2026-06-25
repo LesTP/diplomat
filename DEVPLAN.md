@@ -1,8 +1,8 @@
 ---
-phase: 43
+phase: 46
 blocked: false
-state: plan
-steps_remaining: 0
+state: execute
+steps_remaining:
 ---
 
 # Diplomat — Development Plan
@@ -72,10 +72,181 @@ steps_remaining: 0
   - **`pareto_distribution_spread` ? "deals favor different factions":** `pareto_distribution_spread` measures per-faction frontier-range stdev (intra-faction uniformity). "Do different deals favor different factions?" is `pareto_outcome_diversity` (Phase 37). The spec author misread this in Phase B, causing a 3m27s wasted search run (Phase 36.5). When authoring a `ScenarioSpec`, double-check the metric definition in `CLI_REFERENCE.md` before setting a target value.
   - **Operator-supervised scenario-tooling reorg (2026-06-20/21):** scenario tools moved from `src/tools/` to dedicated `src/scenario_authoring/` package; scenarios data moved from `tests/self_play/scenarios/` to top-level `scenarios/`. `coalition_values` schema field added (Phase 2a). `verify_scenario_optimum` moved into the package (D-58). Public API curated in `__init__.py`. `tools/scenario_builder_scale_probe.py` characterizes builder convergence + wall-clock across F/I/O dimensions. Phase 42 algorithm work complete (PROJECT.md "4+ factions / 4+ issues" criterion MET at 4×4×4); see `DECISIONS.md` D-59 and commits `551caa9`..`8a384c3`.
 ## Current Status
-- **Phase** — Phase 43 complete (deal-explorer viz integrated into `scenario_authoring`; see `DEVLOG.md` "Phase 43 close"). The forward **scenario-authoring tooling** roadmap — Phase 44 (design-brief + verify-against-brief + auto-doc), Phase 45 (narrative-integration tool), Phase 46 (standalone + clean interface), and a coalition track folding Phase 2b + §3.6 Path B coalition-exclusion scoring — is consolidated in the scenario-authoring handoff plan. Scenario-design (succ-v3 / Path C) and benchmark-run backlog live in `NEXT_STEPS.md`.
+- **Phase** — Phase 46 IN PROGRESS (standalone `scenario_authoring` + unified CLI; autonomous-loopable Build — steps pre-written, `state: execute`). Architectural calls pre-settled in `DECISIONS.md` D-60. Phase 44 complete (scenario design-brief + verify-against-brief + auto-doc; see `DEVLOG.md` "Phase 44"). The remaining forward **scenario-authoring tooling** roadmap — Phase 45 (narrative-integration: Build shell loopable, prompt-quality tuning supervised), and a coalition track folding Phase 2b + §3.6 Path B coalition-exclusion scoring (scoring engine loopable; live mixed-model validation supervised) — is consolidated in the scenario-authoring handoff plan. Scenario-design (succ-v3 / Path C) and benchmark-run backlog live in `NEXT_STEPS.md`.
 - **Phase B (proof-of-concept scenario):** Joint Space Mission scenario authoring unblocked. v1 spec produces 3 Pareto-optimal deals with distinct distributions (balanced consensus / alpha+gamma win / beta wins). Next operator session: run the LLM scenario compiler over the generated `scenario_analysis.json` to produce narrative + persona prose, then optionally smoke at flash-lite.
 - **Operator-supervised work (2026-06-21): Phase 42 COMPLETE.** Commits 1-4 + C5a + C5b landed (`551caa9`, `257b1e0`, `d16248c`, `4c67abb`, `19e6a39`, `8a384c3`). PROJECT.md "4+ factions / 4+ issues" success criterion MET: 4×4×4 / D=256 reaches ≥2/3 probe acceptance, locked by `tests/test_scenario_builder_scale.py::test_builds_4x4x4_in_budget`. Key findings: the I-axis cliff was spec-semantic (fixed by C5a relative `batna_clearing_count_target`), and a builder determinism bug (C5b) had masked it; SA neighborhood broadening was tried and rejected (D-59). Phase 3 (scale probe) data at `scenarios/scale_probe_*` + `scenarios/c5b_final_singlecell_summary.md`. Phase 4 docs (`ARCH_scenario_authoring.md`, `SCENARIO_GUIDE.md`) shipped and updated with post-Phase-42 scaling data.
 - **Operator-supervised work (2026-06-22): section 3.5 competitive-scoring benchmark built + pushed.** Per-game `faction_ranks` rank-among-factions lens + `faction_models` persistence + cross-game `mean_rank` aggregator (`tests/self_play/rank_aggregator.py`) + mixed-model dispatcher + position-rotation harness in `tools/ablation_multi.sh`. Three scoring bugs fixed (partial-coalition deal_reached normalization, below-BATNA deal rejection, aggregator no-deal filter). Runs 18-20: gpt-5.5 broke the section 10 tier/provider confound; Runs 19-20 (succ / succ2 distributive scenarios) showed the section 3.5 tooling works but no scenario yet *discriminates* - open gap is discriminating scenario design (sweet-spot for model-comparison vs bare-deadlock-headroom for the harness question; see `NEXT_STEPS.md` "State as of 2026-06-22"). Both repos (toolkit, diplomat) pushed to GitHub.
+
+## Phase 46: Standalone scenario_authoring + unified CLI — In Progress
+
+**Goal.** Make `src/scenario_authoring/` a self-contained, liftable package. Sever
+the one load-time coupling into the pipeline (`scenario_compiler.py:32 → modules.persona`),
+lock the standalone contract with a test, add a unified `python -m scenario_authoring <subcommand>`
+CLI, and ship a single package onboarding README. Pure-Build, autonomous-loopable —
+all architectural calls are pre-settled below and in `DECISIONS.md` D-60, so no step
+requires an Explore/Refine decision.
+
+**Pre-settled decisions (do NOT re-open — see D-60):**
+- The extracted round-context renderer lives at **`src/scenario_authoring/round_context.py`**
+  (inside the package). `modules/persona/__init__.py` re-exports `CoachingContext` +
+  `render_round_context_section` from it for back-compat (zero consumer churn).
+- **Do NOT add a `toolkit` extra to `pyproject.toml`.** Toolkit is not PyPI-resolvable
+  and is deliberately omitted (Cold Start gotcha). "toolkit optional" is satisfied at the
+  code level (no load-time toolkit import; LLM paths import it lazily and raise a clear
+  ImportError if absent) and locked by the standalone test in 46.2 — not by packaging.
+- Unified CLI subcommands for now: `build` (scenario_builder), `compile` (scenario_compiler),
+  `verify` (verify_scenario_optimum), `brief` (scenario_brief). `viz` stays a flag on
+  verify/build/compile; `narrative` arrives with Phase 45.
+
+**Reference facts (from Phase 46 coupling research):**
+- `CoachingContext` (frozen dataclass) + `_ROUND_CONTEXT_MARKER` + 6 private helpers
+  (`_format_items`, `_format_number`, `_format_pressure_lines`, `_format_deadline_lines`,
+  `_format_effective_batna_line`, `_format_final_round_lines`) + `render_round_context_section`
+  are stdlib-only and self-contained in `src/modules/persona/__init__.py` (~150 LOC).
+- `FileBasedPersona` + `_strip_round_context` STAY in `modules/persona`; `FileBasedPersona.build_round_context`
+  calls the renderer, so persona must re-import it from the new leaf.
+- Import sites to update: `scenario_compiler.py:32`, `orchestrator.py:23` (CoachingContext only),
+  `tests/test_persona.py:7`, `tests/self_play/verify_scenario_pressure.py:22`.
+- `scenario_compiler` already imports toolkit/adapters/dotenv lazily (lines 411, 616, 891-894);
+  line 32 is the only load-time pipeline edge. The other 6 package modules are already
+  sibling/stdlib-only at load time.
+
+**Steps.**
+- [ ] 46.1 — Create `src/scenario_authoring/round_context.py`; move `CoachingContext`,
+  `_ROUND_CONTEXT_MARKER`, the 6 helpers, and `render_round_context_section` into it
+  (verbatim, stdlib-only). In `src/modules/persona/__init__.py`, delete those definitions
+  and re-import the two public symbols from the leaf (`from scenario_authoring.round_context
+  import CoachingContext, render_round_context_section`), keeping the existing `__all__`.
+  Update the 4 import sites: `scenario_compiler.py:32` → import from `scenario_authoring.round_context`;
+  `orchestrator.py:23`, `tests/test_persona.py:7`, `tests/self_play/verify_scenario_pressure.py:22`
+  may keep importing from `modules.persona` (re-export covers them) — leave them unless a circular
+  import appears, in which case point them at the leaf. Run the full suite; must stay green.
+- [ ] 46.2 — Add `tests/test_scenario_authoring_standalone.py` locking the standalone contract:
+  (a) assert `scenario_authoring` and its pure-core modules (`scenario_spec`, `scenario_fitness`,
+  `verify_scenario_optimum`, `scenario_viz`, `scenario_brief`, `round_context`) import with NO
+  `modules.*` module loaded (e.g. via a subprocess with `modules` shadowed/blocked, or assert
+  `modules` not in `sys.modules` after a fresh import in a subprocess); (b) assert the LLM paths
+  (`analyze_scenario` / `fill_narrative`) raise a clear ImportError (not AttributeError) when
+  `toolkit` is unavailable. Keep it deterministic and offline (no real LLM calls).
+- [ ] 46.3 — Add `src/scenario_authoring/__main__.py`: an argparse dispatcher mapping
+  `build|compile|verify|brief` to the existing submodule `main()`s (rewrite `sys.argv` then call;
+  compiler/builder mains are async-wrapped already). Add a test invoking the dispatcher
+  (`monkeypatch sys.argv` to `["scenario_authoring","verify","--analysis",<tmp>]` and assert rc 0,
+  plus an unknown-subcommand → non-zero). Update the api/contract test only if a new public symbol
+  is exported (the dispatcher itself need not be exported).
+- [ ] 46.4 — Doc update: new `src/scenario_authoring/README.md` (package onboarding — purpose,
+  the two construction directions, public API surface, unified CLI, links to `SCENARIO_GUIDE.md`
+  + `ARCH_scenario_authoring.md`). Update `ARCH_scenario_authoring.md` coupling notes (the
+  `modules.persona` coupling is gone; `round_context` leaf added; pipeline→package direction noted)
+  + module map row for `round_context`. Update `CLI_REFERENCE.md` with the unified-CLI entry +
+  quick-index row + change-history line. Append a `DEVLOG.md` Phase 46 entry. Run full suite green.
+
+## Phase 47: Coalition scoring — lock the Path B contract — Queued (autonomous Build)
+
+> **Activate** after Phase 46 closes + audit: set frontmatter `phase: 47`, `state: execute`,
+> `blocked: false`, `steps_remaining:` (empty), and change this title to "— In Progress".
+
+**Goal.** Lock the existing coalition-exclusion scoring contract in
+`tests/self_play/game_environment.py` (`_resolve_deal_scores` + `_find_coalition_value`)
+with comprehensive unit tests, and harden malformed-input edges — WITHOUT changing
+semantics. Pure-Build, autonomous-loopable; all scope/semantics calls pre-settled in
+`DECISIONS.md` **D-61**. Decision-heavy / supervised coalition work (representation
+rationalization, builder `coalition_values` emission, runtime detection, live mixed-model
+validation) is explicitly out of scope (separate supervised phases).
+
+**Pre-settled contract (D-61 — do NOT change semantics):**
+- Partial coalition (`coalition_members` strict-subset of factions) + matching
+  `coalition_values` → members get stated values, excluded factions → BATNA.
+- Partial coalition + no matching entry → no-deal (`deal_reached=False`, `no_deal_reason`,
+  all-BATNA).
+- Grand coalition (members == all factions) → full-agreement path (`faction_score` on
+  `agreed_outcomes`), NOT `coalition_values`.
+- Below-BATNA and `deal_reached`-without-`agreed_outcomes` normalizations stand.
+
+**Fixture:** `scenarios/three_party_coalition_v1/scenario_analysis.json` (coalition_values
+a+b→{a:6,b:7}, a+c→{a:5,c:6}, b+c→{b:4,c:3}, grand→{a:7,b:6,c:5}; BATNAs 0/0/0).
+
+**Steps.**
+- [ ] 47.1 — Add `tests/self_play/test_game_environment_coalition.py`: unit-test
+  `_find_coalition_value` (sorted-set match / miss / empty-or-missing list) and
+  `_resolve_deal_scores` across every path using the fixture values — AB coalition
+  (`coalition_members=["a","b"]`, non-empty agreed_outcomes → a:6, b:7, c:BATNA 0,
+  `deal_reached` True), AC, BC, grand (`["a","b","c"]` → full-agreement path), unknown subset
+  → no-deal (`partial_coalition_without_coalition_values`), below-BATNA → no-deal
+  (`deal_below_batna_for_some_faction`), `deal_reached` with empty agreed_outcomes →
+  normalized (`deal_reached_without_agreed_outcomes`). Assert `deal_reached`, `no_deal_reason`,
+  and exact `faction_scores` per case. Import the module-level functions directly (no live LLM).
+- [ ] 47.2 — Harden malformed inputs surfaced by 47.1 + add a precise contract docstring:
+  member in `coalition_members` but absent from the entry's `values` dict → BATNA (test it);
+  `coalition_members` with a non-faction id; `coalition_members` == all factions (grand path);
+  missing `batna`/`factions` keys default safely. Add explicit handling + tests only where 47.1
+  exposes a gap; otherwise lock the edges with assertions. Keep semantics per D-61.
+- [ ] 47.3 — Doc update: add a "coalition Path B scoring contract" note to
+  `ARCH_scenario_authoring.md` (the locked contract + the explicitly deferred supervised items:
+  representation rationalization, builder emission, runtime detection, live validation). Append
+  a `DEVLOG.md` Phase 47 entry. Run the full suite green.
+
+## Phase 48: Narrative-integration shell — Queued (autonomous Build)
+
+> **Activate** after Phase 47 closes + audit: set frontmatter `phase: 48`, `state: execute`,
+> `blocked: false`, `steps_remaining:` (empty), and change this title to "— In Progress".
+> Depends on Phase 46's `scenario_authoring/__main__.py` (for the `narrative` subcommand).
+
+**Goal.** Build the deterministic shell for narrative integration (generalized
+`fill_narrative`, the Build slice of roadmap Phase 45): apply an LLM-proposed themed relabel
++ prose onto a guaranteed numeric scaffold while a structure-preservation guard asserts the
+numeric payoff structure is unchanged. Pure-Build, autonomous-loopable; the re-skin design is
+pre-settled in `DECISIONS.md` **D-62**. The LLM re-skin PROMPT QUALITY (themed-name aptness,
+prose faithfulness) is Refine → tuned supervised in a later phase via
+`tests/prompt_regression/`; this phase authors only an initial prompt and stops at the
+shell+tests boundary.
+
+**Pre-settled design (D-62):**
+- Re-skin = apply a consistent **bijection** (`relabel_map`) over faction/issue/outcome
+  identifiers + themed prose; numeric scores/BATNAs/`coalition_values` come from the source
+  untouched (member ids relabel, values unchanged).
+- `assert_structure_preserved(source, reskinned, relabel_map)` = value-isomorphism guard:
+  same counts, every score equals source under relabel, BATNAs map by faction relabel.
+  REJECTS numeric drift, non-bijective/incomplete maps, missing labels.
+- LLM emits ONLY `relabel_map` + prose via one schema-validated `structured_call`.
+- Catalogue "parser" = deterministic heading-scoped section extractor over the prose
+  catalogue (`Multi-Party Negotiation Scenarios.md`), feeding `--domain-context`.
+
+**Reuse:** `scenario_compiler.generate_persona`/`save_persona` + the structured-LLM call
+pattern; `fill_narrative` schema as a starting point for the prose fields.
+
+**Steps.**
+- [ ] 48.1 — Create `src/scenario_authoring/scenario_narrative.py` deterministic core:
+  `apply_relabel(analysis, relabel_map) -> analysis` (renames factions/issues/outcomes
+  consistently, preserving all numeric scores/BATNAs/coalition_values; relabels
+  coalition_values member ids) + `assert_structure_preserved(source, reskinned, relabel_map)`
+  (value-isomorphism guard). Unit tests (NO LLM): identity relabel round-trips; a themed
+  relabel preserves all values; a tampered numeric value is REJECTED; a non-bijective or
+  incomplete map is REJECTED. Standalone: stdlib + sibling imports only.
+- [ ] 48.2 — Add `extract_catalogue_entry(catalogue_text, heading) -> str`: deterministic
+  `###`/`####` heading-scoped section slice over the prose catalogue. Tests against
+  `Multi-Party Negotiation Scenarios.md` (extract a known `#### ...` entry; unknown heading
+  raises a clear error).
+- [ ] 48.3 — Add `reskin_scenario(analysis, source_context, llm_client, llm_config, tier=...,
+  *, domain_context="")`: one `structured_call` emitting `{relabel_map, logrolling,
+  deception_tactics, narrative_md}` (+ optional persona prose) against a new schema; apply the
+  relabel; run `assert_structure_preserved`; return `(reskinned_analysis, narrative_md)`.
+  Author an INITIAL system prompt (quality tuning deferred — D-62). Test with a MOCKED
+  `structured_call` (mirror `test_scenario_compiler.py::fake_sc`): structure preserved +
+  narrative produced; a value-tampering mock is rejected by the guard.
+- [ ] 48.4 — Add a `narrative` subcommand to `scenario_authoring/__main__.py` (analysis +
+  catalogue source → reskinned bundle); export `reskin_scenario` + `assert_structure_preserved`
+  in `__init__.__all__` and update `tests/test_scenario_authoring_api.py`. Doc update:
+  `SCENARIO_GUIDE.md` (narrative-integration section; mark prompt-tuning as the supervised
+  follow-on), `CLI_REFERENCE.md` (the `narrative` subcommand + quick-index + change-history),
+  `ARCH_scenario_authoring.md` (new `scenario_narrative` module + public surface). Append a
+  `DEVLOG.md` Phase 48 entry. Run the full suite green.
+
+## Phase 44: Scenario design-brief + verify-against-brief + auto-doc — Complete
+
+Closed 2026-06-25. New `scenario_authoring.scenario_brief` module:
+
+Closed 2026-06-25. New `scenario_authoring.scenario_brief` module: `load_brief` + `check_brief` (6 structural features: constant_sum, priority_collision, no_focal_point, winner_spread, batna_clearing_count, no_exact_ties) + `build_brief_readme` auto-doc + CLI. `--brief` wired into `verify_scenario_optimum` (focal-deal helper extracted + reused); `--viz` added to `scenario_compiler`. Golden briefs for `succ`/`succ2` prove the gate catches Run 19 (focal point) and Run 20 (deadlock). Public API exported; docs synced. 555 tests passing. See `DEVLOG.md` "Phase 44".
 
 ## Phase 43: Integrate deal-explorer viz into scenario_authoring — Complete
 
