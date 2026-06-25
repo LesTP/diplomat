@@ -21,6 +21,7 @@ Cross-references point at fuller discussion in `TUNING.md`, `DEVPLAN.md`,
 | Run a multi-agent self-play game | [`tests.self_play.run_simulation`](#testsself_playrun_simulation--multi-agent-self-play-runner) |
 | Run a self-play game with one Telegram-coached faction | [`tests.self_play.coached_game`](#testsself_playcoached_game--coached-self-play-runner) |
 | Validate plumbing without spending money | `--dry-run` flag on `run_simulation` |
+| Run any scenario_authoring command via unified CLI | [`python -m scenario_authoring`](#python--m-scenario_authoring--unified-cli-dispatcher) |
 | Compile a narrative scenario into personas | [`scenario_authoring.scenario_compiler`](#toolsscenario_compiler--narrative--scored-personas) |
 | Generate a scenario from outcome-shape constraints | [`scenario_authoring.scenario_builder`](#toolsscenario_builder--constraint-driven-scenario-generator) |
 | Render a scenario deal explorer | [`scenario_authoring.verify_scenario_optimum`](#scenario_authoringverify_scenario_optimum--enumerate-scenario-outcomes) |
@@ -408,6 +409,43 @@ python -m tests.self_play.position_rotation \
 ---
 
 ## Tools
+
+### `python -m scenario_authoring` — unified CLI dispatcher
+
+Routes `build`, `compile`, `verify`, and `brief` to the existing submodule
+entry points. Flags are passed through unchanged to the delegated command.
+
+```bash
+# Build a scenario from a ScenarioSpec
+python -m scenario_authoring build \
+    --spec scenarios/specs/multi_pareto.json \
+    --output-dir scenarios/multi_pareto_v1 --verify
+
+# Compile a narrative scenario
+python -m scenario_authoring compile \
+    --scenario scenarios/water_rights.md \
+    --output-dir scenarios/water_rights_v1
+
+# Verify an analysis (Pareto report)
+python -m scenario_authoring verify \
+    --analysis scenarios/water_rights_v1/scenario_analysis.json
+
+# Check a scenario against a design brief
+python -m scenario_authoring brief \
+    --analysis scenarios/water_rights_v1/scenario_analysis.json \
+    --brief scenarios/water_rights_v1/brief.json
+```
+
+| Subcommand | Delegates to | Notes |
+|---|---|---|
+| `build` | `scenario_authoring.scenario_builder` | All `--spec`, `--output-dir`, `--verify`, `--viz`, `--seed` flags apply |
+| `compile` | `scenario_authoring.scenario_compiler` | All `--scenario`, `--output-dir`, `--batna-fraction`, `--viz` flags apply |
+| `verify` | `scenario_authoring.verify_scenario_optimum` | All `--analysis`, `--viz`, `--brief` flags apply |
+| `brief` | `scenario_authoring.scenario_brief` | All `--analysis`, `--brief` flags apply |
+
+Unknown subcommands exit non-zero and print a usage error.
+
+---
 
 ### `scenario_authoring.scenario_compiler` — narrative → scored personas
 
@@ -808,3 +846,4 @@ procedure to validate the Diplomat bot on the Raspberry Pi after code changes.
 | 2026-06-11 | Phase 37 Step 37.6: added `pareto_outcome_diversity` spec field (`float 0–1`, default `0.0`); expanded metric-semantics note into a full cross-reference block explaining what each metric measures and when to use each. |
 | 2026-06-22 | section 3.5 benchmark tooling: added `tools/ablation_multi.sh` (probe/probemix/run/runmix/rotateplan/runrotate/summary), `tests.self_play.rank_aggregator` (cross-game mean_rank leaderboard), and `tests.self_play.position_rotation` (seat-rotation specs); added quick-index rows. |
 | 2026-06-25 | Phase 44: added `scenario_authoring.scenario_brief` (verify-against-brief + auto-doc); added `--brief` to `verify_scenario_optimum` and `--viz`/`--viz-title` to `scenario_compiler`; added quick-index row. |
+| 2026-06-25 | Phase 46: added `python -m scenario_authoring` unified dispatcher (`build`/`compile`/`verify`/`brief`); added quick-index row and dispatcher section. |

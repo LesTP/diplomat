@@ -2,7 +2,7 @@
 phase: 46
 blocked: false
 state: execute
-steps_remaining:
+steps_remaining: 0
 ---
 
 # Diplomat — Development Plan
@@ -135,7 +135,7 @@ requires an Explore/Refine decision.
   (`monkeypatch sys.argv` to `["scenario_authoring","verify","--analysis",<tmp>]` and assert rc 0,
   plus an unknown-subcommand → non-zero). Update the api/contract test only if a new public symbol
   is exported (the dispatcher itself need not be exported).
-- [ ] 46.4 — Doc update: new `src/scenario_authoring/README.md` (package onboarding — purpose,
+- [x] 46.4 — Doc update: new `src/scenario_authoring/README.md` (package onboarding — purpose,
   the two construction directions, public API surface, unified CLI, links to `SCENARIO_GUIDE.md`
   + `ARCH_scenario_authoring.md`). Update `ARCH_scenario_authoring.md` coupling notes (the
   `modules.persona` coupling is gone; `round_context` leaf added; pipeline→package direction noted)

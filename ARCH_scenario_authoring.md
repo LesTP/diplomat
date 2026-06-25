@@ -27,6 +27,7 @@ post-hoc verification of any analysis JSON's payoff structure.
 | `verify_scenario_optimum` | Pure analysis utilities (`faction_score`, `enumerate_deals`, `find_pareto_frontier`, `beats_batna`, `find_priority_issues`) + a CLI verifier that prints a payoff report for an existing analysis JSON. | No |
 | `scenario_viz` | Scenario-only deal-explorer HTML renderer built on verifier math; exposes `render_scenario_html()` and `build_scenario_viz()`. | No |
 | `scenario_brief` | Verify-against-brief: `load_brief()` + `check_brief()` measure an analysis's static structure against a declared `features` block (PASS/FAIL per feature); `build_brief_readme()` renders per-scenario auto-doc. Reuses verifier + fitness math. | No |
+| `round_context` | Stdlib-only leaf: `CoachingContext` frozen dataclass + `render_round_context_section()`. Extracted from `modules/persona` in Phase 46 to sever the lone load-time coupling. Re-exported by `modules.persona` for pipeline back-compat; also exported from `__init__.py` (not in `__all__` — reach in via `scenario_authoring.round_context` for pipeline-independent use). | No |
 
 ## Public API
 
@@ -314,6 +315,10 @@ no module-level state, no caches that persist across calls.
 - **No runtime dependency** on Diplomat's pipeline (`Orchestrator`,
   `Pipeline`, `Flow`, transport, persistence). The subsystem produces files;
   `GameEnvironment` reads them.
+- **Pipeline → package direction (Phase 46):** `modules/persona/__init__.py`
+  re-imports `CoachingContext` + `render_round_context_section` from
+  `scenario_authoring.round_context`. The dependency arrow runs pipeline →
+  package, not the reverse. The package itself has zero pipeline imports.
 - **Downstream consumer:** `tests/self_play/game_environment.py::score_game`
   reads `scenario_analysis["coalition_values"]` (when present) for partial-
   agreement scoring; `tests/self_play/run_simulation.py` and

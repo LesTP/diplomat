@@ -275,3 +275,18 @@ Full suite: 558 passed, 1 skipped (+3 new tests). Commit `4c4ce96`.
 **Contract changes:** unified `python -m scenario_authoring` CLI dispatch added in `src/scenario_authoring/__main__.py`; doc sync pending for `CLI_REFERENCE.md`, `ARCH_scenario_authoring.md`, and `src/scenario_authoring/README.md` in Phase 46.4.
 
 Added a package-level dispatcher that routes `build`, `compile`, `verify`, and `brief` to the existing submodule `main()` functions by rewriting `sys.argv` and delegating. Extended the standalone contract test to exercise the dispatcher with a real `verify` invocation and an unknown-subcommand failure path. Focused tests passed under `python3 -m pytest`.
+
+## Phase 46 — Step 46.4 (2026-06-25)
+
+**Mode:** Execute  
+**Outcome:** complete  
+**Files changed:** `src/scenario_authoring/README.md` (new), `ARCH_scenario_authoring.md`, `CLI_REFERENCE.md`, `DEVPLAN.md`, `DEVLOG.md`  
+**Test count:** 559 passed, 1 skipped
+
+**Doc update step for Phase 46.**
+
+- **`src/scenario_authoring/README.md` (new):** Package onboarding doc. Covers purpose, the two construction directions (forward/reverse) with quick-start examples, unified CLI subcommand table, public API listing, submodule overview, and links to `SCENARIO_GUIDE.md` + `ARCH_scenario_authoring.md`.
+- **`ARCH_scenario_authoring.md`:** Added `round_context` module map row (stdlib-only leaf, role in severing Phase 46 coupling). Updated coupling notes to record the pipeline→package dependency direction introduced in Phase 46.1: `modules/persona/__init__.py` now re-imports from `scenario_authoring.round_context`; the package itself has zero pipeline imports.
+- **`CLI_REFERENCE.md`:** Added `python -m scenario_authoring` unified dispatcher section (subcommand table, four quick-start examples, passthrough flag notes); added quick-index row; added change-history entry.
+
+Phase 46 complete. All four steps (46.1 round_context extraction, 46.2 standalone contract test, 46.3 unified CLI, 46.4 doc update) finished. `scenario_authoring` is now a self-contained, liftable package with no load-time pipeline coupling.
