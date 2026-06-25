@@ -4,6 +4,23 @@
      Each step or milestone gets a structured entry. This is the audit trail.
      Older phases are archived to DEVLOG_archive.md; the active log holds the current phase. -->
 
+## 2026-06-25: Phase 46.1 + loop recovery (operator-supervised)
+
+- **Mode:** Debug -> Code (recover a stuck autonomous loop)
+- **Outcome:** complete
+- **Contract changes:** none (modules.persona public surface preserved via re-export + restored __all__)
+
+The autonomous loop (Pi, codex backend) ran Phase 46.1 in iter 192 but left it uncommitted and unverified: per its own summary it "stopped when the state machine returned EXIT before verification" - it re-dispatched (burning budget) before committing, the WORKER_SPEC iter-105 anti-pattern. iters 193 (codex) and 194 (claude) then cold-started onto a dirty tree and bailed (exit 1), stalling the loop.
+
+**Recovery (this session):**
+- Verified the iter-192 edits: round-context renderer moved to `src/scenario_authoring/round_context.py` (CoachingContext + marker + 6 helpers + render_round_context_section); `modules.persona` re-imports them; `scenario_compiler.py:32` imports from the leaf. Imports clean (no circular import); 64 targeted tests pass.
+- Restored `modules/persona/__init__.py` `__all__` (iter 192 dropped it; re-added CoachingContext / FileBasedPersona / render_round_context_section).
+- Committed 46.1 and checked it off in DEVPLAN. Frontmatter left at phase 46 / state execute / blocked false / steps_remaining empty so the next dispatch runs 46.2.
+
+**Flaky test (NOT a 46.1 regression):** `tests/integration/test_pipeline_flow.py::test_round_end_populates_intelligence` failed once in the full-suite run (IndexError, no analysis rows) but PASSES in isolation - a test-ordering / shared-state isolation flake, unrelated to the pure code-move in 46.1. Flagged for a separate follow-up.
+
+**Tests:** 554 passed, 1 skipped, 1 flaky-on-order (passes in isolation).
+
 ## 2026-06-25: Operator-supervised - stage autonomous Phases 46-48 + governance
 
 - **Mode:** Discuss -> Code (planning + staging; no production code changed)

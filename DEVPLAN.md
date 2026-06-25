@@ -113,7 +113,7 @@ requires an Explore/Refine decision.
   sibling/stdlib-only at load time.
 
 **Steps.**
-- [ ] 46.1 — Create `src/scenario_authoring/round_context.py`; move `CoachingContext`,
+- [x] 46.1 — Create `src/scenario_authoring/round_context.py`; move `CoachingContext`,
   `_ROUND_CONTEXT_MARKER`, the 6 helpers, and `render_round_context_section` into it
   (verbatim, stdlib-only). In `src/modules/persona/__init__.py`, delete those definitions
   and re-import the two public symbols from the leaf (`from scenario_authoring.round_context

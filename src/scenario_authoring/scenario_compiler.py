@@ -29,7 +29,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from modules.persona import CoachingContext, render_round_context_section
+from scenario_authoring.round_context import CoachingContext, render_round_context_section
 
 # ---------------------------------------------------------------------------
 # Schema for structured extraction from scenarios
