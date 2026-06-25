@@ -4017,3 +4017,39 @@ Doc update: `src/scenario_authoring/README.md` (new), `ARCH_scenario_authoring.m
 ## Phase 46 close (2026-06-25)
 
 `scenario_authoring` is a liftable, self-contained package. Standalone coupling severed (round_context.py leaf), contract locked by test, unified CLI added, package README written. D-60 closed. See DEVLOG.md history for full detail.
+
+## Phase 46 close — full detail (2026-06-25)
+
+**Mode:** Close  
+**Outcome:** complete  
+**Tests:** 559 passed, 1 skipped
+
+`scenario_authoring` is now a liftable, self-contained package. The lone load-time pipeline coupling (`scenario_compiler.py → modules.persona`) was severed by extracting `CoachingContext` + `render_round_context_section` + 6 stdlib-only helpers into `src/scenario_authoring/round_context.py`; `modules/persona` re-exports them for back-compat. Standalone contract locked by `tests/test_scenario_authoring_standalone.py` (subprocess isolation check + ImportError-on-missing-toolkit). Unified `python -m scenario_authoring build|compile|verify|brief` dispatcher added in `__main__.py`. Package README written. DEVLOG learning review: codex backend failures (iters 192, 196) promoted to Gotchas. D-60 closed.
+
+## Phase 47 — Step 47.1 (2026-06-25)
+
+**Mode:** Execute  
+**Outcome:** complete  
+**Tests:** 19 new, all passed
+
+Added `tests/self_play/test_game_environment_coalition.py` with 19 tests covering `_find_coalition_value` and `_resolve_deal_scores` imported directly from `game_environment.py` (no live LLM). `TestFindCoalitionValue` (9 tests): sorted-set match for AB/AC/BC/grand coalitions; reversed-order input normalizes correctly; unknown subset / single-member not in fixture returns None; empty list and missing key return None. `TestResolveDealScores` (10 tests): AB/AC/BC partial coalition paths verified — members get coalition_values, excluded faction gets BATNA, deal_reached True; grand coalition uses faction_score() on agreed_outcomes (not coalition_values); unknown subset no-deal; below-BATNA no-deal; deal_reached+empty agreed_outcomes normalized.
+
+## Phase 47 — Step 47.2 (2026-06-25)
+
+**Mode:** Execute  
+**Outcome:** complete  
+**Tests:** 4 new edge-case tests, 582 total (23 coalition tests)
+
+Added 4 edge-case tests: member present in `coalition_members` but absent from entry's `values` dict → BATNA (not KeyError); non-faction id in `coalition_members` → no-deal (`partial_coalition_without_coalition_values`); missing `batna` key in faction entry defaults to 0.0; missing `factions` key returns empty `faction_scores`. Updated `_find_coalition_value` and `_resolve_deal_scores` docstrings to document all paths precisely per D-61.
+
+## Phase 47 — Step 47.3 (2026-06-25)
+
+**Mode:** Execute  
+**Outcome:** complete  
+**Tests:** full suite green (582 passed)
+
+Added "Coalition Path B scoring contract (locked — Phase 47 / D-61)" section to `ARCH_scenario_authoring.md`: locked scoring-path table (5 rows), `_find_coalition_value` sorted-set semantics, and explicitly deferred supervised items (representation rationalization, builder emission, runtime detection, live validation).
+
+## Phase 47 close (2026-06-25)
+
+Coalition-exclusion scoring contract locked with 23 unit tests. `_find_coalition_value` + `_resolve_deal_scores` semantics documented and hardened. ARCH_scenario_authoring.md updated. D-61 closed. 583 tests passing. See DEVLOG.md history for full detail.

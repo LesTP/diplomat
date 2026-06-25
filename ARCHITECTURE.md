@@ -136,12 +136,13 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 | 17 | Scenario Builder | Constraint-driven reverse scenario generator. Operator writes a `ScenarioSpec`; tool searches scoring-table space via simulated-annealing hill-climb and emits `scenario_analysis.json` + per-faction `.txt` personas, including the scenario `pressure` object. Not a pipeline module — design tool only. | Complete |
 | 18 | Scenario Viz | Deal-explorer HTML renderer extracted from `tools/viz.py` into `src/scenario_authoring/scenario_viz.py`. Reuses `find_pareto_frontier` from `verify_scenario_optimum` (no math duplication). Wired into `verify_scenario_optimum --viz` and `scenario_builder --viz`; exported on public API. `tools/viz.py` slimmed to run-discovery wrapper. | Phase 43 complete |
 | 19 | Scenario Authoring Standalone | `scenario_authoring` package made self-contained (Phase 46): round-context renderer moved to `src/scenario_authoring/round_context.py` (stdlib-only leaf), severing the lone `modules.persona` load-time coupling; standalone contract locked by test; unified `python -m scenario_authoring build|compile|verify|brief` CLI added; package README written. `modules/persona` re-exports `CoachingContext` + `render_round_context_section` for back-compat. | Phase 46 complete |
+| 20 | Coalition Scoring Contract | Coalition-exclusion scoring contract in `tests/self_play/game_environment.py` locked with 23 unit tests (Phase 47): `_find_coalition_value` sorted-set semantics, all `_resolve_deal_scores` paths (partial coalition, grand coalition full-agreement, no-deal, below-BATNA, malformed-input edges). Docstrings updated. `ARCH_scenario_authoring.md` updated with Path B scoring contract section. D-61 closed. | Phase 47 complete |
 
 ## Testing Status
 
 | Layer | Status |
 |-------|--------|
-| Unit and regression tests | Complete — 559 passed, 1 skipped after Phase 46 (Phase 46 added standalone contract tests + CLI dispatcher tests; 1 replay test is flaky in full-suite ordering, passes in isolation) |
+| Unit and regression tests | Complete — 583 passed after Phase 47 (Phase 47 added 23 coalition scoring unit tests; 1 replay test is flaky in full-suite ordering, passes in isolation) |
 | Pipeline integration | Complete — 23 fake-backed Orchestrator integration tests (Phase 18 path coverage added Phase 20) |
 | Transcript replay | Complete — 2 transcript fixtures, 5 replay tests |
 | Prompt regression | Complete — 6 starter scenarios (4 extraction free, 2 generation require live LLM) |
