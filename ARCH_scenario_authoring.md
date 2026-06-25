@@ -27,7 +27,7 @@ post-hoc verification of any analysis JSON's payoff structure.
 | `verify_scenario_optimum` | Pure analysis utilities (`faction_score`, `enumerate_deals`, `find_pareto_frontier`, `beats_batna`, `find_priority_issues`) + a CLI verifier that prints a payoff report for an existing analysis JSON. | No |
 | `scenario_viz` | Scenario-only deal-explorer HTML renderer built on verifier math; exposes `render_scenario_html()` and `build_scenario_viz()`. | No |
 | `scenario_brief` | Verify-against-brief: `load_brief()` + `check_brief()` measure an analysis's static structure against a declared `features` block (PASS/FAIL per feature); `build_brief_readme()` renders per-scenario auto-doc. Reuses verifier + fitness math. | No |
-| `round_context` | Stdlib-only leaf: `CoachingContext` frozen dataclass + `render_round_context_section()`. Extracted from `modules/persona` in Phase 46 to sever the lone load-time coupling. Re-exported by `modules.persona` for pipeline back-compat; also exported from `__init__.py` (not in `__all__` — reach in via `scenario_authoring.round_context` for pipeline-independent use). | No |
+| `round_context` | Stdlib-only leaf: `CoachingContext` frozen dataclass + `render_round_context_section()`. Extracted from `modules/persona` in Phase 46 to sever the lone load-time coupling. Re-exported by `modules.persona` for pipeline back-compat. Not in the package `__init__.py` `__all__` — access directly via `from scenario_authoring.round_context import CoachingContext, render_round_context_section`. | No |
 
 ## Public API
 
