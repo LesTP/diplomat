@@ -1,6 +1,6 @@
 ---
 phase: 48
-blocked: false
+blocked: true
 state: close
 steps_remaining: 0
 ---
@@ -73,7 +73,7 @@ steps_remaining: 0
   - **Operator-supervised scenario-tooling reorg (2026-06-20/21):** scenario tools moved from `src/tools/` to dedicated `src/scenario_authoring/` package; scenarios data moved from `tests/self_play/scenarios/` to top-level `scenarios/`. `coalition_values` schema field added (Phase 2a). `verify_scenario_optimum` moved into the package (D-58). Public API curated in `__init__.py`. `tools/scenario_builder_scale_probe.py` characterizes builder convergence + wall-clock across F/I/O dimensions. Phase 42 algorithm work complete (PROJECT.md "4+ factions / 4+ issues" criterion MET at 4×4×4); see `DECISIONS.md` D-59 and commits `551caa9`..`8a384c3`.
   - **Codex backend loop failures (Phase 46):** Codex backend repeatedly failed to finish diplomat iterations due to turn/time limits or budget re-dispatch anti-pattern (iter 192 left work uncommitted; iter 196 committed but stalled on bookkeeping). Claude backend finished iterations cleanly. Recommend CLAUDE backend for diplomat loop runs, or raise codex turn/time budget. When codex stalls: verify committed work, fix bookkeeping manually, reset `steps_remaining` to empty, re-dispatch.
 ## Current Status
-- **Phase** — Phase 47 complete (coalition scoring contract lock; 23 unit tests, D-61 closed; see `DEVLOG_archive.md` "Phase 47 close"). Phase 48 queued (narrative-integration shell; autonomous Build — activate after audit). Phase 46 complete (standalone `scenario_authoring` + unified CLI; see `DEVLOG_archive.md` "Phase 46 close"). Phase 44 complete (scenario design-brief + verify-against-brief + auto-doc). Scenario-design (succ-v3 / Path C) and benchmark-run backlog live in `NEXT_STEPS.md`.
+- **Phase** — Phase 48 complete (narrative re-skin shell; 37 new tests, D-62 closed; see `DEVLOG.md` "Phase 48 close"). Phase 47 complete (coalition scoring contract lock; 23 unit tests, D-61 closed; see `DEVLOG_archive.md` "Phase 47 close"). Phase 46 complete (standalone `scenario_authoring` + unified CLI; see `DEVLOG_archive.md` "Phase 46 close"). Phase 44 complete (scenario design-brief + verify-against-brief + auto-doc). Scenario-design (succ-v3 / Path C) and benchmark-run backlog live in `NEXT_STEPS.md`.
 - **Phase numbering note:** 45 is intentionally unused — the roadmap's narrative phase was staged as Phase 48 after standalone (Phase 46) was chosen first; the coalition track slotted in as Phase 47. Gaps are normal here (40/41/42 were operator-supervised); the state machine keys on the `phase:` frontmatter value, so the gap is harmless. Supervised work outside the loops lives in `NEXT_STEPS.md`.
 - **Phase B (proof-of-concept scenario):** Joint Space Mission scenario authoring unblocked. v1 spec produces 3 Pareto-optimal deals with distinct distributions (balanced consensus / alpha+gamma win / beta wins). Next operator session: run the LLM scenario compiler over the generated `scenario_analysis.json` to produce narrative + persona prose, then optionally smoke at flash-lite.
 - **Operator-supervised work (2026-06-21): Phase 42 COMPLETE.** Commits 1-4 + C5a + C5b landed (`551caa9`, `257b1e0`, `d16248c`, `4c67abb`, `19e6a39`, `8a384c3`). PROJECT.md "4+ factions / 4+ issues" success criterion MET: 4×4×4 / D=256 reaches ≥2/3 probe acceptance, locked by `tests/test_scenario_builder_scale.py::test_builds_4x4x4_in_budget`. Key findings: the I-axis cliff was spec-semantic (fixed by C5a relative `batna_clearing_count_target`), and a builder determinism bug (C5b) had masked it; SA neighborhood broadening was tried and rejected (D-59). Phase 3 (scale probe) data at `scenarios/scale_probe_*` + `scenarios/c5b_final_singlecell_summary.md`. Phase 4 docs (`ARCH_scenario_authoring.md`, `SCENARIO_GUIDE.md`) shipped and updated with post-Phase-42 scaling data.
@@ -87,57 +87,9 @@ Closed 2026-06-25. `round_context.py` leaf (stdlib-only) created inside the pack
 
 Closed 2026-06-25. 23 unit tests lock `_find_coalition_value` + `_resolve_deal_scores` across all paths (partial coalition, grand coalition full-agreement path, no-deal, below-BATNA, malformed-input edges). `ARCH_scenario_authoring.md` updated with coalition Path B contract section. D-61 closed. 583 tests passing. See `DEVLOG_archive.md` "Phase 47 close".
 
-## Phase 48: Narrative-integration shell — In Progress (autonomous Build)
+## Phase 48: Narrative-integration shell — Complete
 
-**Goal.** Build the deterministic shell for narrative integration (generalized
-`fill_narrative`, the Build slice of roadmap Phase 45): apply an LLM-proposed themed relabel
-+ prose onto a guaranteed numeric scaffold while a structure-preservation guard asserts the
-numeric payoff structure is unchanged. Pure-Build, autonomous-loopable; the re-skin design is
-pre-settled in `DECISIONS.md` **D-62**. The LLM re-skin PROMPT QUALITY (themed-name aptness,
-prose faithfulness) is Refine → tuned supervised in a later phase via
-`tests/prompt_regression/`; this phase authors only an initial prompt and stops at the
-shell+tests boundary.
-
-**Pre-settled design (D-62):**
-- Re-skin = apply a consistent **bijection** (`relabel_map`) over faction/issue/outcome
-  identifiers + themed prose; numeric scores/BATNAs/`coalition_values` come from the source
-  untouched (member ids relabel, values unchanged).
-- `assert_structure_preserved(source, reskinned, relabel_map)` = value-isomorphism guard:
-  same counts, every score equals source under relabel, BATNAs map by faction relabel.
-  REJECTS numeric drift, non-bijective/incomplete maps, missing labels.
-- LLM emits ONLY `relabel_map` + prose via one schema-validated `structured_call`.
-- Catalogue "parser" = deterministic heading-scoped section extractor over the prose
-  catalogue (`Multi-Party Negotiation Scenarios.md`), feeding `--domain-context`.
-
-**Reuse:** `scenario_compiler.generate_persona`/`save_persona` + the structured-LLM call
-pattern; `fill_narrative` schema as a starting point for the prose fields.
-
-**Steps.**
-- [x] 48.1 — Create `src/scenario_authoring/scenario_narrative.py` deterministic core:
-  `apply_relabel(analysis, relabel_map) -> analysis` (renames factions/issues/outcomes
-  consistently, preserving all numeric scores/BATNAs/coalition_values; relabels
-  coalition_values member ids) + `assert_structure_preserved(source, reskinned, relabel_map)`
-  (value-isomorphism guard). Unit tests (NO LLM): identity relabel round-trips; a themed
-  relabel preserves all values; a tampered numeric value is REJECTED; a non-bijective or
-  incomplete map is REJECTED. Standalone: stdlib + sibling imports only.
-- [x] 48.2 — Add `extract_catalogue_entry(catalogue_text, heading) -> str`: deterministic
-  `###`/`####` heading-scoped section slice over the prose catalogue. Tests against
-  `Multi-Party Negotiation Scenarios.md` (extract a known `#### ...` entry; unknown heading
-  raises a clear error).
-- [x] 48.3 — Add `reskin_scenario(analysis, source_context, llm_client, llm_config, tier=...,
-  *, domain_context="")`: one `structured_call` emitting `{relabel_map, logrolling,
-  deception_tactics, narrative_md}` (+ optional persona prose) against a new schema; apply the
-  relabel; run `assert_structure_preserved`; return `(reskinned_analysis, narrative_md)`.
-  Author an INITIAL system prompt (quality tuning deferred — D-62). Test with a MOCKED
-  `structured_call` (mirror `test_scenario_compiler.py::fake_sc`): structure preserved +
-  narrative produced; a value-tampering mock is rejected by the guard.
-- [x] 48.4 — Add a `narrative` subcommand to `scenario_authoring/__main__.py` (analysis +
-  catalogue source → reskinned bundle); export `reskin_scenario` + `assert_structure_preserved`
-  in `__init__.__all__` and update `tests/test_scenario_authoring_api.py`. Doc update:
-  `SCENARIO_GUIDE.md` (narrative-integration section; mark prompt-tuning as the supervised
-  follow-on), `CLI_REFERENCE.md` (the `narrative` subcommand + quick-index + change-history),
-  `ARCH_scenario_authoring.md` (new `scenario_narrative` module + public surface). Append a
-  `DEVLOG.md` Phase 48 entry. Run the full suite green.
+Closed 2026-06-25. `scenario_narrative.py` module: `apply_relabel` (bijective identifier relabeling, numeric values preserved) + `assert_structure_preserved` (value-isomorphism guard) + `extract_catalogue_entry` (heading-scoped catalogue slicer) + `reskin_scenario` (one `structured_call` → relabeled analysis + themed prose) + `main()` CLI. Wired into `scenario_authoring` package API and `narrative` subcommand. 37 new tests. D-62 closed. 620 tests passing. See `DEVLOG.md` "Phase 48 close".
 
 ## Phase 44: Scenario design-brief + verify-against-brief + auto-doc — Complete
 
