@@ -4,6 +4,51 @@
      Each step or milestone gets a structured entry. This is the audit trail.
      Older phases are archived to DEVLOG_archive.md; the active log holds the current phase. -->
 
+## 2026-06-25: Operator-supervised - stage autonomous Phases 46-48 + governance
+
+- **Mode:** Discuss -> Code (planning + staging; no production code changed)
+- **Outcome:** complete
+- **Contract changes:** none (governance/planning docs + decisions only)
+
+Operator-supervised session following the Phase 44 close. Set up the
+scenario-authoring tooling roadmap as autonomous loop phases and documented the
+open work that stays outside the loops.
+
+**What happened:**
+
+- **DEVPLAN staged for autonomous execution.** Frontmatter set to `phase: 46`,
+  `state: execute`, with pre-written Build steps for three loop-safe phases:
+  Phase 46 (standalone `scenario_authoring` package + unified CLI, 4 steps),
+  Phase 47 (lock the coalition Path B scoring contract with tests, 3 steps),
+  Phase 48 (narrative-integration shell, 4 steps). Each carries an activation
+  note; the loops run on the Pi (`run-iteration.sh`), not from Windows (sandbox
+  limitation).
+- **Decisions recorded:** D-60 (round-context leaf lives inside the package, with
+  `modules.persona` re-exporting), D-61 (Phase 47 autonomous slice = lock the
+  EXISTING coalition scoring contract; the partial-coalition path is already
+  implemented - representation rationalization, builder emission, runtime
+  detection, and live validation are deferred to supervised phases), D-62
+  (narrative re-skin = value-isomorphism under relabel; prompt-quality tuning is
+  the supervised tail).
+- **Scoping discoveries from reading the code:** the coalition scoring engine in
+  `_resolve_deal_scores` is already mostly built, so Phase 47 was narrowed to
+  contract-locking; `three_party_coalition_v1` encodes coalitions both as a
+  synthetic `coalition_formation` issue AND as `coalition_values`, which give
+  different payoffs (a+b = 9/10/1 via the issue vs 6/7/0 via coalition_values) -
+  a representation decision deferred to a supervised phase.
+- **Open-work documentation:** added an "In autonomous loops (DEVPLAN)" section to
+  `NEXT_STEPS.md` listing the in-loop phases and their supervised tails (coalition
+  builder emission / runtime detection / live validation; narrative prompt
+  tuning). Documented the Phase 45 numbering gap in DEVPLAN and the roadmap plan
+  doc (standalone kept its roadmap number 46; narrative staged as 48; 45 unused).
+
+**Commits:** `db37ce4` (Phase 44 feature), `1f5b097` (Phases 46-48 staging +
+D-60/61/62), `4ebb875` (numbering note + open-work docs). Local on `main`; not
+pushed. PAPER_PLAN.md left untracked (operator file).
+
+**Files changed:** `DEVPLAN.md`, `DECISIONS.md`, `NEXT_STEPS.md`, `DEVLOG.md`,
+plus the roadmap plan doc in `~/.llms/plans/` (outside the repo).
+
 ## 2026-06-25 — Phase 44: scenario brief + verify-against-brief + auto-doc
 
 Phase 44 adds a per-scenario **design brief** and a machine-checkable
