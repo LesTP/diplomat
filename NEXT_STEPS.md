@@ -45,6 +45,18 @@ calibration** (§11.b) → broaden **Path C** scenario authoring (asym-BATNA,
 hidden-value) → **Run 17 follow-ups** (V3 n=3, R1 cells) + **N4** pressure on
 jsm1 → **per-run cost capture** + **pricing audit**.
 
+## In autonomous loops (DEVPLAN)
+
+Pre-decomposed Build phases staged in `DEVPLAN.md`, run autonomously **on the Pi** (not from Windows — sandbox limit). Each gates for human audit at phase close (`blocked: true`). Decisions: `DECISIONS.md` D-60/61/62.
+
+- **Phase 46 (active)** 🔨 `[X]` — standalone `scenario_authoring` package + unified CLI (sever the `modules.persona` coupling).
+- **Phase 47 (queued)** 🔨 `[C]` — *lock the coalition Path B scoring contract* with tests. The partial-coalition scoring path is already implemented; Phase 47 covers only test-hardening (D-61). This is the loop-safe slice of the “§3.6 coalition-value scoring engine” Tier-1 item below.
+- **Phase 48 (queued)** 🔨 `[C]` — narrative-integration *shell* (deterministic re-skin + value-isomorphism guard + catalogue extractor; D-62).
+
+**Supervised tails (outside the loops — these need you):**
+- Coalition: builder `coalition_values` emission (`ScenarioSpec.requires_coalition_values`) 🔀; runtime partial-coalition detection in `RoundSteppedFlow` 👁; live mixed-model validation on `three_party_coalition_v1` (doubles as §11.b Path A) 👁; rationalize the synthetic `coalition_formation` issue 🔀 (Tier-1 row below).
+- Narrative: re-skin **prompt-quality tuning** (Refine, via `tests/prompt_regression/`) 👁 — the supervised follow-on to Phase 48.
+
 ## Tier 1 — `[C]` benchmark direction (open)
 
 | Item | Tags | Loop | Detail |
@@ -100,6 +112,6 @@ within-round reactivity or timing-as-strategy.
   cooperative scoring; Paths A/B/C), Note 3 (provider consistency as a deal
   variable).
 - **Decisions** → `DECISIONS.md` (D-56 benchmark direction; D-58/D-59 scenario
-  tooling).
+  tooling; D-60 standalone leaf, D-61 coalition contract scope, D-62 narrative re-skin).
 - **Scoring framework** → `ASSESSMENT.md` (§3 lenses, §5 workstream tiers).
 - **Scenario authoring** → `SCENARIO_GUIDE.md` + `ARCH_scenario_authoring.md`.
