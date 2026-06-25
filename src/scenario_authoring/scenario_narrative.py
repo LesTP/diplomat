@@ -5,14 +5,14 @@ apply_relabel   — rename faction/issue/outcome identifiers under a bijective m
 assert_structure_preserved — value-isomorphism guard: raises AssertionError if the
                   reskinned analysis drifts from the source under the relabel_map.
 extract_catalogue_entry — heading-scoped section slice over the prose catalogue.
-
-All functions are stdlib-only (no LLM, no sibling imports beyond this module).
-The LLM layer that emits the relabel_map + prose lives in reskin_scenario (step 48.3).
+reskin_scenario — LLM re-skin: one structured_call emitting relabel_map + prose,
+                  apply_relabel, assert_structure_preserved, return (analysis, md).
 """
 
 from __future__ import annotations
 
 import copy
+import json
 from typing import Any
 
 
@@ -346,3 +346,191 @@ def extract_catalogue_entry(catalogue_text: str, heading: str) -> str:
         result_lines.append(line)
 
     return "\n".join(result_lines)
+
+
+# ---------------------------------------------------------------------------
+# reskin_scenario — LLM re-skin (step 48.3)
+# ---------------------------------------------------------------------------
+
+RESKIN_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["relabel_map", "logrolling", "deception_tactics", "narrative_md"],
+    "properties": {
+        "relabel_map": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["factions", "issues", "outcomes"],
+            "description": "Bijective renaming maps for all identifiers in the scenario.",
+            "properties": {
+                "factions": {
+                    "type": "object",
+                    "additionalProperties": {"type": "string"},
+                    "description": "old_faction_id -> new themed name",
+                },
+                "issues": {
+                    "type": "object",
+                    "additionalProperties": {"type": "string"},
+                    "description": "old_issue_name -> new themed name",
+                },
+                "outcomes": {
+                    "type": "object",
+                    "additionalProperties": {"type": "string"},
+                    "description": "old_outcome -> new themed name (flat across all issues)",
+                },
+            },
+        },
+        "logrolling": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": (
+                "3-5 plain-language descriptions of mutually beneficial trades, "
+                "using the NEW themed faction/issue/outcome names."
+            ),
+        },
+        "deception_tactics": {
+            "type": "object",
+            "additionalProperties": {"type": "string"},
+            "description": (
+                "Per-faction deception tactic (~1-2 sentences), keyed by NEW faction names."
+            ),
+        },
+        "narrative_md": {
+            "type": "string",
+            "description": (
+                "A 2-4 paragraph Markdown scenario narrative using the themed names. "
+                "Describes the setting, factions, and the issues at stake. "
+                "Does NOT reveal private scoring tables."
+            ),
+        },
+    },
+}
+
+RESKIN_SYSTEM_PROMPT = """\
+You are a creative scenario designer. Given a multi-party negotiation analysis \
+(with generic faction/issue/outcome identifiers) and optional domain context, \
+produce a themed re-skin that makes the scenario vivid and concrete.
+
+Your job is to:
+1. Create a BIJECTIVE relabel_map: assign a thematic name to every faction, \
+issue, and outcome identifier. The mapping must be 1-to-1 — no two source \
+identifiers may share the same new name.
+2. Write logrolling descriptions (3-5 items) using the NEW themed names.
+3. Write per-faction deception tactics (~1-2 sentences each), keyed by the \
+NEW faction names, describing what each faction will anchor on early.
+4. Write a narrative_md: 2-4 paragraphs in Markdown describing the setting, \
+the parties, and what is at stake. Use the new themed names throughout. \
+Do NOT reveal numeric scoring or BATNA values.
+
+CRITICAL constraint: the relabel_map must cover EVERY faction, issue, and \
+outcome that appears in the source analysis. Missing entries will cause a \
+validation error.
+"""
+
+
+def _build_reskin_user_prompt(
+    analysis: dict[str, Any],
+    source_context: str,
+    domain_context: str,
+) -> str:
+    parts = []
+    if source_context.strip():
+        parts += [source_context.strip(), ""]
+    if domain_context.strip():
+        parts += [domain_context.strip(), ""]
+    parts += [
+        "Source analysis to re-skin:",
+        f"  Factions: {', '.join(analysis['factions'])}",
+        f"  Issues: {', '.join(i['name'] for i in analysis['issues'])}",
+    ]
+    for issue in analysis["issues"]:
+        parts.append(f"    {issue['name']} outcomes: {', '.join(issue['outcomes'])}")
+    parts += [
+        f"  Game mode: {analysis.get('game_mode', 'mixed')}",
+        "",
+        "Scoring structure (numeric values — preserve these exactly):",
+        json.dumps(analysis.get("scoring", {}), indent=2),
+        "",
+        f"BATNAs: {json.dumps(analysis.get('batna', {}))}",
+    ]
+    coalition = analysis.get("coalition_values", [])
+    if coalition:
+        parts += ["", f"Coalition values (member ids only): {json.dumps(coalition)}"]
+    return "\n".join(parts)
+
+
+async def reskin_scenario(
+    analysis: dict[str, Any],
+    source_context: str,
+    llm_client: Any,
+    llm_config: dict[str, Any],
+    tier: str = "commodity",
+    *,
+    domain_context: str = "",
+) -> tuple[dict[str, Any], str]:
+    """Apply a themed LLM re-skin to *analysis*.
+
+    Makes one ``structured_call`` that returns a bijective ``relabel_map``
+    plus prose (logrolling, deception_tactics, narrative_md).  Then:
+
+    1. Calls ``apply_relabel(analysis, relabel_map)`` to rename identifiers.
+    2. Overlays ``logrolling`` and ``deception_tactics`` from the LLM output.
+    3. Calls ``assert_structure_preserved`` to confirm numeric values are intact.
+    4. Returns ``(reskinned_analysis, narrative_md)``.
+
+    Parameters
+    ----------
+    analysis:
+        Source scenario analysis dict (factions/issues/scoring/batna/…).
+    source_context:
+        Operator-provided framing text included verbatim in the LLM prompt
+        (e.g. a catalogue entry from ``extract_catalogue_entry``).
+    llm_client, llm_config, tier:
+        Injected toolkit-compatible LLM client and config.
+    domain_context:
+        Optional additional domain framing (appended after source_context).
+
+    Returns
+    -------
+    (reskinned_analysis, narrative_md)
+
+    Raises
+    ------
+    ValueError
+        If the LLM call fails.
+    AssertionError
+        If ``assert_structure_preserved`` rejects the LLM output (numeric drift,
+        non-bijective map, incomplete map).
+    """
+    from toolkit.structured_llm import structured_call
+
+    user_prompt = _build_reskin_user_prompt(analysis, source_context, domain_context)
+
+    result = await structured_call(
+        llm_client,
+        llm_config,
+        tier,
+        schema=RESKIN_SCHEMA,
+        system_prompt=RESKIN_SYSTEM_PROMPT,
+        user_prompt=user_prompt,
+        max_retries=2,
+        purpose="narrative_reskin",
+    )
+
+    if not result.success:
+        raise ValueError(f"Reskin failed: {result.error}")
+
+    data = result.data
+    relabel_map = data["relabel_map"]
+
+    reskinned = apply_relabel(analysis, relabel_map)
+    reskinned["logrolling"] = data["logrolling"]
+    new_faction_names = list(relabel_map["factions"].values())
+    reskinned["deception_tactics"] = {
+        f: data["deception_tactics"].get(f, "")
+        for f in new_faction_names
+    }
+
+    assert_structure_preserved(analysis, reskinned, relabel_map)
+
+    return reskinned, data["narrative_md"]

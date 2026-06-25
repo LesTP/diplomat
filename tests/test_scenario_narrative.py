@@ -325,3 +325,160 @@ class TestExtractCatalogueEntry:
     def test_invalid_heading_raises_valueerror(self) -> None:
         with pytest.raises(ValueError, match="valid Markdown heading"):
             extract_catalogue_entry("some text", "Not a heading at all")
+
+
+# ---------------------------------------------------------------------------
+# reskin_scenario — mocked structured_call
+# ---------------------------------------------------------------------------
+
+def _make_sc_result(success: bool, data: dict | None = None, error: str | None = None):
+    class _R:
+        pass
+    r = _R()
+    r.success = success
+    r.data = data
+    r.error = error
+    return r
+
+
+_RESKIN_RELABEL_MAP: dict[str, dict[str, str]] = {
+    "factions": {"alpha": "EmpireOfDawn", "beta": "FreeStates"},
+    "issues": {"trade": "CommerceAct", "security": "DefensePact"},
+    "outcomes": {
+        "open": "FreeMarket",
+        "closed": "Protectionist",
+        "allied": "MutualDefense",
+        "neutral": "NonAlignment",
+    },
+}
+
+_RESKIN_LLM_RESPONSE = {
+    "relabel_map": _RESKIN_RELABEL_MAP,
+    "logrolling": ["EmpireOfDawn trades CommerceAct for MutualDefense support"],
+    "deception_tactics": {
+        "EmpireOfDawn": "Anchor on DefensePact early",
+        "FreeStates": "Overstate CommerceAct urgency",
+    },
+    "narrative_md": "Two powers meet at the negotiating table.\n\nThey must resolve CommerceAct and DefensePact.",
+}
+
+
+class TestReskinScenario:
+    def test_returns_reskinned_analysis_and_narrative(self, monkeypatch) -> None:
+        import asyncio
+        from scenario_authoring.scenario_narrative import reskin_scenario
+
+        async def fake_sc(*args, **kwargs):
+            return _make_sc_result(True, _RESKIN_LLM_RESPONSE)
+
+        monkeypatch.setattr("toolkit.structured_llm.structured_call", fake_sc)
+
+        reskinned, narrative = asyncio.run(
+            reskin_scenario(
+                copy.deepcopy(_BASE_ANALYSIS),
+                source_context="Two-faction test scenario",
+                llm_client=None,
+                llm_config={},
+            )
+        )
+
+        assert reskinned["factions"] == ["EmpireOfDawn", "FreeStates"]
+        assert reskinned["scoring"]["EmpireOfDawn"]["CommerceAct"]["FreeMarket"] == 8
+        assert reskinned["batna"]["EmpireOfDawn"] == 5
+        assert reskinned["logrolling"] == _RESKIN_LLM_RESPONSE["logrolling"]
+        assert "narrative" in narrative.lower() or len(narrative) > 10
+
+    def test_structure_preserved_guard_passes(self, monkeypatch) -> None:
+        import asyncio
+        from scenario_authoring.scenario_narrative import reskin_scenario
+
+        async def fake_sc(*args, **kwargs):
+            return _make_sc_result(True, _RESKIN_LLM_RESPONSE)
+
+        monkeypatch.setattr("toolkit.structured_llm.structured_call", fake_sc)
+
+        reskinned, _ = asyncio.run(
+            reskin_scenario(
+                copy.deepcopy(_BASE_ANALYSIS),
+                source_context="",
+                llm_client=None,
+                llm_config={},
+            )
+        )
+        # assert_structure_preserved ran without raising; confirm numeric values intact
+        assert reskinned["batna"]["FreeStates"] == 4
+        assert reskinned["scoring"]["FreeStates"]["DefensePact"]["NonAlignment"] == 4
+
+    def test_value_tampering_mock_rejected_by_guard(self, monkeypatch) -> None:
+        import asyncio
+        from scenario_authoring.scenario_narrative import reskin_scenario
+
+        tampered = copy.deepcopy(_RESKIN_LLM_RESPONSE)
+        # LLM claims to relabel but sneaks in a numeric change — guard must catch it
+        # We simulate this by having the mock return a relabel_map that's valid BUT
+        # the apply_relabel result will be patched after the fact.
+        # Easiest: override apply_relabel to inject drift, then reskin_scenario's guard fires.
+        from scenario_authoring import scenario_narrative as sn
+
+        original_apply = sn.apply_relabel
+
+        def drifting_apply(analysis, relabel_map):
+            result = original_apply(analysis, relabel_map)
+            result["scoring"]["EmpireOfDawn"]["CommerceAct"]["FreeMarket"] = 999
+            return result
+
+        monkeypatch.setattr(sn, "apply_relabel", drifting_apply)
+
+        async def fake_sc(*args, **kwargs):
+            return _make_sc_result(True, tampered)
+
+        monkeypatch.setattr("toolkit.structured_llm.structured_call", fake_sc)
+
+        with pytest.raises(AssertionError, match="score drift"):
+            asyncio.run(
+                reskin_scenario(
+                    copy.deepcopy(_BASE_ANALYSIS),
+                    source_context="",
+                    llm_client=None,
+                    llm_config={},
+                )
+            )
+
+    def test_llm_failure_raises_valueerror(self, monkeypatch) -> None:
+        import asyncio
+        from scenario_authoring.scenario_narrative import reskin_scenario
+
+        async def fake_sc(*args, **kwargs):
+            return _make_sc_result(False, error="timeout")
+
+        monkeypatch.setattr("toolkit.structured_llm.structured_call", fake_sc)
+
+        with pytest.raises(ValueError, match="Reskin failed"):
+            asyncio.run(
+                reskin_scenario(
+                    copy.deepcopy(_BASE_ANALYSIS),
+                    source_context="",
+                    llm_client=None,
+                    llm_config={},
+                )
+            )
+
+    def test_does_not_mutate_source_analysis(self, monkeypatch) -> None:
+        import asyncio
+        from scenario_authoring.scenario_narrative import reskin_scenario
+
+        async def fake_sc(*args, **kwargs):
+            return _make_sc_result(True, _RESKIN_LLM_RESPONSE)
+
+        monkeypatch.setattr("toolkit.structured_llm.structured_call", fake_sc)
+
+        original = copy.deepcopy(_BASE_ANALYSIS)
+        asyncio.run(
+            reskin_scenario(
+                copy.deepcopy(_BASE_ANALYSIS),
+                source_context="",
+                llm_client=None,
+                llm_config={},
+            )
+        )
+        assert _BASE_ANALYSIS == original
