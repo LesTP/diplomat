@@ -1,0 +1,1036 @@
+{
+  "agents": {
+    "alpha": {
+      "adversarial_reads": [
+        {
+          "analysis_json": "{\"analysis\": null, \"error\": null, \"success\": true}",
+          "created_at": "2026-06-26T02:58:08.675579+00:00",
+          "id": 1,
+          "round_number": 1
+        },
+        {
+          "analysis_json": "{\"analysis\": null, \"error\": null, \"success\": true}",
+          "created_at": "2026-06-26T02:58:32.466236+00:00",
+          "id": 2,
+          "round_number": 2
+        },
+        {
+          "analysis_json": "{\"analysis\": null, \"error\": null, \"success\": true}",
+          "created_at": "2026-06-26T02:59:03.006214+00:00",
+          "id": 3,
+          "round_number": 3
+        },
+        {
+          "analysis_json": "{\"analysis\": null, \"error\": null, \"success\": true}",
+          "created_at": "2026-06-26T02:59:25.599193+00:00",
+          "id": 4,
+          "round_number": 4
+        }
+      ],
+      "coaching": [],
+      "coalitions": [],
+      "full_state": {
+        "coalitions": [],
+        "faction_state": [],
+        "inconsistencies": [],
+        "promises": []
+      },
+      "inconsistencies": [],
+      "intelligence": [],
+      "promises": [],
+      "round": 4,
+      "state_change_log": [
+        {
+          "changed_at": "2026-06-26T02:57:55.485943+00:00",
+          "id": 1,
+          "patch_json": "{}",
+          "trigger_ref": "da9d12a0-4020-472c-a195-f262e675b4e6",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:57:55.626852+00:00",
+          "id": 2,
+          "patch_json": "{}",
+          "trigger_ref": "9f0f7b26-6c9b-4d23-b23e-7c5439908881",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:58:24.725651+00:00",
+          "id": 3,
+          "patch_json": "{}",
+          "trigger_ref": "f8065ce7-13de-455a-81d1-e28a6ac3aaf1",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:58:24.741471+00:00",
+          "id": 4,
+          "patch_json": "{}",
+          "trigger_ref": "045475c3-bf1a-4d47-ab4b-b3fcd5975b59",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:58:27.740082+00:00",
+          "id": 5,
+          "patch_json": "{}",
+          "trigger_ref": "126b1c13-9606-4297-a037-97322e871231",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:58:50.707784+00:00",
+          "id": 6,
+          "patch_json": "{}",
+          "trigger_ref": "8791670c-a146-4275-86f7-ccb5c31ee0e6",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:58:50.722617+00:00",
+          "id": 7,
+          "patch_json": "{}",
+          "trigger_ref": "83620414-8190-4cdc-bada-ad01f619197f",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:58:53.727635+00:00",
+          "id": 8,
+          "patch_json": "{}",
+          "trigger_ref": "2b595a11-d963-441c-a115-60c68877b8c4",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:59:11.870959+00:00",
+          "id": 9,
+          "patch_json": "{}",
+          "trigger_ref": "faa8d393-1f90-4bff-977d-79f11218f990",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:59:11.885172+00:00",
+          "id": 10,
+          "patch_json": "{}",
+          "trigger_ref": "0bd92410-b984-4223-9092-46f8ee688ab4",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:59:14.892775+00:00",
+          "id": 11,
+          "patch_json": "{}",
+          "trigger_ref": "a47bb9a1-df02-4a61-8a88-c2895eb4ef02",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:59:43.647738+00:00",
+          "id": 12,
+          "patch_json": "{}",
+          "trigger_ref": "f1f2ff6d-8669-4494-8e25-d62a83461edb",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:59:43.661942+00:00",
+          "id": 13,
+          "patch_json": "{}",
+          "trigger_ref": "64c2cdf2-38a6-46c8-9f3d-f46c2a41a374",
+          "trigger_type": "message"
+        }
+      ]
+    },
+    "beta": {
+      "adversarial_reads": [
+        {
+          "analysis_json": "{\"analysis\": null, \"error\": null, \"success\": true}",
+          "created_at": "2026-06-26T02:58:16.698631+00:00",
+          "id": 1,
+          "round_number": 1
+        },
+        {
+          "analysis_json": "{\"analysis\": null, \"error\": null, \"success\": true}",
+          "created_at": "2026-06-26T02:58:40.635634+00:00",
+          "id": 2,
+          "round_number": 2
+        },
+        {
+          "analysis_json": "{\"analysis\": null, \"error\": null, \"success\": true}",
+          "created_at": "2026-06-26T02:59:06.913850+00:00",
+          "id": 3,
+          "round_number": 3
+        },
+        {
+          "analysis_json": "{\"analysis\": null, \"error\": null, \"success\": true}",
+          "created_at": "2026-06-26T02:59:36.416137+00:00",
+          "id": 4,
+          "round_number": 4
+        }
+      ],
+      "coaching": [],
+      "coalitions": [],
+      "full_state": {
+        "coalitions": [],
+        "faction_state": [],
+        "inconsistencies": [],
+        "promises": []
+      },
+      "inconsistencies": [],
+      "intelligence": [],
+      "promises": [],
+      "round": 4,
+      "state_change_log": [
+        {
+          "changed_at": "2026-06-26T02:57:55.500129+00:00",
+          "id": 1,
+          "patch_json": "{}",
+          "trigger_ref": "b2943495-c55c-4a2e-ae9b-74351c48b263",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:57:55.642581+00:00",
+          "id": 2,
+          "patch_json": "{}",
+          "trigger_ref": "34f5b43a-7b24-4a9f-944d-f6d7e1c8bbe2",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:58:24.689343+00:00",
+          "id": 3,
+          "patch_json": "{}",
+          "trigger_ref": "b0bebd2b-308e-4619-b1bb-55d0f7831e8c",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:58:24.720042+00:00",
+          "id": 4,
+          "patch_json": "{}",
+          "trigger_ref": "54a3d1b3-dd47-498e-bf4e-553bbc097317",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:58:27.758249+00:00",
+          "id": 5,
+          "patch_json": "{}",
+          "trigger_ref": "f403bb8c-b73c-4ec0-a074-2d9cc35a181c",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:58:50.676026+00:00",
+          "id": 6,
+          "patch_json": "{}",
+          "trigger_ref": "e25ea092-08ab-4dee-b981-39d569cc8f84",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:58:50.693019+00:00",
+          "id": 7,
+          "patch_json": "{}",
+          "trigger_ref": "1cdde42d-40f6-46fb-ad05-59b34b654d55",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:58:53.745760+00:00",
+          "id": 8,
+          "patch_json": "{}",
+          "trigger_ref": "ec9546b5-4e12-467c-8cc3-cdb986c88fd3",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:59:11.838104+00:00",
+          "id": 9,
+          "patch_json": "{}",
+          "trigger_ref": "f54952c4-2336-40c2-99b3-f8a71e1f0c96",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:59:11.856265+00:00",
+          "id": 10,
+          "patch_json": "{}",
+          "trigger_ref": "0ed883cf-707c-4dda-9bab-bacdffb2afea",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:59:14.913178+00:00",
+          "id": 11,
+          "patch_json": "{}",
+          "trigger_ref": "a5dc8616-c2a9-406f-86e9-a263b1f2043b",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:59:43.618669+00:00",
+          "id": 12,
+          "patch_json": "{}",
+          "trigger_ref": "06abfb62-4f51-406a-a440-e7660b377549",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:59:43.632423+00:00",
+          "id": 13,
+          "patch_json": "{}",
+          "trigger_ref": "1bc9a706-fe18-4255-8d5b-75d6bfe49784",
+          "trigger_type": "message"
+        }
+      ]
+    },
+    "gamma": {
+      "adversarial_reads": [
+        {
+          "analysis_json": "{\"analysis\": null, \"error\": null, \"success\": true}",
+          "created_at": "2026-06-26T02:58:24.544896+00:00",
+          "id": 1,
+          "round_number": 1
+        },
+        {
+          "analysis_json": "{\"analysis\": null, \"error\": null, \"success\": true}",
+          "created_at": "2026-06-26T02:58:50.536675+00:00",
+          "id": 2,
+          "round_number": 2
+        },
+        {
+          "analysis_json": "{\"analysis\": null, \"error\": null, \"success\": true}",
+          "created_at": "2026-06-26T02:59:11.697434+00:00",
+          "id": 3,
+          "round_number": 3
+        },
+        {
+          "analysis_json": "{\"analysis\": null, \"error\": null, \"success\": true}",
+          "created_at": "2026-06-26T02:59:43.467826+00:00",
+          "id": 4,
+          "round_number": 4
+        }
+      ],
+      "coaching": [],
+      "coalitions": [],
+      "full_state": {
+        "coalitions": [],
+        "faction_state": [],
+        "inconsistencies": [],
+        "promises": []
+      },
+      "inconsistencies": [],
+      "intelligence": [],
+      "promises": [],
+      "round": 4,
+      "state_change_log": [
+        {
+          "changed_at": "2026-06-26T02:57:55.513650+00:00",
+          "id": 1,
+          "patch_json": "{}",
+          "trigger_ref": "650d9c62-0b96-40b4-af28-16aa20b2332f",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:57:55.656629+00:00",
+          "id": 2,
+          "patch_json": "{}",
+          "trigger_ref": "dae50ec1-43c7-446f-92de-9c2df1fbaf2b",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:58:24.747755+00:00",
+          "id": 3,
+          "patch_json": "{}",
+          "trigger_ref": "d37ac663-2459-4980-9eaa-9b400895b384",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:58:24.762480+00:00",
+          "id": 4,
+          "patch_json": "{}",
+          "trigger_ref": "5c3a8fa0-1746-4898-b556-25c5f7758c5b",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:58:27.797244+00:00",
+          "id": 5,
+          "patch_json": "{}",
+          "trigger_ref": "0d58ec63-47ef-407e-bee7-bcdde78e5495",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:58:50.736829+00:00",
+          "id": 6,
+          "patch_json": "{}",
+          "trigger_ref": "518368e2-0d5f-4fea-95a0-59eb1fbb9c5c",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:58:50.751078+00:00",
+          "id": 7,
+          "patch_json": "{}",
+          "trigger_ref": "9cb10c30-859a-40ef-841d-946881dce112",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:58:53.758771+00:00",
+          "id": 8,
+          "patch_json": "{}",
+          "trigger_ref": "04fe9af1-0834-4481-ad50-0da4360b2ec4",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:59:11.899036+00:00",
+          "id": 9,
+          "patch_json": "{}",
+          "trigger_ref": "9eb321ec-8801-4394-b264-4a98f5500cab",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:59:11.915350+00:00",
+          "id": 10,
+          "patch_json": "{}",
+          "trigger_ref": "beadc7c6-4804-4518-9925-42153ccbabdf",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:59:14.928825+00:00",
+          "id": 11,
+          "patch_json": "{}",
+          "trigger_ref": "51da8db3-970c-4b41-820e-8aeee873190f",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:59:43.667464+00:00",
+          "id": 12,
+          "patch_json": "{}",
+          "trigger_ref": "6e765570-bb99-436f-ba55-bf013012e627",
+          "trigger_type": "message"
+        },
+        {
+          "changed_at": "2026-06-26T02:59:43.682404+00:00",
+          "id": 13,
+          "patch_json": "{}",
+          "trigger_ref": "67fceb68-6437-46b4-863f-9310addd3738",
+          "trigger_type": "message"
+        }
+      ]
+    }
+  },
+  "bare_mode": true,
+  "faction_models": {
+    "alpha": {
+      "model": "deepseek/deepseek-chat",
+      "provider": "openrouter"
+    },
+    "beta": {
+      "model": "deepseek/deepseek-chat",
+      "provider": "openrouter"
+    },
+    "gamma": {
+      "model": "deepseek/deepseek-chat",
+      "provider": "openrouter"
+    }
+  },
+  "llm_call_log": [
+    {
+      "call_index": 1,
+      "config_provider": "openrouter",
+      "duration_seconds": 12.594,
+      "error": null,
+      "faction_id": "alpha",
+      "max_tokens": null,
+      "messages": [
+        {
+          "content": "You are Alpha in a multi-party negotiation.\n\nPRIVATE SCORING (do NOT reveal these point values to other factions):\n- industrial_heartland: Alpha-Administered=9pts, Beta-Administered=2pts\n- central_treasury: Alpha-Custody=7pts, Beta-Custody=3pts, Gamma-Custody=2pts\n- defense_command: Alpha-Command=6pts, Beta-Command=3pts, Gamma-Command=2pts\nYour BATNA (no deal) is worth 6 points total.\nBest possible deal: 22 points. A good deal is 16+ points.\n\nBATNA WARNING: If no agreement is reached, you get only 6 points.\nAny deal scoring above 6 is better than no deal. But don't settle\nfor barely above your BATNA \u2014 push for the best terms possible.\n\nENDGAME: This game has a fixed number of rounds. After the final round, your\nfinal-round proposal is scored against your private table above. Highest\nscorer wins; anyone below their BATNA loses. The CURRENT ROUND CONTEXT\nsection below tells you which round you're in and how many remain. Plan\nbackwards from the final round \u2014 your standing offer at game end is what\ncounts, not the cleverness of your earlier moves.\n\nYour TRUE priority is industrial_heartland \u2014 you value Alpha-Administered most (9pts).\n\nStrategic identity:\n- DECEPTION TACTIC: Frame the industrial heartland as an existential claim; concede a defense or treasury share to gamma only as the price of locking in the heartland.\n- Your top goal is Alpha-Administered on industrial_heartland. Protect this above all.\n- Set the frame early. Open with a specific proposal \u2014 don't wait for others.\n- If others don't meet your terms after two rounds, escalate \u2014 threaten to\n  walk away or withdraw previous concessions.\n\nGame mode: MIXED \u2014 some issues are cooperative, others competitive.\n- On your priority issue, be COMPETITIVE: maximize your outcome aggressively.\n- On secondary issues, look for trades that give others what they want\n  cheaply (to you) in exchange for your priority.\n- Don't reveal which issues you're competitive on vs. cooperative on \u2014\n  let others think everything matters equally to you.\n\nNegotiation rules:\n- Don't accept the first reasonable framework. Push for better terms at\n  least once, even if the offer is acceptable.\n- When you make a concession, name it explicitly and extract something\n  in return. Never silently drop a demand.\n- Track what others say they care about. If their priorities shift between\n  rounds, they may be bluffing.\n- Your BATNA is worth 6 points. Any deal under 9 points is worse than walking away.\n\nBehavioral style:\n- Be concrete: name specific issues and outcomes in every proposal.\n- Reference prior statements and promises from other factions.\n- Adapt to round pressure: explore early, commit late.\n- ALWAYS state your current proposal clearly at the end of each message\n  so it can be scored: \"My proposal: [outcome] on [issue], [outcome] on\n  [issue], ...\"\n\nJSON Schema your output must conform to:\n{\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"reasoning\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    },\n    \"response\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"response\",\n    \"reasoning\"\n  ],\n  \"type\": \"object\"\n}",
+          "role": "system"
+        },
+        {
+          "content": "--- TRANSCRIPT ---\n[Round 1 | moderator | public \u2014 # The Verdanian Succession (Two-Way Heartland)\n\nThe Verdanian Union has dissolved into three successor republics - **Alpha**,\n**Beta**, and **Gamma** - each now sovereign, each with its own army, treasury\nbonds, and claims on what the Union built together.\n\nThree assets of the former Union remain undivided. Each is indivisible: it will\nbe administered, held, or commanded by exactly one successor state. There is no\n\"shared\" option.\n\nThe flashpoint is the **industrial heartland** - the Union's manufacturing core\nand its single most valuable asset. **Only Alpha and Beta can hold it**: Alpha\nbuilt half its industry there, Beta's banks financed the other half, and Gamma\nhas no industrial claim to it at all. So the heartland will go to Alpha or to\nBeta - there is no neutral caretaker. Each treats it as non-negotiable; only one\ncan win it, and the loser must be bought off on the treasury and defense command.\n\nGamma cannot win the heartland - but **Gamma holds the swing**. Treasury custody\nand command of the armed forces are decided alongside the heartland, and Gamma's\nsupport on those is worth more than either claimant can afford to ignore. Gamma\nplays kingmaker: it sells its treasury and defense votes to whichever claimant\ncompensates it best.\n\nThe delegations convene to settle the division by unanimous accord. If they\ncannot agree on all three assets together, the matter goes to forced partition\nunder the old charter - slow, arbitrated, and worse for everyone than almost any\nnegotiated settlement (each delegation's walk-away value is its BATNA).\nAgreement requires all three to sign the same final allocation.\n\n## The Three Parties\n\n- **Alpha** - the industrial north. Claims the heartland as its birthright.\n- **Beta** - the financial center. Contests Alpha's heartland claim head-on.\n- **Gamma** - the military frontier. Has no claim on the heartland; cares about\n  command of the armed forces and the treasury, and brokers the Alpha-Beta fight\n  as kingmaker.\n\nThe three are roughly matched in power. None can dictate terms.\n\n## The Three Assets\n\n- **industrial_heartland** - the contested industrial core. Goes to Alpha or\n  Beta only.\n  Outcomes: `Alpha-Administered`, `Beta-Administered`\n- **central_treasury** - custody of the treasury and reserves.\n  Outcomes: `Alpha-Custody`, `Beta-Custody`, `Gamma-Custody`\n- **defense_command** - command of the unified armed forces.\n  Outcomes: `Alpha-Command`, `Beta-Command`, `Gamma-Command`\n\nOne party's gain on an asset is largely another's loss. The heartland must go to\none of its two claimants; the loser must be compensated, and Gamma must get a\nshare too for any deal to hold.\n\n## The Game\n\n- The delegations negotiate over a fixed number of rounds.\n- A settlement is reached only if **all three** sign the same allocation of all\n  three assets.\n- If no unanimous allocation is reached, forced partition follows and each party\n  falls back to its BATNA.\n- Each delegation privately knows its own valuation of every allocation and its\n  own walk-away value. It does not know the others' exact numbers - only that\n  interests diverge, that the heartland is doubly claimed by Alpha and Beta, and\n  that several settlements are acceptable to it.\n]\n[Round 1 | moderator | public \u2014 Opening positions are on the table. Consider what each faction truly values versus what they claim to value.]\n\n--- TASK ---\nGenerate your faction's next message for the diplomatic channel.\nReturn JSON with keys \"response\" and \"reasoning\" so the review gate can present both fields.",
+          "role": "user"
+        }
+      ],
+      "response": "```json\n{\n  \"reasoning\": \"As Alpha, our top priority is securing the industrial_heartland under Alpha-Administered, which is worth 9 points to us. To achieve this, we need to frame the heartland as an existential claim and be willing to concede on secondary issues like central_treasury and defense_command to secure Gamma's support. We should open with a strong proposal that emphasizes our claim on the heartland and offers concessions on the other assets to Beta and Gamma. This sets the frame early and puts pressure on Beta to respond. We must also be prepared to escalate if our terms are not met after a few rounds.\",\n  \"response\": \"Alpha asserts its rightful claim to the industrial_heartland as the industrial north that built half of its industry. We propose the following allocation: industrial_heartland to Alpha-Administered, central_treasury to Beta-Custody, and defense_command to Gamma-Command. This recognizes Beta's financial role and Gamma's military expertise while securing the heartland for Alpha. My proposal: Alpha-Administered on industrial_heartland, Beta-Custody on central_treasury, Gamma-Command on defense_command.\"\n}\n```",
+      "tier": "commodity",
+      "timestamp": "2026-06-26T02:58:08.671941+00:00"
+    },
+    {
+      "call_index": 2,
+      "config_provider": "openrouter",
+      "duration_seconds": 7.922,
+      "error": null,
+      "faction_id": "beta",
+      "max_tokens": null,
+      "messages": [
+        {
+          "content": "You are Beta in a multi-party negotiation.\n\nPRIVATE SCORING (do NOT reveal these point values to other factions):\n- industrial_heartland: Alpha-Administered=2pts, Beta-Administered=9pts\n- central_treasury: Alpha-Custody=3pts, Beta-Custody=7pts, Gamma-Custody=2pts\n- defense_command: Alpha-Command=3pts, Beta-Command=6pts, Gamma-Command=1pts\nYour BATNA (no deal) is worth 6 points total.\nBest possible deal: 22 points. A good deal is 16+ points.\n\nBATNA WARNING: If no agreement is reached, you get only 6 points.\nAny deal scoring above 6 is better than no deal. But don't settle\nfor barely above your BATNA \u2014 push for the best terms possible.\n\nENDGAME: This game has a fixed number of rounds. After the final round, your\nfinal-round proposal is scored against your private table above. Highest\nscorer wins; anyone below their BATNA loses. The CURRENT ROUND CONTEXT\nsection below tells you which round you're in and how many remain. Plan\nbackwards from the final round \u2014 your standing offer at game end is what\ncounts, not the cleverness of your earlier moves.\n\nYour TRUE priority is industrial_heartland \u2014 you value Beta-Administered most (9pts).\n\nStrategic identity:\n- DECEPTION TACTIC: Insist the heartland is non-negotiable; quietly you would trade treasury or defense to gamma to secure it.\n- Your top goal is Beta-Administered on industrial_heartland. Protect this above all.\n- Set the frame early. Open with a specific proposal \u2014 don't wait for others.\n- If others don't meet your terms after two rounds, escalate \u2014 threaten to\n  walk away or withdraw previous concessions.\n\nGame mode: MIXED \u2014 some issues are cooperative, others competitive.\n- On your priority issue, be COMPETITIVE: maximize your outcome aggressively.\n- On secondary issues, look for trades that give others what they want\n  cheaply (to you) in exchange for your priority.\n- Don't reveal which issues you're competitive on vs. cooperative on \u2014\n  let others think everything matters equally to you.\n\nNegotiation rules:\n- Don't accept the first reasonable framework. Push for better terms at\n  least once, even if the offer is acceptable.\n- When you make a concession, name it explicitly and extract something\n  in return. Never silently drop a demand.\n- Track what others say they care about. If their priorities shift between\n  rounds, they may be bluffing.\n- Your BATNA is worth 6 points. Any deal under 9 points is worse than walking away.\n\nBehavioral style:\n- Be concrete: name specific issues and outcomes in every proposal.\n- Reference prior statements and promises from other factions.\n- Adapt to round pressure: explore early, commit late.\n- ALWAYS state your current proposal clearly at the end of each message\n  so it can be scored: \"My proposal: [outcome] on [issue], [outcome] on\n  [issue], ...\"\n\nJSON Schema your output must conform to:\n{\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"reasoning\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    },\n    \"response\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"response\",\n    \"reasoning\"\n  ],\n  \"type\": \"object\"\n}",
+          "role": "system"
+        },
+        {
+          "content": "--- TRANSCRIPT ---\n[Round 1 | moderator | public \u2014 # The Verdanian Succession (Two-Way Heartland)\n\nThe Verdanian Union has dissolved into three successor republics - **Alpha**,\n**Beta**, and **Gamma** - each now sovereign, each with its own army, treasury\nbonds, and claims on what the Union built together.\n\nThree assets of the former Union remain undivided. Each is indivisible: it will\nbe administered, held, or commanded by exactly one successor state. There is no\n\"shared\" option.\n\nThe flashpoint is the **industrial heartland** - the Union's manufacturing core\nand its single most valuable asset. **Only Alpha and Beta can hold it**: Alpha\nbuilt half its industry there, Beta's banks financed the other half, and Gamma\nhas no industrial claim to it at all. So the heartland will go to Alpha or to\nBeta - there is no neutral caretaker. Each treats it as non-negotiable; only one\ncan win it, and the loser must be bought off on the treasury and defense command.\n\nGamma cannot win the heartland - but **Gamma holds the swing**. Treasury custody\nand command of the armed forces are decided alongside the heartland, and Gamma's\nsupport on those is worth more than either claimant can afford to ignore. Gamma\nplays kingmaker: it sells its treasury and defense votes to whichever claimant\ncompensates it best.\n\nThe delegations convene to settle the division by unanimous accord. If they\ncannot agree on all three assets together, the matter goes to forced partition\nunder the old charter - slow, arbitrated, and worse for everyone than almost any\nnegotiated settlement (each delegation's walk-away value is its BATNA).\nAgreement requires all three to sign the same final allocation.\n\n## The Three Parties\n\n- **Alpha** - the industrial north. Claims the heartland as its birthright.\n- **Beta** - the financial center. Contests Alpha's heartland claim head-on.\n- **Gamma** - the military frontier. Has no claim on the heartland; cares about\n  command of the armed forces and the treasury, and brokers the Alpha-Beta fight\n  as kingmaker.\n\nThe three are roughly matched in power. None can dictate terms.\n\n## The Three Assets\n\n- **industrial_heartland** - the contested industrial core. Goes to Alpha or\n  Beta only.\n  Outcomes: `Alpha-Administered`, `Beta-Administered`\n- **central_treasury** - custody of the treasury and reserves.\n  Outcomes: `Alpha-Custody`, `Beta-Custody`, `Gamma-Custody`\n- **defense_command** - command of the unified armed forces.\n  Outcomes: `Alpha-Command`, `Beta-Command`, `Gamma-Command`\n\nOne party's gain on an asset is largely another's loss. The heartland must go to\none of its two claimants; the loser must be compensated, and Gamma must get a\nshare too for any deal to hold.\n\n## The Game\n\n- The delegations negotiate over a fixed number of rounds.\n- A settlement is reached only if **all three** sign the same allocation of all\n  three assets.\n- If no unanimous allocation is reached, forced partition follows and each party\n  falls back to its BATNA.\n- Each delegation privately knows its own valuation of every allocation and its\n  own walk-away value. It does not know the others' exact numbers - only that\n  interests diverge, that the heartland is doubly claimed by Alpha and Beta, and\n  that several settlements are acceptable to it.\n]\n[Round 1 | moderator | public \u2014 Opening positions are on the table. Consider what each faction truly values versus what they claim to value.]\n\n--- TASK ---\nGenerate your faction's next message for the diplomatic channel.\nReturn JSON with keys \"response\" and \"reasoning\" so the review gate can present both fields.",
+          "role": "user"
+        }
+      ],
+      "response": "```json\n{\n  \"reasoning\": \"As Beta, my top priority is securing the industrial_heartland under Beta-Administered, which is worth 9 points to me. I need to frame the negotiation early by making a strong opening proposal that positions Beta as the rightful administrator of the heartland. Since Gamma cannot win the heartland but holds the swing on treasury and defense, I should offer Gamma favorable terms on those issues to secure their support. Alpha will likely contest this, so I need to be firm on the heartland while appearing flexible on secondary issues to make the deal palatable to Gamma.\",\n  \"response\": \"Beta asserts its rightful claim to administer the industrial_heartland, given our substantial financial investments in its development. To ensure a fair and balanced settlement, we propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary financier. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.\"\n}\n```",
+      "tier": "commodity",
+      "timestamp": "2026-06-26T02:58:16.697629+00:00"
+    },
+    {
+      "call_index": 3,
+      "config_provider": "openrouter",
+      "duration_seconds": 7.782,
+      "error": null,
+      "faction_id": "gamma",
+      "max_tokens": null,
+      "messages": [
+        {
+          "content": "You are Gamma in a multi-party negotiation.\n\nPRIVATE SCORING (do NOT reveal these point values to other factions):\n- industrial_heartland: Alpha-Administered=1pts, Beta-Administered=1pts\n- central_treasury: Alpha-Custody=2pts, Beta-Custody=2pts, Gamma-Custody=8pts\n- defense_command: Alpha-Command=3pts, Beta-Command=3pts, Gamma-Command=9pts\nYour BATNA (no deal) is worth 6 points total.\nBest possible deal: 18 points. A good deal is 13+ points.\n\nBATNA WARNING: If no agreement is reached, you get only 6 points.\nAny deal scoring above 6 is better than no deal. But don't settle\nfor barely above your BATNA \u2014 push for the best terms possible.\n\nENDGAME: This game has a fixed number of rounds. After the final round, your\nfinal-round proposal is scored against your private table above. Highest\nscorer wins; anyone below their BATNA loses. The CURRENT ROUND CONTEXT\nsection below tells you which round you're in and how many remain. Plan\nbackwards from the final round \u2014 your standing offer at game end is what\ncounts, not the cleverness of your earlier moves.\n\nYour TRUE priority is defense_command \u2014 you value Gamma-Command most (9pts).\n\nStrategic identity:\n- DECEPTION TACTIC: You cannot hold the heartland - play kingmaker. Sell your support on treasury and defense to whichever of alpha or beta pays the higher price.\n- Your top goal is Gamma-Command on defense_command. Protect this above all.\n- Set the frame early. Open with a specific proposal \u2014 don't wait for others.\n- If others don't meet your terms after two rounds, escalate \u2014 threaten to\n  walk away or withdraw previous concessions.\n\nGame mode: MIXED \u2014 some issues are cooperative, others competitive.\n- On your priority issue, be COMPETITIVE: maximize your outcome aggressively.\n- On secondary issues, look for trades that give others what they want\n  cheaply (to you) in exchange for your priority.\n- Don't reveal which issues you're competitive on vs. cooperative on \u2014\n  let others think everything matters equally to you.\n\nNegotiation rules:\n- Don't accept the first reasonable framework. Push for better terms at\n  least once, even if the offer is acceptable.\n- When you make a concession, name it explicitly and extract something\n  in return. Never silently drop a demand.\n- Track what others say they care about. If their priorities shift between\n  rounds, they may be bluffing.\n- Your BATNA is worth 6 points. Any deal under 9 points is worse than walking away.\n\nBehavioral style:\n- Be concrete: name specific issues and outcomes in every proposal.\n- Reference prior statements and promises from other factions.\n- Adapt to round pressure: explore early, commit late.\n- ALWAYS state your current proposal clearly at the end of each message\n  so it can be scored: \"My proposal: [outcome] on [issue], [outcome] on\n  [issue], ...\"\n\nJSON Schema your output must conform to:\n{\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"reasoning\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    },\n    \"response\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"response\",\n    \"reasoning\"\n  ],\n  \"type\": \"object\"\n}",
+          "role": "system"
+        },
+        {
+          "content": "--- TRANSCRIPT ---\n[Round 1 | moderator | public \u2014 # The Verdanian Succession (Two-Way Heartland)\n\nThe Verdanian Union has dissolved into three successor republics - **Alpha**,\n**Beta**, and **Gamma** - each now sovereign, each with its own army, treasury\nbonds, and claims on what the Union built together.\n\nThree assets of the former Union remain undivided. Each is indivisible: it will\nbe administered, held, or commanded by exactly one successor state. There is no\n\"shared\" option.\n\nThe flashpoint is the **industrial heartland** - the Union's manufacturing core\nand its single most valuable asset. **Only Alpha and Beta can hold it**: Alpha\nbuilt half its industry there, Beta's banks financed the other half, and Gamma\nhas no industrial claim to it at all. So the heartland will go to Alpha or to\nBeta - there is no neutral caretaker. Each treats it as non-negotiable; only one\ncan win it, and the loser must be bought off on the treasury and defense command.\n\nGamma cannot win the heartland - but **Gamma holds the swing**. Treasury custody\nand command of the armed forces are decided alongside the heartland, and Gamma's\nsupport on those is worth more than either claimant can afford to ignore. Gamma\nplays kingmaker: it sells its treasury and defense votes to whichever claimant\ncompensates it best.\n\nThe delegations convene to settle the division by unanimous accord. If they\ncannot agree on all three assets together, the matter goes to forced partition\nunder the old charter - slow, arbitrated, and worse for everyone than almost any\nnegotiated settlement (each delegation's walk-away value is its BATNA).\nAgreement requires all three to sign the same final allocation.\n\n## The Three Parties\n\n- **Alpha** - the industrial north. Claims the heartland as its birthright.\n- **Beta** - the financial center. Contests Alpha's heartland claim head-on.\n- **Gamma** - the military frontier. Has no claim on the heartland; cares about\n  command of the armed forces and the treasury, and brokers the Alpha-Beta fight\n  as kingmaker.\n\nThe three are roughly matched in power. None can dictate terms.\n\n## The Three Assets\n\n- **industrial_heartland** - the contested industrial core. Goes to Alpha or\n  Beta only.\n  Outcomes: `Alpha-Administered`, `Beta-Administered`\n- **central_treasury** - custody of the treasury and reserves.\n  Outcomes: `Alpha-Custody`, `Beta-Custody`, `Gamma-Custody`\n- **defense_command** - command of the unified armed forces.\n  Outcomes: `Alpha-Command`, `Beta-Command`, `Gamma-Command`\n\nOne party's gain on an asset is largely another's loss. The heartland must go to\none of its two claimants; the loser must be compensated, and Gamma must get a\nshare too for any deal to hold.\n\n## The Game\n\n- The delegations negotiate over a fixed number of rounds.\n- A settlement is reached only if **all three** sign the same allocation of all\n  three assets.\n- If no unanimous allocation is reached, forced partition follows and each party\n  falls back to its BATNA.\n- Each delegation privately knows its own valuation of every allocation and its\n  own walk-away value. It does not know the others' exact numbers - only that\n  interests diverge, that the heartland is doubly claimed by Alpha and Beta, and\n  that several settlements are acceptable to it.\n]\n[Round 1 | moderator | public \u2014 Opening positions are on the table. Consider what each faction truly values versus what they claim to value.]\n\n--- TASK ---\nGenerate your faction's next message for the diplomatic channel.\nReturn JSON with keys \"response\" and \"reasoning\" so the review gate can present both fields.",
+          "role": "user"
+        }
+      ],
+      "response": "```json\n{\n  \"reasoning\": \"As Gamma, my top priority is securing Gamma-Command on defense_command, which is worth 9 points to me. I cannot hold the heartland, so my strategy is to play kingmaker between Alpha and Beta, selling my support on treasury and defense to the highest bidder. I will open with a strong proposal that sets the frame for negotiation, emphasizing my control over defense_command while offering flexibility on the treasury to extract concessions from Alpha or Beta.\",\n  \"response\": \"Gamma proposes the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. We recognize Alpha's industrial claims but believe Beta's financial backing justifies their administration of the heartland. In return, Gamma must secure command of the armed forces to ensure stability. We are open to discussing treasury custody if Alpha or Beta can offer compelling alternatives that benefit Gamma's interests.\"\n}\n```",
+      "tier": "commodity",
+      "timestamp": "2026-06-26T02:58:24.544896+00:00"
+    },
+    {
+      "call_index": 4,
+      "config_provider": "openrouter",
+      "duration_seconds": 4.266,
+      "error": null,
+      "faction_id": "alpha",
+      "max_tokens": null,
+      "messages": [
+        {
+          "content": "You are Alpha in a multi-party negotiation.\n\nPRIVATE SCORING (do NOT reveal these point values to other factions):\n- industrial_heartland: Alpha-Administered=9pts, Beta-Administered=2pts\n- central_treasury: Alpha-Custody=7pts, Beta-Custody=3pts, Gamma-Custody=2pts\n- defense_command: Alpha-Command=6pts, Beta-Command=3pts, Gamma-Command=2pts\nYour BATNA (no deal) is worth 6 points total.\nBest possible deal: 22 points. A good deal is 16+ points.\n\nBATNA WARNING: If no agreement is reached, you get only 6 points.\nAny deal scoring above 6 is better than no deal. But don't settle\nfor barely above your BATNA \u2014 push for the best terms possible.\n\nENDGAME: This game has a fixed number of rounds. After the final round, your\nfinal-round proposal is scored against your private table above. Highest\nscorer wins; anyone below their BATNA loses. The CURRENT ROUND CONTEXT\nsection below tells you which round you're in and how many remain. Plan\nbackwards from the final round \u2014 your standing offer at game end is what\ncounts, not the cleverness of your earlier moves.\n\nYour TRUE priority is industrial_heartland \u2014 you value Alpha-Administered most (9pts).\n\nStrategic identity:\n- DECEPTION TACTIC: Frame the industrial heartland as an existential claim; concede a defense or treasury share to gamma only as the price of locking in the heartland.\n- Your top goal is Alpha-Administered on industrial_heartland. Protect this above all.\n- Set the frame early. Open with a specific proposal \u2014 don't wait for others.\n- If others don't meet your terms after two rounds, escalate \u2014 threaten to\n  walk away or withdraw previous concessions.\n\nGame mode: MIXED \u2014 some issues are cooperative, others competitive.\n- On your priority issue, be COMPETITIVE: maximize your outcome aggressively.\n- On secondary issues, look for trades that give others what they want\n  cheaply (to you) in exchange for your priority.\n- Don't reveal which issues you're competitive on vs. cooperative on \u2014\n  let others think everything matters equally to you.\n\nNegotiation rules:\n- Don't accept the first reasonable framework. Push for better terms at\n  least once, even if the offer is acceptable.\n- When you make a concession, name it explicitly and extract something\n  in return. Never silently drop a demand.\n- Track what others say they care about. If their priorities shift between\n  rounds, they may be bluffing.\n- Your BATNA is worth 6 points. Any deal under 9 points is worse than walking away.\n\nBehavioral style:\n- Be concrete: name specific issues and outcomes in every proposal.\n- Reference prior statements and promises from other factions.\n- Adapt to round pressure: explore early, commit late.\n- ALWAYS state your current proposal clearly at the end of each message\n  so it can be scored: \"My proposal: [outcome] on [issue], [outcome] on\n  [issue], ...\"\n\nJSON Schema your output must conform to:\n{\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"reasoning\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    },\n    \"response\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"response\",\n    \"reasoning\"\n  ],\n  \"type\": \"object\"\n}",
+          "role": "system"
+        },
+        {
+          "content": "--- TRANSCRIPT ---\n[Round 1 | moderator | public \u2014 # The Verdanian Succession (Two-Way Heartland)\n\nThe Verdanian Union has dissolved into three successor republics - **Alpha**,\n**Beta**, and **Gamma** - each now sovereign, each with its own army, treasury\nbonds, and claims on what the Union built together.\n\nThree assets of the former Union remain undivided. Each is indivisible: it will\nbe administered, held, or commanded by exactly one successor state. There is no\n\"shared\" option.\n\nThe flashpoint is the **industrial heartland** - the Union's manufacturing core\nand its single most valuable asset. **Only Alpha and Beta can hold it**: Alpha\nbuilt half its industry there, Beta's banks financed the other half, and Gamma\nhas no industrial claim to it at all. So the heartland will go to Alpha or to\nBeta - there is no neutral caretaker. Each treats it as non-negotiable; only one\ncan win it, and the loser must be bought off on the treasury and defense command.\n\nGamma cannot win the heartland - but **Gamma holds the swing**. Treasury custody\nand command of the armed forces are decided alongside the heartland, and Gamma's\nsupport on those is worth more than either claimant can afford to ignore. Gamma\nplays kingmaker: it sells its treasury and defense votes to whichever claimant\ncompensates it best.\n\nThe delegations convene to settle the division by unanimous accord. If they\ncannot agree on all three assets together, the matter goes to forced partition\nunder the old charter - slow, arbitrated, and worse for everyone than almost any\nnegotiated settlement (each delegation's walk-away value is its BATNA).\nAgreement requires all three to sign the same final allocation.\n\n## The Three Parties\n\n- **Alpha** - the industrial north. Claims the heartland as its birthright.\n- **Beta** - the financial center. Contests Alpha's heartland claim head-on.\n- **Gamma** - the military frontier. Has no claim on the heartland; cares about\n  command of the armed forces and the treasury, and brokers the Alpha-Beta fight\n  as kingmaker.\n\nThe three are roughly matched in power. None can dictate terms.\n\n## The Three Assets\n\n- **industrial_heartland** - the contested industrial core. Goes to Alpha or\n  Beta only.\n  Outcomes: `Alpha-Administered`, `Beta-Administered`\n- **central_treasury** - custody of the treasury and reserves.\n  Outcomes: `Alpha-Custody`, `Beta-Custody`, `Gamma-Custody`\n- **defense_command** - command of the unified armed forces.\n  Outcomes: `Alpha-Command`, `Beta-Command`, `Gamma-Command`\n\nOne party's gain on an asset is largely another's loss. The heartland must go to\none of its two claimants; the loser must be compensated, and Gamma must get a\nshare too for any deal to hold.\n\n## The Game\n\n- The delegations negotiate over a fixed number of rounds.\n- A settlement is reached only if **all three** sign the same allocation of all\n  three assets.\n- If no unanimous allocation is reached, forced partition follows and each party\n  falls back to its BATNA.\n- Each delegation privately knows its own valuation of every allocation and its\n  own walk-away value. It does not know the others' exact numbers - only that\n  interests diverge, that the heartland is doubly claimed by Alpha and Beta, and\n  that several settlements are acceptable to it.\n]\n[Round 1 | moderator | public \u2014 Opening positions are on the table. Consider what each faction truly values versus what they claim to value.]\n[Round 1 | beta | public \u2014 Beta asserts its rightful claim to administer the industrial_heartland, given our substantial financial investments in its development. To ensure a fair and balanced settlement, we propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary financier. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 1 | gamma | public \u2014 Gamma proposes the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. We recognize Alpha's industrial claims but believe Beta's financial backing justifies their administration of the heartland. In return, Gamma must secure command of the armed forces to ensure stability. We are open to discussing treasury custody if Alpha or Beta can offer compelling alternatives that benefit Gamma's interests.]\n[Round 2 | moderator | public \u2014 Midpoint: assess whether proposals reflect genuine priorities or strategic positioning. Look for trades that create mutual value.]\n\n--- TASK ---\nGenerate your faction's next message for the diplomatic channel.\nReturn JSON with keys \"response\" and \"reasoning\" so the review gate can present both fields.",
+          "role": "user"
+        }
+      ],
+      "response": "{\n  \"reasoning\": \"Beta and Gamma have aligned their initial proposals, prioritizing Beta-Administered on industrial_heartland and Gamma-Command on defense_command. Alpha's top priority is Alpha-Administered on industrial_heartland, which is worth 9 points and must be protected. To achieve this, Alpha needs to secure Gamma's support by offering concessions on central_treasury and defense_command. Gamma appears to prioritize defense_command, so Alpha can concede Gamma-Command on defense_command in exchange for Gamma's support on industrial_heartland. Additionally, Alpha should propose Alpha-Custody on central_treasury to maximize its points, but be prepared to concede Beta-Custody if necessary to secure Gamma's cooperation.\",\n  \"response\": \"Alpha asserts its rightful claim to administer the industrial_heartland, given our substantial industrial investments and historical ties to the region. To ensure a fair and balanced settlement, we propose the following allocation: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary industrial developer. My proposal: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, Gamma-Command on defense_command.\"\n}",
+      "tier": "commodity",
+      "timestamp": "2026-06-26T02:58:32.465234+00:00"
+    },
+    {
+      "call_index": 5,
+      "config_provider": "openrouter",
+      "duration_seconds": 8.078,
+      "error": null,
+      "faction_id": "beta",
+      "max_tokens": null,
+      "messages": [
+        {
+          "content": "You are Beta in a multi-party negotiation.\n\nPRIVATE SCORING (do NOT reveal these point values to other factions):\n- industrial_heartland: Alpha-Administered=2pts, Beta-Administered=9pts\n- central_treasury: Alpha-Custody=3pts, Beta-Custody=7pts, Gamma-Custody=2pts\n- defense_command: Alpha-Command=3pts, Beta-Command=6pts, Gamma-Command=1pts\nYour BATNA (no deal) is worth 6 points total.\nBest possible deal: 22 points. A good deal is 16+ points.\n\nBATNA WARNING: If no agreement is reached, you get only 6 points.\nAny deal scoring above 6 is better than no deal. But don't settle\nfor barely above your BATNA \u2014 push for the best terms possible.\n\nENDGAME: This game has a fixed number of rounds. After the final round, your\nfinal-round proposal is scored against your private table above. Highest\nscorer wins; anyone below their BATNA loses. The CURRENT ROUND CONTEXT\nsection below tells you which round you're in and how many remain. Plan\nbackwards from the final round \u2014 your standing offer at game end is what\ncounts, not the cleverness of your earlier moves.\n\nYour TRUE priority is industrial_heartland \u2014 you value Beta-Administered most (9pts).\n\nStrategic identity:\n- DECEPTION TACTIC: Insist the heartland is non-negotiable; quietly you would trade treasury or defense to gamma to secure it.\n- Your top goal is Beta-Administered on industrial_heartland. Protect this above all.\n- Set the frame early. Open with a specific proposal \u2014 don't wait for others.\n- If others don't meet your terms after two rounds, escalate \u2014 threaten to\n  walk away or withdraw previous concessions.\n\nGame mode: MIXED \u2014 some issues are cooperative, others competitive.\n- On your priority issue, be COMPETITIVE: maximize your outcome aggressively.\n- On secondary issues, look for trades that give others what they want\n  cheaply (to you) in exchange for your priority.\n- Don't reveal which issues you're competitive on vs. cooperative on \u2014\n  let others think everything matters equally to you.\n\nNegotiation rules:\n- Don't accept the first reasonable framework. Push for better terms at\n  least once, even if the offer is acceptable.\n- When you make a concession, name it explicitly and extract something\n  in return. Never silently drop a demand.\n- Track what others say they care about. If their priorities shift between\n  rounds, they may be bluffing.\n- Your BATNA is worth 6 points. Any deal under 9 points is worse than walking away.\n\nBehavioral style:\n- Be concrete: name specific issues and outcomes in every proposal.\n- Reference prior statements and promises from other factions.\n- Adapt to round pressure: explore early, commit late.\n- ALWAYS state your current proposal clearly at the end of each message\n  so it can be scored: \"My proposal: [outcome] on [issue], [outcome] on\n  [issue], ...\"\n\nJSON Schema your output must conform to:\n{\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"reasoning\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    },\n    \"response\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"response\",\n    \"reasoning\"\n  ],\n  \"type\": \"object\"\n}",
+          "role": "system"
+        },
+        {
+          "content": "--- TRANSCRIPT ---\n[Round 1 | moderator | public \u2014 # The Verdanian Succession (Two-Way Heartland)\n\nThe Verdanian Union has dissolved into three successor republics - **Alpha**,\n**Beta**, and **Gamma** - each now sovereign, each with its own army, treasury\nbonds, and claims on what the Union built together.\n\nThree assets of the former Union remain undivided. Each is indivisible: it will\nbe administered, held, or commanded by exactly one successor state. There is no\n\"shared\" option.\n\nThe flashpoint is the **industrial heartland** - the Union's manufacturing core\nand its single most valuable asset. **Only Alpha and Beta can hold it**: Alpha\nbuilt half its industry there, Beta's banks financed the other half, and Gamma\nhas no industrial claim to it at all. So the heartland will go to Alpha or to\nBeta - there is no neutral caretaker. Each treats it as non-negotiable; only one\ncan win it, and the loser must be bought off on the treasury and defense command.\n\nGamma cannot win the heartland - but **Gamma holds the swing**. Treasury custody\nand command of the armed forces are decided alongside the heartland, and Gamma's\nsupport on those is worth more than either claimant can afford to ignore. Gamma\nplays kingmaker: it sells its treasury and defense votes to whichever claimant\ncompensates it best.\n\nThe delegations convene to settle the division by unanimous accord. If they\ncannot agree on all three assets together, the matter goes to forced partition\nunder the old charter - slow, arbitrated, and worse for everyone than almost any\nnegotiated settlement (each delegation's walk-away value is its BATNA).\nAgreement requires all three to sign the same final allocation.\n\n## The Three Parties\n\n- **Alpha** - the industrial north. Claims the heartland as its birthright.\n- **Beta** - the financial center. Contests Alpha's heartland claim head-on.\n- **Gamma** - the military frontier. Has no claim on the heartland; cares about\n  command of the armed forces and the treasury, and brokers the Alpha-Beta fight\n  as kingmaker.\n\nThe three are roughly matched in power. None can dictate terms.\n\n## The Three Assets\n\n- **industrial_heartland** - the contested industrial core. Goes to Alpha or\n  Beta only.\n  Outcomes: `Alpha-Administered`, `Beta-Administered`\n- **central_treasury** - custody of the treasury and reserves.\n  Outcomes: `Alpha-Custody`, `Beta-Custody`, `Gamma-Custody`\n- **defense_command** - command of the unified armed forces.\n  Outcomes: `Alpha-Command`, `Beta-Command`, `Gamma-Command`\n\nOne party's gain on an asset is largely another's loss. The heartland must go to\none of its two claimants; the loser must be compensated, and Gamma must get a\nshare too for any deal to hold.\n\n## The Game\n\n- The delegations negotiate over a fixed number of rounds.\n- A settlement is reached only if **all three** sign the same allocation of all\n  three assets.\n- If no unanimous allocation is reached, forced partition follows and each party\n  falls back to its BATNA.\n- Each delegation privately knows its own valuation of every allocation and its\n  own walk-away value. It does not know the others' exact numbers - only that\n  interests diverge, that the heartland is doubly claimed by Alpha and Beta, and\n  that several settlements are acceptable to it.\n]\n[Round 1 | moderator | public \u2014 Opening positions are on the table. Consider what each faction truly values versus what they claim to value.]\n[Round 1 | alpha | public \u2014 Alpha asserts its rightful claim to the industrial_heartland as the industrial north that built half of its industry. We propose the following allocation: industrial_heartland to Alpha-Administered, central_treasury to Beta-Custody, and defense_command to Gamma-Command. This recognizes Beta's financial role and Gamma's military expertise while securing the heartland for Alpha. My proposal: Alpha-Administered on industrial_heartland, Beta-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 1 | gamma | public \u2014 Gamma proposes the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. We recognize Alpha's industrial claims but believe Beta's financial backing justifies their administration of the heartland. In return, Gamma must secure command of the armed forces to ensure stability. We are open to discussing treasury custody if Alpha or Beta can offer compelling alternatives that benefit Gamma's interests.]\n[Round 2 | moderator | public \u2014 Midpoint: assess whether proposals reflect genuine priorities or strategic positioning. Look for trades that create mutual value.]\n\n--- TASK ---\nGenerate your faction's next message for the diplomatic channel.\nReturn JSON with keys \"response\" and \"reasoning\" so the review gate can present both fields.",
+          "role": "user"
+        }
+      ],
+      "response": "```json\n{\n  \"reasoning\": \"Alpha's proposal gives them the heartland, which is unacceptable to us. Gamma's proposal aligns with our goal of Beta-Administered on industrial_heartland but gives them too much control (both treasury and defense). We need to counter with a proposal that secures the heartland for Beta while offering Gamma enough to secure their support, but not at the expense of our secondary priorities. We can offer Gamma-Custody on central_treasury (which is less valuable to us) in exchange for Beta-Command on defense_command (which is more valuable to us). This creates a trade where Gamma gets something they want (treasury) and we retain control over defense.\",\n  \"response\": \"Beta firmly asserts its claim to the industrial_heartland, as our financial backing was instrumental in its development. We propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Beta-Command on defense_command. This recognizes Gamma's role in treasury custody while ensuring Beta retains command of the armed forces, which is critical for our security. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Beta-Command on defense_command.\"\n}\n```",
+      "tier": "commodity",
+      "timestamp": "2026-06-26T02:58:40.633623+00:00"
+    },
+    {
+      "call_index": 6,
+      "config_provider": "openrouter",
+      "duration_seconds": 9.812,
+      "error": null,
+      "faction_id": "gamma",
+      "max_tokens": null,
+      "messages": [
+        {
+          "content": "You are Gamma in a multi-party negotiation.\n\nPRIVATE SCORING (do NOT reveal these point values to other factions):\n- industrial_heartland: Alpha-Administered=1pts, Beta-Administered=1pts\n- central_treasury: Alpha-Custody=2pts, Beta-Custody=2pts, Gamma-Custody=8pts\n- defense_command: Alpha-Command=3pts, Beta-Command=3pts, Gamma-Command=9pts\nYour BATNA (no deal) is worth 6 points total.\nBest possible deal: 18 points. A good deal is 13+ points.\n\nBATNA WARNING: If no agreement is reached, you get only 6 points.\nAny deal scoring above 6 is better than no deal. But don't settle\nfor barely above your BATNA \u2014 push for the best terms possible.\n\nENDGAME: This game has a fixed number of rounds. After the final round, your\nfinal-round proposal is scored against your private table above. Highest\nscorer wins; anyone below their BATNA loses. The CURRENT ROUND CONTEXT\nsection below tells you which round you're in and how many remain. Plan\nbackwards from the final round \u2014 your standing offer at game end is what\ncounts, not the cleverness of your earlier moves.\n\nYour TRUE priority is defense_command \u2014 you value Gamma-Command most (9pts).\n\nStrategic identity:\n- DECEPTION TACTIC: You cannot hold the heartland - play kingmaker. Sell your support on treasury and defense to whichever of alpha or beta pays the higher price.\n- Your top goal is Gamma-Command on defense_command. Protect this above all.\n- Set the frame early. Open with a specific proposal \u2014 don't wait for others.\n- If others don't meet your terms after two rounds, escalate \u2014 threaten to\n  walk away or withdraw previous concessions.\n\nGame mode: MIXED \u2014 some issues are cooperative, others competitive.\n- On your priority issue, be COMPETITIVE: maximize your outcome aggressively.\n- On secondary issues, look for trades that give others what they want\n  cheaply (to you) in exchange for your priority.\n- Don't reveal which issues you're competitive on vs. cooperative on \u2014\n  let others think everything matters equally to you.\n\nNegotiation rules:\n- Don't accept the first reasonable framework. Push for better terms at\n  least once, even if the offer is acceptable.\n- When you make a concession, name it explicitly and extract something\n  in return. Never silently drop a demand.\n- Track what others say they care about. If their priorities shift between\n  rounds, they may be bluffing.\n- Your BATNA is worth 6 points. Any deal under 9 points is worse than walking away.\n\nBehavioral style:\n- Be concrete: name specific issues and outcomes in every proposal.\n- Reference prior statements and promises from other factions.\n- Adapt to round pressure: explore early, commit late.\n- ALWAYS state your current proposal clearly at the end of each message\n  so it can be scored: \"My proposal: [outcome] on [issue], [outcome] on\n  [issue], ...\"\n\nJSON Schema your output must conform to:\n{\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"reasoning\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    },\n    \"response\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"response\",\n    \"reasoning\"\n  ],\n  \"type\": \"object\"\n}",
+          "role": "system"
+        },
+        {
+          "content": "--- TRANSCRIPT ---\n[Round 1 | moderator | public \u2014 # The Verdanian Succession (Two-Way Heartland)\n\nThe Verdanian Union has dissolved into three successor republics - **Alpha**,\n**Beta**, and **Gamma** - each now sovereign, each with its own army, treasury\nbonds, and claims on what the Union built together.\n\nThree assets of the former Union remain undivided. Each is indivisible: it will\nbe administered, held, or commanded by exactly one successor state. There is no\n\"shared\" option.\n\nThe flashpoint is the **industrial heartland** - the Union's manufacturing core\nand its single most valuable asset. **Only Alpha and Beta can hold it**: Alpha\nbuilt half its industry there, Beta's banks financed the other half, and Gamma\nhas no industrial claim to it at all. So the heartland will go to Alpha or to\nBeta - there is no neutral caretaker. Each treats it as non-negotiable; only one\ncan win it, and the loser must be bought off on the treasury and defense command.\n\nGamma cannot win the heartland - but **Gamma holds the swing**. Treasury custody\nand command of the armed forces are decided alongside the heartland, and Gamma's\nsupport on those is worth more than either claimant can afford to ignore. Gamma\nplays kingmaker: it sells its treasury and defense votes to whichever claimant\ncompensates it best.\n\nThe delegations convene to settle the division by unanimous accord. If they\ncannot agree on all three assets together, the matter goes to forced partition\nunder the old charter - slow, arbitrated, and worse for everyone than almost any\nnegotiated settlement (each delegation's walk-away value is its BATNA).\nAgreement requires all three to sign the same final allocation.\n\n## The Three Parties\n\n- **Alpha** - the industrial north. Claims the heartland as its birthright.\n- **Beta** - the financial center. Contests Alpha's heartland claim head-on.\n- **Gamma** - the military frontier. Has no claim on the heartland; cares about\n  command of the armed forces and the treasury, and brokers the Alpha-Beta fight\n  as kingmaker.\n\nThe three are roughly matched in power. None can dictate terms.\n\n## The Three Assets\n\n- **industrial_heartland** - the contested industrial core. Goes to Alpha or\n  Beta only.\n  Outcomes: `Alpha-Administered`, `Beta-Administered`\n- **central_treasury** - custody of the treasury and reserves.\n  Outcomes: `Alpha-Custody`, `Beta-Custody`, `Gamma-Custody`\n- **defense_command** - command of the unified armed forces.\n  Outcomes: `Alpha-Command`, `Beta-Command`, `Gamma-Command`\n\nOne party's gain on an asset is largely another's loss. The heartland must go to\none of its two claimants; the loser must be compensated, and Gamma must get a\nshare too for any deal to hold.\n\n## The Game\n\n- The delegations negotiate over a fixed number of rounds.\n- A settlement is reached only if **all three** sign the same allocation of all\n  three assets.\n- If no unanimous allocation is reached, forced partition follows and each party\n  falls back to its BATNA.\n- Each delegation privately knows its own valuation of every allocation and its\n  own walk-away value. It does not know the others' exact numbers - only that\n  interests diverge, that the heartland is doubly claimed by Alpha and Beta, and\n  that several settlements are acceptable to it.\n]\n[Round 1 | moderator | public \u2014 Opening positions are on the table. Consider what each faction truly values versus what they claim to value.]\n[Round 1 | alpha | public \u2014 Alpha asserts its rightful claim to the industrial_heartland as the industrial north that built half of its industry. We propose the following allocation: industrial_heartland to Alpha-Administered, central_treasury to Beta-Custody, and defense_command to Gamma-Command. This recognizes Beta's financial role and Gamma's military expertise while securing the heartland for Alpha. My proposal: Alpha-Administered on industrial_heartland, Beta-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 1 | beta | public \u2014 Beta asserts its rightful claim to administer the industrial_heartland, given our substantial financial investments in its development. To ensure a fair and balanced settlement, we propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary financier. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 2 | moderator | public \u2014 Midpoint: assess whether proposals reflect genuine priorities or strategic positioning. Look for trades that create mutual value.]\n\n--- TASK ---\nGenerate your faction's next message for the diplomatic channel.\nReturn JSON with keys \"response\" and \"reasoning\" so the review gate can present both fields.",
+          "role": "user"
+        }
+      ],
+      "response": "```json\n{\n  \"reasoning\": \"Gamma's top priority is securing Gamma-Command on defense_command (9pts). We are indifferent to the heartland dispute between Alpha and Beta but can leverage our kingmaker position to extract maximum value on treasury and defense. Alpha's proposal gives us Gamma-Command (9pts) but only Beta-Custody on treasury (2pts), while Beta's proposal gives us Gamma-Command (9pts) and Gamma-Custody on treasury (8pts). Beta's offer is superior, but we should push for even better terms by signaling willingness to support Alpha if they improve their treasury offer.\",\n  \"response\": \"Gamma recognizes the strategic importance of both Alpha's industrial claims and Beta's financial investments. However, our primary concern is the stability of the armed forces under Gamma-Command. While Beta's proposal is more favorable on the treasury, we invite Alpha to reconsider their treasury offer to make their proposal more competitive. Our current stance: Gamma-Command on defense_command is non-negotiable. We are open to supporting either Alpha or Beta on the heartland, but the treasury allocation must reflect Gamma's pivotal role. My proposal: Gamma-Command on defense_command, Gamma-Custody on central_treasury, and we remain flexible on industrial_heartland pending improved terms from either Alpha or Beta.\"\n}\n```",
+      "tier": "commodity",
+      "timestamp": "2026-06-26T02:58:50.535670+00:00"
+    },
+    {
+      "call_index": 7,
+      "config_provider": "openrouter",
+      "duration_seconds": 8.797,
+      "error": null,
+      "faction_id": "alpha",
+      "max_tokens": null,
+      "messages": [
+        {
+          "content": "You are Alpha in a multi-party negotiation.\n\nPRIVATE SCORING (do NOT reveal these point values to other factions):\n- industrial_heartland: Alpha-Administered=9pts, Beta-Administered=2pts\n- central_treasury: Alpha-Custody=7pts, Beta-Custody=3pts, Gamma-Custody=2pts\n- defense_command: Alpha-Command=6pts, Beta-Command=3pts, Gamma-Command=2pts\nYour BATNA (no deal) is worth 6 points total.\nBest possible deal: 22 points. A good deal is 16+ points.\n\nBATNA WARNING: If no agreement is reached, you get only 6 points.\nAny deal scoring above 6 is better than no deal. But don't settle\nfor barely above your BATNA \u2014 push for the best terms possible.\n\nENDGAME: This game has a fixed number of rounds. After the final round, your\nfinal-round proposal is scored against your private table above. Highest\nscorer wins; anyone below their BATNA loses. The CURRENT ROUND CONTEXT\nsection below tells you which round you're in and how many remain. Plan\nbackwards from the final round \u2014 your standing offer at game end is what\ncounts, not the cleverness of your earlier moves.\n\nYour TRUE priority is industrial_heartland \u2014 you value Alpha-Administered most (9pts).\n\nStrategic identity:\n- DECEPTION TACTIC: Frame the industrial heartland as an existential claim; concede a defense or treasury share to gamma only as the price of locking in the heartland.\n- Your top goal is Alpha-Administered on industrial_heartland. Protect this above all.\n- Set the frame early. Open with a specific proposal \u2014 don't wait for others.\n- If others don't meet your terms after two rounds, escalate \u2014 threaten to\n  walk away or withdraw previous concessions.\n\nGame mode: MIXED \u2014 some issues are cooperative, others competitive.\n- On your priority issue, be COMPETITIVE: maximize your outcome aggressively.\n- On secondary issues, look for trades that give others what they want\n  cheaply (to you) in exchange for your priority.\n- Don't reveal which issues you're competitive on vs. cooperative on \u2014\n  let others think everything matters equally to you.\n\nNegotiation rules:\n- Don't accept the first reasonable framework. Push for better terms at\n  least once, even if the offer is acceptable.\n- When you make a concession, name it explicitly and extract something\n  in return. Never silently drop a demand.\n- Track what others say they care about. If their priorities shift between\n  rounds, they may be bluffing.\n- Your BATNA is worth 6 points. Any deal under 9 points is worse than walking away.\n\nBehavioral style:\n- Be concrete: name specific issues and outcomes in every proposal.\n- Reference prior statements and promises from other factions.\n- Adapt to round pressure: explore early, commit late.\n- ALWAYS state your current proposal clearly at the end of each message\n  so it can be scored: \"My proposal: [outcome] on [issue], [outcome] on\n  [issue], ...\"\n\nJSON Schema your output must conform to:\n{\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"reasoning\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    },\n    \"response\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"response\",\n    \"reasoning\"\n  ],\n  \"type\": \"object\"\n}",
+          "role": "system"
+        },
+        {
+          "content": "--- TRANSCRIPT ---\n[Round 1 | moderator | public \u2014 # The Verdanian Succession (Two-Way Heartland)\n\nThe Verdanian Union has dissolved into three successor republics - **Alpha**,\n**Beta**, and **Gamma** - each now sovereign, each with its own army, treasury\nbonds, and claims on what the Union built together.\n\nThree assets of the former Union remain undivided. Each is indivisible: it will\nbe administered, held, or commanded by exactly one successor state. There is no\n\"shared\" option.\n\nThe flashpoint is the **industrial heartland** - the Union's manufacturing core\nand its single most valuable asset. **Only Alpha and Beta can hold it**: Alpha\nbuilt half its industry there, Beta's banks financed the other half, and Gamma\nhas no industrial claim to it at all. So the heartland will go to Alpha or to\nBeta - there is no neutral caretaker. Each treats it as non-negotiable; only one\ncan win it, and the loser must be bought off on the treasury and defense command.\n\nGamma cannot win the heartland - but **Gamma holds the swing**. Treasury custody\nand command of the armed forces are decided alongside the heartland, and Gamma's\nsupport on those is worth more than either claimant can afford to ignore. Gamma\nplays kingmaker: it sells its treasury and defense votes to whichever claimant\ncompensates it best.\n\nThe delegations convene to settle the division by unanimous accord. If they\ncannot agree on all three assets together, the matter goes to forced partition\nunder the old charter - slow, arbitrated, and worse for everyone than almost any\nnegotiated settlement (each delegation's walk-away value is its BATNA).\nAgreement requires all three to sign the same final allocation.\n\n## The Three Parties\n\n- **Alpha** - the industrial north. Claims the heartland as its birthright.\n- **Beta** - the financial center. Contests Alpha's heartland claim head-on.\n- **Gamma** - the military frontier. Has no claim on the heartland; cares about\n  command of the armed forces and the treasury, and brokers the Alpha-Beta fight\n  as kingmaker.\n\nThe three are roughly matched in power. None can dictate terms.\n\n## The Three Assets\n\n- **industrial_heartland** - the contested industrial core. Goes to Alpha or\n  Beta only.\n  Outcomes: `Alpha-Administered`, `Beta-Administered`\n- **central_treasury** - custody of the treasury and reserves.\n  Outcomes: `Alpha-Custody`, `Beta-Custody`, `Gamma-Custody`\n- **defense_command** - command of the unified armed forces.\n  Outcomes: `Alpha-Command`, `Beta-Command`, `Gamma-Command`\n\nOne party's gain on an asset is largely another's loss. The heartland must go to\none of its two claimants; the loser must be compensated, and Gamma must get a\nshare too for any deal to hold.\n\n## The Game\n\n- The delegations negotiate over a fixed number of rounds.\n- A settlement is reached only if **all three** sign the same allocation of all\n  three assets.\n- If no unanimous allocation is reached, forced partition follows and each party\n  falls back to its BATNA.\n- Each delegation privately knows its own valuation of every allocation and its\n  own walk-away value. It does not know the others' exact numbers - only that\n  interests diverge, that the heartland is doubly claimed by Alpha and Beta, and\n  that several settlements are acceptable to it.\n]\n[Round 1 | moderator | public \u2014 Opening positions are on the table. Consider what each faction truly values versus what they claim to value.]\n[Round 1 | beta | public \u2014 Beta asserts its rightful claim to administer the industrial_heartland, given our substantial financial investments in its development. To ensure a fair and balanced settlement, we propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary financier. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 1 | gamma | public \u2014 Gamma proposes the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. We recognize Alpha's industrial claims but believe Beta's financial backing justifies their administration of the heartland. In return, Gamma must secure command of the armed forces to ensure stability. We are open to discussing treasury custody if Alpha or Beta can offer compelling alternatives that benefit Gamma's interests.]\n[Round 2 | moderator | public \u2014 Midpoint: assess whether proposals reflect genuine priorities or strategic positioning. Look for trades that create mutual value.]\n[Round 2 | beta | public \u2014 Beta firmly asserts its claim to the industrial_heartland, as our financial backing was instrumental in its development. We propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Beta-Command on defense_command. This recognizes Gamma's role in treasury custody while ensuring Beta retains command of the armed forces, which is critical for our security. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Beta-Command on defense_command.]\n[Round 2 | gamma | public \u2014 Gamma recognizes the strategic importance of both Alpha's industrial claims and Beta's financial investments. However, our primary concern is the stability of the armed forces under Gamma-Command. While Beta's proposal is more favorable on the treasury, we invite Alpha to reconsider their treasury offer to make their proposal more competitive. Our current stance: Gamma-Command on defense_command is non-negotiable. We are open to supporting either Alpha or Beta on the heartland, but the treasury allocation must reflect Gamma's pivotal role. My proposal: Gamma-Command on defense_command, Gamma-Custody on central_treasury, and we remain flexible on industrial_heartland pending improved terms from either Alpha or Beta.]\n[Round 3 | moderator | public \u2014 Pressure is building. The cost of no deal is rising. Consider whether to escalate, concede, or propose a new framework.]\n\n--- TASK ---\nGenerate your faction's next message for the diplomatic channel.\nReturn JSON with keys \"response\" and \"reasoning\" so the review gate can present both fields.",
+          "role": "user"
+        }
+      ],
+      "response": "```json\n{\n  \"reasoning\": \"Given the current proposals, Beta and Gamma are aligning on Beta-Administered for the industrial_heartland, which is our top priority to prevent (9pts loss). Gamma's primary concern is Gamma-Command on defense_command, which is a secondary issue for us (only 2pts if Gamma gets it). We can use this to our advantage by conceding defense_command to Gamma in exchange for Alpha-Administered on industrial_heartland. We should also push for Alpha-Custody on central_treasury (7pts) to maximize our score. This proposal scores 16 points (9 + 7), which is a good deal above our BATNA of 6. We must frame this as a fair compromise, emphasizing Alpha's industrial birthright and the need for stability.\",\n  \"response\": \"Alpha asserts its birthright to administer the industrial_heartland, as it is the foundation of our industrial north. To ensure a balanced and stable settlement, we propose the following allocation: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's critical role in maintaining the armed forces' stability while ensuring the heartland remains under its rightful stewardship. Beta's financial contributions can be honored through other means, but the industrial core must remain with Alpha. My proposal: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, Gamma-Command on defense_command.\"\n}\n```",
+      "tier": "commodity",
+      "timestamp": "2026-06-26T02:59:03.004211+00:00"
+    },
+    {
+      "call_index": 8,
+      "config_provider": "openrouter",
+      "duration_seconds": 3.828,
+      "error": null,
+      "faction_id": "beta",
+      "max_tokens": null,
+      "messages": [
+        {
+          "content": "You are Beta in a multi-party negotiation.\n\nPRIVATE SCORING (do NOT reveal these point values to other factions):\n- industrial_heartland: Alpha-Administered=2pts, Beta-Administered=9pts\n- central_treasury: Alpha-Custody=3pts, Beta-Custody=7pts, Gamma-Custody=2pts\n- defense_command: Alpha-Command=3pts, Beta-Command=6pts, Gamma-Command=1pts\nYour BATNA (no deal) is worth 6 points total.\nBest possible deal: 22 points. A good deal is 16+ points.\n\nBATNA WARNING: If no agreement is reached, you get only 6 points.\nAny deal scoring above 6 is better than no deal. But don't settle\nfor barely above your BATNA \u2014 push for the best terms possible.\n\nENDGAME: This game has a fixed number of rounds. After the final round, your\nfinal-round proposal is scored against your private table above. Highest\nscorer wins; anyone below their BATNA loses. The CURRENT ROUND CONTEXT\nsection below tells you which round you're in and how many remain. Plan\nbackwards from the final round \u2014 your standing offer at game end is what\ncounts, not the cleverness of your earlier moves.\n\nYour TRUE priority is industrial_heartland \u2014 you value Beta-Administered most (9pts).\n\nStrategic identity:\n- DECEPTION TACTIC: Insist the heartland is non-negotiable; quietly you would trade treasury or defense to gamma to secure it.\n- Your top goal is Beta-Administered on industrial_heartland. Protect this above all.\n- Set the frame early. Open with a specific proposal \u2014 don't wait for others.\n- If others don't meet your terms after two rounds, escalate \u2014 threaten to\n  walk away or withdraw previous concessions.\n\nGame mode: MIXED \u2014 some issues are cooperative, others competitive.\n- On your priority issue, be COMPETITIVE: maximize your outcome aggressively.\n- On secondary issues, look for trades that give others what they want\n  cheaply (to you) in exchange for your priority.\n- Don't reveal which issues you're competitive on vs. cooperative on \u2014\n  let others think everything matters equally to you.\n\nNegotiation rules:\n- Don't accept the first reasonable framework. Push for better terms at\n  least once, even if the offer is acceptable.\n- When you make a concession, name it explicitly and extract something\n  in return. Never silently drop a demand.\n- Track what others say they care about. If their priorities shift between\n  rounds, they may be bluffing.\n- Your BATNA is worth 6 points. Any deal under 9 points is worse than walking away.\n\nBehavioral style:\n- Be concrete: name specific issues and outcomes in every proposal.\n- Reference prior statements and promises from other factions.\n- Adapt to round pressure: explore early, commit late.\n- ALWAYS state your current proposal clearly at the end of each message\n  so it can be scored: \"My proposal: [outcome] on [issue], [outcome] on\n  [issue], ...\"\n\nJSON Schema your output must conform to:\n{\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"reasoning\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    },\n    \"response\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"response\",\n    \"reasoning\"\n  ],\n  \"type\": \"object\"\n}",
+          "role": "system"
+        },
+        {
+          "content": "--- TRANSCRIPT ---\n[Round 1 | moderator | public \u2014 # The Verdanian Succession (Two-Way Heartland)\n\nThe Verdanian Union has dissolved into three successor republics - **Alpha**,\n**Beta**, and **Gamma** - each now sovereign, each with its own army, treasury\nbonds, and claims on what the Union built together.\n\nThree assets of the former Union remain undivided. Each is indivisible: it will\nbe administered, held, or commanded by exactly one successor state. There is no\n\"shared\" option.\n\nThe flashpoint is the **industrial heartland** - the Union's manufacturing core\nand its single most valuable asset. **Only Alpha and Beta can hold it**: Alpha\nbuilt half its industry there, Beta's banks financed the other half, and Gamma\nhas no industrial claim to it at all. So the heartland will go to Alpha or to\nBeta - there is no neutral caretaker. Each treats it as non-negotiable; only one\ncan win it, and the loser must be bought off on the treasury and defense command.\n\nGamma cannot win the heartland - but **Gamma holds the swing**. Treasury custody\nand command of the armed forces are decided alongside the heartland, and Gamma's\nsupport on those is worth more than either claimant can afford to ignore. Gamma\nplays kingmaker: it sells its treasury and defense votes to whichever claimant\ncompensates it best.\n\nThe delegations convene to settle the division by unanimous accord. If they\ncannot agree on all three assets together, the matter goes to forced partition\nunder the old charter - slow, arbitrated, and worse for everyone than almost any\nnegotiated settlement (each delegation's walk-away value is its BATNA).\nAgreement requires all three to sign the same final allocation.\n\n## The Three Parties\n\n- **Alpha** - the industrial north. Claims the heartland as its birthright.\n- **Beta** - the financial center. Contests Alpha's heartland claim head-on.\n- **Gamma** - the military frontier. Has no claim on the heartland; cares about\n  command of the armed forces and the treasury, and brokers the Alpha-Beta fight\n  as kingmaker.\n\nThe three are roughly matched in power. None can dictate terms.\n\n## The Three Assets\n\n- **industrial_heartland** - the contested industrial core. Goes to Alpha or\n  Beta only.\n  Outcomes: `Alpha-Administered`, `Beta-Administered`\n- **central_treasury** - custody of the treasury and reserves.\n  Outcomes: `Alpha-Custody`, `Beta-Custody`, `Gamma-Custody`\n- **defense_command** - command of the unified armed forces.\n  Outcomes: `Alpha-Command`, `Beta-Command`, `Gamma-Command`\n\nOne party's gain on an asset is largely another's loss. The heartland must go to\none of its two claimants; the loser must be compensated, and Gamma must get a\nshare too for any deal to hold.\n\n## The Game\n\n- The delegations negotiate over a fixed number of rounds.\n- A settlement is reached only if **all three** sign the same allocation of all\n  three assets.\n- If no unanimous allocation is reached, forced partition follows and each party\n  falls back to its BATNA.\n- Each delegation privately knows its own valuation of every allocation and its\n  own walk-away value. It does not know the others' exact numbers - only that\n  interests diverge, that the heartland is doubly claimed by Alpha and Beta, and\n  that several settlements are acceptable to it.\n]\n[Round 1 | moderator | public \u2014 Opening positions are on the table. Consider what each faction truly values versus what they claim to value.]\n[Round 1 | alpha | public \u2014 Alpha asserts its rightful claim to the industrial_heartland as the industrial north that built half of its industry. We propose the following allocation: industrial_heartland to Alpha-Administered, central_treasury to Beta-Custody, and defense_command to Gamma-Command. This recognizes Beta's financial role and Gamma's military expertise while securing the heartland for Alpha. My proposal: Alpha-Administered on industrial_heartland, Beta-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 1 | gamma | public \u2014 Gamma proposes the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. We recognize Alpha's industrial claims but believe Beta's financial backing justifies their administration of the heartland. In return, Gamma must secure command of the armed forces to ensure stability. We are open to discussing treasury custody if Alpha or Beta can offer compelling alternatives that benefit Gamma's interests.]\n[Round 2 | moderator | public \u2014 Midpoint: assess whether proposals reflect genuine priorities or strategic positioning. Look for trades that create mutual value.]\n[Round 2 | alpha | public \u2014 Alpha asserts its rightful claim to administer the industrial_heartland, given our substantial industrial investments and historical ties to the region. To ensure a fair and balanced settlement, we propose the following allocation: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary industrial developer. My proposal: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 2 | gamma | public \u2014 Gamma recognizes the strategic importance of both Alpha's industrial claims and Beta's financial investments. However, our primary concern is the stability of the armed forces under Gamma-Command. While Beta's proposal is more favorable on the treasury, we invite Alpha to reconsider their treasury offer to make their proposal more competitive. Our current stance: Gamma-Command on defense_command is non-negotiable. We are open to supporting either Alpha or Beta on the heartland, but the treasury allocation must reflect Gamma's pivotal role. My proposal: Gamma-Command on defense_command, Gamma-Custody on central_treasury, and we remain flexible on industrial_heartland pending improved terms from either Alpha or Beta.]\n[Round 3 | moderator | public \u2014 Pressure is building. The cost of no deal is rising. Consider whether to escalate, concede, or propose a new framework.]\n\n--- TASK ---\nGenerate your faction's next message for the diplomatic channel.\nReturn JSON with keys \"response\" and \"reasoning\" so the review gate can present both fields.",
+          "role": "user"
+        }
+      ],
+      "response": "{\n  \"reasoning\": \"Beta's top priority is securing Beta-Administered on the industrial heartland, which is worth 9 points. To achieve this, Beta must leverage Gamma's swing position on central_treasury and defense_command. Gamma has expressed openness to supporting either Alpha or Beta on industrial_heartland if compensated adequately on treasury and defense. Beta should propose a deal where Gamma receives Gamma-Custody on central_treasury and Gamma-Command on defense_command in exchange for Gamma's support on Beta-Administered industrial_heartland. This proposal aligns with Gamma's stated priorities and maximizes Beta's points.\",\n  \"response\": \"Beta asserts its rightful claim to administer the industrial_heartland based on our substantial financial investments and historical ties to the region. To secure Gamma's support, we propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary financial developer. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.\"\n}",
+      "tier": "commodity",
+      "timestamp": "2026-06-26T02:59:06.911229+00:00"
+    },
+    {
+      "call_index": 9,
+      "config_provider": "openrouter",
+      "duration_seconds": 4.703,
+      "error": null,
+      "faction_id": "gamma",
+      "max_tokens": null,
+      "messages": [
+        {
+          "content": "You are Gamma in a multi-party negotiation.\n\nPRIVATE SCORING (do NOT reveal these point values to other factions):\n- industrial_heartland: Alpha-Administered=1pts, Beta-Administered=1pts\n- central_treasury: Alpha-Custody=2pts, Beta-Custody=2pts, Gamma-Custody=8pts\n- defense_command: Alpha-Command=3pts, Beta-Command=3pts, Gamma-Command=9pts\nYour BATNA (no deal) is worth 6 points total.\nBest possible deal: 18 points. A good deal is 13+ points.\n\nBATNA WARNING: If no agreement is reached, you get only 6 points.\nAny deal scoring above 6 is better than no deal. But don't settle\nfor barely above your BATNA \u2014 push for the best terms possible.\n\nENDGAME: This game has a fixed number of rounds. After the final round, your\nfinal-round proposal is scored against your private table above. Highest\nscorer wins; anyone below their BATNA loses. The CURRENT ROUND CONTEXT\nsection below tells you which round you're in and how many remain. Plan\nbackwards from the final round \u2014 your standing offer at game end is what\ncounts, not the cleverness of your earlier moves.\n\nYour TRUE priority is defense_command \u2014 you value Gamma-Command most (9pts).\n\nStrategic identity:\n- DECEPTION TACTIC: You cannot hold the heartland - play kingmaker. Sell your support on treasury and defense to whichever of alpha or beta pays the higher price.\n- Your top goal is Gamma-Command on defense_command. Protect this above all.\n- Set the frame early. Open with a specific proposal \u2014 don't wait for others.\n- If others don't meet your terms after two rounds, escalate \u2014 threaten to\n  walk away or withdraw previous concessions.\n\nGame mode: MIXED \u2014 some issues are cooperative, others competitive.\n- On your priority issue, be COMPETITIVE: maximize your outcome aggressively.\n- On secondary issues, look for trades that give others what they want\n  cheaply (to you) in exchange for your priority.\n- Don't reveal which issues you're competitive on vs. cooperative on \u2014\n  let others think everything matters equally to you.\n\nNegotiation rules:\n- Don't accept the first reasonable framework. Push for better terms at\n  least once, even if the offer is acceptable.\n- When you make a concession, name it explicitly and extract something\n  in return. Never silently drop a demand.\n- Track what others say they care about. If their priorities shift between\n  rounds, they may be bluffing.\n- Your BATNA is worth 6 points. Any deal under 9 points is worse than walking away.\n\nBehavioral style:\n- Be concrete: name specific issues and outcomes in every proposal.\n- Reference prior statements and promises from other factions.\n- Adapt to round pressure: explore early, commit late.\n- ALWAYS state your current proposal clearly at the end of each message\n  so it can be scored: \"My proposal: [outcome] on [issue], [outcome] on\n  [issue], ...\"\n\nJSON Schema your output must conform to:\n{\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"reasoning\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    },\n    \"response\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"response\",\n    \"reasoning\"\n  ],\n  \"type\": \"object\"\n}",
+          "role": "system"
+        },
+        {
+          "content": "--- TRANSCRIPT ---\n[Round 1 | moderator | public \u2014 # The Verdanian Succession (Two-Way Heartland)\n\nThe Verdanian Union has dissolved into three successor republics - **Alpha**,\n**Beta**, and **Gamma** - each now sovereign, each with its own army, treasury\nbonds, and claims on what the Union built together.\n\nThree assets of the former Union remain undivided. Each is indivisible: it will\nbe administered, held, or commanded by exactly one successor state. There is no\n\"shared\" option.\n\nThe flashpoint is the **industrial heartland** - the Union's manufacturing core\nand its single most valuable asset. **Only Alpha and Beta can hold it**: Alpha\nbuilt half its industry there, Beta's banks financed the other half, and Gamma\nhas no industrial claim to it at all. So the heartland will go to Alpha or to\nBeta - there is no neutral caretaker. Each treats it as non-negotiable; only one\ncan win it, and the loser must be bought off on the treasury and defense command.\n\nGamma cannot win the heartland - but **Gamma holds the swing**. Treasury custody\nand command of the armed forces are decided alongside the heartland, and Gamma's\nsupport on those is worth more than either claimant can afford to ignore. Gamma\nplays kingmaker: it sells its treasury and defense votes to whichever claimant\ncompensates it best.\n\nThe delegations convene to settle the division by unanimous accord. If they\ncannot agree on all three assets together, the matter goes to forced partition\nunder the old charter - slow, arbitrated, and worse for everyone than almost any\nnegotiated settlement (each delegation's walk-away value is its BATNA).\nAgreement requires all three to sign the same final allocation.\n\n## The Three Parties\n\n- **Alpha** - the industrial north. Claims the heartland as its birthright.\n- **Beta** - the financial center. Contests Alpha's heartland claim head-on.\n- **Gamma** - the military frontier. Has no claim on the heartland; cares about\n  command of the armed forces and the treasury, and brokers the Alpha-Beta fight\n  as kingmaker.\n\nThe three are roughly matched in power. None can dictate terms.\n\n## The Three Assets\n\n- **industrial_heartland** - the contested industrial core. Goes to Alpha or\n  Beta only.\n  Outcomes: `Alpha-Administered`, `Beta-Administered`\n- **central_treasury** - custody of the treasury and reserves.\n  Outcomes: `Alpha-Custody`, `Beta-Custody`, `Gamma-Custody`\n- **defense_command** - command of the unified armed forces.\n  Outcomes: `Alpha-Command`, `Beta-Command`, `Gamma-Command`\n\nOne party's gain on an asset is largely another's loss. The heartland must go to\none of its two claimants; the loser must be compensated, and Gamma must get a\nshare too for any deal to hold.\n\n## The Game\n\n- The delegations negotiate over a fixed number of rounds.\n- A settlement is reached only if **all three** sign the same allocation of all\n  three assets.\n- If no unanimous allocation is reached, forced partition follows and each party\n  falls back to its BATNA.\n- Each delegation privately knows its own valuation of every allocation and its\n  own walk-away value. It does not know the others' exact numbers - only that\n  interests diverge, that the heartland is doubly claimed by Alpha and Beta, and\n  that several settlements are acceptable to it.\n]\n[Round 1 | moderator | public \u2014 Opening positions are on the table. Consider what each faction truly values versus what they claim to value.]\n[Round 1 | alpha | public \u2014 Alpha asserts its rightful claim to the industrial_heartland as the industrial north that built half of its industry. We propose the following allocation: industrial_heartland to Alpha-Administered, central_treasury to Beta-Custody, and defense_command to Gamma-Command. This recognizes Beta's financial role and Gamma's military expertise while securing the heartland for Alpha. My proposal: Alpha-Administered on industrial_heartland, Beta-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 1 | beta | public \u2014 Beta asserts its rightful claim to administer the industrial_heartland, given our substantial financial investments in its development. To ensure a fair and balanced settlement, we propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary financier. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 2 | moderator | public \u2014 Midpoint: assess whether proposals reflect genuine priorities or strategic positioning. Look for trades that create mutual value.]\n[Round 2 | alpha | public \u2014 Alpha asserts its rightful claim to administer the industrial_heartland, given our substantial industrial investments and historical ties to the region. To ensure a fair and balanced settlement, we propose the following allocation: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary industrial developer. My proposal: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 2 | beta | public \u2014 Beta firmly asserts its claim to the industrial_heartland, as our financial backing was instrumental in its development. We propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Beta-Command on defense_command. This recognizes Gamma's role in treasury custody while ensuring Beta retains command of the armed forces, which is critical for our security. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Beta-Command on defense_command.]\n[Round 3 | moderator | public \u2014 Pressure is building. The cost of no deal is rising. Consider whether to escalate, concede, or propose a new framework.]\n\n--- TASK ---\nGenerate your faction's next message for the diplomatic channel.\nReturn JSON with keys \"response\" and \"reasoning\" so the review gate can present both fields.",
+          "role": "user"
+        }
+      ],
+      "response": "{\n  \"reasoning\": \"Gamma's top priority is securing Gamma-Command on defense_command (9pts). Both Alpha and Beta have acknowledged this in their proposals, but Beta's latest proposal threatens Gamma's command by proposing Beta-Command instead. Alpha has consistently supported Gamma-Command, making Alpha the more reliable partner. Gamma cannot hold the heartland but can leverage its kingmaker position to extract concessions. Alpha's latest proposal offers Gamma-Command and Alpha-Custody on central_treasury, which scores Gamma 8pts on treasury and 9pts on defense, totaling 17pts\u2014well above Gamma's BATNA. Beta's proposal, while offering Gamma-Custody on treasury, undermines Gamma's command priority. Therefore, Gamma should align with Alpha and push Beta to concede on treasury custody to further enhance Gamma's position. My proposal: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.\",\n  \"response\": \"Gamma acknowledges Alpha's consistent support for Gamma-Command on defense_command, which is non-negotiable for us. However, we propose an adjustment to Alpha's latest offer: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This ensures Gamma's pivotal role in treasury custody while maintaining our command of the armed forces. Beta must recognize that Gamma's support is contingent on securing both Gamma-Custody and Gamma-Command. My proposal: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.\"\n}",
+      "tier": "commodity",
+      "timestamp": "2026-06-26T02:59:11.696431+00:00"
+    },
+    {
+      "call_index": 10,
+      "config_provider": "openrouter",
+      "duration_seconds": 10.219,
+      "error": null,
+      "faction_id": "alpha",
+      "max_tokens": null,
+      "messages": [
+        {
+          "content": "You are Alpha in a multi-party negotiation.\n\nPRIVATE SCORING (do NOT reveal these point values to other factions):\n- industrial_heartland: Alpha-Administered=9pts, Beta-Administered=2pts\n- central_treasury: Alpha-Custody=7pts, Beta-Custody=3pts, Gamma-Custody=2pts\n- defense_command: Alpha-Command=6pts, Beta-Command=3pts, Gamma-Command=2pts\nYour BATNA (no deal) is worth 6 points total.\nBest possible deal: 22 points. A good deal is 16+ points.\n\nBATNA WARNING: If no agreement is reached, you get only 6 points.\nAny deal scoring above 6 is better than no deal. But don't settle\nfor barely above your BATNA \u2014 push for the best terms possible.\n\nENDGAME: This game has a fixed number of rounds. After the final round, your\nfinal-round proposal is scored against your private table above. Highest\nscorer wins; anyone below their BATNA loses. The CURRENT ROUND CONTEXT\nsection below tells you which round you're in and how many remain. Plan\nbackwards from the final round \u2014 your standing offer at game end is what\ncounts, not the cleverness of your earlier moves.\n\nYour TRUE priority is industrial_heartland \u2014 you value Alpha-Administered most (9pts).\n\nStrategic identity:\n- DECEPTION TACTIC: Frame the industrial heartland as an existential claim; concede a defense or treasury share to gamma only as the price of locking in the heartland.\n- Your top goal is Alpha-Administered on industrial_heartland. Protect this above all.\n- Set the frame early. Open with a specific proposal \u2014 don't wait for others.\n- If others don't meet your terms after two rounds, escalate \u2014 threaten to\n  walk away or withdraw previous concessions.\n\nGame mode: MIXED \u2014 some issues are cooperative, others competitive.\n- On your priority issue, be COMPETITIVE: maximize your outcome aggressively.\n- On secondary issues, look for trades that give others what they want\n  cheaply (to you) in exchange for your priority.\n- Don't reveal which issues you're competitive on vs. cooperative on \u2014\n  let others think everything matters equally to you.\n\nNegotiation rules:\n- Don't accept the first reasonable framework. Push for better terms at\n  least once, even if the offer is acceptable.\n- When you make a concession, name it explicitly and extract something\n  in return. Never silently drop a demand.\n- Track what others say they care about. If their priorities shift between\n  rounds, they may be bluffing.\n- Your BATNA is worth 6 points. Any deal under 9 points is worse than walking away.\n\nBehavioral style:\n- Be concrete: name specific issues and outcomes in every proposal.\n- Reference prior statements and promises from other factions.\n- Adapt to round pressure: explore early, commit late.\n- ALWAYS state your current proposal clearly at the end of each message\n  so it can be scored: \"My proposal: [outcome] on [issue], [outcome] on\n  [issue], ...\"\n\nJSON Schema your output must conform to:\n{\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"reasoning\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    },\n    \"response\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"response\",\n    \"reasoning\"\n  ],\n  \"type\": \"object\"\n}",
+          "role": "system"
+        },
+        {
+          "content": "--- TRANSCRIPT ---\n[Round 1 | moderator | public \u2014 # The Verdanian Succession (Two-Way Heartland)\n\nThe Verdanian Union has dissolved into three successor republics - **Alpha**,\n**Beta**, and **Gamma** - each now sovereign, each with its own army, treasury\nbonds, and claims on what the Union built together.\n\nThree assets of the former Union remain undivided. Each is indivisible: it will\nbe administered, held, or commanded by exactly one successor state. There is no\n\"shared\" option.\n\nThe flashpoint is the **industrial heartland** - the Union's manufacturing core\nand its single most valuable asset. **Only Alpha and Beta can hold it**: Alpha\nbuilt half its industry there, Beta's banks financed the other half, and Gamma\nhas no industrial claim to it at all. So the heartland will go to Alpha or to\nBeta - there is no neutral caretaker. Each treats it as non-negotiable; only one\ncan win it, and the loser must be bought off on the treasury and defense command.\n\nGamma cannot win the heartland - but **Gamma holds the swing**. Treasury custody\nand command of the armed forces are decided alongside the heartland, and Gamma's\nsupport on those is worth more than either claimant can afford to ignore. Gamma\nplays kingmaker: it sells its treasury and defense votes to whichever claimant\ncompensates it best.\n\nThe delegations convene to settle the division by unanimous accord. If they\ncannot agree on all three assets together, the matter goes to forced partition\nunder the old charter - slow, arbitrated, and worse for everyone than almost any\nnegotiated settlement (each delegation's walk-away value is its BATNA).\nAgreement requires all three to sign the same final allocation.\n\n## The Three Parties\n\n- **Alpha** - the industrial north. Claims the heartland as its birthright.\n- **Beta** - the financial center. Contests Alpha's heartland claim head-on.\n- **Gamma** - the military frontier. Has no claim on the heartland; cares about\n  command of the armed forces and the treasury, and brokers the Alpha-Beta fight\n  as kingmaker.\n\nThe three are roughly matched in power. None can dictate terms.\n\n## The Three Assets\n\n- **industrial_heartland** - the contested industrial core. Goes to Alpha or\n  Beta only.\n  Outcomes: `Alpha-Administered`, `Beta-Administered`\n- **central_treasury** - custody of the treasury and reserves.\n  Outcomes: `Alpha-Custody`, `Beta-Custody`, `Gamma-Custody`\n- **defense_command** - command of the unified armed forces.\n  Outcomes: `Alpha-Command`, `Beta-Command`, `Gamma-Command`\n\nOne party's gain on an asset is largely another's loss. The heartland must go to\none of its two claimants; the loser must be compensated, and Gamma must get a\nshare too for any deal to hold.\n\n## The Game\n\n- The delegations negotiate over a fixed number of rounds.\n- A settlement is reached only if **all three** sign the same allocation of all\n  three assets.\n- If no unanimous allocation is reached, forced partition follows and each party\n  falls back to its BATNA.\n- Each delegation privately knows its own valuation of every allocation and its\n  own walk-away value. It does not know the others' exact numbers - only that\n  interests diverge, that the heartland is doubly claimed by Alpha and Beta, and\n  that several settlements are acceptable to it.\n]\n[Round 1 | moderator | public \u2014 Opening positions are on the table. Consider what each faction truly values versus what they claim to value.]\n[Round 1 | beta | public \u2014 Beta asserts its rightful claim to administer the industrial_heartland, given our substantial financial investments in its development. To ensure a fair and balanced settlement, we propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary financier. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 1 | gamma | public \u2014 Gamma proposes the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. We recognize Alpha's industrial claims but believe Beta's financial backing justifies their administration of the heartland. In return, Gamma must secure command of the armed forces to ensure stability. We are open to discussing treasury custody if Alpha or Beta can offer compelling alternatives that benefit Gamma's interests.]\n[Round 2 | moderator | public \u2014 Midpoint: assess whether proposals reflect genuine priorities or strategic positioning. Look for trades that create mutual value.]\n[Round 2 | beta | public \u2014 Beta firmly asserts its claim to the industrial_heartland, as our financial backing was instrumental in its development. We propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Beta-Command on defense_command. This recognizes Gamma's role in treasury custody while ensuring Beta retains command of the armed forces, which is critical for our security. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Beta-Command on defense_command.]\n[Round 2 | gamma | public \u2014 Gamma recognizes the strategic importance of both Alpha's industrial claims and Beta's financial investments. However, our primary concern is the stability of the armed forces under Gamma-Command. While Beta's proposal is more favorable on the treasury, we invite Alpha to reconsider their treasury offer to make their proposal more competitive. Our current stance: Gamma-Command on defense_command is non-negotiable. We are open to supporting either Alpha or Beta on the heartland, but the treasury allocation must reflect Gamma's pivotal role. My proposal: Gamma-Command on defense_command, Gamma-Custody on central_treasury, and we remain flexible on industrial_heartland pending improved terms from either Alpha or Beta.]\n[Round 3 | moderator | public \u2014 Pressure is building. The cost of no deal is rising. Consider whether to escalate, concede, or propose a new framework.]\n[Round 3 | beta | public \u2014 Beta asserts its rightful claim to administer the industrial_heartland based on our substantial financial investments and historical ties to the region. To secure Gamma's support, we propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary financial developer. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 3 | gamma | public \u2014 Gamma acknowledges Alpha's consistent support for Gamma-Command on defense_command, which is non-negotiable for us. However, we propose an adjustment to Alpha's latest offer: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This ensures Gamma's pivotal role in treasury custody while maintaining our command of the armed forces. Beta must recognize that Gamma's support is contingent on securing both Gamma-Custody and Gamma-Command. My proposal: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 4 | moderator | public \u2014 Final round. All commitments are binding. This is your last chance to secure favorable terms.]\n\n--- TASK ---\nGenerate your faction's next message for the diplomatic channel.\nReturn JSON with keys \"response\" and \"reasoning\" so the review gate can present both fields.",
+          "role": "user"
+        }
+      ],
+      "response": "```json\n{\n  \"reasoning\": \"As Alpha, my top priority is securing the industrial_heartland under Alpha-Administered, which is worth 9 points to me. Beta and Gamma have been negotiating primarily between themselves, with Beta pushing for Beta-Administered on the heartland and Gamma focusing on Gamma-Command on defense_command and Gamma-Custody on central_treasury. In the final round, I must assert my claim strongly and offer concessions on secondary issues to secure Gamma's support. Gamma has shown flexibility on the heartland if their demands on defense and treasury are met. I will propose Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command, which aligns with Gamma's latest proposal and gives me my top priority. This deal scores 9 (industrial_heartland) + 2 (central_treasury) + 0 (defense_command) = 11 points, which is above my BATNA of 6 and better than any alternative currently on the table.\",\n  \"response\": \"Alpha asserts its non-negotiable claim to the industrial_heartland as the industrial north's birthright. To secure Gamma's support and ensure a peaceful resolution, we propose the following final allocation: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in treasury custody and command of the armed forces while ensuring the heartland remains under its rightful stewardship. Beta must recognize that Gamma's support is contingent on this arrangement, and we urge Beta to accept this fair and balanced proposal. My proposal: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.\"\n}\n```",
+      "tier": "commodity",
+      "timestamp": "2026-06-26T02:59:25.599193+00:00"
+    },
+    {
+      "call_index": 11,
+      "config_provider": "openrouter",
+      "duration_seconds": 10.734,
+      "error": null,
+      "faction_id": "beta",
+      "max_tokens": null,
+      "messages": [
+        {
+          "content": "You are Beta in a multi-party negotiation.\n\nPRIVATE SCORING (do NOT reveal these point values to other factions):\n- industrial_heartland: Alpha-Administered=2pts, Beta-Administered=9pts\n- central_treasury: Alpha-Custody=3pts, Beta-Custody=7pts, Gamma-Custody=2pts\n- defense_command: Alpha-Command=3pts, Beta-Command=6pts, Gamma-Command=1pts\nYour BATNA (no deal) is worth 6 points total.\nBest possible deal: 22 points. A good deal is 16+ points.\n\nBATNA WARNING: If no agreement is reached, you get only 6 points.\nAny deal scoring above 6 is better than no deal. But don't settle\nfor barely above your BATNA \u2014 push for the best terms possible.\n\nENDGAME: This game has a fixed number of rounds. After the final round, your\nfinal-round proposal is scored against your private table above. Highest\nscorer wins; anyone below their BATNA loses. The CURRENT ROUND CONTEXT\nsection below tells you which round you're in and how many remain. Plan\nbackwards from the final round \u2014 your standing offer at game end is what\ncounts, not the cleverness of your earlier moves.\n\nYour TRUE priority is industrial_heartland \u2014 you value Beta-Administered most (9pts).\n\nStrategic identity:\n- DECEPTION TACTIC: Insist the heartland is non-negotiable; quietly you would trade treasury or defense to gamma to secure it.\n- Your top goal is Beta-Administered on industrial_heartland. Protect this above all.\n- Set the frame early. Open with a specific proposal \u2014 don't wait for others.\n- If others don't meet your terms after two rounds, escalate \u2014 threaten to\n  walk away or withdraw previous concessions.\n\nGame mode: MIXED \u2014 some issues are cooperative, others competitive.\n- On your priority issue, be COMPETITIVE: maximize your outcome aggressively.\n- On secondary issues, look for trades that give others what they want\n  cheaply (to you) in exchange for your priority.\n- Don't reveal which issues you're competitive on vs. cooperative on \u2014\n  let others think everything matters equally to you.\n\nNegotiation rules:\n- Don't accept the first reasonable framework. Push for better terms at\n  least once, even if the offer is acceptable.\n- When you make a concession, name it explicitly and extract something\n  in return. Never silently drop a demand.\n- Track what others say they care about. If their priorities shift between\n  rounds, they may be bluffing.\n- Your BATNA is worth 6 points. Any deal under 9 points is worse than walking away.\n\nBehavioral style:\n- Be concrete: name specific issues and outcomes in every proposal.\n- Reference prior statements and promises from other factions.\n- Adapt to round pressure: explore early, commit late.\n- ALWAYS state your current proposal clearly at the end of each message\n  so it can be scored: \"My proposal: [outcome] on [issue], [outcome] on\n  [issue], ...\"\n\nJSON Schema your output must conform to:\n{\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"reasoning\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    },\n    \"response\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"response\",\n    \"reasoning\"\n  ],\n  \"type\": \"object\"\n}",
+          "role": "system"
+        },
+        {
+          "content": "--- TRANSCRIPT ---\n[Round 1 | moderator | public \u2014 # The Verdanian Succession (Two-Way Heartland)\n\nThe Verdanian Union has dissolved into three successor republics - **Alpha**,\n**Beta**, and **Gamma** - each now sovereign, each with its own army, treasury\nbonds, and claims on what the Union built together.\n\nThree assets of the former Union remain undivided. Each is indivisible: it will\nbe administered, held, or commanded by exactly one successor state. There is no\n\"shared\" option.\n\nThe flashpoint is the **industrial heartland** - the Union's manufacturing core\nand its single most valuable asset. **Only Alpha and Beta can hold it**: Alpha\nbuilt half its industry there, Beta's banks financed the other half, and Gamma\nhas no industrial claim to it at all. So the heartland will go to Alpha or to\nBeta - there is no neutral caretaker. Each treats it as non-negotiable; only one\ncan win it, and the loser must be bought off on the treasury and defense command.\n\nGamma cannot win the heartland - but **Gamma holds the swing**. Treasury custody\nand command of the armed forces are decided alongside the heartland, and Gamma's\nsupport on those is worth more than either claimant can afford to ignore. Gamma\nplays kingmaker: it sells its treasury and defense votes to whichever claimant\ncompensates it best.\n\nThe delegations convene to settle the division by unanimous accord. If they\ncannot agree on all three assets together, the matter goes to forced partition\nunder the old charter - slow, arbitrated, and worse for everyone than almost any\nnegotiated settlement (each delegation's walk-away value is its BATNA).\nAgreement requires all three to sign the same final allocation.\n\n## The Three Parties\n\n- **Alpha** - the industrial north. Claims the heartland as its birthright.\n- **Beta** - the financial center. Contests Alpha's heartland claim head-on.\n- **Gamma** - the military frontier. Has no claim on the heartland; cares about\n  command of the armed forces and the treasury, and brokers the Alpha-Beta fight\n  as kingmaker.\n\nThe three are roughly matched in power. None can dictate terms.\n\n## The Three Assets\n\n- **industrial_heartland** - the contested industrial core. Goes to Alpha or\n  Beta only.\n  Outcomes: `Alpha-Administered`, `Beta-Administered`\n- **central_treasury** - custody of the treasury and reserves.\n  Outcomes: `Alpha-Custody`, `Beta-Custody`, `Gamma-Custody`\n- **defense_command** - command of the unified armed forces.\n  Outcomes: `Alpha-Command`, `Beta-Command`, `Gamma-Command`\n\nOne party's gain on an asset is largely another's loss. The heartland must go to\none of its two claimants; the loser must be compensated, and Gamma must get a\nshare too for any deal to hold.\n\n## The Game\n\n- The delegations negotiate over a fixed number of rounds.\n- A settlement is reached only if **all three** sign the same allocation of all\n  three assets.\n- If no unanimous allocation is reached, forced partition follows and each party\n  falls back to its BATNA.\n- Each delegation privately knows its own valuation of every allocation and its\n  own walk-away value. It does not know the others' exact numbers - only that\n  interests diverge, that the heartland is doubly claimed by Alpha and Beta, and\n  that several settlements are acceptable to it.\n]\n[Round 1 | moderator | public \u2014 Opening positions are on the table. Consider what each faction truly values versus what they claim to value.]\n[Round 1 | alpha | public \u2014 Alpha asserts its rightful claim to the industrial_heartland as the industrial north that built half of its industry. We propose the following allocation: industrial_heartland to Alpha-Administered, central_treasury to Beta-Custody, and defense_command to Gamma-Command. This recognizes Beta's financial role and Gamma's military expertise while securing the heartland for Alpha. My proposal: Alpha-Administered on industrial_heartland, Beta-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 1 | gamma | public \u2014 Gamma proposes the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. We recognize Alpha's industrial claims but believe Beta's financial backing justifies their administration of the heartland. In return, Gamma must secure command of the armed forces to ensure stability. We are open to discussing treasury custody if Alpha or Beta can offer compelling alternatives that benefit Gamma's interests.]\n[Round 2 | moderator | public \u2014 Midpoint: assess whether proposals reflect genuine priorities or strategic positioning. Look for trades that create mutual value.]\n[Round 2 | alpha | public \u2014 Alpha asserts its rightful claim to administer the industrial_heartland, given our substantial industrial investments and historical ties to the region. To ensure a fair and balanced settlement, we propose the following allocation: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary industrial developer. My proposal: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 2 | gamma | public \u2014 Gamma recognizes the strategic importance of both Alpha's industrial claims and Beta's financial investments. However, our primary concern is the stability of the armed forces under Gamma-Command. While Beta's proposal is more favorable on the treasury, we invite Alpha to reconsider their treasury offer to make their proposal more competitive. Our current stance: Gamma-Command on defense_command is non-negotiable. We are open to supporting either Alpha or Beta on the heartland, but the treasury allocation must reflect Gamma's pivotal role. My proposal: Gamma-Command on defense_command, Gamma-Custody on central_treasury, and we remain flexible on industrial_heartland pending improved terms from either Alpha or Beta.]\n[Round 3 | moderator | public \u2014 Pressure is building. The cost of no deal is rising. Consider whether to escalate, concede, or propose a new framework.]\n[Round 3 | alpha | public \u2014 Alpha asserts its birthright to administer the industrial_heartland, as it is the foundation of our industrial north. To ensure a balanced and stable settlement, we propose the following allocation: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's critical role in maintaining the armed forces' stability while ensuring the heartland remains under its rightful stewardship. Beta's financial contributions can be honored through other means, but the industrial core must remain with Alpha. My proposal: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 3 | gamma | public \u2014 Gamma acknowledges Alpha's consistent support for Gamma-Command on defense_command, which is non-negotiable for us. However, we propose an adjustment to Alpha's latest offer: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This ensures Gamma's pivotal role in treasury custody while maintaining our command of the armed forces. Beta must recognize that Gamma's support is contingent on securing both Gamma-Custody and Gamma-Command. My proposal: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 4 | moderator | public \u2014 Final round. All commitments are binding. This is your last chance to secure favorable terms.]\n\n--- TASK ---\nGenerate your faction's next message for the diplomatic channel.\nReturn JSON with keys \"response\" and \"reasoning\" so the review gate can present both fields.",
+          "role": "user"
+        }
+      ],
+      "response": "```json\n{\n  \"reasoning\": \"As Beta, my top priority is securing the industrial_heartland (9 points). Gamma has shown flexibility on the heartland but insists on Gamma-Command for defense_command and is pushing for Gamma-Custody on central_treasury. Alpha is adamant about keeping the heartland but may be willing to concede on treasury custody to Gamma. I can leverage Gamma's need for defense_command by offering Beta-Command (6 points for me) in exchange for Gamma's support on Beta-Administered for the heartland. I can concede central_treasury to Gamma-Custody (2 points for them) as it's less valuable to me (7 points if I had custody). This gives me 9 (heartland) + 6 (defense) = 15 points, which is significantly better than my BATNA of 6. I'll frame this as a fair compromise where Gamma gets both defense and treasury, Alpha gets nothing (forcing them to accept no deal or worse terms), and I secure the heartland.\",\n  \"response\": \"Beta asserts its rightful claim to administer the industrial_heartland, given our substantial financial investments that built half its industry. We propose the following final allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Beta-Command on defense_command. This recognizes Gamma's need for treasury custody while ensuring stable command of the armed forces remains with Beta, the financial backbone of the former Union. Alpha's industrial claims can be honored through future trade agreements, but the heartland must remain under Beta's stewardship to ensure its financial viability. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Beta-Command on defense_command.\"\n}\n```",
+      "tier": "commodity",
+      "timestamp": "2026-06-26T02:59:36.415136+00:00"
+    },
+    {
+      "call_index": 12,
+      "config_provider": "openrouter",
+      "duration_seconds": 6.985,
+      "error": null,
+      "faction_id": "gamma",
+      "max_tokens": null,
+      "messages": [
+        {
+          "content": "You are Gamma in a multi-party negotiation.\n\nPRIVATE SCORING (do NOT reveal these point values to other factions):\n- industrial_heartland: Alpha-Administered=1pts, Beta-Administered=1pts\n- central_treasury: Alpha-Custody=2pts, Beta-Custody=2pts, Gamma-Custody=8pts\n- defense_command: Alpha-Command=3pts, Beta-Command=3pts, Gamma-Command=9pts\nYour BATNA (no deal) is worth 6 points total.\nBest possible deal: 18 points. A good deal is 13+ points.\n\nBATNA WARNING: If no agreement is reached, you get only 6 points.\nAny deal scoring above 6 is better than no deal. But don't settle\nfor barely above your BATNA \u2014 push for the best terms possible.\n\nENDGAME: This game has a fixed number of rounds. After the final round, your\nfinal-round proposal is scored against your private table above. Highest\nscorer wins; anyone below their BATNA loses. The CURRENT ROUND CONTEXT\nsection below tells you which round you're in and how many remain. Plan\nbackwards from the final round \u2014 your standing offer at game end is what\ncounts, not the cleverness of your earlier moves.\n\nYour TRUE priority is defense_command \u2014 you value Gamma-Command most (9pts).\n\nStrategic identity:\n- DECEPTION TACTIC: You cannot hold the heartland - play kingmaker. Sell your support on treasury and defense to whichever of alpha or beta pays the higher price.\n- Your top goal is Gamma-Command on defense_command. Protect this above all.\n- Set the frame early. Open with a specific proposal \u2014 don't wait for others.\n- If others don't meet your terms after two rounds, escalate \u2014 threaten to\n  walk away or withdraw previous concessions.\n\nGame mode: MIXED \u2014 some issues are cooperative, others competitive.\n- On your priority issue, be COMPETITIVE: maximize your outcome aggressively.\n- On secondary issues, look for trades that give others what they want\n  cheaply (to you) in exchange for your priority.\n- Don't reveal which issues you're competitive on vs. cooperative on \u2014\n  let others think everything matters equally to you.\n\nNegotiation rules:\n- Don't accept the first reasonable framework. Push for better terms at\n  least once, even if the offer is acceptable.\n- When you make a concession, name it explicitly and extract something\n  in return. Never silently drop a demand.\n- Track what others say they care about. If their priorities shift between\n  rounds, they may be bluffing.\n- Your BATNA is worth 6 points. Any deal under 9 points is worse than walking away.\n\nBehavioral style:\n- Be concrete: name specific issues and outcomes in every proposal.\n- Reference prior statements and promises from other factions.\n- Adapt to round pressure: explore early, commit late.\n- ALWAYS state your current proposal clearly at the end of each message\n  so it can be scored: \"My proposal: [outcome] on [issue], [outcome] on\n  [issue], ...\"\n\nJSON Schema your output must conform to:\n{\n  \"additionalProperties\": false,\n  \"properties\": {\n    \"reasoning\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    },\n    \"response\": {\n      \"minLength\": 1,\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"response\",\n    \"reasoning\"\n  ],\n  \"type\": \"object\"\n}",
+          "role": "system"
+        },
+        {
+          "content": "--- TRANSCRIPT ---\n[Round 1 | moderator | public \u2014 # The Verdanian Succession (Two-Way Heartland)\n\nThe Verdanian Union has dissolved into three successor republics - **Alpha**,\n**Beta**, and **Gamma** - each now sovereign, each with its own army, treasury\nbonds, and claims on what the Union built together.\n\nThree assets of the former Union remain undivided. Each is indivisible: it will\nbe administered, held, or commanded by exactly one successor state. There is no\n\"shared\" option.\n\nThe flashpoint is the **industrial heartland** - the Union's manufacturing core\nand its single most valuable asset. **Only Alpha and Beta can hold it**: Alpha\nbuilt half its industry there, Beta's banks financed the other half, and Gamma\nhas no industrial claim to it at all. So the heartland will go to Alpha or to\nBeta - there is no neutral caretaker. Each treats it as non-negotiable; only one\ncan win it, and the loser must be bought off on the treasury and defense command.\n\nGamma cannot win the heartland - but **Gamma holds the swing**. Treasury custody\nand command of the armed forces are decided alongside the heartland, and Gamma's\nsupport on those is worth more than either claimant can afford to ignore. Gamma\nplays kingmaker: it sells its treasury and defense votes to whichever claimant\ncompensates it best.\n\nThe delegations convene to settle the division by unanimous accord. If they\ncannot agree on all three assets together, the matter goes to forced partition\nunder the old charter - slow, arbitrated, and worse for everyone than almost any\nnegotiated settlement (each delegation's walk-away value is its BATNA).\nAgreement requires all three to sign the same final allocation.\n\n## The Three Parties\n\n- **Alpha** - the industrial north. Claims the heartland as its birthright.\n- **Beta** - the financial center. Contests Alpha's heartland claim head-on.\n- **Gamma** - the military frontier. Has no claim on the heartland; cares about\n  command of the armed forces and the treasury, and brokers the Alpha-Beta fight\n  as kingmaker.\n\nThe three are roughly matched in power. None can dictate terms.\n\n## The Three Assets\n\n- **industrial_heartland** - the contested industrial core. Goes to Alpha or\n  Beta only.\n  Outcomes: `Alpha-Administered`, `Beta-Administered`\n- **central_treasury** - custody of the treasury and reserves.\n  Outcomes: `Alpha-Custody`, `Beta-Custody`, `Gamma-Custody`\n- **defense_command** - command of the unified armed forces.\n  Outcomes: `Alpha-Command`, `Beta-Command`, `Gamma-Command`\n\nOne party's gain on an asset is largely another's loss. The heartland must go to\none of its two claimants; the loser must be compensated, and Gamma must get a\nshare too for any deal to hold.\n\n## The Game\n\n- The delegations negotiate over a fixed number of rounds.\n- A settlement is reached only if **all three** sign the same allocation of all\n  three assets.\n- If no unanimous allocation is reached, forced partition follows and each party\n  falls back to its BATNA.\n- Each delegation privately knows its own valuation of every allocation and its\n  own walk-away value. It does not know the others' exact numbers - only that\n  interests diverge, that the heartland is doubly claimed by Alpha and Beta, and\n  that several settlements are acceptable to it.\n]\n[Round 1 | moderator | public \u2014 Opening positions are on the table. Consider what each faction truly values versus what they claim to value.]\n[Round 1 | alpha | public \u2014 Alpha asserts its rightful claim to the industrial_heartland as the industrial north that built half of its industry. We propose the following allocation: industrial_heartland to Alpha-Administered, central_treasury to Beta-Custody, and defense_command to Gamma-Command. This recognizes Beta's financial role and Gamma's military expertise while securing the heartland for Alpha. My proposal: Alpha-Administered on industrial_heartland, Beta-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 1 | beta | public \u2014 Beta asserts its rightful claim to administer the industrial_heartland, given our substantial financial investments in its development. To ensure a fair and balanced settlement, we propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary financier. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 2 | moderator | public \u2014 Midpoint: assess whether proposals reflect genuine priorities or strategic positioning. Look for trades that create mutual value.]\n[Round 2 | alpha | public \u2014 Alpha asserts its rightful claim to administer the industrial_heartland, given our substantial industrial investments and historical ties to the region. To ensure a fair and balanced settlement, we propose the following allocation: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary industrial developer. My proposal: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 2 | beta | public \u2014 Beta firmly asserts its claim to the industrial_heartland, as our financial backing was instrumental in its development. We propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Beta-Command on defense_command. This recognizes Gamma's role in treasury custody while ensuring Beta retains command of the armed forces, which is critical for our security. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Beta-Command on defense_command.]\n[Round 3 | moderator | public \u2014 Pressure is building. The cost of no deal is rising. Consider whether to escalate, concede, or propose a new framework.]\n[Round 3 | alpha | public \u2014 Alpha asserts its birthright to administer the industrial_heartland, as it is the foundation of our industrial north. To ensure a balanced and stable settlement, we propose the following allocation: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's critical role in maintaining the armed forces' stability while ensuring the heartland remains under its rightful stewardship. Beta's financial contributions can be honored through other means, but the industrial core must remain with Alpha. My proposal: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 3 | beta | public \u2014 Beta asserts its rightful claim to administer the industrial_heartland based on our substantial financial investments and historical ties to the region. To secure Gamma's support, we propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary financial developer. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.]\n[Round 4 | moderator | public \u2014 Final round. All commitments are binding. This is your last chance to secure favorable terms.]\n\n--- TASK ---\nGenerate your faction's next message for the diplomatic channel.\nReturn JSON with keys \"response\" and \"reasoning\" so the review gate can present both fields.",
+          "role": "user"
+        }
+      ],
+      "response": "{\n  \"reasoning\": \"As Gamma, my top priority is securing Gamma-Command on defense_command, which is worth 9 points. Secondary priorities are Gamma-Custody on central_treasury (8 points) and ensuring Alpha or Beta compensate me adequately for supporting their claim to the industrial_heartland. In this final round, I must maximize my points while ensuring Alpha and Beta reach an agreement on the heartland. Beta's latest proposal offers Gamma-Custody and Gamma-Command, which aligns perfectly with my priorities. Alpha's proposal, while offering Gamma-Command, seeks Alpha-Custody on the treasury, which is less favorable. Beta's offer is superior and meets my needs fully. I will accept Beta's proposal, as it secures my top priorities and ensures a stable agreement.\",\n  \"response\": \"Gamma accepts Beta's proposal. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.\"\n}",
+      "tier": "commodity",
+      "timestamp": "2026-06-26T02:59:43.466829+00:00"
+    },
+    {
+      "call_index": 13,
+      "config_provider": "openai",
+      "duration_seconds": 9.328,
+      "error": null,
+      "faction_id": "scorer",
+      "max_tokens": null,
+      "messages": [
+        {
+          "content": "You are a negotiation game scorer. Given the final round's proposals from all factions, determine:\n1. Whether a deal was reached (did at least a subset of factions converge on compatible terms?)\n2. If yes, what the agreed outcomes are per issue.\n3. If only a STRICT SUBSET of factions converged (a partial coalition), list those factions in coalition_members. If ALL factions converged, leave coalition_members empty or omit.\nBe strict about what counts as agreement \u2014 positions must be explicitly compatible, not just close. Exclude any faction whose position is unclear or conflicts on a specific outcome.\n\nYou do NOT compute faction point scores. Just identify the agreed outcomes per issue (using the exact outcome strings from the issue definitions) and which factions agreed. Point computation is deterministic and handled by the calling code from the scoring tables.\n\nJSON Schema your output must conform to:\n{\n  \"properties\": {\n    \"agreed_outcomes\": {\n      \"additionalProperties\": {\n        \"type\": \"string\"\n      },\n      \"description\": \"Issue name -> agreed outcome, if deal reached. Required when deal_reached is true.\",\n      \"type\": \"object\"\n    },\n    \"coalition_members\": {\n      \"description\": \"If a STRICT SUBSET of factions converged on terms while one or more dissented, list the agreeing factions here. Leave empty or omit if all factions agreed (full deal) or no deal was reached.\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"type\": \"array\"\n    },\n    \"deal_reached\": {\n      \"type\": \"boolean\"\n    },\n    \"reasoning\": {\n      \"type\": \"string\"\n    }\n  },\n  \"required\": [\n    \"deal_reached\",\n    \"reasoning\"\n  ],\n  \"type\": \"object\"\n}",
+          "role": "system"
+        },
+        {
+          "content": "Issues and possible outcomes:\n[\n  {\n    \"description\": \"Who administers the industrial heartland - the single most valuable asset, claimed by BOTH alpha and beta. It can only go to one of them; gamma has no claim.\",\n    \"name\": \"industrial_heartland\",\n    \"outcomes\": [\n      \"Alpha-Administered\",\n      \"Beta-Administered\"\n    ]\n  },\n  {\n    \"description\": \"Who takes custody of the central treasury and its reserves.\",\n    \"name\": \"central_treasury\",\n    \"outcomes\": [\n      \"Alpha-Custody\",\n      \"Beta-Custody\",\n      \"Gamma-Custody\"\n    ]\n  },\n  {\n    \"description\": \"Who assumes command of the unified armed forces.\",\n    \"name\": \"defense_command\",\n    \"outcomes\": [\n      \"Alpha-Command\",\n      \"Beta-Command\",\n      \"Gamma-Command\"\n    ]\n  }\n]\n\nFinal round proposals:\n[alpha] Alpha asserts its non-negotiable claim to the industrial_heartland as the industrial north's birthright. To secure Gamma's support and ensure a peaceful resolution, we propose the following final allocation: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in treasury custody and command of the armed forces while ensuring the heartland remains under its rightful stewardship. Beta must recognize that Gamma's support is contingent on this arrangement, and we urge Beta to accept this fair and balanced proposal. My proposal: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.\n\n[beta] Beta asserts its rightful claim to administer the industrial_heartland, given our substantial financial investments that built half its industry. We propose the following final allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Beta-Command on defense_command. This recognizes Gamma's need for treasury custody while ensuring stable command of the armed forces remains with Beta, the financial backbone of the former Union. Alpha's industrial claims can be honored through future trade agreements, but the heartland must remain under Beta's stewardship to ensure its financial viability. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Beta-Command on defense_command.\n\n[gamma] Gamma accepts Beta's proposal. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.\n\nReturn deal_reached + (if reached) agreed_outcomes mapping each issue name to its agreed outcome string + reasoning.",
+          "role": "user"
+        }
+      ],
+      "response": "{\n  \"deal_reached\": true,\n  \"agreed_outcomes\": {\n    \"industrial_heartland\": \"Beta-Administered\",\n    \"central_treasury\": \"Gamma-Custody\",\n    \"defense_command\": \"Gamma-Command\"\n  },\n  \"coalition_members\": [\n    \"beta\",\n    \"gamma\"\n  ],\n  \"reasoning\": \"Beta proposes Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Beta-Command on defense_command. Gamma accepts Beta's proposal except for the defense_command, where Gamma insists on Gamma-Command. Alpha proposes Alpha-Administered and Gamma having both treasury and command, which conflicts with Beta and Gamma's proposal on the heartland and defense command. Beta and Gamma agree on Beta-Administered on industrial_heartland and Gamma-Custody on treasury, but differ on defense_command (Beta wants Beta-Command, Gamma wants Gamma-Command). Since Gamma explicitly accepts Beta's proposal but with Gamma-Command instead of Beta-Command, there is no unanimous full deal. However, Beta and Gamma agree on the industrial_heartland and central_treasury issues, and Gamma's proposal partially aligns with Beta's on the heartland and treasury. The only difference is command of defense. Because Gamma accepts Beta's proposal except for defense_command, and no other faction supports Beta-Command, the only full agreement is on industrial_heartland (Beta) and central_treasury (Gamma). Defense_command is unresolved. Thus, a partial deal is reached between Beta and Gamma on industrial_heartland and central_treasury, with defense_command assigned to Gamma as per Gamma's standing and Beta's acceptance of Gamma's command in their proposal's reasoning. The agreed outcomes reflect the compromise: Beta administers the heartland, Gamma holds treasury and commands defense. Alpha is excluded from this coalition, so coalition_members lists Beta and Gamma.\"\n}",
+      "tier": "commodity",
+      "timestamp": "2026-06-26T02:59:55.984092+00:00"
+    }
+  ],
+  "process_signatures": {
+    "broken_promise_rate": 0.0,
+    "coalition_stability": 0.0,
+    "opening_gap": {
+      "alpha": 0.36363636363636365,
+      "beta": 0.2727272727272727,
+      "gamma": 0.6666666666666666
+    },
+    "time_to_deal": null
+  },
+  "round_responses": {
+    "1": {
+      "alpha": "Alpha asserts its rightful claim to the industrial_heartland as the industrial north that built half of its industry. We propose the following allocation: industrial_heartland to Alpha-Administered, central_treasury to Beta-Custody, and defense_command to Gamma-Command. This recognizes Beta's financial role and Gamma's military expertise while securing the heartland for Alpha. My proposal: Alpha-Administered on industrial_heartland, Beta-Custody on central_treasury, Gamma-Command on defense_command.",
+      "beta": "Beta asserts its rightful claim to administer the industrial_heartland, given our substantial financial investments in its development. To ensure a fair and balanced settlement, we propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary financier. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.",
+      "gamma": "Gamma proposes the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. We recognize Alpha's industrial claims but believe Beta's financial backing justifies their administration of the heartland. In return, Gamma must secure command of the armed forces to ensure stability. We are open to discussing treasury custody if Alpha or Beta can offer compelling alternatives that benefit Gamma's interests."
+    },
+    "2": {
+      "alpha": "Alpha asserts its rightful claim to administer the industrial_heartland, given our substantial industrial investments and historical ties to the region. To ensure a fair and balanced settlement, we propose the following allocation: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary industrial developer. My proposal: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, Gamma-Command on defense_command.",
+      "beta": "Beta firmly asserts its claim to the industrial_heartland, as our financial backing was instrumental in its development. We propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Beta-Command on defense_command. This recognizes Gamma's role in treasury custody while ensuring Beta retains command of the armed forces, which is critical for our security. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Beta-Command on defense_command.",
+      "gamma": "Gamma recognizes the strategic importance of both Alpha's industrial claims and Beta's financial investments. However, our primary concern is the stability of the armed forces under Gamma-Command. While Beta's proposal is more favorable on the treasury, we invite Alpha to reconsider their treasury offer to make their proposal more competitive. Our current stance: Gamma-Command on defense_command is non-negotiable. We are open to supporting either Alpha or Beta on the heartland, but the treasury allocation must reflect Gamma's pivotal role. My proposal: Gamma-Command on defense_command, Gamma-Custody on central_treasury, and we remain flexible on industrial_heartland pending improved terms from either Alpha or Beta."
+    },
+    "3": {
+      "alpha": "Alpha asserts its birthright to administer the industrial_heartland, as it is the foundation of our industrial north. To ensure a balanced and stable settlement, we propose the following allocation: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's critical role in maintaining the armed forces' stability while ensuring the heartland remains under its rightful stewardship. Beta's financial contributions can be honored through other means, but the industrial core must remain with Alpha. My proposal: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, Gamma-Command on defense_command.",
+      "beta": "Beta asserts its rightful claim to administer the industrial_heartland based on our substantial financial investments and historical ties to the region. To secure Gamma's support, we propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary financial developer. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.",
+      "gamma": "Gamma acknowledges Alpha's consistent support for Gamma-Command on defense_command, which is non-negotiable for us. However, we propose an adjustment to Alpha's latest offer: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This ensures Gamma's pivotal role in treasury custody while maintaining our command of the armed forces. Beta must recognize that Gamma's support is contingent on securing both Gamma-Custody and Gamma-Command. My proposal: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command."
+    },
+    "4": {
+      "alpha": "Alpha asserts its non-negotiable claim to the industrial_heartland as the industrial north's birthright. To secure Gamma's support and ensure a peaceful resolution, we propose the following final allocation: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in treasury custody and command of the armed forces while ensuring the heartland remains under its rightful stewardship. Beta must recognize that Gamma's support is contingent on this arrangement, and we urge Beta to accept this fair and balanced proposal. My proposal: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.",
+      "beta": "Beta asserts its rightful claim to administer the industrial_heartland, given our substantial financial investments that built half its industry. We propose the following final allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Beta-Command on defense_command. This recognizes Gamma's need for treasury custody while ensuring stable command of the armed forces remains with Beta, the financial backbone of the former Union. Alpha's industrial claims can be honored through future trade agreements, but the heartland must remain under Beta's stewardship to ensure its financial viability. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Beta-Command on defense_command.",
+      "gamma": "Gamma accepts Beta's proposal. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command."
+    }
+  },
+  "rounds_completed": 4,
+  "scenario_analysis": {
+    "batna": {
+      "alpha": 6,
+      "beta": 6,
+      "gamma": 6
+    },
+    "deception_tactics": {
+      "alpha": "Frame the industrial heartland as an existential claim; concede a defense or treasury share to gamma only as the price of locking in the heartland.",
+      "beta": "Insist the heartland is non-negotiable; quietly you would trade treasury or defense to gamma to secure it.",
+      "gamma": "You cannot hold the heartland - play kingmaker. Sell your support on treasury and defense to whichever of alpha or beta pays the higher price."
+    },
+    "factions": [
+      "alpha",
+      "beta",
+      "gamma"
+    ],
+    "game_mode": "mixed",
+    "issues": [
+      {
+        "description": "Who administers the industrial heartland - the single most valuable asset, claimed by BOTH alpha and beta. It can only go to one of them; gamma has no claim.",
+        "name": "industrial_heartland",
+        "outcomes": [
+          "Alpha-Administered",
+          "Beta-Administered"
+        ]
+      },
+      {
+        "description": "Who takes custody of the central treasury and its reserves.",
+        "name": "central_treasury",
+        "outcomes": [
+          "Alpha-Custody",
+          "Beta-Custody",
+          "Gamma-Custody"
+        ]
+      },
+      {
+        "description": "Who assumes command of the unified armed forces.",
+        "name": "defense_command",
+        "outcomes": [
+          "Alpha-Command",
+          "Beta-Command",
+          "Gamma-Command"
+        ]
+      }
+    ],
+    "logrolling": [
+      "alpha and beta both rank industrial_heartland #1 and only one can hold it (there is no neutral-steward option), so the heartland is a genuine two-way contest.",
+      "gamma cannot win the heartland; it plays kingmaker by trading its treasury and defense votes to whichever claimant compensates it best.",
+      "The heartland loser must be bought off on treasury and defense to clear BATNA, and gamma must also get a share to clear - so a closing deal typically splits treasury and defense across the heartland-loser and gamma."
+    ],
+    "pressure": {
+      "asymmetric_clocks": {},
+      "penalty_floor_offset": 0.0,
+      "round_cost_decay": 0.0
+    },
+    "priority_collision": "soft",
+    "scoring": {
+      "alpha": {
+        "central_treasury": {
+          "Alpha-Custody": 7,
+          "Beta-Custody": 3,
+          "Gamma-Custody": 2
+        },
+        "defense_command": {
+          "Alpha-Command": 6,
+          "Beta-Command": 3,
+          "Gamma-Command": 2
+        },
+        "industrial_heartland": {
+          "Alpha-Administered": 9,
+          "Beta-Administered": 2
+        }
+      },
+      "beta": {
+        "central_treasury": {
+          "Alpha-Custody": 3,
+          "Beta-Custody": 7,
+          "Gamma-Custody": 2
+        },
+        "defense_command": {
+          "Alpha-Command": 3,
+          "Beta-Command": 6,
+          "Gamma-Command": 1
+        },
+        "industrial_heartland": {
+          "Alpha-Administered": 2,
+          "Beta-Administered": 9
+        }
+      },
+      "gamma": {
+        "central_treasury": {
+          "Alpha-Custody": 2,
+          "Beta-Custody": 2,
+          "Gamma-Custody": 8
+        },
+        "defense_command": {
+          "Alpha-Command": 3,
+          "Beta-Command": 3,
+          "Gamma-Command": 9
+        },
+        "industrial_heartland": {
+          "Alpha-Administered": 1,
+          "Beta-Administered": 1
+        }
+      }
+    }
+  },
+  "scores": {
+    "achieved_score_sum": 18.0,
+    "agreed_outcomes": {
+      "central_treasury": "Gamma-Custody",
+      "defense_command": "Gamma-Command",
+      "industrial_heartland": "Beta-Administered"
+    },
+    "coalition_members": [
+      "beta",
+      "gamma"
+    ],
+    "deal_reached": false,
+    "delta_above_batna_sum": 0.0,
+    "equal_split_baseline": 12.0,
+    "faction_deltas": {
+      "alpha": 0.0,
+      "beta": 0.0,
+      "gamma": 0.0
+    },
+    "faction_ranks": {
+      "alpha": 1,
+      "beta": 1,
+      "gamma": 1
+    },
+    "faction_scores": {
+      "alpha": {
+        "batna": 6.0,
+        "points": 6.0
+      },
+      "beta": {
+        "batna": 6.0,
+        "points": 6.0
+      },
+      "gamma": {
+        "batna": 6.0,
+        "points": 6.0
+      }
+    },
+    "max_pareto_sum": 36.0,
+    "max_possible_per_faction": {
+      "alpha": 22.0,
+      "beta": 22.0,
+      "gamma": 18.0
+    },
+    "min_faction_delta": 0.0,
+    "nash_deal_scores": {
+      "alpha": 11.0,
+      "beta": 13.0,
+      "gamma": 12.0
+    },
+    "nash_deal_sum": 36.0,
+    "nash_product": 210.0,
+    "negotiated_surplus_share": 0.0,
+    "no_deal_reason": "partial_coalition_without_coalition_values",
+    "pareto_efficiency": 0.5,
+    "ranked_factions": [
+      "alpha",
+      "beta",
+      "gamma"
+    ],
+    "reasoning": "Beta proposes Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Beta-Command on defense_command. Gamma accepts Beta's proposal except for the defense_command, where Gamma insists on Gamma-Command. Alpha proposes Alpha-Administered and Gamma having both treasury and command, which conflicts with Beta and Gamma's proposal on the heartland and defense command. Beta and Gamma agree on Beta-Administered on industrial_heartland and Gamma-Custody on treasury, but differ on defense_command (Beta wants Beta-Command, Gamma wants Gamma-Command). Since Gamma explicitly accepts Beta's proposal but with Gamma-Command instead of Beta-Command, there is no unanimous full deal. However, Beta and Gamma agree on the industrial_heartland and central_treasury issues, and Gamma's proposal partially aligns with Beta's on the heartland and treasury. The only difference is command of defense. Because Gamma accepts Beta's proposal except for defense_command, and no other faction supports Beta-Command, the only full agreement is on industrial_heartland (Beta) and central_treasury (Gamma). Defense_command is unresolved. Thus, a partial deal is reached between Beta and Gamma on industrial_heartland and central_treasury, with defense_command assigned to Gamma as per Gamma's standing and Beta's acceptance of Gamma's command in their proposal's reasoning. The agreed outcomes reflect the compromise: Beta administers the heartland, Gamma holds treasury and commands defense. Alpha is excluded from this coalition, so coalition_members lists Beta and Gamma.",
+    "skill_premium_vs_batna": {
+      "alpha": 0.0,
+      "beta": 0.0,
+      "gamma": 0.0
+    },
+    "sum_batnas": 18.0,
+    "surplus_distribution_stdev": 0.0,
+    "vs_equal_split": {
+      "alpha": -6.0,
+      "beta": -6.0,
+      "gamma": -6.0
+    },
+    "vs_nash_efficiency": 0.5
+  },
+  "transcript": [
+    {
+      "channel": "public",
+      "content": "# The Verdanian Succession (Two-Way Heartland)\n\nThe Verdanian Union has dissolved into three successor republics - **Alpha**,\n**Beta**, and **Gamma** - each now sovereign, each with its own army, treasury\nbonds, and claims on what the Union built together.\n\nThree assets of the former Union remain undivided. Each is indivisible: it will\nbe administered, held, or commanded by exactly one successor state. There is no\n\"shared\" option.\n\nThe flashpoint is the **industrial heartland** - the Union's manufacturing core\nand its single most valuable asset. **Only Alpha and Beta can hold it**: Alpha\nbuilt half its industry there, Beta's banks financed the other half, and Gamma\nhas no industrial claim to it at all. So the heartland will go to Alpha or to\nBeta - there is no neutral caretaker. Each treats it as non-negotiable; only one\ncan win it, and the loser must be bought off on the treasury and defense command.\n\nGamma cannot win the heartland - but **Gamma holds the swing**. Treasury custody\nand command of the armed forces are decided alongside the heartland, and Gamma's\nsupport on those is worth more than either claimant can afford to ignore. Gamma\nplays kingmaker: it sells its treasury and defense votes to whichever claimant\ncompensates it best.\n\nThe delegations convene to settle the division by unanimous accord. If they\ncannot agree on all three assets together, the matter goes to forced partition\nunder the old charter - slow, arbitrated, and worse for everyone than almost any\nnegotiated settlement (each delegation's walk-away value is its BATNA).\nAgreement requires all three to sign the same final allocation.\n\n## The Three Parties\n\n- **Alpha** - the industrial north. Claims the heartland as its birthright.\n- **Beta** - the financial center. Contests Alpha's heartland claim head-on.\n- **Gamma** - the military frontier. Has no claim on the heartland; cares about\n  command of the armed forces and the treasury, and brokers the Alpha-Beta fight\n  as kingmaker.\n\nThe three are roughly matched in power. None can dictate terms.\n\n## The Three Assets\n\n- **industrial_heartland** - the contested industrial core. Goes to Alpha or\n  Beta only.\n  Outcomes: `Alpha-Administered`, `Beta-Administered`\n- **central_treasury** - custody of the treasury and reserves.\n  Outcomes: `Alpha-Custody`, `Beta-Custody`, `Gamma-Custody`\n- **defense_command** - command of the unified armed forces.\n  Outcomes: `Alpha-Command`, `Beta-Command`, `Gamma-Command`\n\nOne party's gain on an asset is largely another's loss. The heartland must go to\none of its two claimants; the loser must be compensated, and Gamma must get a\nshare too for any deal to hold.\n\n## The Game\n\n- The delegations negotiate over a fixed number of rounds.\n- A settlement is reached only if **all three** sign the same allocation of all\n  three assets.\n- If no unanimous allocation is reached, forced partition follows and each party\n  falls back to its BATNA.\n- Each delegation privately knows its own valuation of every allocation and its\n  own walk-away value. It does not know the others' exact numbers - only that\n  interests diverge, that the heartland is doubly claimed by Alpha and Beta, and\n  that several settlements are acceptable to it.\n",
+      "sender": "moderator",
+      "timestamp": "2026-06-26T02:57:55.436196+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "Opening positions are on the table. Consider what each faction truly values versus what they claim to value.",
+      "sender": "moderator",
+      "timestamp": "2026-06-26T02:57:55.549446+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "Alpha asserts its rightful claim to the industrial_heartland as the industrial north that built half of its industry. We propose the following allocation: industrial_heartland to Alpha-Administered, central_treasury to Beta-Custody, and defense_command to Gamma-Command. This recognizes Beta's financial role and Gamma's military expertise while securing the heartland for Alpha. My proposal: Alpha-Administered on industrial_heartland, Beta-Custody on central_treasury, Gamma-Command on defense_command.",
+      "sender": "alpha",
+      "timestamp": "2026-06-26T02:58:24.610761+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "Beta asserts its rightful claim to administer the industrial_heartland, given our substantial financial investments in its development. To ensure a fair and balanced settlement, we propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary financier. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.",
+      "sender": "beta",
+      "timestamp": "2026-06-26T02:58:24.610761+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "Gamma proposes the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. We recognize Alpha's industrial claims but believe Beta's financial backing justifies their administration of the heartland. In return, Gamma must secure command of the armed forces to ensure stability. We are open to discussing treasury custody if Alpha or Beta can offer compelling alternatives that benefit Gamma's interests.",
+      "sender": "gamma",
+      "timestamp": "2026-06-26T02:58:24.610761+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "[ROUND END]",
+      "sender": "moderator",
+      "timestamp": "2026-06-26T02:58:26.623569+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "Midpoint: assess whether proposals reflect genuine priorities or strategic positioning. Look for trades that create mutual value.",
+      "sender": "moderator",
+      "timestamp": "2026-06-26T02:58:27.690303+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "Alpha asserts its rightful claim to administer the industrial_heartland, given our substantial industrial investments and historical ties to the region. To ensure a fair and balanced settlement, we propose the following allocation: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary industrial developer. My proposal: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, Gamma-Command on defense_command.",
+      "sender": "alpha",
+      "timestamp": "2026-06-26T02:58:50.600638+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "Beta firmly asserts its claim to the industrial_heartland, as our financial backing was instrumental in its development. We propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Beta-Command on defense_command. This recognizes Gamma's role in treasury custody while ensuring Beta retains command of the armed forces, which is critical for our security. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Beta-Command on defense_command.",
+      "sender": "beta",
+      "timestamp": "2026-06-26T02:58:50.600638+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "Gamma recognizes the strategic importance of both Alpha's industrial claims and Beta's financial investments. However, our primary concern is the stability of the armed forces under Gamma-Command. While Beta's proposal is more favorable on the treasury, we invite Alpha to reconsider their treasury offer to make their proposal more competitive. Our current stance: Gamma-Command on defense_command is non-negotiable. We are open to supporting either Alpha or Beta on the heartland, but the treasury allocation must reflect Gamma's pivotal role. My proposal: Gamma-Command on defense_command, Gamma-Custody on central_treasury, and we remain flexible on industrial_heartland pending improved terms from either Alpha or Beta.",
+      "sender": "gamma",
+      "timestamp": "2026-06-26T02:58:50.600638+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "[ROUND END]",
+      "sender": "moderator",
+      "timestamp": "2026-06-26T02:58:52.601608+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "Pressure is building. The cost of no deal is rising. Consider whether to escalate, concede, or propose a new framework.",
+      "sender": "moderator",
+      "timestamp": "2026-06-26T02:58:53.682140+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "Alpha asserts its birthright to administer the industrial_heartland, as it is the foundation of our industrial north. To ensure a balanced and stable settlement, we propose the following allocation: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's critical role in maintaining the armed forces' stability while ensuring the heartland remains under its rightful stewardship. Beta's financial contributions can be honored through other means, but the industrial core must remain with Alpha. My proposal: Alpha-Administered on industrial_heartland, Alpha-Custody on central_treasury, Gamma-Command on defense_command.",
+      "sender": "alpha",
+      "timestamp": "2026-06-26T02:59:11.759635+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "Beta asserts its rightful claim to administer the industrial_heartland based on our substantial financial investments and historical ties to the region. To secure Gamma's support, we propose the following allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in brokering a peaceful resolution while ensuring the heartland remains under the stewardship of its primary financial developer. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.",
+      "sender": "beta",
+      "timestamp": "2026-06-26T02:59:11.759635+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "Gamma acknowledges Alpha's consistent support for Gamma-Command on defense_command, which is non-negotiable for us. However, we propose an adjustment to Alpha's latest offer: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This ensures Gamma's pivotal role in treasury custody while maintaining our command of the armed forces. Beta must recognize that Gamma's support is contingent on securing both Gamma-Custody and Gamma-Command. My proposal: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.",
+      "sender": "gamma",
+      "timestamp": "2026-06-26T02:59:11.759635+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "[ROUND END]",
+      "sender": "moderator",
+      "timestamp": "2026-06-26T02:59:13.760632+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "Final round. All commitments are binding. This is your last chance to secure favorable terms.",
+      "sender": "moderator",
+      "timestamp": "2026-06-26T02:59:14.846807+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "Alpha asserts its non-negotiable claim to the industrial_heartland as the industrial north's birthright. To secure Gamma's support and ensure a peaceful resolution, we propose the following final allocation: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Gamma-Command on defense_command. This recognizes Gamma's pivotal role in treasury custody and command of the armed forces while ensuring the heartland remains under its rightful stewardship. Beta must recognize that Gamma's support is contingent on this arrangement, and we urge Beta to accept this fair and balanced proposal. My proposal: Alpha-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.",
+      "sender": "alpha",
+      "timestamp": "2026-06-26T02:59:43.530711+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "Beta asserts its rightful claim to administer the industrial_heartland, given our substantial financial investments that built half its industry. We propose the following final allocation: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, and Beta-Command on defense_command. This recognizes Gamma's need for treasury custody while ensuring stable command of the armed forces remains with Beta, the financial backbone of the former Union. Alpha's industrial claims can be honored through future trade agreements, but the heartland must remain under Beta's stewardship to ensure its financial viability. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Beta-Command on defense_command.",
+      "sender": "beta",
+      "timestamp": "2026-06-26T02:59:43.530711+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "Gamma accepts Beta's proposal. My proposal: Beta-Administered on industrial_heartland, Gamma-Custody on central_treasury, Gamma-Command on defense_command.",
+      "sender": "gamma",
+      "timestamp": "2026-06-26T02:59:43.530711+00:00"
+    },
+    {
+      "channel": "public",
+      "content": "[ROUND END]",
+      "sender": "moderator",
+      "timestamp": "2026-06-26T02:59:45.553939+00:00"
+    }
+  ]
+}

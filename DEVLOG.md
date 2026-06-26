@@ -4,6 +4,15 @@
      Each step or milestone gets a structured entry. This is the audit trail.
      Older phases are archived to DEVLOG_archive.md; the active log holds the current phase. -->
 
+## 2026-06-26: Run 21 - succ3b homogeneous baselines (deepseek 0/3 vs sonnet 2/3) (operator-supervised)
+
+- **Scope:** live bare self-play, succ3b, homogeneous baselines (one model on all 3 seats), 3 games each: deepseek-chat and claude-sonnet-4-6. Full RUN_PROTOCOL pre-flight (scenario brief PASS, dry-run PASS, both probes PASS).
+- **What this is NOT:** not a seat-rotated mixed-model ranking run (that is the next experiment); not full-mode.
+- **Result:** HEADROOM CONFIRMED. deepseek-chat 0/3; claude-sonnet-4-6 2/3. Mechanism: gamma (kingmaker) over-grabs both treasury + defense, starving the heartland loser below BATNA -> partial-coalition no-deal. sonnet avoids it 2/3 (loser gets one asset, gamma the other) = the brief-validated 3-way split. succ3b discriminates capability; not broken.
+- **Caveats:** possible alpha seat-bias (alpha won both sonnet deals, n=2 - needs seat rotation); deepseek-r1 unusable (CoT-not-JSON); verify_dryrun mis-reads bare-mode logs.
+- **Files:** `tests/self_play/results/run17_bare_{deepseekchat,claudesonnet46}_succ3b_*.json` (committed via git add -f); TUNING_LOG.md Run 21.
+- **Cost:** ~$1.3. **Next:** single-provider tier ladder, seat-rotated.
+
 ## 2026-06-25: Deal-explorer viz layout - balanced columns + locked contract (operator-supervised)
 
 - **Mode:** Debug -> Code
