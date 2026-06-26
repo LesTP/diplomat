@@ -14,7 +14,7 @@
 > infra that serves the benchmark; coaching-product work is deferred
 > (infrastructure preserved, no new investment). Rationale: `DECISIONS.md` D-56.
 
-## Current state (2026-06-25)
+## Current state (2026-06-26)
 
 The §3.5 competitive-scoring stack is shipped and validated (rank-among-factions
 lens + `faction_models` persistence + cross-game `mean_rank` aggregator +
@@ -26,6 +26,8 @@ deadlock (5/6 no-deal). Budget ~$11-13 API remaining at session close. Detail:
 `TUNING_LOG.md` Runs 18-20, `RESEARCH_NOTES.md` Note 2.
 
 **Update (2026-06-25).** The scenario-authoring loop tooling is COMPLETE (Phases 46 standalone, 47 coalition-contract, 48 narrative-shell; all closed, ran on the claude backend). Two discriminating distributive scenarios are now authored + brief-passing and AWAIT the live mixed-model test (the real discrimination check): `succ-v3` (3-way contest, some gamma-steward noise) and `succ3b` (2-outcome heartland: clean alpha-vs-beta contest, gamma kingmaker). Both registered in `tools/ablation_multi.sh` as `succ3` / `succ3b`.
+
+**Update (2026-06-26).** `succ3b` LIVE-TESTED (Run 21, homogeneous bare baselines): **headroom confirmed** - deepseek-chat 0/3 vs claude-sonnet-4-6 2/3, so succ3b discriminates capability. Failure mode is **gamma over-grab** (the kingmaker takes both treasury + defense, starving the heartland loser -> partial-coalition no-deal); plus a possible **alpha seat-bias** (alpha won both sonnet deals, n=2). Next: single-provider **tier ladder, seat-rotated** (capability gradient + seat-bias control); consider a `succ3c` that curbs the over-grab, or a full-mode test. Detail: `TUNING_LOG.md` Run 21. Separately, the deal-explorer **viz was polished** end-to-end (faction-colored headers, dynamic payoff-not-share caption, bars-beside-parcoords aligned layout, live ternary surplus readout, clickable parcoords/ternary) - see `DEVLOG.md` 2026-06-26; the layout is contract-locked by `tests/test_scenario_viz.py`.
 
 ## Now — sequencing
 
@@ -65,7 +67,7 @@ Build phases COMPLETED via the autonomous loop (claude backend; two codex-cutoff
 
 | Item | Tags | Loop | Detail |
 |---|---|---|---|
-| **`succ-v3` sweet-spot scenario** (Q1) — AUTHORED as `succ3` (scenarios/succession_division_v3/), brief-passing; ready for live mixed-model test (+ `succ3b` 2-outcome-heartland variant: clean alpha-vs-beta contest, gamma kingmaker) | `[C]` | 👁 | `SCENARIO_GUIDE.md` (distributive authoring); `TUNING_LOG.md` Run 19 |
+| **`succ-v3` sweet-spot scenario** (Q1) — AUTHORED as `succ3` (scenarios/succession_division_v3/), brief-passing; `succ3b` LIVE-TESTED (Run 21: headroom confirmed, deepseek 0/3 vs sonnet 2/3; next = seat-rotated tier ladder); `succ-v3` still pending live test | `[C]` | 👁 | `SCENARIO_GUIDE.md` (distributive authoring); `TUNING_LOG.md` Run 19 |
 | **`succ2` full-mode harness test** (Q2) — measure close-rate lift over bare deadlock | `[C][A]` | 👁 | `TUNING_LOG.md` Run 20; `RESEARCH_NOTES.md` Note 1 |
 | **§3.6 coalition-value scoring engine** (Path B; scoring contract LOCKED Phase 47/D-61) — extend `scenario_analysis.json` `coalition_values`; `score_game()` coalition-exclusion path is implemented + LOCKED by 23 unit tests (Phase 47/D-61); REMAINING (supervised): builder `coalition_values` emission, runtime detection, live mixed-model validation | `[C][A]` | 🔨 | `ASSESSMENT.md` §3.6; `RESEARCH_NOTES.md` Note 2 Path B. Three-Party Coalition v1 patched as first consumer |
 | **§11.b Path A calibration** — mixed Three-Party Coalition × position rotation (9 cells, ~$1-2) | `[C]` | 👁 | `RESEARCH_NOTES.md` Note 2 Path A |

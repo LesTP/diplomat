@@ -4,6 +4,21 @@
      Each step or milestone gets a structured entry. This is the audit trail.
      Older phases are archived to DEVLOG_archive.md; the active log holds the current phase. -->
 
+## 2026-06-26: Deal-explorer viz polish pass (operator-supervised)
+
+- **Mode:** Debug / Refine -> Code (iterative, operator-verified renders)
+- **Outcome:** complete
+- **Contract changes:** none (extends the D-63 viz layout contract; locked by tests)
+
+Iterative polish of the scenario deal-explorer (`scenario_viz.py`), all operator-spotted and regression-tested (`tests/test_scenario_viz.py` now 8 tests):
+- **Bugs:** multi-line narrative/party bullets no longer truncated; per-issue grid sizes columns to the widest issue (a 2-outcome contested asset no longer clips 3-outcome issues to 2 columns); gamma BATNA label no longer clipped; parcoords height trimmed.
+- **Per-issue grid:** faction-colored column headers with an 'Asset goes to:' annotation (dynamic; A/B/C fallback for non-holder-named scenarios); caption generated from the analysis (real faction names + a real example) stating each segment is a faction's payoff, NOT an asset share.
+- **Layout:** 'Per-faction outcome' (bars) placed beside 'Parallel coordinates'; both share the faction x-geometry (aligned) and spread edge-to-edge (wide, small margins).
+- **Ternary:** live surplus-split readout for the selected deal (replaces the redundant footer hint).
+- **Interactivity:** parcoords lines + ternary circles are clickable -> `setDeal` propagates the selection to every chart (+ hover tooltips).
+
+All deal-explorer charts share one renderer, so `tools/viz.py`, `build_viz.py`, and `compile`/`build`/`verify --viz` inherit these. Regenerated `deal_explorer.html` for succ-v3 + succ3b.
+
 ## 2026-06-26: Run 21 - succ3b homogeneous baselines (deepseek 0/3 vs sonnet 2/3) (operator-supervised)
 
 - **Scope:** live bare self-play, succ3b, homogeneous baselines (one model on all 3 seats), 3 games each: deepseek-chat and claude-sonnet-4-6. Full RUN_PROTOCOL pre-flight (scenario brief PASS, dry-run PASS, both probes PASS).
