@@ -45,6 +45,7 @@ def main() -> int:
     transcript = data.get("transcript") or []
     agents = data.get("agents") or {}
     scores = data.get("scores") or {}
+    bare = bool(data.get("bare_mode"))
 
     failures: list[str] = []
 
@@ -77,7 +78,7 @@ def main() -> int:
 
     # --- Invariant 1: total_rounds reached the persona ---
     bad_total = [g for g in gen_calls if g.get("total_rounds") != R]
-    if bad_total:
+    if bad_total and not bare:
         failures.append(
             f"Bug 1 — total_rounds NOT reaching persona in {len(bad_total)}/{len(gen_calls)} "
             f"generation calls. Expected total_rounds={R}. Sample: {bad_total[0]}"
@@ -86,7 +87,7 @@ def main() -> int:
     # --- Invariant 2: current_round increments per round ---
     rounds_seen = sorted({g["round"] for g in gen_calls if "round" in g})
     expected_rounds = list(range(1, R + 1))
-    if rounds_seen != expected_rounds:
+    if rounds_seen != expected_rounds and not bare:
         failures.append(
             f"Bug 2 — generation calls saw rounds {rounds_seen}, expected {expected_rounds}. "
             f"current_round is not advancing per round."
@@ -95,9 +96,23 @@ def main() -> int:
     # --- Invariant 3: GEN calls per round == F (one per faction) ---
     for rnd in expected_rounds:
         count = by_type_and_round.get(("GEN", rnd), 0)
-        if count != F:
+        if count != F and not bare:
             failures.append(
                 f"Bug 2/3 — expected {F} GEN calls in round {rnd}, got {count}."
+            )
+
+    # --- Bare-mode GEN count (bare prompts carry no per-round markers, so the
+    # round/marker invariants above are skipped; check totals instead) ---
+    if bare:
+        per_fac = Counter(g.get("faction") for g in gen_calls)
+        if len(gen_calls) != F * R:
+            failures.append(
+                f"Bare GEN count - expected {F * R} GEN calls (F x R), got {len(gen_calls)}."
+            )
+        bad_fac = {f: n for f, n in per_fac.items() if n != R}
+        if bad_fac:
+            failures.append(
+                f"Bare GEN per-faction - expected {R} each, got {dict(per_fac)}."
             )
 
     # --- Invariant 4: each agent message reaches transcript per round ---
@@ -122,7 +137,7 @@ def main() -> int:
     # --- Invariant 5: penultimate / final round markers fire in the right rounds ---
     penultimate_rounds = {g["round"] for g in gen_calls if g.get("has_penultimate_marker")}
     final_rounds = {g["round"] for g in gen_calls if g.get("has_final_marker")}
-    if R >= 2:
+    if R >= 2 and not bare:
         if R - 1 not in penultimate_rounds:
             failures.append(
                 f"Endgame — PENULTIMATE ROUND block missing in round {R-1}. "
@@ -147,7 +162,7 @@ def main() -> int:
             )
 
     # --- Invariant 6: ADV calls per round == F (if enabled) ---
-    if args.adversarial:
+    if args.adversarial and not bare:
         expected_adv = F * R
         if by_type.get("ADV", 0) != expected_adv:
             failures.append(
@@ -216,6 +231,7 @@ def main() -> int:
     # --- Report ---
     print(f"\nVerified against: {args.results}")
     print(f"  {F} factions x {R} rounds")
+    print(f"  Mode: {'bare-prompt (round/marker/adversarial invariants skipped)' if bare else 'full'}")
     print(f"  Transcript agent messages: {actual_total_agent_msgs} (expected {expected_total_agent_msgs})")
     print(f"  Rounds seen by generations: {rounds_seen}")
     print(f"  Penultimate marker rounds: {sorted(penultimate_rounds)}")

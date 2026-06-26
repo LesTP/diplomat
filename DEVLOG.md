@@ -4,6 +4,23 @@
      Each step or milestone gets a structured entry. This is the audit trail.
      Older phases are archived to DEVLOG_archive.md; the active log holds the current phase. -->
 
+## 2026-06-26: Fix verify_dryrun for bare-prompt runs (operator-supervised)
+
+- **Mode:** Debug -> Code
+- **Outcome:** complete
+- **Contract changes:** none
+
+`verify_dryrun` assumed full-mode prompt scaffolding (per-round `Round: N of M`
+markers, PENULTIMATE/FINAL markers, adversarial/analyst/extraction calls), so on a
+bare-prompt live result (Run 21) it raised false failures - the "0 GEN" symptom
+was really: GEN calls WERE found but carried no round tag (bare prompts are
+transcript-only), and ADV/analyst calls were expected though bare mode disables
+them. Fix: detect `bare_mode` from the result and skip the round/marker/adversarial
+invariants, checking the applicable subset instead (GEN count == F x R per faction
+via the tagged `faction_id`, transcript message count, SCORE, provider routing).
+Verified on the committed Run 21 bare result; the full dry-run still passes. Locked
+by `tests/self_play/test_verify_dryrun.py`.
+
 ## 2026-06-26: Deal-explorer viz polish pass (operator-supervised)
 
 - **Mode:** Debug / Refine -> Code (iterative, operator-verified renders)
