@@ -88,8 +88,17 @@ def md_to_html(text: str) -> str:
                 out.append("<p>" + esc_bold(" ".join(l.strip() for l in rest.splitlines())) + "</p>")
             continue
         if first.lstrip().startswith("- "):
-            items = [esc_bold(l.strip()[2:]) for l in block.splitlines() if l.strip().startswith("- ")]
-            out.append("".join(f'<div class="bullet">• {it}</div>' for it in items))
+            items: list[str] = []
+            for line in block.splitlines():
+                stripped = line.strip()
+                if stripped.startswith("- "):
+                    items.append(stripped[2:])
+                elif stripped and items:
+                    # Wrapped continuation of the current bullet: join it so
+                    # multi-line bullets are not truncated (e.g. a party blurb
+                    # that spills onto a second/third line).
+                    items[-1] += " " + stripped
+            out.append("".join(f'<div class="bullet">• {esc_bold(it)}</div>' for it in items))
             continue
         out.append("<p>" + esc_bold(" ".join(l.strip() for l in block.splitlines())) + "</p>")
     return "\n".join(out)
@@ -455,7 +464,7 @@ function dealScores(){return selDeal<0?Object.assign({},BA):DEALS[selDeal].sc;}
 
 /* per-issue grid with selected-deal column tint (vertical issue labels) */
 function renderGrid(){
-  const nOut=ISS[0].outcomes.length,cellW=160,cellH=150,gut=56,top=30,barMax=104;
+  const nOut=Math.max(...ISS.map(i=>i.outcomes.length)),cellW=160,cellH=150,gut=56,top=30,barMax=104;
   const maxv=Math.max(...ISS.flatMap(i=>i.outcomes.map(o=>F.reduce((a,f)=>a+(SC[f][i.name][o]||0),0))));
   const w=gut+cellW*nOut+10,h=top+(cellH+8)*ISS.length;
   const s=svg(w,h);s.setAttribute("style","width:100%;height:auto");

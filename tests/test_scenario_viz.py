@@ -111,3 +111,44 @@ def test_narrative_layout_is_balanced() -> None:
     # The old lopsided fixed-grid split must never come back.
     assert "scen2" not in html
     assert "scencol" not in html
+
+
+def test_multiline_bullets_are_not_truncated() -> None:
+    """Wrapped bullet continuation lines must be kept (D-63 family bug:
+    md_to_html previously dropped every line not starting with '- ').
+    """
+    from scenario_authoring.scenario_viz import md_to_html
+
+    md = (
+        "## The Three Parties\n\n"
+        "- **Gamma** - the military frontier. Has no claim on the heartland;\n"
+        "  cares about command of the armed forces and the treasury, and brokers\n"
+        "  the Alpha-Beta fight as kingmaker.\n"
+    )
+    html = md_to_html(md)
+
+    assert "cares about command of the armed forces" in html
+    assert "as kingmaker" in html
+
+
+def test_per_issue_grid_sizes_to_widest_issue() -> None:
+    """renderGrid must size columns to the MAX outcome count across issues, so a
+    scenario mixing a 2-outcome issue with 3-outcome issues still renders all
+    columns (the succ3b two-column regression).
+    """
+    analysis = {
+        "factions": ["alpha", "beta", "gamma"],
+        "issues": [
+            {"name": "heartland", "outcomes": ["A", "B"], "description": "two"},
+            {"name": "treasury", "outcomes": ["A", "B", "C"], "description": "three"},
+        ],
+        "scoring": {
+            "alpha": {"heartland": {"A": 9, "B": 2}, "treasury": {"A": 7, "B": 3, "C": 2}},
+            "beta": {"heartland": {"A": 2, "B": 9}, "treasury": {"A": 3, "B": 7, "C": 2}},
+            "gamma": {"heartland": {"A": 1, "B": 1}, "treasury": {"A": 2, "B": 2, "C": 8}},
+        },
+        "batna": {"alpha": 5, "beta": 5, "gamma": 5},
+    }
+    html = render_scenario_html(analysis, runs=None, title="Mixed")
+    assert "Math.max(...ISS.map(i=>i.outcomes.length))" in html
+    assert "ISS[0].outcomes.length" not in html

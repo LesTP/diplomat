@@ -82,7 +82,7 @@
 <body>
 <div class="wrap">
   <h1>Diplomat — succ3b — Verdanian Succession (Two-Way Heartland)</h1>
-  <p class="sub">Deal space + where each self-play run landed · generated 2026-06-26 02:02 UTC · 0 run(s)</p>
+  <p class="sub">Deal space + where each self-play run landed · generated 2026-06-26 06:38 UTC · 0 run(s)</p>
 
   <div class="card">
     <h2 style="margin-top:0">The Verdanian Succession (Two-Way Heartland)</h2><div class="scenflow"><p>The Verdanian Union has dissolved into three successor republics - <b>Alpha</b>, <b>Beta</b>, and <b>Gamma</b> - each now sovereign, each with its own army, treasury bonds, and claims on what the Union built together.</p>
@@ -90,9 +90,9 @@
 <p>The flashpoint is the <b>industrial heartland</b> - the Union&#x27;s manufacturing core and its single most valuable asset. <b>Only Alpha and Beta can hold it</b>: Alpha built half its industry there, Beta&#x27;s banks financed the other half, and Gamma has no industrial claim to it at all. So the heartland will go to Alpha or to Beta - there is no neutral caretaker. Each treats it as non-negotiable; only one can win it, and the loser must be bought off on the treasury and defense command.</p>
 <p>Gamma cannot win the heartland - but <b>Gamma holds the swing</b>. Treasury custody and command of the armed forces are decided alongside the heartland, and Gamma&#x27;s support on those is worth more than either claimant can afford to ignore. Gamma plays kingmaker: it sells its treasury and defense votes to whichever claimant compensates it best.</p>
 <p>The delegations convene to settle the division by unanimous accord. If they cannot agree on all three assets together, the matter goes to forced partition under the old charter - slow, arbitrated, and worse for everyone than almost any negotiated settlement (each delegation&#x27;s walk-away value is its BATNA). Agreement requires all three to sign the same final allocation.</p><h4>The Three Parties</h4>
-<div class="bullet">• <b>Alpha</b> - the industrial north. Claims the heartland as its birthright.</div><div class="bullet">• <b>Beta</b> - the financial center. Contests Alpha&#x27;s heartland claim head-on.</div><div class="bullet">• <b>Gamma</b> - the military frontier. Has no claim on the heartland; cares about</div>
+<div class="bullet">• <b>Alpha</b> - the industrial north. Claims the heartland as its birthright.</div><div class="bullet">• <b>Beta</b> - the financial center. Contests Alpha&#x27;s heartland claim head-on.</div><div class="bullet">• <b>Gamma</b> - the military frontier. Has no claim on the heartland; cares about command of the armed forces and the treasury, and brokers the Alpha-Beta fight as kingmaker.</div>
 <p>The three are roughly matched in power. None can dictate terms.</p><h4>The Three Assets</h4>
-<div class="bullet">• <b>industrial_heartland</b> - the contested industrial core. Goes to Alpha or</div><div class="bullet">• <b>central_treasury</b> - custody of the treasury and reserves.</div><div class="bullet">• <b>defense_command</b> - command of the unified armed forces.</div>
+<div class="bullet">• <b>industrial_heartland</b> - the contested industrial core. Goes to Alpha or Beta only. Outcomes: `Alpha-Administered`, `Beta-Administered`</div><div class="bullet">• <b>central_treasury</b> - custody of the treasury and reserves. Outcomes: `Alpha-Custody`, `Beta-Custody`, `Gamma-Custody`</div><div class="bullet">• <b>defense_command</b> - command of the unified armed forces. Outcomes: `Alpha-Command`, `Beta-Command`, `Gamma-Command`</div>
 <p>One party&#x27;s gain on an asset is largely another&#x27;s loss. The heartland must go to one of its two claimants; the loser must be compensated, and Gamma must get a share too for any deal to hold.</p><div class="issuelist"><b>Issues negotiated</b><div class="it"><b>industrial heartland</b> — Who administers the industrial heartland - the single most valuable asset, claimed by BOTH alpha and beta. It can only go to one of them; gamma has no claim.</div><div class="it"><b>central treasury</b> — Who takes custody of the central treasury and its reserves.</div><div class="it"><b>defense command</b> — Who assumes command of the unified armed forces.</div></div><h4>The Game</h4><p>Four rounds. Each round every faction posts one public proposal (sealed-bid — no within-round back-and-forth). After the final round the proposals are scored: a deal is reached only if all factions agree on the same outcome for <i>every</i> issue; otherwise each faction falls back to its BATNA.</p></div>
   </div>
 
@@ -162,7 +162,7 @@ function dealScores(){return selDeal<0?Object.assign({},BA):DEALS[selDeal].sc;}
 
 /* per-issue grid with selected-deal column tint (vertical issue labels) */
 function renderGrid(){
-  const nOut=ISS[0].outcomes.length,cellW=160,cellH=150,gut=56,top=30,barMax=104;
+  const nOut=Math.max(...ISS.map(i=>i.outcomes.length)),cellW=160,cellH=150,gut=56,top=30,barMax=104;
   const maxv=Math.max(...ISS.flatMap(i=>i.outcomes.map(o=>F.reduce((a,f)=>a+(SC[f][i.name][o]||0),0))));
   const w=gut+cellW*nOut+10,h=top+(cellH+8)*ISS.length;
   const s=svg(w,h);s.setAttribute("style","width:100%;height:auto");
