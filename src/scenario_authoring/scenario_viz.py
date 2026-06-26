@@ -542,7 +542,7 @@ function renderHeat(){
 
 /* parallel coordinates (enlarged) */
 function renderParallel(){
-  const w=640,h=560,padT=42,padB=54,padL=58,padR=58,base=h-padB;
+  const w=640,h=460,padT=42,padB=54,padL=58,padR=86,base=h-padB;
   const ax=F.map((f,i)=>padL+i*(w-padL-padR)/(F.length-1));
   const s=svg(w,h);s.setAttribute("style","width:100%;height:auto");
   F.forEach((f,fi)=>{const x=ax[fi];
