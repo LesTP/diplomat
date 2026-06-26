@@ -411,7 +411,9 @@ _BODY = """<div class="wrap">
     <div class="colstack">
       <div class="card">
         <h2>Per-issue payoff decomposition</h2>
-        <p class="chartcap">One stacked bar per (issue, outcome); height = points that outcome gives, summed over
+        <p class="chartcap">Each colored segment is that faction's <b>payoff</b> (its private
+          utility points) if that outcome is chosen - NOT that faction's share of the asset
+          itself. One stacked bar per (issue, outcome); bar height = total payoff summed over
           factions. A ★ marks each faction's preferred outcome; stars in different columns = a <b>contested</b>
           issue (logrolling lives there). The selected deal's chosen column is tinted.</p>
         <div id="legend" class="legend"></div>
