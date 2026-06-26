@@ -129,15 +129,17 @@ def build_scenario_html(analysis: dict[str, Any], narrative_text: str, fallback_
     for n, start in enumerate(idxs):
         end = idxs[n + 1] if n + 1 < len(idxs) else len(lines)
         sections.append((lines[start][3:].strip(), "\n".join(lines[start:end])))
-    parties_re = re.compile(r"part(y|ies)|partie|agenc|player|faction|team|nation|stakeholder", re.I)
     issue_re = re.compile(r"issue", re.I)
     game_re = re.compile(r"\bgame\b|\brules?\b|how it works|how to play|mechanic|negotiation format", re.I)
-    right_secs = [raw for h, raw in sections if parties_re.search(h)]
-    left_secs = [raw for h, raw in sections if not parties_re.search(h) and not game_re.search(h)]
+    # Keep all narrative sections in document order (dropping the source "Game"
+    # section; a canonical one is appended below). The whole narrative is then a
+    # single flow that CSS balances across two columns, so the layout cannot go
+    # lopsided the way a manual left/right split did when one side was short.
+    ordered_secs = [raw for h, raw in sections if not game_re.search(h)]
     has_issue_section = any(issue_re.search(h) for h, _ in sections)
 
     left_html = md_to_html(intro_md) if intro_md.strip() else ""
-    for raw in left_secs:
+    for raw in ordered_secs:
         left_html += md_to_html(raw)
     if not has_issue_section:
         items = "".join(
@@ -154,13 +156,9 @@ def build_scenario_html(analysis: dict[str, Any], narrative_text: str, fallback_
         "only if all factions agree on the same outcome for <i>every</i> issue; otherwise each faction "
         "falls back to its BATNA.</p>"
     )
-    right_html = "".join(md_to_html(raw) for raw in right_secs)
     return (
         f'<h2 style="margin-top:0">{_html.escape(title)}</h2>'
-        f'<div class="scen2">'
-        f'<div class="scencol">{left_html}</div>'
-        f'<div class="scencol">{right_html}</div>'
-        f'</div>'
+        f'<div class="scenflow">{left_html}</div>'
     )
 
 
@@ -309,13 +307,14 @@ _HEAD = """<!doctype html>
   .cols2 { display:grid; grid-template-columns:1fr 1fr; gap:1.1em; align-items:start; }
   @media (max-width:860px){ .cols2 { grid-template-columns:1fr; } }
   .colstack { display:flex; flex-direction:column; gap:1.1em; }
-  .scen2 { display:grid; grid-template-columns:1fr 1fr; gap:1.8em; align-items:start; }
-  @media (max-width:860px){ .scen2 { grid-template-columns:1fr; } }
-  .scencol p { margin:.2em 0 .6em; color:#444; font-size:.9em; }
-  .scencol h4 { margin:.5em 0 .2em; font-size:.9em; color:#333; }
-  .scencol .bullet { font-size:.9em; color:#555; margin:.1em 0 .1em .3em; }
-  .scencol .issuelist { margin-top:.8em; font-size:.9em; }
-  .scencol .issuelist .it { margin:.25em 0; color:#555; }
+  .scenflow { columns:2; column-gap:1.8em; }
+  @media (max-width:860px){ .scenflow { columns:1; } }
+  .scenflow > :first-child { margin-top:0; }
+  .scenflow p { margin:.2em 0 .6em; color:#444; font-size:.9em; }
+  .scenflow h4 { margin:.7em 0 .2em; font-size:.9em; color:#333; break-after:avoid; break-inside:avoid; }
+  .scenflow .bullet { font-size:.9em; color:#555; margin:.1em 0 .1em .3em; break-inside:avoid; }
+  .scenflow .issuelist { margin-top:.8em; font-size:.9em; break-inside:avoid; }
+  .scenflow .issuelist .it { margin:.25em 0; color:#555; }
   .selbar { display:flex; align-items:center; gap:.7em; flex-wrap:wrap; background:#eef3fb; border:1px solid #cdddf2;
             border-radius:9px; padding:.7em 1em; margin-bottom:1.1em; }
   .selbar b { font-weight:600; }
