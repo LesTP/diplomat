@@ -39,6 +39,10 @@ def test_render_scenario_html_works_with_empty_runs() -> None:
     assert "Demo" in html_none
     assert "0 run(s)" in html_none
     assert "0 run(s)" in html_empty
+    # ternary shows the selected deal's live surplus split (not a static hint)
+    assert "Surplus split (total " in html_none
+    # bars sit beside parcoords: the bars card comes before the per-issue card
+    assert html_none.index("Per-faction outcome of the selected deal") < html_none.index("Per-issue payoff decomposition")
 
 
 def test_build_deals_matches_pareto_frontier() -> None:

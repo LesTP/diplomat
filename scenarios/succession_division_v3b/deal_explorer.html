@@ -82,7 +82,7 @@
 <body>
 <div class="wrap">
   <h1>Diplomat — succ3b — Verdanian Succession (Two-Way Heartland)</h1>
-  <p class="sub">Deal space + where each self-play run landed · generated 2026-06-26 07:22 UTC · 0 run(s)</p>
+  <p class="sub">Deal space + where each self-play run landed · generated 2026-06-26 07:34 UTC · 0 run(s)</p>
 
   <div class="card">
     <h2 style="margin-top:0">The Verdanian Succession (Two-Way Heartland)</h2><div class="scenflow"><p>The Verdanian Union has dissolved into three successor republics - <b>Alpha</b>, <b>Beta</b>, and <b>Gamma</b> - each now sovereign, each with its own army, treasury bonds, and claims on what the Union built together.</p>
@@ -109,16 +109,16 @@
   <div class="cols2">
     <div class="colstack">
       <div class="card">
+        <h2>Per-faction outcome of the selected deal</h2>
+        <p class="cap">Each faction's <b>payoff</b> (utility points) for the selected deal, not a share of any asset - BATNA floor (dashed), achieved bar, max ceiling (faint). Gap above the floor = surplus captured.</p>
+        <div id="bars"></div>
+      </div>
+      <div class="card">
         <h2>Per-issue payoff decomposition</h2>
         <p class="chartcap">Columns left-to-right show the asset going to <b>alpha, beta, gamma</b> respectively. The colored segments are each faction's <b>payoff</b> for that outcome - e.g. top-left: if industrial heartland goes to alpha, the payoffs are alpha 9, beta 2, gamma 1. It is NOT a share of the asset (alpha is not getting a 9/12 slice; the asset goes entirely to alpha). Total bar height = total payoff over all factions. ★ marks each faction's preferred outcome; stars in different columns = a <b>contested</b> issue (opportunity for logrolling). The selected deal's chosen column is tinted.</p>
         <div id="legend" class="legend"></div>
         <div id="dealTotal" class="dealtotal"></div>
         <div id="grid" style="overflow-x:auto;margin-top:.2em"></div>
-      </div>
-      <div class="card">
-        <h2>Per-faction outcome of the selected deal</h2>
-        <p class="cap">Each faction's <b>payoff</b> (utility points) for the selected deal, not a share of any asset - BATNA floor (dashed), achieved bar, max ceiling (faint). Gap above the floor = surplus captured.</p>
-        <div id="bars"></div>
       </div>
     </div>
     <div class="colstack">
@@ -244,8 +244,8 @@ function renderHeat(){
 
 /* parallel coordinates (enlarged) */
 function renderParallel(){
-  const w=640,h=460,padT=42,padB=54,padL=58,padR=58,base=h-padB;
-  const ax=F.map((f,i)=>padL+i*(w-padL-padR)/(F.length-1));
+  const w=560,h=460,padT=42,padB=54,base=h-padB,colW=170,padL=20;
+  const ax=F.map((f,i)=>padL+i*colW+colW/2);
   const s=svg(w,h);s.setAttribute("style","width:100%;height:auto");
   F.forEach((f,fi)=>{const x=ax[fi];
     s.appendChild(el("line",{x1:x,y1:padT,x2:x,y2:base,stroke:"#ccc"}));
@@ -277,7 +277,11 @@ function renderTernary(){
     const rad=4+(d.sum-SUMBA)/Math.max(1,MAXP-SUMBA)*9;
     s.appendChild(el("circle",{cx:p.x,cy:p.y,r:rad,fill:d.pareto?"#1a5fb4":"#9aa7b5",opacity:.55,stroke:"#fff","stroke-width":1}));});
   if(selDeal>=0&&DEALS[selDeal].clears){const p=share(DEALS[selDeal].sc);if(p)s.appendChild(el("circle",{cx:p.x,cy:p.y,r:8,fill:"#ffd23f",opacity:1,stroke:"#000","stroke-width":2.5}));}
-  s.appendChild(el("text",{x:cx,y:h-8,"text-anchor":"middle","font-size":12,fill:"#999"},"each dot = a BATNA-clearing deal · size ∝ surplus · outlined = selected"));
+  let tcap;
+  if(selDeal>=0&&DEALS[selDeal].clears){const d=DEALS[selDeal];const su=F.map(f=>d.sc[f]-BA[f]);const tot=su.reduce((a,b)=>a+b,0);tcap="Surplus split (total "+tot+"): "+F.map((f,i)=>f+" "+su[i]).join(", ");}
+  else if(selDeal>=0){tcap="Selected deal does not clear BATNA - no surplus to split.";}
+  else{tcap="Each dot = a clearing deal (bigger = more surplus). Select a deal to see its surplus split.";}
+  s.appendChild(el("text",{x:cx,y:h-8,"text-anchor":"middle","font-size":12,fill:"#555"},tcap));
   host("ternary").appendChild(s);
 }
 

@@ -478,16 +478,16 @@ _BODY = """<div class="wrap">
   <div class="cols2">
     <div class="colstack">
       <div class="card">
+        <h2>Per-faction outcome of the selected deal</h2>
+        <p class="cap">Each faction's <b>payoff</b> (utility points) for the selected deal, not a share of any asset - BATNA floor (dashed), achieved bar, max ceiling (faint). Gap above the floor = surplus captured.</p>
+        <div id="bars"></div>
+      </div>
+      <div class="card">
         <h2>Per-issue payoff decomposition</h2>
         <p class="chartcap">{{PER_ISSUE_CAP}}</p>
         <div id="legend" class="legend"></div>
         <div id="dealTotal" class="dealtotal"></div>
         <div id="grid" style="overflow-x:auto;margin-top:.2em"></div>
-      </div>
-      <div class="card">
-        <h2>Per-faction outcome of the selected deal</h2>
-        <p class="cap">Each faction's <b>payoff</b> (utility points) for the selected deal, not a share of any asset - BATNA floor (dashed), achieved bar, max ceiling (faint). Gap above the floor = surplus captured.</p>
-        <div id="bars"></div>
       </div>
     </div>
     <div class="colstack">
@@ -614,8 +614,8 @@ function renderHeat(){
 
 /* parallel coordinates (enlarged) */
 function renderParallel(){
-  const w=640,h=460,padT=42,padB=54,padL=58,padR=58,base=h-padB;
-  const ax=F.map((f,i)=>padL+i*(w-padL-padR)/(F.length-1));
+  const w=560,h=460,padT=42,padB=54,base=h-padB,colW=170,padL=20;
+  const ax=F.map((f,i)=>padL+i*colW+colW/2);
   const s=svg(w,h);s.setAttribute("style","width:100%;height:auto");
   F.forEach((f,fi)=>{const x=ax[fi];
     s.appendChild(el("line",{x1:x,y1:padT,x2:x,y2:base,stroke:"#ccc"}));
@@ -647,7 +647,11 @@ function renderTernary(){
     const rad=4+(d.sum-SUMBA)/Math.max(1,MAXP-SUMBA)*9;
     s.appendChild(el("circle",{cx:p.x,cy:p.y,r:rad,fill:d.pareto?"#1a5fb4":"#9aa7b5",opacity:.55,stroke:"#fff","stroke-width":1}));});
   if(selDeal>=0&&DEALS[selDeal].clears){const p=share(DEALS[selDeal].sc);if(p)s.appendChild(el("circle",{cx:p.x,cy:p.y,r:8,fill:"#ffd23f",opacity:1,stroke:"#000","stroke-width":2.5}));}
-  s.appendChild(el("text",{x:cx,y:h-8,"text-anchor":"middle","font-size":12,fill:"#999"},"each dot = a BATNA-clearing deal · size ∝ surplus · outlined = selected"));
+  let tcap;
+  if(selDeal>=0&&DEALS[selDeal].clears){const d=DEALS[selDeal];const su=F.map(f=>d.sc[f]-BA[f]);const tot=su.reduce((a,b)=>a+b,0);tcap="Surplus split (total "+tot+"): "+F.map((f,i)=>f+" "+su[i]).join(", ");}
+  else if(selDeal>=0){tcap="Selected deal does not clear BATNA - no surplus to split.";}
+  else{tcap="Each dot = a clearing deal (bigger = more surplus). Select a deal to see its surplus split.";}
+  s.appendChild(el("text",{x:cx,y:h-8,"text-anchor":"middle","font-size":12,fill:"#555"},tcap));
   host("ternary").appendChild(s);
 }
 
