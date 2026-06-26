@@ -294,6 +294,13 @@ fields load fine via `json.loads`.
   the runtime pipeline.
 - `build_scenario_viz()` writes HTML to disk; `render_scenario_html()` returns
   the HTML string for embedding or tests.
+- **Narrative layout contract (D-63):** the scenario narrative renders as a
+  single balanced multi-column flow (`.scenflow` / `columns:2` /
+  `column-fill:balance`) that breaks at paragraph boundaries
+  (`break-inside:avoid` on paragraphs/bullets/issue-lists, `break-after:avoid`
+  on headings). Do NOT revert to a fixed left/right grid that assigns whole
+  sections to columns — it leaves an empty column when one side is short. Locked
+  by `tests/test_scenario_viz.py::test_narrative_layout_is_balanced`.
 
 ### `scenario_narrative`
 

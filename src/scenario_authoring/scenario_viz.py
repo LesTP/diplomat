@@ -111,6 +111,19 @@ def find_narrative(analysis_path: Path) -> Path | None:
 
 
 def build_scenario_html(analysis: dict[str, Any], narrative_text: str, fallback_title: str) -> str:
+    """Render the scenario narrative as a balanced two-column flow.
+
+    LAYOUT CONTRACT (do not regress -- see DECISIONS.md D-63):
+    - The narrative is ONE flowing block in a CSS balanced multi-column container
+      (``.scenflow`` / ``columns:2`` / ``column-fill:balance``). Do NOT split it
+      into a fixed left/right grid (the old ``.scen2``/``.scencol`` approach left
+      a gaping empty column whenever one side's content was short).
+    - Reflow breaks at PARAGRAPH boundaries, not mid-paragraph: ``.scenflow p``
+      (and bullets/issue lists) carry ``break-inside:avoid`` so a paragraph is
+      never sliced across the column gap; headings carry ``break-after:avoid`` so
+      they stay with their following text.
+    Locked by ``tests/test_scenario_viz.py::test_narrative_layout_is_balanced``.
+    """
     title = fallback_title
     body = narrative_text or ""
     for line in body.splitlines():
@@ -307,10 +320,10 @@ _HEAD = """<!doctype html>
   .cols2 { display:grid; grid-template-columns:1fr 1fr; gap:1.1em; align-items:start; }
   @media (max-width:860px){ .cols2 { grid-template-columns:1fr; } }
   .colstack { display:flex; flex-direction:column; gap:1.1em; }
-  .scenflow { columns:2; column-gap:1.8em; }
+  .scenflow { columns:2; column-gap:1.8em; column-fill:balance; }
   @media (max-width:860px){ .scenflow { columns:1; } }
   .scenflow > :first-child { margin-top:0; }
-  .scenflow p { margin:.2em 0 .6em; color:#444; font-size:.9em; }
+  .scenflow p { margin:.2em 0 .6em; color:#444; font-size:.9em; break-inside:avoid; }
   .scenflow h4 { margin:.7em 0 .2em; font-size:.9em; color:#333; break-after:avoid; break-inside:avoid; }
   .scenflow .bullet { font-size:.9em; color:#555; margin:.1em 0 .1em .3em; break-inside:avoid; }
   .scenflow .issuelist { margin-top:.8em; font-size:.9em; break-inside:avoid; }

@@ -77,3 +77,37 @@ def test_build_scenario_viz_writes_file(tmp_path: Path) -> None:
     assert output.exists()
     assert "Demo Viz" in text
     assert "Deal space" in text
+
+
+def test_narrative_layout_is_balanced() -> None:
+    """Layout contract (DECISIONS.md D-63): the scenario narrative renders as a
+    SINGLE balanced multi-column flow that breaks at paragraph boundaries, never
+    the old lopsided fixed left/right grid that left a gaping empty column.
+    """
+    analysis = _analysis()
+    narrative = (
+        "# Demo Scenario\n\n"
+        "First intro paragraph describing the setup at some length.\n\n"
+        "Second intro paragraph with additional detail and framing.\n\n"
+        "## The Three Parties\n\n"
+        "- Alpha - the north\n"
+        "- Beta - the center\n"
+        "- Gamma - the frontier\n\n"
+        "## The Stakes\n\n"
+        "A longer section paragraph describing the stakes at considerable length "
+        "so the balancer has real content to distribute across both columns.\n"
+    )
+
+    html = render_scenario_html(
+        analysis, runs=None, title="Demo", narrative_text=narrative
+    )
+
+    # Single balanced multi-column flow.
+    assert 'class="scenflow"' in html
+    assert "columns:2" in html
+    assert "column-fill:balance" in html
+    # Reflow breaks at paragraph boundaries, not mid-paragraph.
+    assert "break-inside:avoid" in html
+    # The old lopsided fixed-grid split must never come back.
+    assert "scen2" not in html
+    assert "scencol" not in html

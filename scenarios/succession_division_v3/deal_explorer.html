@@ -23,10 +23,10 @@
   .cols2 { display:grid; grid-template-columns:1fr 1fr; gap:1.1em; align-items:start; }
   @media (max-width:860px){ .cols2 { grid-template-columns:1fr; } }
   .colstack { display:flex; flex-direction:column; gap:1.1em; }
-  .scenflow { columns:2; column-gap:1.8em; }
+  .scenflow { columns:2; column-gap:1.8em; column-fill:balance; }
   @media (max-width:860px){ .scenflow { columns:1; } }
   .scenflow > :first-child { margin-top:0; }
-  .scenflow p { margin:.2em 0 .6em; color:#444; font-size:.9em; }
+  .scenflow p { margin:.2em 0 .6em; color:#444; font-size:.9em; break-inside:avoid; }
   .scenflow h4 { margin:.7em 0 .2em; font-size:.9em; color:#333; break-after:avoid; break-inside:avoid; }
   .scenflow .bullet { font-size:.9em; color:#555; margin:.1em 0 .1em .3em; break-inside:avoid; }
   .scenflow .issuelist { margin-top:.8em; font-size:.9em; break-inside:avoid; }
@@ -82,7 +82,7 @@
 <body>
 <div class="wrap">
   <h1>Diplomat — succ-v3 — Verdanian Succession (Resolvable Contest)</h1>
-  <p class="sub">Deal space + where each self-play run landed · generated 2026-06-26 01:57 UTC · 0 run(s)</p>
+  <p class="sub">Deal space + where each self-play run landed · generated 2026-06-26 02:02 UTC · 0 run(s)</p>
 
   <div class="card">
     <h2 style="margin-top:0">The Verdanian Succession (Resolvable Contest)</h2><div class="scenflow"><p>The Verdanian Union has dissolved into three successor republics - <b>Alpha</b>, <b>Beta</b>, and <b>Gamma</b> - each now sovereign, each with its own army, treasury bonds, and claims on what the Union built together.</p>
