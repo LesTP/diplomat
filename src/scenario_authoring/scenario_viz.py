@@ -467,7 +467,7 @@ function dealScores(){return selDeal<0?Object.assign({},BA):DEALS[selDeal].sc;}
 
 /* per-issue grid with selected-deal column tint (vertical issue labels) */
 function renderGrid(){
-  const nOut=Math.max(...ISS.map(i=>i.outcomes.length)),cellW=160,cellH=150,gut=56,top=30,barMax=104;
+  const nOut=Math.max(...ISS.map(i=>i.outcomes.length)),cellW=160,cellH=150,gut=56,top=40,barMax=104;
   const maxv=Math.max(...ISS.flatMap(i=>i.outcomes.map(o=>F.reduce((a,f)=>a+(SC[f][i.name][o]||0),0))));
   const w=gut+cellW*nOut+10,h=top+(cellH+8)*ISS.length;
   const s=svg(w,h);s.setAttribute("style","width:100%;height:auto");
@@ -476,7 +476,10 @@ function renderGrid(){
      (outcomes follow the "<Faction>-..." convention); fall back to A/B/C otherwise. */
   const colFac=[];
   for(let o=0;o<nOut;o++){let fac="",ok=true;for(const iss of ISS){if(o<iss.outcomes.length){const oc=iss.outcomes[o].toLowerCase();const m=F.find(f=>oc.startsWith(f.toLowerCase()))||"";if(fac==="")fac=m;if(m===""||m!==fac){ok=false;break;}}}colFac[o]=ok?fac:"";}
-  for(let o=0;o<nOut;o++){const lab=colFac[o]||String.fromCharCode(65+o);s.appendChild(el("text",{x:gut+cellW*o+cellW/2,y:18,"text-anchor":"middle","font-weight":600,"font-size":14,fill:colFac[o]?COL[colFac[o]]:"#444"},lab));}
+  for(let o=0;o<nOut;o++){const lab=colFac[o]||String.fromCharCode(65+o);s.appendChild(el("text",{x:gut+cellW*o+cellW/2,y:20,"text-anchor":"middle","font-weight":700,"font-size":15,fill:colFac[o]?COL[colFac[o]]:"#444"},lab));}
+  const allFac=colFac.length>0&&colFac.every(c=>c);
+  if(allFac)s.appendChild(el("text",{x:6,y:20,"text-anchor":"start","font-size":12,"font-weight":600,fill:"#666"},"Asset goes to:"));
+  s.appendChild(el("line",{x1:6,y1:29,x2:w-6,y2:29,stroke:"#333","stroke-width":1.2}));
   ISS.forEach((iss,r)=>{
     const y0=top+r*(cellH+8),cy=y0+cellH/2;
     const prefs=F.map(f=>{const v=iss.outcomes.map(o=>SC[f][iss.name][o]||0);return v.indexOf(Math.max(...v));});

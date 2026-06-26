@@ -156,4 +156,5 @@ def test_per_issue_grid_sizes_to_widest_issue() -> None:
     # else A/B/C fallback. No per-cell name labels (that made the chart too tall).
     assert "colFac" in html
     assert "String.fromCharCode(65+o)" in html
+    assert "Asset goes to:" in html
     assert "[\"A\",\"B\",\"C\",\"D\",\"E\"].slice(0,nOut)" not in html
