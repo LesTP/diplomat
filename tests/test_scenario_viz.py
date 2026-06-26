@@ -41,6 +41,9 @@ def test_render_scenario_html_works_with_empty_runs() -> None:
     assert "0 run(s)" in html_empty
     # ternary shows the selected deal's live surplus split (not a static hint)
     assert "Surplus split (total " in html_none
+    # parcoords lines and ternary circles are clickable -> propagate selection
+    assert "hit.onclick=()=>setDeal(i)" in html_none
+    assert "c.onclick=()=>setDeal(i)" in html_none
     # bars sit beside parcoords: the bars card comes before the per-issue card
     assert html_none.index("Per-faction outcome of the selected deal") < html_none.index("Per-issue payoff decomposition")
 

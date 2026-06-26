@@ -626,7 +626,9 @@ function renderParallel(){
     s.appendChild(el("text",{x,y:yB+16,"text-anchor":"middle","font-size":13,fill:"#c0392b"},"BATNA "+BA[f]));});
   const yOf=(f,v)=>base-v/MX[f]*(base-padT);
   DEALS.map((d,i)=>i).sort((a,b)=>(DEALS[a].pareto?1:0)-(DEALS[b].pareto?1:0)).forEach(i=>{const d=DEALS[i];
-    s.appendChild(el("polyline",{points:F.map((f,fi)=>`${ax[fi]},${yOf(f,d.sc[f])}`).join(" "),fill:"none",stroke:d.pareto?"#1a5fb4":"#d3d3d3","stroke-width":d.pareto?1.6:1,opacity:d.pareto?.8:.4}));});
+    const pts=F.map((f,fi)=>`${ax[fi]},${yOf(f,d.sc[f])}`).join(" ");
+    s.appendChild(el("polyline",{points:pts,fill:"none",stroke:d.pareto?"#1a5fb4":"#d3d3d3","stroke-width":d.pareto?1.6:1,opacity:d.pareto?.8:.4}));
+    const hit=el("polyline",{points:pts,fill:"none",stroke:"transparent","stroke-width":11,style:"cursor:pointer"});hit.onclick=()=>setDeal(i);hit.appendChild(el("title",{},d.label));s.appendChild(hit);});
   if(selDeal>=0){const d=DEALS[selDeal];s.appendChild(el("polyline",{points:F.map((f,fi)=>`${ax[fi]},${yOf(f,d.sc[f])}`).join(" "),fill:"none",stroke:"#000","stroke-width":3.4}));}
   else{s.appendChild(el("polyline",{points:F.map((f,fi)=>`${ax[fi]},${yOf(f,BA[f])}`).join(" "),fill:"none",stroke:"#000","stroke-width":2.6,"stroke-dasharray":"6 3"}));}
   host("parallel").appendChild(s);
@@ -645,7 +647,7 @@ function renderTernary(){
   const share=sc=>{const su=F.map(f=>Math.max(0,sc[f]-BA[f])),t=su[0]+su[1]+su[2];return t>0?pos(su[0]/t,su[1]/t,su[2]/t):null;};
   DEALS.forEach((d,i)=>{if(!d.clears)return;const p=share(d.sc);if(!p)return;
     const rad=4+(d.sum-SUMBA)/Math.max(1,MAXP-SUMBA)*9;
-    s.appendChild(el("circle",{cx:p.x,cy:p.y,r:rad,fill:d.pareto?"#1a5fb4":"#9aa7b5",opacity:.55,stroke:"#fff","stroke-width":1}));});
+    const c=el("circle",{cx:p.x,cy:p.y,r:rad,fill:d.pareto?"#1a5fb4":"#9aa7b5",opacity:.55,stroke:"#fff","stroke-width":1,style:"cursor:pointer"});c.onclick=()=>setDeal(i);c.appendChild(el("title",{},d.label));s.appendChild(c);});
   if(selDeal>=0&&DEALS[selDeal].clears){const p=share(DEALS[selDeal].sc);if(p)s.appendChild(el("circle",{cx:p.x,cy:p.y,r:8,fill:"#ffd23f",opacity:1,stroke:"#000","stroke-width":2.5}));}
   let tcap;
   if(selDeal>=0&&DEALS[selDeal].clears){const d=DEALS[selDeal];const su=F.map(f=>d.sc[f]-BA[f]);const tot=su.reduce((a,b)=>a+b,0);tcap="Surplus split (total "+tot+"): "+F.map((f,i)=>f+" "+su[i]).join(", ");}
