@@ -4,6 +4,24 @@
      Each step or milestone gets a structured entry. This is the audit trail.
      Older phases are archived to DEVLOG_archive.md; the active log holds the current phase. -->
 
+## 2026-06-25: Author succ3b - 2-outcome-heartland variant (operator-supervised)
+
+- **Mode:** Discuss -> Code (scenario design)
+- **Outcome:** complete (brief-passing; live-test pending)
+- **Contract changes:** none
+
+Authored `scenarios/succession_division_v3b/` - a 2-outcome-heartland variant of succ-v3 giving a structurally clean alpha-vs-beta contest. Motivation: succ-v3 (3-outcome heartland) routed ~67% of clearing deals to the neutral steward (gamma) - a structural artifact of strict constant-sum + a 3-outcome contested asset, confirmed by a failed gamma-lane rebalance (weakening gamma only raised the clearing count and brought the sweep back). succ3b drops the Gamma-Administered outcome entirely (heartland = Alpha/Beta only), eliminating gamma-steward BY CONSTRUCTION.
+
+**Key finding:** with a 2-outcome heartland, gamma is a PURE KINGMAKER - a BATNA sweep showed gamma cannot win at any non-trivial BATNA (0 wins at BATNA 6-7; 2 only at BATNA 4, where all 18 deals clear = degenerate). So the all-faction `winner_spread` check is wrong for this design and was dropped from the brief; the discrimination signal is the alpha-vs-beta heartland split (3/4 at BATNA 6), with seat rotation making gamma a constant wash. Surfaced a brief-check limitation: no subset-scoped winner_spread (contestants only).
+
+Config: BATNA 6 -> 7 clearing deals, heartland alpha 3 / beta 4, gamma=12 constant, no ties. Brief PASSES (constant_sum, priority_collision soft, no_focal_point, batna_clearing 4-14). Registered as `succ3b` in ablation_multi.sh; narrative succession_division_v3b.md. succ-v3 retained - the two are different instruments (succ-v3 = 3-way contest with steward noise; succ3b = clean 2-way + kingmaker).
+
+Live test (operator, on Pi):
+```
+bash tools/ablation_multi.sh runrotate 'M1,M2,M3' succ3b bare 3
+python -m tests.self_play.rank_aggregator
+```
+
 ## 2026-06-25: Author succ-v3 discriminating distributive scenario (operator-supervised)
 
 - **Mode:** Discuss -> Code (scenario design; Refine / iterative)

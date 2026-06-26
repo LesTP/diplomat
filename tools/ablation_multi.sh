@@ -156,8 +156,11 @@ scenario_paths() {
     succ3)
       echo "scenarios/succession_division_v3.md|scenarios/succession_division_v3/scenario_analysis.json|The Verdanian Succession (Resolvable Contest)"
       ;;
+    succ3b)
+      echo "scenarios/succession_division_v3b.md|scenarios/succession_division_v3b/scenario_analysis.json|The Verdanian Succession (Two-Way Heartland)"
+      ;;
     *)
-      echo "ERROR: unknown scenario '$1' (expected: wrbeta | wrsym | wralpha | jsm1 | succ | succ2 | succ3)" >&2
+      echo "ERROR: unknown scenario '$1' (expected: wrbeta | wrsym | wralpha | jsm1 | succ | succ2 | succ3 | succ3b)" >&2
       exit 2
       ;;
   esac

@@ -61,7 +61,7 @@ Pre-decomposed Build phases staged in `DEVPLAN.md`, run autonomously **on the Pi
 
 | Item | Tags | Loop | Detail |
 |---|---|---|---|
-| **`succ-v3` sweet-spot scenario** (Q1) — AUTHORED as `succ3` (scenarios/succession_division_v3/), brief-passing; ready for live mixed-model test | `[C]` | 👁 | `SCENARIO_GUIDE.md` (distributive authoring); `TUNING_LOG.md` Run 19 |
+| **`succ-v3` sweet-spot scenario** (Q1) — AUTHORED as `succ3` (scenarios/succession_division_v3/), brief-passing; ready for live mixed-model test (+ `succ3b` 2-outcome-heartland variant: clean alpha-vs-beta contest, gamma kingmaker) | `[C]` | 👁 | `SCENARIO_GUIDE.md` (distributive authoring); `TUNING_LOG.md` Run 19 |
 | **`succ2` full-mode harness test** (Q2) — measure close-rate lift over bare deadlock | `[C][A]` | 👁 | `TUNING_LOG.md` Run 20; `RESEARCH_NOTES.md` Note 1 |
 | **§3.6 coalition-value scoring engine** (Path B build) — extend `scenario_analysis.json` `coalition_values`; `score_game()` detects partial-agreement coalitions, applies split, BATNA to excluded faction | `[C][A]` | 🔨 | `ASSESSMENT.md` §3.6; `RESEARCH_NOTES.md` Note 2 Path B. Three-Party Coalition v1 patched as first consumer |
 | **§11.b Path A calibration** — mixed Three-Party Coalition × position rotation (9 cells, ~$1-2) | `[C]` | 👁 | `RESEARCH_NOTES.md` Note 2 Path A |
