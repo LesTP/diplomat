@@ -97,7 +97,7 @@ clear `ImportError` when it is absent.
 
 ## Further reading
 
-- **[SCENARIO_GUIDE.md](../../SCENARIO_GUIDE.md)** — operator walkthrough:
+- **[SCENARIO_GUIDE.md](../../guides/SCENARIO_GUIDE.md)** — operator walkthrough:
   authoring workflows, tuning BATNAs, running the self-play harness with a
   compiled scenario.
 - **[ARCH_scenario_authoring.md](../../ARCH_scenario_authoring.md)** —

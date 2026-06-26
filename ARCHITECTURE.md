@@ -18,7 +18,7 @@
 | Coaching | Parse and route operator input by tag | toolkit/coaching |
 | Review Gate | Human approval workflow: approve/edit/revise/block (lazy-fetch reasoning/adversarial; `/revise:` LLM-rewrite with cap) | Transport (coaching channel), Pipeline (regenerate_with_directive) |
 | Edit Classifier | Classify review-gate edits into six categories via LLM for prompt-tuning signal | toolkit/edit_classifier (extracted 2026-06-07; project-side `build_edit_classifier` factory only) |
-| Scenario Authoring | Pre-game subsystem: narrative → analysis (compiler) + spec → analysis (builder) + fitness + verify utilities + coalition_values support. See [`ARCH_scenario_authoring.md`](ARCH_scenario_authoring.md); operator walkthrough in [`SCENARIO_GUIDE.md`](SCENARIO_GUIDE.md). | toolkit/structured_llm |
+| Scenario Authoring | Pre-game subsystem: narrative → analysis (compiler) + spec → analysis (builder) + fitness + verify utilities + coalition_values support. See [`ARCH_scenario_authoring.md`](ARCH_scenario_authoring.md); operator walkthrough in [`SCENARIO_GUIDE.md`](guides/SCENARIO_GUIDE.md). | toolkit/structured_llm |
 | Pipeline | Per-agent capability surface: event storage, extraction, operator dispatch, round advancement, reconciliation/analysis, response generation, and query APIs | All runtime modules, toolkit/cost_accountant |
 | Flow | Scheduling strategies that drive one or more Pipelines; current implementations are EventDrivenFlow and RoundSteppedFlow | Pipeline, Transport or moderator/application driver |
 | Orchestrator | Compatibility constructor that builds the old composition core and returns EventDrivenFlow(Pipeline(core)) | Pipeline, Flow, all modules |

@@ -20,15 +20,15 @@ work, read [`NEXT_STEPS.md`](NEXT_STEPS.md).
 |---|---|
 | Understand what the project does + direction | [`PROJECT.md`](PROJECT.md) |
 | See the benchmark / coaching direction decision | [`DECISIONS.md`](DECISIONS.md) D-56 |
-| Run a multi-agent self-play game | [`CLI_REFERENCE.md`](CLI_REFERENCE.md) → `tests.self_play.run_simulation` + [`RUN_PROTOCOL.md`](RUN_PROTOCOL.md) for the pre-flight |
+| Run a multi-agent self-play game | [`CLI_REFERENCE.md`](guides/CLI_REFERENCE.md) → `tests.self_play.run_simulation` + [`RUN_PROTOCOL.md`](guides/RUN_PROTOCOL.md) for the pre-flight |
 | Run a single benchmark cell (any provider/model × scenario × mode) | `tools/ablation_multi.sh run MODEL SCENARIO MODE N` |
-| Tune BATNAs, providers, prompts | [`TUNING.md`](TUNING.md) |
-| See what experiments have run | [`TUNING_LOG.md`](TUNING_LOG.md) (active arc) + [`TUNING_LOG_archive.md`](TUNING_LOG_archive.md) (early runs) |
+| Tune BATNAs, providers, prompts | [`TUNING.md`](experiments/TUNING.md) |
+| See what experiments have run | [`TUNING_LOG.md`](experiments/TUNING_LOG.md) (active arc) + [`TUNING_LOG_archive.md`](experiments/TUNING_LOG_archive.md) (early runs) |
 | Find work to do | [`NEXT_STEPS.md`](NEXT_STEPS.md) |
 | Understand how skill is measured | [`ASSESSMENT.md`](ASSESSMENT.md) |
-| Author a new scenario (narrative or constraint-driven) | [`SCENARIO_GUIDE.md`](SCENARIO_GUIDE.md) (operator walkthrough) |
+| Author a new scenario (narrative or constraint-driven) | [`SCENARIO_GUIDE.md`](guides/SCENARIO_GUIDE.md) (operator walkthrough) |
 | See architectural diagrams | [`DIAGRAMS.md`](DIAGRAMS.md) (layered: Overview + Lifecycle + per-phase drill-downs with flowcharts and sequence diagrams; render via `Markdown Preview Mermaid Support` extension or `render_mermaid_file`) |
-| **Coaching product** (deferred per D-56) | Run the production Telegram bot via [`CLI_REFERENCE.md`](CLI_REFERENCE.md) → `tools/service.sh`; Pi smoke runbook in [`SMOKE_RUNBOOK.md`](SMOKE_RUNBOOK.md); coached self-play via `tests.self_play.coached_game` per [`diplomat-testing-doc.md`](diplomat-testing-doc.md) §5b. Infrastructure operational; no new investment under D-56. |
+| **Coaching product** (deferred per D-56) | Run the production Telegram bot via [`CLI_REFERENCE.md`](guides/CLI_REFERENCE.md) → `tools/service.sh`; Pi smoke runbook in [`SMOKE_RUNBOOK.md`](guides/SMOKE_RUNBOOK.md); coached self-play via `tests.self_play.coached_game` per [`diplomat-testing-doc.md`](guides/diplomat-testing-doc.md) §5b. Infrastructure operational; no new investment under D-56. |
 
 ---
 
@@ -52,23 +52,23 @@ Active docs (excluding governance — see bottom). Sorted by area of work.
 
 | Doc | What it is | Status |
 |---|---|---|
-| [`CLI_REFERENCE.md`](CLI_REFERENCE.md) | Single-page index of every CLI entry point (production, self-play, tools, inspection) with flags, defaults, working examples, common workflows. Includes ad-hoc SQL inspection queries (migrated from the retired spec). | CURRENT — canonical |
-| [`RUN_PROTOCOL.md`](RUN_PROTOCOL.md) | Canonical pre-flight sequence for live multi-agent self-play (define inputs → verify scenario → probe providers → dry-run → live → verify → document). Born from Run 8's silent-failure loss. | CURRENT — canonical |
-| [`SMOKE_RUNBOOK.md`](SMOKE_RUNBOOK.md) | Telegram coaching/review smoke playbook for Pi deployment. Closed for coaching scope 2026-05-31; remains the playbook for re-smokes and the upcoming coached self-play. | CURRENT — playbook ready for re-use |
-| [`TUNING.md`](TUNING.md) | Living deployment / tuning guide: provider assignments (production target vs self-play actuals — distinguished 2026-06-02), BATNA semantics, prompt-design notes, tuning changelog. | CURRENT — distinguishes aspirational production config from actual self-play config |
+| [`CLI_REFERENCE.md`](guides/CLI_REFERENCE.md) | Single-page index of every CLI entry point (production, self-play, tools, inspection) with flags, defaults, working examples, common workflows. Includes ad-hoc SQL inspection queries (migrated from the retired spec). | CURRENT — canonical |
+| [`RUN_PROTOCOL.md`](guides/RUN_PROTOCOL.md) | Canonical pre-flight sequence for live multi-agent self-play (define inputs → verify scenario → probe providers → dry-run → live → verify → document). Born from Run 8's silent-failure loss. | CURRENT — canonical |
+| [`SMOKE_RUNBOOK.md`](guides/SMOKE_RUNBOOK.md) | Telegram coaching/review smoke playbook for Pi deployment. Closed for coaching scope 2026-05-31; remains the playbook for re-smokes and the upcoming coached self-play. | CURRENT — playbook ready for re-use |
+| [`TUNING.md`](experiments/TUNING.md) | Living deployment / tuning guide: provider assignments (production target vs self-play actuals — distinguished 2026-06-02), BATNA semantics, prompt-design notes, tuning changelog. | CURRENT — distinguishes aspirational production config from actual self-play config |
 
 ### Testing — the *how to know it works*
 
 | Doc | What it is | Status |
 |---|---|---|
-| [`diplomat-testing-doc.md`](diplomat-testing-doc.md) | Testing strategy + tuning workflow: 4-layer test taxonomy (unit, prompt regression, integration, self-play), Pi smoke checklists, post-game report references, scenario library pointer. | CURRENT — canonical |
+| [`diplomat-testing-doc.md`](guides/diplomat-testing-doc.md) | Testing strategy + tuning workflow: 4-layer test taxonomy (unit, prompt regression, integration, self-play), Pi smoke checklists, post-game report references, scenario library pointer. | CURRENT — canonical |
 
 ### Experimental records — the *what we tried, what we learned*
 
 | Doc | What it is | Status |
 |---|---|---|
-| [`TUNING_LOG.md`](TUNING_LOG.md) | Active run-by-run record. Runs 7-10 with hypothesis / config / observations / learning / decisions / open items, plus a Summary of All Changes table covering all runs and a master Open Items list. | CURRENT — active log |
-| [`TUNING_LOG_archive.md`](TUNING_LOG_archive.md) | Archived Runs 1-6 (infrastructure + extraction quality + scenario compiler arc). Moved out of the active log 2026-06-02 to keep it focused on the current experimental arc. | ARCHIVE — preserved for replay / regression |
+| [`TUNING_LOG.md`](experiments/TUNING_LOG.md) | Active run-by-run record. Runs 7-10 with hypothesis / config / observations / learning / decisions / open items, plus a Summary of All Changes table covering all runs and a master Open Items list. | CURRENT — active log |
+| [`TUNING_LOG_archive.md`](experiments/TUNING_LOG_archive.md) | Archived Runs 1-6 (infrastructure + extraction quality + scenario compiler arc). Moved out of the active log 2026-06-02 to keep it focused on the current experimental arc. | ARCHIVE — preserved for replay / regression |
 
 ### Domain knowledge — the *what we negotiate about*
 
@@ -102,7 +102,7 @@ Several also carry schema (`ARCH_state_manager.md` SQL DDL,
 - [`ARCH_orchestrator.md`](ARCH_orchestrator.md) — composition + event loop (also covers `Pipeline` until that gets its own ARCH file)
 - [`ARCH_flow.md`](ARCH_flow.md) — EventDrivenFlow / RoundSteppedFlow scheduling strategies
 - [`ARCH_conversation_model.md`](ARCH_conversation_model.md) — staged migration plan (Stage 1 / 2a / 2b / 3)
-- [`ARCH_scenario_authoring.md`](ARCH_scenario_authoring.md) — pre-game scenario authoring subsystem (compiler / builder / spec / fitness / verify); operator walkthrough lives in [`SCENARIO_GUIDE.md`](SCENARIO_GUIDE.md)
+- [`ARCH_scenario_authoring.md`](ARCH_scenario_authoring.md) — pre-game scenario authoring subsystem (compiler / builder / spec / fitness / verify); operator walkthrough lives in [`SCENARIO_GUIDE.md`](guides/SCENARIO_GUIDE.md)
 
 ---
 
@@ -123,7 +123,18 @@ discipline — otherwise leave them alone.
 
 ---
 
-## Last reorganization: 2026-06-02
+## Last reorganization: 2026-06-26
+
+Non-governance docs moved out of root into topic folders. Governance docs and
+this README stay at root (agent tooling in `.claude/commands` references only
+governance docs):
+
+- **`guides/`** ← `GAME_GUIDE.md`, `SCENARIO_GUIDE.md`, `CLI_REFERENCE.md`, `RUN_PROTOCOL.md`, `SMOKE_RUNBOOK.md`, `diplomat-testing-doc.md`
+- **`experiments/`** ← `TUNING_LOG.md`, `TUNING_LOG_archive.md`, `TUNING.md`
+- **`papers/`** ← publication planning (`PAPER_PLAN.md`, `RELATED_WORK_DRAFT.md`)
+- All inbound markdown links + SCENARIO_GUIDE outbound links updated; full link-resolution check passed (73 files, 0 broken). ARCH specs, domain docs, and `DIAGRAMS.md` left at root.
+
+## Earlier reorganization: 2026-06-02
 
 This session's documentation moves:
 
