@@ -15,8 +15,8 @@ asset, not in WHETHER anyone closes.
   top, BATNA 9 too high relative to the loser's compensation (5/6 games no-deal).
 - `succ-v3` keeps the contested heartland (alpha and beta both rank it #1, so no
   focal point) but **lowers BATNAs to 7 and widens the loser's compensation** so
-  the contest **resolves**: 13 BATNA-clearing deals and each faction can win the
-  contested asset outright.
+  the contest **resolves**: 12 BATNA-clearing deals and each faction can win
+  outright.
 
 **Verified structure (brief-check, all required features PASS):**
 
@@ -25,22 +25,33 @@ asset, not in WHETHER anyone closes.
 | `constant_sum` | true | true (every deal sums to 36) |
 | `priority_collision` | soft | soft (alpha+beta contest the heartland; gamma distinct) |
 | `no_focal_point` | true | true (no everyone-takes-own deal clears) |
-| `winner_spread` | min_per_faction >= 2 | {alpha:3, beta:4, gamma:5} |
-| `batna_clearing_count` | 6-18 | 13 |
+| `winner_spread` | min_per_faction >= 2 | {alpha:3, beta:4, gamma:4} |
+| `batna_clearing_count` | 6-18 | 12 |
 
 **Deliberately NOT required: `no_exact_ties`.** A balanced/symmetric contest
 (no seat-bias) inherently produces a few tied-top deals - the reference `succ`
 has them too. Eliminating every tie would require asymmetry that re-introduces
-seat-bias. A few ties among 13 contest deals are tolerated; they are not a single
-Schelling focal point. See the operator decision recorded with this scenario.
+seat-bias. A few ties among the contest deals are tolerated; they are not a
+single Schelling focal point.
 
-**Known residual to watch in the live run** (the brief-check is structural; it
-does not capture this): ~9 of 13 clearing deals route the heartland to the
-neutral steward (Gamma-Administered), and one deal lets gamma take all three
-(8/8/20) while alpha/beta barely clear BATNA. If the live run shows models
-converging on gamma-steward regardless of skill, tighten by making the
-neutral-steward heartland outcome less attractive (lower alpha/beta payoff on
-Gamma-Administered) and/or raising BATNAs slightly.
+**Gamma-steward tightening (2026-06-25).** The `Gamma-Administered` (neutral
+steward) payoff for the contestants was lowered (alpha 4->3, beta 5->4; gamma
+3->5) to discourage punting the heartland to gamma. Effect: the degenerate
+"gamma takes all three" sweep (8/8/20) is **eliminated** (alpha now falls to its
+BATNA there). However, ~8 of 12 clearing deals still route the heartland to the
+neutral steward - this is driven by **gamma's strong uncontested treasury +
+defense lane** (Gamma-Custody 8, Gamma-Command 9 -> gamma scores ~16 whenever it
+also takes treasury or defense), NOT by the steward payoff, so the GA shift
+cannot fully remove it under constant-sum.
+
+**Known residual (live-run watch).** The winner still varies across the gamma-
+steward deals ({alpha:3, beta:4, gamma:4}), so this is not a single focal point.
+But if the live run shows convergence on gamma outcomes regardless of skill, the
+real fix is to **weaken gamma's treasury/defense lane** (lower Gamma-Custody /
+Gamma-Command, compensating alpha+beta). NOTE the tension: gamma's wins live in
+those gamma-heavy deals, so weakening gamma (or raising BATNA above 7) quickly
+drops gamma below the `winner_spread` floor (BATNA 8 -> gamma wins 1; BATNA 9 ->
+gamma wins 0). The band is narrow; tune against the brief.
 
 **The live run is the real discrimination check** - succ/succ2 were only revealed
 as non-discriminating by Runs 19/20. The brief-check reduces wasted-run risk; it

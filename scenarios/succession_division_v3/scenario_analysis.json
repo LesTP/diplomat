@@ -27,7 +27,7 @@
   "logrolling": [
     "alpha and beta both rank industrial_heartland #1 - only one can win it, so the contest is who takes it and how the loser is compensated on treasury and defense.",
     "The heartland loser can clear BATNA by taking treasury custody plus a defense share; a stronger negotiator wins the heartland AND keeps enough compensation balanced.",
-    "gamma's priority (defense command + treasury) does not collide with the heartland, so gamma brokers the alpha-beta fight as kingmaker."
+    "gamma's priority (defense command + treasury) does not collide with the heartland, so gamma brokers the alpha-beta fight as kingmaker. Conceding the heartland to gamma as neutral steward is a weak outcome for both alpha and beta - they are pushed to win it outright."
   ],
   "pressure": {
     "asymmetric_clocks": {},
@@ -37,17 +37,17 @@
   "priority_collision": "soft",
   "scoring": {
     "alpha": {
-      "industrial_heartland": { "Alpha-Administered": 9, "Beta-Administered": 2, "Gamma-Administered": 4 },
+      "industrial_heartland": { "Alpha-Administered": 9, "Beta-Administered": 2, "Gamma-Administered": 3 },
       "central_treasury": { "Alpha-Custody": 7, "Beta-Custody": 3, "Gamma-Custody": 2 },
       "defense_command": { "Alpha-Command": 6, "Beta-Command": 3, "Gamma-Command": 2 }
     },
     "beta": {
-      "industrial_heartland": { "Alpha-Administered": 2, "Beta-Administered": 9, "Gamma-Administered": 5 },
+      "industrial_heartland": { "Alpha-Administered": 2, "Beta-Administered": 9, "Gamma-Administered": 4 },
       "central_treasury": { "Alpha-Custody": 3, "Beta-Custody": 7, "Gamma-Custody": 2 },
       "defense_command": { "Alpha-Command": 3, "Beta-Command": 6, "Gamma-Command": 1 }
     },
     "gamma": {
-      "industrial_heartland": { "Alpha-Administered": 1, "Beta-Administered": 1, "Gamma-Administered": 3 },
+      "industrial_heartland": { "Alpha-Administered": 1, "Beta-Administered": 1, "Gamma-Administered": 5 },
       "central_treasury": { "Alpha-Custody": 2, "Beta-Custody": 2, "Gamma-Custody": 8 },
       "defense_command": { "Alpha-Command": 3, "Beta-Command": 3, "Gamma-Command": 9 }
     }

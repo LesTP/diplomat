@@ -17,5 +17,5 @@ A distributive contest that discriminates negotiation skill: constant-sum payoff
 | constant_sum | True | True | PASS |
 | priority_collision | 'soft' | 'soft' | PASS |
 | no_focal_point | True | True | PASS |
-| winner_spread | {'min_per_faction': 2} | {'per_faction': {'alpha': 3, 'beta': 4, 'gamma': 5}, 'min': 3} | PASS |
-| batna_clearing_count | {'min': 6, 'max': 18} | 13 | PASS |
+| winner_spread | {'min_per_faction': 2} | {'per_faction': {'alpha': 3, 'beta': 4, 'gamma': 4}, 'min': 3} | PASS |
+| batna_clearing_count | {'min': 6, 'max': 18} | 12 | PASS |
