@@ -423,7 +423,7 @@ _BODY = """<div class="wrap">
       </div>
       <div class="card">
         <h2>Per-faction outcome of the selected deal</h2>
-        <p class="cap">BATNA floor (dashed), achieved, max ceiling (ghost). Gap above the floor = captured surplus.</p>
+        <p class="cap">Each faction's <b>payoff</b> (utility points) for the selected deal, not a share of any asset - BATNA floor (dashed), achieved bar, max ceiling (faint). Gap above the floor = surplus captured.</p>
         <div id="bars"></div>
       </div>
     </div>
