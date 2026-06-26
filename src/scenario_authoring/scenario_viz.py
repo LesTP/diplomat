@@ -614,7 +614,7 @@ function renderHeat(){
 
 /* parallel coordinates (enlarged) */
 function renderParallel(){
-  const w=640,h=460,padT=42,padB=54,padL=58,padR=86,base=h-padB;
+  const w=640,h=460,padT=42,padB=54,padL=58,padR=58,base=h-padB;
   const ax=F.map((f,i)=>padL+i*(w-padL-padR)/(F.length-1));
   const s=svg(w,h);s.setAttribute("style","width:100%;height:auto");
   F.forEach((f,fi)=>{const x=ax[fi];
@@ -623,7 +623,7 @@ function renderParallel(){
     s.appendChild(el("text",{x,y:padT-12,"text-anchor":"middle","font-size":14,fill:"#999"},"max "+MX[f]));
     const yB=base-BA[f]/MX[f]*(base-padT);
     s.appendChild(el("line",{x1:x-14,y1:yB,x2:x+14,y2:yB,stroke:"#c0392b","stroke-dasharray":"4 2","stroke-width":1.5}));
-    s.appendChild(el("text",{x:x+18,y:yB+4,"font-size":13,fill:"#c0392b"},"BATNA "+BA[f]));});
+    s.appendChild(el("text",{x,y:yB+16,"text-anchor":"middle","font-size":13,fill:"#c0392b"},"BATNA "+BA[f]));});
   const yOf=(f,v)=>base-v/MX[f]*(base-padT);
   DEALS.map((d,i)=>i).sort((a,b)=>(DEALS[a].pareto?1:0)-(DEALS[b].pareto?1:0)).forEach(i=>{const d=DEALS[i];
     s.appendChild(el("polyline",{points:F.map((f,fi)=>`${ax[fi]},${yOf(f,d.sc[f])}`).join(" "),fill:"none",stroke:d.pareto?"#1a5fb4":"#d3d3d3","stroke-width":d.pareto?1.6:1,opacity:d.pareto?.8:.4}));});
