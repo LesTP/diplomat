@@ -4,6 +4,26 @@
      Each step or milestone gets a structured entry. This is the audit trail.
      Older phases are archived to DEVLOG_archive.md; the active log holds the current phase. -->
 
+## 2026-06-25: Author succ-v3 discriminating distributive scenario (operator-supervised)
+
+- **Mode:** Discuss -> Code (scenario design; Refine / iterative)
+- **Outcome:** complete (authored + brief-passing; live-test pending)
+- **Contract changes:** none
+
+Authored `scenarios/succession_division_v3/` - the discriminating distributive scenario Runs 19/20 were reaching for - using the new Phase 44 brief-check as the pre-flight gate. Threads between succ (Run 19 focal-point convergence) and succ2 (Run 20 deadlock): keeps the contested heartland (alpha and beta both rank it #1 -> no focal point) but lowers BATNAs to 7 + widens loser compensation so the contest RESOLVES (13 BATNA-clearing deals; winner_spread {alpha:3, beta:4, gamma:5}). Brief-check PASSES all required features (constant_sum, priority_collision soft, no_focal_point, winner_spread min>=2, batna_clearing 6-18).
+
+**Operator decision (relax no_exact_ties):** a balanced symmetric contest inherently produces a few tied-top deals (the reference `succ` has them too); eliminating every tie requires asymmetry that re-introduces seat-bias. A few ties among 13 contest deals are tolerated and are not a single Schelling focal point. `no_exact_ties` dropped from the brief.
+
+Registered as `succ3` in `tools/ablation_multi.sh` (scenario_paths + error text); narrative seed `scenarios/succession_division_v3.md`. Bundle: scenario_analysis.json, brief.json, brief.md, README.md (auto-doc). Uses `--analysis-json` like succ/succ2, so no persona files are pre-generated.
+
+**Residual to watch in the live run** (brief-check is structural, does not capture this): ~9/13 clearing deals route the heartland to the neutral steward (Gamma-Administered), and one deal (8/8/20) lets gamma sweep while alpha/beta barely clear BATNA. If the live run shows gamma-steward convergence regardless of skill, make Gamma-Administered less attractive and/or raise BATNAs.
+
+**Live test is the real discrimination check** (succ/succ2 were only revealed non-discriminating by live Runs 19/20). Next, on the Pi:
+```
+bash tools/ablation_multi.sh runrotate 'M1,M2,M3' succ3 bare 3
+python -m tests.self_play.rank_aggregator
+```
+
 ## Phase 48 close (2026-06-25)
 
 **Mode:** Close  
