@@ -158,3 +158,28 @@ def test_per_issue_grid_sizes_to_widest_issue() -> None:
     assert "String.fromCharCode(65+o)" in html
     assert "Asset goes to:" in html
     assert "[\"A\",\"B\",\"C\",\"D\",\"E\"].slice(0,nOut)" not in html
+
+
+def test_per_issue_caption_is_dynamic_and_payoff_framed() -> None:
+    """For holder-named outcomes the caption names the factions, gives a real
+    example, and states it's a payoff, not an asset share (succ3b ask)."""
+    analysis = {
+        "factions": ["alpha", "beta", "gamma"],
+        "issues": [
+            {"name": "heartland", "outcomes": ["Alpha-Administered", "Beta-Administered"], "description": "x"},
+            {"name": "treasury", "outcomes": ["Alpha-Custody", "Beta-Custody", "Gamma-Custody"], "description": "y"},
+        ],
+        "scoring": {
+            "alpha": {"heartland": {"Alpha-Administered": 9, "Beta-Administered": 2}, "treasury": {"Alpha-Custody": 7, "Beta-Custody": 3, "Gamma-Custody": 2}},
+            "beta": {"heartland": {"Alpha-Administered": 2, "Beta-Administered": 9}, "treasury": {"Alpha-Custody": 3, "Beta-Custody": 7, "Gamma-Custody": 2}},
+            "gamma": {"heartland": {"Alpha-Administered": 1, "Beta-Administered": 1}, "treasury": {"Alpha-Custody": 2, "Beta-Custody": 2, "Gamma-Custody": 8}},
+        },
+        "batna": {"alpha": 6, "beta": 6, "gamma": 6},
+    }
+    html = render_scenario_html(analysis, runs=None, title="Holder-named")
+
+    assert "asset going to" in html
+    assert "<b>payoff</b>" in html
+    assert "NOT a share of the asset" in html
+    # the example is computed from the real data (heartland Alpha-Administered = 9/2/1)
+    assert "alpha 9, beta 2, gamma 1" in html

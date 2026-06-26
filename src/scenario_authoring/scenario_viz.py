@@ -247,6 +247,73 @@ def build_data(
     }
 
 
+def _per_issue_caption(data: dict[str, Any]) -> str:
+    """Build the per-issue decomposition caption from the analysis so it is
+    correct for any scenario (real faction names + a real example, and the
+    column->faction reading only when outcomes are holder-named)."""
+    F = data["factions"]
+    ISS = data["issues"]
+    SC = data["scoring"]
+    star = "\u2605"
+    tail = (
+        f"Total bar height = total payoff over all factions. {star} marks each "
+        "faction's preferred outcome; stars in different columns = a "
+        "<b>contested</b> issue (opportunity for logrolling). The selected deal's "
+        "chosen column is tinted."
+    )
+    if not ISS or not ISS[0].get("outcomes"):
+        return ("Each colored segment is a faction's <b>payoff</b> for that "
+                "outcome (utility points), not a share of the asset. " + tail)
+
+    nout = max((len(i["outcomes"]) for i in ISS), default=0)
+    col_fac: list[str | None] = []
+    for o in range(nout):
+        fac: str | None = None
+        ok = True
+        for iss in ISS:
+            outs = iss["outcomes"]
+            if o < len(outs):
+                m = next((f for f in F if outs[o].lower().startswith(f.lower())), None)
+                if fac is None:
+                    fac = m
+                if m is None or m != fac:
+                    ok = False
+                    break
+        col_fac.append(fac if ok else None)
+    mapped = nout > 0 and all(col_fac)
+
+    iss0 = ISS[0]
+    out0 = iss0["outcomes"][0]
+    iname = iss0["name"].replace("_", " ")
+
+    def _n(v: float) -> str:
+        v = float(v)
+        return str(int(v)) if v == int(v) else ("%g" % v)
+
+    pays = [(f, SC[f].get(iss0["name"], {}).get(out0, 0)) for f in F]
+    total = sum(p for _, p in pays)
+    paylist = ", ".join(f"{f} {_n(p)}" for f, p in pays)
+
+    if mapped:
+        cols = ", ".join(F)
+        holder = col_fac[0]
+        lead = (
+            f"Columns left-to-right show the asset going to <b>{cols}</b> "
+            f"respectively. The colored segments are each faction's <b>payoff</b> "
+            f"for that outcome - e.g. top-left: if {iname} goes to {holder}, the "
+            f"payoffs are {paylist}. It is NOT a share of the asset ({pays[0][0]} "
+            f"is not getting a {_n(pays[0][1])}/{_n(total)} slice; the asset goes "
+            f"entirely to {holder}). "
+        )
+    else:
+        lead = (
+            "Columns are each issue's outcomes (left to right). The colored "
+            "segments are each faction's <b>payoff</b> for that outcome, not a "
+            f"share - e.g. {iname} / {out0}: {paylist}. "
+        )
+    return lead + tail
+
+
 def render_html(data: dict[str, Any], title: str, extraction_note: str, scenario_html: str) -> str:
     generated = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     body = (
@@ -258,6 +325,7 @@ def render_html(data: dict[str, Any], title: str, extraction_note: str, scenario
         .replace("{{BOTTLENECK}}", str(data["bottleneck"]).replace("_", " "))
         .replace("{{SCENARIO}}", scenario_html)
         .replace("{{EXTRACTION}}", extraction_note)
+        .replace("{{PER_ISSUE_CAP}}", _per_issue_caption(data))
     )
     return _HEAD.replace("{{TITLE}}", title) + body + "<script>\nconst DATA = " + json.dumps(data) + ";\n" + _JS + "\n</script>\n</body>\n</html>\n"
 
@@ -411,12 +479,7 @@ _BODY = """<div class="wrap">
     <div class="colstack">
       <div class="card">
         <h2>Per-issue payoff decomposition</h2>
-        <p class="chartcap">Each colored segment is that faction's <b>payoff</b> (its private
-          utility points) if that outcome is chosen - NOT that faction's share of the asset
-          itself. One stacked bar per (issue, outcome); columns are headed by the faction the
-          outcome hands the asset to. Bar height = total payoff summed over
-          factions. A ★ marks each faction's preferred outcome; stars in different columns = a <b>contested</b>
-          issue (logrolling lives there). The selected deal's chosen column is tinted.</p>
+        <p class="chartcap">{{PER_ISSUE_CAP}}</p>
         <div id="legend" class="legend"></div>
         <div id="dealTotal" class="dealtotal"></div>
         <div id="grid" style="overflow-x:auto;margin-top:.2em"></div>
@@ -478,7 +541,7 @@ function renderGrid(){
   for(let o=0;o<nOut;o++){let fac="",ok=true;for(const iss of ISS){if(o<iss.outcomes.length){const oc=iss.outcomes[o].toLowerCase();const m=F.find(f=>oc.startsWith(f.toLowerCase()))||"";if(fac==="")fac=m;if(m===""||m!==fac){ok=false;break;}}}colFac[o]=ok?fac:"";}
   for(let o=0;o<nOut;o++){const lab=colFac[o]||String.fromCharCode(65+o);s.appendChild(el("text",{x:gut+cellW*o+cellW/2,y:20,"text-anchor":"middle","font-weight":700,"font-size":15,fill:colFac[o]?COL[colFac[o]]:"#444"},lab));}
   const allFac=colFac.length>0&&colFac.every(c=>c);
-  if(allFac)s.appendChild(el("text",{x:6,y:20,"text-anchor":"start","font-size":12,"font-weight":600,fill:"#666"},"Asset goes to:"));
+  if(allFac)s.appendChild(el("text",{x:6,y:20,"text-anchor":"start","font-size":13,"font-weight":600,fill:"#333"},"Asset goes to:"));
   s.appendChild(el("line",{x1:6,y1:29,x2:w-6,y2:29,stroke:"#333","stroke-width":1.2}));
   ISS.forEach((iss,r)=>{
     const y0=top+r*(cellH+8),cy=y0+cellH/2;

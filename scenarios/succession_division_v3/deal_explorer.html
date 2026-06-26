@@ -82,7 +82,7 @@
 <body>
 <div class="wrap">
   <h1>Diplomat — succ-v3 — Verdanian Succession (Resolvable Contest)</h1>
-  <p class="sub">Deal space + where each self-play run landed · generated 2026-06-26 07:09 UTC · 0 run(s)</p>
+  <p class="sub">Deal space + where each self-play run landed · generated 2026-06-26 07:18 UTC · 0 run(s)</p>
 
   <div class="card">
     <h2 style="margin-top:0">The Verdanian Succession (Resolvable Contest)</h2><div class="scenflow"><p>The Verdanian Union has dissolved into three successor republics - <b>Alpha</b>, <b>Beta</b>, and <b>Gamma</b> - each now sovereign, each with its own army, treasury bonds, and claims on what the Union built together.</p>
@@ -110,12 +110,7 @@
     <div class="colstack">
       <div class="card">
         <h2>Per-issue payoff decomposition</h2>
-        <p class="chartcap">Each colored segment is that faction's <b>payoff</b> (its private
-          utility points) if that outcome is chosen - NOT that faction's share of the asset
-          itself. One stacked bar per (issue, outcome); columns are headed by the faction the
-          outcome hands the asset to. Bar height = total payoff summed over
-          factions. A ★ marks each faction's preferred outcome; stars in different columns = a <b>contested</b>
-          issue (logrolling lives there). The selected deal's chosen column is tinted.</p>
+        <p class="chartcap">Columns left-to-right show the asset going to <b>alpha, beta, gamma</b> respectively. The colored segments are each faction's <b>payoff</b> for that outcome - e.g. top-left: if industrial heartland goes to alpha, the payoffs are alpha 9, beta 2, gamma 1. It is NOT a share of the asset (alpha is not getting a 9/12 slice; the asset goes entirely to alpha). Total bar height = total payoff over all factions. ★ marks each faction's preferred outcome; stars in different columns = a <b>contested</b> issue (opportunity for logrolling). The selected deal's chosen column is tinted.</p>
         <div id="legend" class="legend"></div>
         <div id="dealTotal" class="dealtotal"></div>
         <div id="grid" style="overflow-x:auto;margin-top:.2em"></div>
@@ -176,7 +171,7 @@ function renderGrid(){
   for(let o=0;o<nOut;o++){let fac="",ok=true;for(const iss of ISS){if(o<iss.outcomes.length){const oc=iss.outcomes[o].toLowerCase();const m=F.find(f=>oc.startsWith(f.toLowerCase()))||"";if(fac==="")fac=m;if(m===""||m!==fac){ok=false;break;}}}colFac[o]=ok?fac:"";}
   for(let o=0;o<nOut;o++){const lab=colFac[o]||String.fromCharCode(65+o);s.appendChild(el("text",{x:gut+cellW*o+cellW/2,y:20,"text-anchor":"middle","font-weight":700,"font-size":15,fill:colFac[o]?COL[colFac[o]]:"#444"},lab));}
   const allFac=colFac.length>0&&colFac.every(c=>c);
-  if(allFac)s.appendChild(el("text",{x:6,y:20,"text-anchor":"start","font-size":12,"font-weight":600,fill:"#666"},"Asset goes to:"));
+  if(allFac)s.appendChild(el("text",{x:6,y:20,"text-anchor":"start","font-size":13,"font-weight":600,fill:"#333"},"Asset goes to:"));
   s.appendChild(el("line",{x1:6,y1:29,x2:w-6,y2:29,stroke:"#333","stroke-width":1.2}));
   ISS.forEach((iss,r)=>{
     const y0=top+r*(cellH+8),cy=y0+cellH/2;
