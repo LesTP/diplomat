@@ -464,12 +464,12 @@ function dealScores(){return selDeal<0?Object.assign({},BA):DEALS[selDeal].sc;}
 
 /* per-issue grid with selected-deal column tint (vertical issue labels) */
 function renderGrid(){
-  const nOut=Math.max(...ISS.map(i=>i.outcomes.length)),cellW=160,cellH=150,gut=56,top=30,barMax=104;
+  const nOut=Math.max(...ISS.map(i=>i.outcomes.length)),cellW=160,cellH=172,gut=56,top=30,barMax=104;
   const maxv=Math.max(...ISS.flatMap(i=>i.outcomes.map(o=>F.reduce((a,f)=>a+(SC[f][i.name][o]||0),0))));
   const w=gut+cellW*nOut+10,h=top+(cellH+8)*ISS.length;
   const s=svg(w,h);s.setAttribute("style","width:100%;height:auto");
   const selOut=selDeal>=0?DEALS[selDeal].outcomes:null;
-  ["A","B","C","D","E"].slice(0,nOut).forEach((lab,o)=>s.appendChild(el("text",{x:gut+cellW*o+cellW/2,y:18,"text-anchor":"middle","font-weight":600,"font-size":15,fill:"#444"},lab)));
+  /* outcome names are labelled per-cell under each bar (issues differ in their outcomes, e.g. a 2-outcome contested asset) */
   ISS.forEach((iss,r)=>{
     const y0=top+r*(cellH+8),cy=y0+cellH/2;
     const prefs=F.map(f=>{const v=iss.outcomes.map(o=>SC[f][iss.name][o]||0);return v.indexOf(Math.max(...v));});
@@ -479,7 +479,7 @@ function renderGrid(){
     iss.outcomes.forEach((o,oi)=>{
       const colX=gut+oi*cellW;
       if(selOut && selOut[iss.name]===o)s.appendChild(el("rect",{x:colX+5,y:y0+2,width:cellW-10,height:cellH-2,rx:7,fill:"var(--hl)"}));
-      const bw2=cellW-58,x0=colX+(cellW-bw2)/2,base=y0+cellH-22;
+      const bw2=cellW-58,x0=colX+(cellW-bw2)/2,base=y0+cellH-44;
       s.appendChild(el("line",{x1:x0-4,y1:base,x2:x0+bw2+4,y2:base,stroke:"#ddd"}));
       let acc=0;
       F.forEach(f=>{const v=SC[f][iss.name][o]||0,hh=v/maxv*barMax,yy=base-acc-hh;
@@ -488,6 +488,7 @@ function renderGrid(){
         acc+=hh;});
       const sum=F.reduce((a,f)=>a+(SC[f][iss.name][o]||0),0);
       s.appendChild(el("text",{x:x0+bw2/2,y:base-acc-5,"text-anchor":"middle","font-size":13,fill:"#666","font-weight":600},"Σ"+sum));
+      s.appendChild(el("text",{x:x0+bw2/2,y:base+32,"text-anchor":"middle","font-size":10,fill:"#555"},o.replace(/_/g," ")));
       const star=F.filter((f,fi)=>prefs[fi]===oi);
       star.forEach((f,si)=>s.appendChild(el("text",{x:x0+bw2/2+(si-(star.length-1)/2)*14,y:base+15,"text-anchor":"middle","font-size":15,fill:COL[f]},"★")));
     });

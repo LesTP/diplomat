@@ -152,3 +152,6 @@ def test_per_issue_grid_sizes_to_widest_issue() -> None:
     html = render_scenario_html(analysis, runs=None, title="Mixed")
     assert "Math.max(...ISS.map(i=>i.outcomes.length))" in html
     assert "ISS[0].outcomes.length" not in html
+    # Columns are labelled with real outcome names per cell, not generic A/B/C.
+    assert 'fill:"#555"},o.replace' in html
+    assert "[\"A\",\"B\",\"C\",\"D\",\"E\"].slice(0,nOut)" not in html
