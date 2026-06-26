@@ -4,6 +4,25 @@
      Each step or milestone gets a structured entry. This is the audit trail.
      Older phases are archived to DEVLOG_archive.md; the active log holds the current phase. -->
 
+## 2026-06-25: Deal-explorer viz layout - balanced columns + locked contract (operator-supervised)
+
+- **Mode:** Debug -> Code
+- **Outcome:** complete
+- **Contract changes:** none (viz rendering + a new layout contract, D-63)
+
+Created deal-explorer viz files for succ-v3 and succ3b, then fixed a narrative
+layout bug the operator reported (gaping white space). The old `.scen2`/`.scencol`
+fixed grid put the intro + most sections in the left column and ONLY the parties
+section in the right, leaving a large empty right column whenever parties was
+short. Replaced it with a single balanced multi-column flow (`.scenflow`,
+columns:2, column-fill:balance) that breaks at PARAGRAPH boundaries
+(break-inside:avoid on paragraphs/bullets/issue-lists, break-after:avoid on
+headings). Made the requirement durable across sessions (the operator had hit it
+repeatedly and the preference did not carry over): DECISIONS.md D-63, a LAYOUT
+CONTRACT docstring on `build_scenario_html`, an `ARCH_scenario_authoring.md` note,
+and a regression test (`tests/test_scenario_viz.py::test_narrative_layout_is_balanced`)
+so any future regression fails the suite. Commits 1c5f1dc, 1b3228c, 009882d.
+
 ## 2026-06-25: Author succ3b - 2-outcome-heartland variant (operator-supervised)
 
 - **Mode:** Discuss -> Code (scenario design)

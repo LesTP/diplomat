@@ -14,7 +14,7 @@
 > infra that serves the benchmark; coaching-product work is deferred
 > (infrastructure preserved, no new investment). Rationale: `DECISIONS.md` D-56.
 
-## Current state (2026-06-22)
+## Current state (2026-06-25)
 
 The §3.5 competitive-scoring stack is shipped and validated (rank-among-factions
 lens + `faction_models` persistence + cross-game `mean_rank` aggregator +
@@ -25,7 +25,11 @@ converged on a seat-determined focal deal; `succ2` (Run 20) over-collided into
 deadlock (5/6 no-deal). Budget ~$11-13 API remaining at session close. Detail:
 `TUNING_LOG.md` Runs 18-20, `RESEARCH_NOTES.md` Note 2.
 
+**Update (2026-06-25).** The scenario-authoring loop tooling is COMPLETE (Phases 46 standalone, 47 coalition-contract, 48 narrative-shell; all closed, ran on the claude backend). Two discriminating distributive scenarios are now authored + brief-passing and AWAIT the live mixed-model test (the real discrimination check): `succ-v3` (3-way contest, some gamma-steward noise) and `succ3b` (2-outcome heartland: clean alpha-vs-beta contest, gamma kingmaker). Both registered in `tools/ablation_multi.sh` as `succ3` / `succ3b`.
+
 ## Now — sequencing
+
+**Update (2026-06-25): Q1 scenarios `succ-v3` + `succ3b` are AUTHORED + brief-passing; next is the live test. Coalition Path B scoring contract is LOCKED (Phase 47).**
 
 Two open questions want *different* scenarios — decide first:
 
@@ -45,13 +49,13 @@ calibration** (§11.b) → broaden **Path C** scenario authoring (asym-BATNA,
 hidden-value) → **Run 17 follow-ups** (V3 n=3, R1 cells) + **N4** pressure on
 jsm1 → **per-run cost capture** + **pricing audit**.
 
-## In autonomous loops (DEVPLAN)
+## Autonomous-loop phases (DEVPLAN) - COMPLETE
 
-Pre-decomposed Build phases staged in `DEVPLAN.md`, run autonomously **on the Pi** (not from Windows — sandbox limit). Each gates for human audit at phase close (`blocked: true`). Decisions: `DECISIONS.md` D-60/61/62.
+Build phases COMPLETED via the autonomous loop (claude backend; two codex-cutoff recoveries - see DEVLOG) **on the Pi** (not from Windows — sandbox limit). Each gates for human audit at phase close (`blocked: true`). Decisions: `DECISIONS.md` D-60/61/62.
 
-- **Phase 46 (active)** 🔨 `[X]` — standalone `scenario_authoring` package + unified CLI (sever the `modules.persona` coupling).
-- **Phase 47 (queued)** 🔨 `[C]` — *lock the coalition Path B scoring contract* with tests. The partial-coalition scoring path is already implemented; Phase 47 covers only test-hardening (D-61). This is the loop-safe slice of the “§3.6 coalition-value scoring engine” Tier-1 item below.
-- **Phase 48 (queued)** 🔨 `[C]` — narrative-integration *shell* (deterministic re-skin + value-isomorphism guard + catalogue extractor; D-62).
+- **Phase 46 (DONE)** 🔨 `[X]` — standalone `scenario_authoring` package + unified CLI (sever the `modules.persona` coupling).
+- **Phase 47 (DONE)** 🔨 `[C]` — *lock the coalition Path B scoring contract* with tests. The partial-coalition scoring path is already implemented; Phase 47 covers only test-hardening (D-61). This is the loop-safe slice of the “§3.6 coalition-value scoring engine” Tier-1 item below.
+- **Phase 48 (DONE)** 🔨 `[C]` — narrative-integration *shell* (deterministic re-skin + value-isomorphism guard + catalogue extractor; D-62).
 
 **Supervised tails (outside the loops — these need you):**
 - Coalition: builder `coalition_values` emission (`ScenarioSpec.requires_coalition_values`) 🔀; runtime partial-coalition detection in `RoundSteppedFlow` 👁; live mixed-model validation on `three_party_coalition_v1` (doubles as §11.b Path A) 👁; rationalize the synthetic `coalition_formation` issue 🔀 (Tier-1 row below).
@@ -63,7 +67,7 @@ Pre-decomposed Build phases staged in `DEVPLAN.md`, run autonomously **on the Pi
 |---|---|---|---|
 | **`succ-v3` sweet-spot scenario** (Q1) — AUTHORED as `succ3` (scenarios/succession_division_v3/), brief-passing; ready for live mixed-model test (+ `succ3b` 2-outcome-heartland variant: clean alpha-vs-beta contest, gamma kingmaker) | `[C]` | 👁 | `SCENARIO_GUIDE.md` (distributive authoring); `TUNING_LOG.md` Run 19 |
 | **`succ2` full-mode harness test** (Q2) — measure close-rate lift over bare deadlock | `[C][A]` | 👁 | `TUNING_LOG.md` Run 20; `RESEARCH_NOTES.md` Note 1 |
-| **§3.6 coalition-value scoring engine** (Path B build) — extend `scenario_analysis.json` `coalition_values`; `score_game()` detects partial-agreement coalitions, applies split, BATNA to excluded faction | `[C][A]` | 🔨 | `ASSESSMENT.md` §3.6; `RESEARCH_NOTES.md` Note 2 Path B. Three-Party Coalition v1 patched as first consumer |
+| **§3.6 coalition-value scoring engine** (Path B; scoring contract LOCKED Phase 47/D-61) — extend `scenario_analysis.json` `coalition_values`; `score_game()` coalition-exclusion path is implemented + LOCKED by 23 unit tests (Phase 47/D-61); REMAINING (supervised): builder `coalition_values` emission, runtime detection, live mixed-model validation | `[C][A]` | 🔨 | `ASSESSMENT.md` §3.6; `RESEARCH_NOTES.md` Note 2 Path B. Three-Party Coalition v1 patched as first consumer |
 | **§11.b Path A calibration** — mixed Three-Party Coalition × position rotation (9 cells, ~$1-2) | `[C]` | 👁 | `RESEARCH_NOTES.md` Note 2 Path A |
 | **Path C scenario-class authoring** — asymmetric-BATNA-with-walkaway, hidden-value bluff (distributive done: `succ`/`succ2`) | `[C]` | 👁 | `RESEARCH_NOTES.md` Note 2 Path C |
 | **Run 17 V3 full n=3 expansion** — solidify V3 baseline (~$0.15) | `[C]` | 👁 | `TUNING_LOG.md` Run 17 |
@@ -112,6 +116,6 @@ within-round reactivity or timing-as-strategy.
   cooperative scoring; Paths A/B/C), Note 3 (provider consistency as a deal
   variable).
 - **Decisions** → `DECISIONS.md` (D-56 benchmark direction; D-58/D-59 scenario
-  tooling; D-60 standalone leaf, D-61 coalition contract scope, D-62 narrative re-skin).
+  tooling; D-60 standalone leaf, D-61 coalition contract scope, D-62 narrative re-skin, D-63 viz layout).
 - **Scoring framework** → `ASSESSMENT.md` (§3 lenses, §5 workstream tiers).
 - **Scenario authoring** → `SCENARIO_GUIDE.md` + `ARCH_scenario_authoring.md`.
