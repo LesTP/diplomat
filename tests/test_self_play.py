@@ -1312,3 +1312,138 @@ class TestWriteResultsMetadata:
     def test_fake_cost_accountant_default_session_total_is_zero(self) -> None:
         fake = FakeCostAccountant()
         assert fake.session_total == 0.0
+
+
+class TestBackfillCost:
+    """Unit tests for tools/backfill_cost.py (Phase 49.3)."""
+
+    def _make_result(
+        self,
+        log_entries: list | None = None,
+        faction_models: dict | None = None,
+        metadata: dict | None = None,
+    ) -> dict:
+        result: dict = {}
+        if log_entries is not None:
+            result["llm_call_log"] = log_entries
+        if faction_models is not None:
+            result["faction_models"] = faction_models
+        if metadata is not None:
+            result["metadata"] = metadata
+        return result
+
+    def _make_log_entry(
+        self,
+        faction_id: str = "alpha",
+        provider: str = "openai",
+        content: str = "a" * 400,  # 100 input tokens
+        response: str = "b" * 200,  # 50 output tokens
+    ) -> dict:
+        return {
+            "faction_id": faction_id,
+            "config_provider": provider,
+            "tier": "commodity",
+            "messages": [{"role": "user", "content": content}],
+            "response": response,
+        }
+
+    def test_estimate_cost_from_empty_log(self) -> None:
+        from tools.backfill_cost import estimate_cost_from_log
+
+        result = self._make_result(log_entries=[])
+        cost, n_calls = estimate_cost_from_log(result)
+        assert cost == pytest.approx(0.0)
+        assert n_calls == 0
+
+    def test_estimate_cost_nonzero_for_nonempty_log(self) -> None:
+        from tools.backfill_cost import estimate_cost_from_log
+
+        result = self._make_result(log_entries=[self._make_log_entry()])
+        cost, n_calls = estimate_cost_from_log(result)
+        assert cost > 0.0
+        assert n_calls == 1
+
+    def test_estimate_cost_uses_faction_models(self) -> None:
+        """Faction model resolution uses faction_models when available."""
+        from tools.backfill_cost import estimate_cost_from_log
+
+        # anthropic pricing differs from openai; faction_models overrides config_provider
+        entry_openai = self._make_log_entry(faction_id="alpha", provider="openai")
+        result_with_fm = self._make_result(
+            log_entries=[entry_openai],
+            faction_models={"alpha": {"model": "claude-sonnet-4-6", "provider": "anthropic"}},
+        )
+        result_without_fm = self._make_result(log_entries=[entry_openai])
+
+        cost_with_fm, _ = estimate_cost_from_log(result_with_fm)
+        cost_without_fm, _ = estimate_cost_from_log(result_without_fm)
+
+        # claude-sonnet-4-6 is priced higher than gpt-4.1-mini
+        assert cost_with_fm > cost_without_fm
+
+    def test_backfill_result_writes_metadata(self, tmp_path: Path) -> None:
+        from tools.backfill_cost import backfill_result
+
+        result = self._make_result(log_entries=[self._make_log_entry()])
+        path = tmp_path / "run.json"
+        path.write_text(json.dumps(result), encoding="utf-8")
+
+        status = backfill_result(result, write_back=True, path=path)
+
+        assert "estimated" in status or "wrote" in status
+        written = json.loads(path.read_text())
+        meta = written["metadata"]
+        assert meta["cost_source"] == "estimated_from_log"
+        assert meta["cost_usd"] > 0.0
+        assert meta["n_llm_calls"] == 1
+
+    def test_backfill_result_idempotent_for_metered(self, tmp_path: Path) -> None:
+        from tools.backfill_cost import backfill_result
+
+        result = self._make_result(
+            log_entries=[self._make_log_entry()],
+            metadata={"cost_usd": 9.99, "cost_source": "metered", "n_llm_calls": 5},
+        )
+        path = tmp_path / "run.json"
+        path.write_text(json.dumps(result), encoding="utf-8")
+
+        status = backfill_result(result, write_back=False, path=path)
+
+        assert "skipped" in status
+        # File unchanged (write_back=False and skipped anyway)
+        written = json.loads(path.read_text())
+        assert written["metadata"]["cost_usd"] == pytest.approx(9.99)
+
+    def test_backfill_result_preserves_existing_metadata_keys(self, tmp_path: Path) -> None:
+        from tools.backfill_cost import backfill_result
+
+        result = self._make_result(
+            log_entries=[self._make_log_entry()],
+            metadata={"recovery": [{"tool": "rescore_run.py"}]},
+        )
+        path = tmp_path / "run.json"
+        path.write_text(json.dumps(result), encoding="utf-8")
+
+        backfill_result(result, write_back=True, path=path)
+
+        written = json.loads(path.read_text())
+        meta = written["metadata"]
+        # Existing key preserved
+        assert "recovery" in meta
+        assert meta["recovery"] == [{"tool": "rescore_run.py"}]
+        # Cost keys added
+        assert meta["cost_source"] == "estimated_from_log"
+
+    def test_estimate_cost_no_faction_models_uses_provider_default(self) -> None:
+        """Without faction_models, cost is estimated from provider default model."""
+        from tools.backfill_cost import estimate_cost_from_log
+
+        # Two entries same content, different providers → different cost
+        entry_google = self._make_log_entry(faction_id="alpha", provider="google")
+        entry_openai = self._make_log_entry(faction_id="alpha", provider="openai")
+
+        cost_google, _ = estimate_cost_from_log(self._make_result(log_entries=[entry_google]))
+        cost_openai, _ = estimate_cost_from_log(self._make_result(log_entries=[entry_openai]))
+
+        # gemini-2.5-flash-lite ($0.1/$0.4) vs gpt-4.1-mini ($0.4/$1.6) — openai costs more
+        assert cost_openai > cost_google
