@@ -1,7 +1,7 @@
 ---
-phase: 48
-blocked: true
-state: close
+phase: 49
+blocked: false
+state: execute
 steps_remaining: 0
 ---
 
@@ -73,13 +73,79 @@ steps_remaining: 0
   - **Operator-supervised scenario-tooling reorg (2026-06-20/21):** scenario tools moved from `src/tools/` to dedicated `src/scenario_authoring/` package; scenarios data moved from `tests/self_play/scenarios/` to top-level `scenarios/`. `coalition_values` schema field added (Phase 2a). `verify_scenario_optimum` moved into the package (D-58). Public API curated in `__init__.py`. `tools/scenario_builder_scale_probe.py` characterizes builder convergence + wall-clock across F/I/O dimensions. Phase 42 algorithm work complete (PROJECT.md "4+ factions / 4+ issues" criterion MET at 4×4×4); see `DECISIONS.md` D-59 and commits `551caa9`..`8a384c3`.
   - **Codex backend loop failures (Phase 46):** Codex backend repeatedly failed to finish diplomat iterations due to turn/time limits or budget re-dispatch anti-pattern (iter 192 left work uncommitted; iter 196 committed but stalled on bookkeeping). Claude backend finished iterations cleanly. Recommend CLAUDE backend for diplomat loop runs, or raise codex turn/time budget. When codex stalls: verify committed work, fix bookkeeping manually, reset `steps_remaining` to empty, re-dispatch.
 ## Current Status
-- **Operator-supervised session (2026-06-26):** Live-tested `succ3b` (Run 21, homogeneous bare baselines): **headroom confirmed** - deepseek 0/3 vs sonnet 2/3, so succ3b discriminates capability. Failure mode = gamma over-grab (kingmaker takes both assets, starves the heartland loser); possible alpha seat-bias (n=2). See `TUNING_LOG.md` Run 21. Plus a deal-explorer **viz polish pass** (faction-colored headers + dynamic payoff-not-share caption, bars-beside-parcoords aligned/widened layout, live ternary surplus readout, clickable parcoords/ternary; D-63 viz contract, locked by `tests/test_scenario_viz.py`). Next: single-provider tier ladder, seat-rotated.
+- **Phase 49 QUEUED (loop-ready, 2026-06-27):** Per-run cost capture + approximate backfill — pure offline build, zero API cost (Option A scalar `metadata.cost_usd`; design in DEVLOG / this phase). Frontmatter armed (`phase:49`, `blocked:false`, `state:plan`); dispatch on the Pi. First of the Paper 1 §5.0 hygiene batch (cost capture → bootstrap-CI aggregator are the two loop-safe builds; see `papers/PAPER_PLAN.md` §5.0 + §8).
+- **Operator-supervised session (2026-06-26):** Live-tested `succ3b` (Run 21, homogeneous bare baselines): **headroom confirmed** - deepseek 0/3 vs sonnet 2/3, so succ3b discriminates capability. Failure mode = gamma over-grab (kingmaker takes both assets, starves the heartland loser); possible alpha seat-bias (n=2). See `TUNING_LOG.md` Run 21. Plus a deal-explorer **viz polish pass** (faction-colored headers + dynamic payoff-not-share caption, bars-beside-parcoords aligned/widened layout, live ternary surplus readout, clickable parcoords/ternary; D-63 viz contract, locked by `tests/test_scenario_viz.py`). Viz consolidated 2026-06-27: all four deal-explorers now live in their scenario folders as `deal_explorer.html` (`tools/build_viz.py` is the regen-all driver). Next: single-provider tier ladder, seat-rotated.
 - **Operator-supervised session (2026-06-25):** autonomous-loop tooling COMPLETE - Phases 46/47/48 ran on the claude backend (two codex-cutoff recoveries; see DEVLOG). Authored discriminating scenarios `succ-v3` + `succ3b` (brief-passing, awaiting live test; tags `succ3`/`succ3b` in `tools/ablation_multi.sh`). Fixed + locked the deal-explorer viz layout (D-63). Loop is PARKED (frontmatter `blocked:true`/`state:close`); the autonomous roadmap is exhausted and remaining work is supervised - see `NEXT_STEPS.md`.
 - **Phase** — Phase 48 complete (narrative re-skin shell; 37 new tests, D-62 closed; see `DEVLOG.md` "Phase 48 close"). Phase 47 complete (coalition scoring contract lock; 23 unit tests, D-61 closed; see `DEVLOG_archive.md` "Phase 47 close"). Phase 46 complete (standalone `scenario_authoring` + unified CLI; see `DEVLOG_archive.md` "Phase 46 close"). Phase 44 complete (scenario design-brief + verify-against-brief + auto-doc). Scenario-design (succ-v3 / Path C) and benchmark-run backlog live in `NEXT_STEPS.md`.
 - **Phase numbering note:** 45 is intentionally unused — the roadmap's narrative phase was staged as Phase 48 after standalone (Phase 46) was chosen first; the coalition track slotted in as Phase 47. Gaps are normal here (40/41/42 were operator-supervised); the state machine keys on the `phase:` frontmatter value, so the gap is harmless. Supervised work outside the loops lives in `NEXT_STEPS.md`.
 - **Phase B (proof-of-concept scenario):** Joint Space Mission scenario authoring unblocked. v1 spec produces 3 Pareto-optimal deals with distinct distributions (balanced consensus / alpha+gamma win / beta wins). Next operator session: run the LLM scenario compiler over the generated `scenario_analysis.json` to produce narrative + persona prose, then optionally smoke at flash-lite.
 - **Operator-supervised work (2026-06-21): Phase 42 COMPLETE.** Commits 1-4 + C5a + C5b landed (`551caa9`, `257b1e0`, `d16248c`, `4c67abb`, `19e6a39`, `8a384c3`). PROJECT.md "4+ factions / 4+ issues" success criterion MET: 4×4×4 / D=256 reaches ≥2/3 probe acceptance, locked by `tests/test_scenario_builder_scale.py::test_builds_4x4x4_in_budget`. Key findings: the I-axis cliff was spec-semantic (fixed by C5a relative `batna_clearing_count_target`), and a builder determinism bug (C5b) had masked it; SA neighborhood broadening was tried and rejected (D-59). Phase 3 (scale probe) data at `scenarios/scale_probe_*` + `scenarios/c5b_final_singlecell_summary.md`. Phase 4 docs (`ARCH_scenario_authoring.md`, `SCENARIO_GUIDE.md`) shipped and updated with post-Phase-42 scaling data.
 - **Operator-supervised work (2026-06-22): section 3.5 competitive-scoring benchmark built + pushed.** Per-game `faction_ranks` rank-among-factions lens + `faction_models` persistence + cross-game `mean_rank` aggregator (`tests/self_play/rank_aggregator.py`) + mixed-model dispatcher + position-rotation harness in `tools/ablation_multi.sh`. Three scoring bugs fixed (partial-coalition deal_reached normalization, below-BATNA deal rejection, aggregator no-deal filter). Runs 18-20: gpt-5.5 broke the section 10 tier/provider confound; Runs 19-20 (succ / succ2 distributive scenarios) showed the section 3.5 tooling works but no scenario yet *discriminates* - open gap is discriminating scenario design (sweet-spot for model-comparison vs bare-deadlock-headroom for the harness question; see `NEXT_STEPS.md` "State as of 2026-06-22"). Both repos (toolkit, diplomat) pushed to GitHub.
+
+## Phase 49: Per-run cost capture + approximate backfill — In Progress
+
+**Goal.** Populate a `metadata` block in self-play result JSONs with the per-run
+LLM spend — sourced live from the shared `CostAccountant` going forward, and
+re-estimated offline for historical runs — so Paper 1's cost-economics ($/closed-deal)
+and per-cell cost-coverage stop being back-of-envelope. Pure offline build:
+fully fake/dry-run testable, **zero API cost** (the live capture reads an
+already-computed total; the backfill re-prices existing logs). Scope is Option A
+(scalar total only) per the 2026-06-27 design discussion — by-model/by-operation
+breakdown (`report(since=...)`) and per-faction attribution are deliberately out
+of scope (not a Paper 1 need; per-faction served the D-56-deferred per-role-model
+strategy). Schema is forward-compatible so those can extend `metadata` later
+without a breaking change.
+
+**Metadata schema** (new top-level `metadata` block in each result JSON):
+`{"cost_usd": <float>, "cost_source": "metered" | "estimated_from_log" | "dry_run", "n_llm_calls": <int>}`.
+
+**Steps.**
+- [ ] 49.1 — Emit cost metadata on the live path. Thread the shared `accountant`
+  (already in `_run()` scope) into `_write_results` in
+  `tests/self_play/run_simulation.py`; write
+  `results["metadata"] = {"cost_usd": accountant.session_total, "cost_source": "metered", "n_llm_calls": len(results.get("llm_call_log", []))}`.
+  Dry-run path (FakeCostAccountant injected) writes `cost_source: "dry_run"`.
+- [ ] 49.2 — Make it fake-testable + add the test. Extend `FakeCostAccountant`
+  (`tests/helpers/factories.py`) with a `session_total` property (currently
+  missing). Add a unit test asserting the `metadata` block is written with the
+  correct fields/values via the fake / dry-run path — no live API.
+- [ ] 49.3 — Add `tools/backfill_cost.py` (sibling to `backfill_pareto.py` /
+  `backfill_scoring_metrics.py`). For each historical result, re-estimate cost
+  from `llm_call_log` (token ≈ len(text)/4 over messages + response, priced via
+  `CostAccountant.estimate_cost` for pricing consistency) and write `metadata`
+  with `cost_source: "estimated_from_log"`. Idempotent: skip runs already
+  carrying `cost_source: "metered"`. Unit test on a synthetic result JSON.
+- [ ] 49.4 — Run the backfill over `tests/self_play/results/*.json`; spot-check a
+  couple of cells against `TUNING_LOG.md` back-of-envelope figures (sanity, not
+  exactness — these are estimates); commit the updated result JSONs.
+- [ ] 49.5 — Doc update: `NEXT_STEPS.md` (move "Per-run cost capture" out of the
+  open Tier-1 list / mark done), `ASSESSMENT.md` §5 Block C tech-debt (drop the
+  `metadata.cost_usd: None` / stale-ledger line), `CLI_REFERENCE.md` (document
+  `tools/backfill_cost.py` + the `metadata` schema), `papers/PAPER_PLAN.md` §5.0
+  (mark cost-capture done).
+- [ ] 49.6 — Phase close: full suite green; DEVLOG entry; DECISIONS entry for the
+  `metadata` schema + `cost_source` semantics; set DEVPLAN frontmatter to close.
+
+**Build notes / gotchas** (not iteration steps):
+- **One game per process.** `run_simulation._run()` runs exactly one
+  `env.run_game()` and writes one result file, so `accountant.session_total` at
+  write time is exactly that run's spend — no ledger windowing / `report(since=)`
+  needed. Do NOT total the on-disk `cost_ledger.jsonl` (append-only, cumulative
+  across runs → the "stale ledger" trap). If any *other* entrypoint
+  (e.g. `coached_game.py`) ever batches multiple games in one process, it must
+  reset `session_total` per game before this metadata is trustworthy there.
+- **Backfill model resolution.** `llm_call_log` entries carry `config_provider`
+  + `tier` + text, not a resolved model name. Resolve the model for pricing from
+  `faction_models` (bare mode: every call is the faction's generator model) and
+  the pipeline primary/secondary defaults (full mode: module calls). Treat the
+  result as an estimate — that's exactly what `cost_source: "estimated_from_log"`
+  signals; don't claim false precision against `session_total`.
+- **Accuracy bound.** `cost_usd` is only as accurate as toolkit/cost_accountant's
+  pricing table at run time; the downstream pricing audit (`NEXT_STEPS.md`)
+  tightens it. Document this caveat where the schema is described.
+- **Loop-readiness:** 🔨 pure build, fake/dry-run testable, zero API cost — safe
+  for the autonomous loop (runs on the Pi per the Windows sandbox limit; gates at
+  phase close).
 
 ## Phase 46: Standalone scenario_authoring + unified CLI — Complete
 
