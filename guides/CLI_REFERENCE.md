@@ -36,6 +36,7 @@ Cross-references point at fuller discussion in `TUNING.md`, `DEVPLAN.md`,
 | Run prompt-quality regression scenarios | [`tests.prompt_regression.runner`](#testsprompt_regressionrunner--scenario-based-prompt-eval) |
 | Classify the review-gate edit log (post-game) | [`tools/classify_edit_log.py`](#toolsclassify_edit_logpy--bulk-edit-log-classifier) |
 | Inspect the cost ledger | [`tools/inspect_ledger.py`](#toolsinspect_ledgerpy) |
+| Backfill cost metadata into historical result JSONs | [`tools/backfill_cost.py`](#toolsbackfill_costpy--cost-metadata-backfiller) |
 | Dig into a dry-run result | [`tools/inspect_dryrun.py`](#toolsinspect_dryrunpy) |
 | Process iteration logs | [`tools/digest_logs.py`](#toolsdigest_logspy) |
 
@@ -741,6 +742,43 @@ python tools/inspect_ledger.py --show 50        # more timeline rows
 Prints total entries, total spend, by-operation breakdown, by-model
 breakdown, cumulative timeline, and any failures. Use after a live run
 to sanity-check costs against the LLM provider dashboard.
+
+### `tools/backfill_cost.py` — cost metadata backfiller
+
+Re-estimates LLM cost for historical self-play result JSONs that predate live
+cost capture (Phase 49), writing a `metadata` block to each file.
+
+```bash
+python tools/backfill_cost.py                        # all results in tests/self_play/results/
+python tools/backfill_cost.py --results-dir path/    # explicit results directory
+python tools/backfill_cost.py --dry-run              # preview without writing
+```
+
+| Flag | Default | Notes |
+|---|---|---|
+| `--results-dir DIR` | `tests/self_play/results/` | Directory of result `*.json` files |
+| `--dry-run` | off | Print estimated cost without modifying files |
+
+**Metadata schema** written to each result JSON's top-level `metadata` key:
+
+```json
+{
+  "cost_usd": 0.0123,
+  "cost_source": "estimated_from_log",
+  "n_llm_calls": 42
+}
+```
+
+| Field | Values | Notes |
+|---|---|---|
+| `cost_usd` | float | Total LLM spend for this run |
+| `cost_source` | `"metered"` / `"estimated_from_log"` / `"dry_run"` | `"metered"` = live `CostAccountant.session_total` (Phase 49+); `"estimated_from_log"` = backfilled from `llm_call_log` token counts; `"dry_run"` = fake accountant, zero cost |
+| `n_llm_calls` | int | Count of entries in `llm_call_log` |
+
+**Accuracy note.** `"estimated_from_log"` costs are re-priced via
+`CostAccountant`'s pricing table at backfill time — treat as an estimate.
+The downstream pricing audit (`NEXT_STEPS.md`) tightens accuracy. Runs
+already carrying `cost_source: "metered"` are skipped (idempotent).
 
 ### `tools/inspect_run7.py`
 

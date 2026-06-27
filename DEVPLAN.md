@@ -118,7 +118,7 @@ without a breaking change.
 - [x] 49.4 — Run the backfill over `tests/self_play/results/*.json`; spot-check a
   couple of cells against `TUNING_LOG.md` back-of-envelope figures (sanity, not
   exactness — these are estimates); commit the updated result JSONs.
-- [ ] 49.5 — Doc update: `NEXT_STEPS.md` (move "Per-run cost capture" out of the
+- [x] 49.5 — Doc update: `NEXT_STEPS.md` (move "Per-run cost capture" out of the
   open Tier-1 list / mark done), `ASSESSMENT.md` §5 Block C tech-debt (drop the
   `metadata.cost_usd: None` / stale-ledger line), `CLI_REFERENCE.md` (document
   `tools/backfill_cost.py` + the `metadata` schema), `papers/PAPER_PLAN.md` §5.0

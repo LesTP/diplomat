@@ -511,9 +511,7 @@ under-pressure BATNAs (mitigated by per-faction `--batna-fractions` +
 `--force-batna-fraction` per Phase 24, and superseded by Phase 38
 pressure mechanisms when those apply); reverse scenario builder
 validated at 3×3×3 only — 4+ factions / 4+ issues need Phase 41/42
-algorithm work; per-run cost not captured in self-play result JSONs
-(`metadata.cost_usd: None`, `selfplay_cost_ledger.jsonl` stale — Phase
-38.5/39 candidate flagged in Run 14e + Run 16 wrap-ups).
+algorithm work.
 
 **Active items (D-56 primary surface).**
 - **§3.5 rank-among-factions lens** (~50 LOC, queued) — required for mixed-model benchmark cells.
@@ -523,7 +521,6 @@ algorithm work; per-run cost not captured in self-play result JSONs
 - **Phase 41/42 scale-matrix verification + algorithm fixes** — unblocks 4+ factions / 4+ issues scenarios. Note 1's untested axes (context exhaustion, relationship complexity, deception, horizon) gate on this.
 - **Phase 39 exogenous events + Phase 40 cascade scoring** (deferred from Phase 38 small bundle — §2). Phase 39 promotes when small-bundle pressure proves insufficient; Phase 40 promotes when tournament-style benchmark cells are demanded.
 - **Divorce scenario design** as Phase 38 showcase §2.
-- **Per-run cost capture in result JSONs** — current `metadata.cost_usd: None` + stale `selfplay_cost_ledger.jsonl` make cost-coverage analysis (Block C tier-1 concern under D-56) back-of-envelope. Small phase, high benchmark value.
 - **Phase 38 pressure validation via N4** (mid-tier + round-cost decay × 3 on jsm1) — cleanest single test of Phase 38's scenario-design value post-Run-16.
 - **Pricing audit §6** — per-cell cost-coverage needs accurate pricing. Now Block C primary concern (was cross-cutting infrastructure).
 
@@ -543,6 +540,9 @@ search, simulated annealing, biased init, `--verify` /
 Phase 37. Pressure mechanisms small bundle (round-cost decay +
 asymmetric clocks + penalty floor with schema + persona-template
 rendering + round-aware verifier + integration test) ✓ Phase 38.
+Per-run cost capture (`metadata.cost_usd` live via `CostAccountant.session_total`,
+`cost_source: metered/estimated_from_log/dry_run`, `n_llm_calls`; `tools/backfill_cost.py`
+for historical result JSONs) ✓ Phase 49.
 
 ### Cross-cutting items
 

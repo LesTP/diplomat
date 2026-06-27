@@ -49,7 +49,7 @@ Two open questions want *different* scenarios — decide first:
 Then, in rough order: **Path B coalition-value scoring** (§3.6) → **Path A
 calibration** (§11.b) → broaden **Path C** scenario authoring (asym-BATNA,
 hidden-value) → **Run 17 follow-ups** (V3 n=3, R1 cells) + **N4** pressure on
-jsm1 → **per-run cost capture** + **pricing audit**.
+jsm1 → **pricing audit** (cost capture ✅ Phase 49).
 
 ## Autonomous-loop phases (DEVPLAN) - COMPLETE
 
@@ -75,7 +75,7 @@ Build phases COMPLETED via the autonomous loop (claude backend; two codex-cutoff
 | **Run 17 V3 full n=3 expansion** — solidify V3 baseline (~$0.15) | `[C]` | 👁 | `TUNING_LOG.md` Run 17 |
 | **Run 17 R1 cells × 3** — first reasoning-model data points; toolkit-unblocked (`606e309`) (~$2-4) | `[C]` | 👁 | `TUNING_LOG.md` Run 17 |
 | **N4 — gpt-mini + pressure × 3 on jsm1** — does pressure unstick the mid-tier "stuck-but-engaged" pattern (~$1.50) | `[C][B]` | 👁 | `RESEARCH_NOTES.md` Note 1 (revised-prediction table) |
-| **Per-run cost capture in result JSONs** — `metadata.cost_usd` is `None`; benchmark cost-coverage is back-of-envelope without it | `[C][X]` | 🔨 | — |
+| ~~**Per-run cost capture in result JSONs**~~ — ✅ DONE Phase 49: `metadata.cost_usd` populated live (metered) + backfilled (estimated_from_log) for 108 historical result JSONs | `[C][X]` | ✅ | — |
 | **Pricing audit** — cross-provider pricing accuracy across models we use (best after cost-capture) | `[X][C]` | 👁 | `toolkit.cost_accountant` |
 | **ASSESSMENT §3.4 persuasion / concession-curve signatures** — LLM-judge over transcripts; higher cost, defer until other Tier-1 lands | `[C]` | 👁 | `ASSESSMENT.md` §3.4 |
 | **Surplus-distribution investigation** — why does the neutral-on-bottleneck faction extract 52-55% of surplus? Likely game-theoretic → a scenario-design lever | `[C]` | 👁 | `TUNING_LOG.md` Runs 9-10 |

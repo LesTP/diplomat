@@ -298,7 +298,7 @@ rounds for the 12-round horizon cells.
 | Item | Status |
 |---|---|
 | Uniform temperature across cells | 🔧 (gpt-5.5 ran temp=1; rest 0.7) |
-| Per-run cost capture (`metadata.cost_usd` is None; ledger stale) | 🆕 small |
+| Per-run cost capture (`metadata.cost_usd` live + backfilled) | ✅ Phase 49 |
 | Explain zero within-cell variance at temp 0.7 | 🔧 (must explain or it reads as a bug) |
 | N-scaling to n≥10–20 + bootstrap CIs | 🔧 (`ablation_multi.sh` exists; run more) |
 | External capability index lookup table | 🆕 trivial |
