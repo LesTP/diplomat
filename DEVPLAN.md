@@ -109,7 +109,7 @@ without a breaking change.
   (`tests/helpers/factories.py`) with a `session_total` property (currently
   missing). Add a unit test asserting the `metadata` block is written with the
   correct fields/values via the fake / dry-run path — no live API.
-- [ ] 49.3 — Add `tools/backfill_cost.py` (sibling to `backfill_pareto.py` /
+- [x] 49.3 — Add `tools/backfill_cost.py` (sibling to `backfill_pareto.py` /
   `backfill_scoring_metrics.py`). For each historical result, re-estimate cost
   from `llm_call_log` (token ≈ len(text)/4 over messages + response, priced via
   `CostAccountant.estimate_cost` for pricing consistency) and write `metadata`
