@@ -100,12 +100,12 @@ without a breaking change.
 `{"cost_usd": <float>, "cost_source": "metered" | "estimated_from_log" | "dry_run", "n_llm_calls": <int>}`.
 
 **Steps.**
-- [ ] 49.1 — Emit cost metadata on the live path. Thread the shared `accountant`
+- [x] 49.1 — Emit cost metadata on the live path. Thread the shared `accountant`
   (already in `_run()` scope) into `_write_results` in
   `tests/self_play/run_simulation.py`; write
   `results["metadata"] = {"cost_usd": accountant.session_total, "cost_source": "metered", "n_llm_calls": len(results.get("llm_call_log", []))}`.
   Dry-run path (FakeCostAccountant injected) writes `cost_source: "dry_run"`.
-- [ ] 49.2 — Make it fake-testable + add the test. Extend `FakeCostAccountant`
+- [x] 49.2 — Make it fake-testable + add the test. Extend `FakeCostAccountant`
   (`tests/helpers/factories.py`) with a `session_total` property (currently
   missing). Add a unit test asserting the `metadata` block is written with the
   correct fields/values via the fake / dry-run path — no live API.
