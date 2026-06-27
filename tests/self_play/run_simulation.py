@@ -539,14 +539,28 @@ async def _run(args: argparse.Namespace) -> None:
         finally:
             # Write results BEFORE teardown so crashes in shutdown don't lose data.
             if results is not None:
-                _write_results(results, args.output)
+                _write_results(results, args.output, accountant=accountant)
             await env.teardown()
 
 
-def _write_results(results: dict, output_path: str | None) -> None:
+def _write_results(results: dict, output_path: str | None, accountant=None) -> None:
     from tests.self_play.analysis import compute_process_signatures
 
     results["process_signatures"] = compute_process_signatures(results)
+
+    n_llm_calls = len(results.get("llm_call_log", []))
+    if accountant is not None:
+        results["metadata"] = {
+            "cost_usd": accountant.session_total,
+            "cost_source": "metered",
+            "n_llm_calls": n_llm_calls,
+        }
+    else:
+        results["metadata"] = {
+            "cost_usd": 0.0,
+            "cost_source": "dry_run",
+            "n_llm_calls": n_llm_calls,
+        }
 
     if output_path is None:
         results_dir = Path(__file__).resolve().parent / "results"

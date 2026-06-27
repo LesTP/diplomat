@@ -1260,3 +1260,55 @@ class TestLoggingLLMClient:
         assert len(client.call_log) == 2
         tags = sorted(r.faction_id for r in client.call_log)
         assert tags == ["recon:alpha", "recon:beta"]
+
+
+class TestWriteResultsMetadata:
+    """Unit tests for _write_results cost metadata (Phase 49)."""
+
+    def test_dry_run_writes_dry_run_metadata(self, tmp_path: Path) -> None:
+        from tests.self_play.run_simulation import _write_results
+
+        results: dict = {"llm_call_log": [{"x": 1}, {"x": 2}]}
+        out = str(tmp_path / "result.json")
+        _write_results(results, out, accountant=None)
+
+        import json
+        written = json.loads(Path(out).read_text())
+        meta = written["metadata"]
+        assert meta["cost_source"] == "dry_run"
+        assert meta["cost_usd"] == 0.0
+        assert meta["n_llm_calls"] == 2
+
+    def test_metered_writes_session_total(self, tmp_path: Path) -> None:
+        from tests.self_play.run_simulation import _write_results
+
+        accountant = FakeCostAccountant(session_total=1.23)
+        results: dict = {"llm_call_log": [{"x": 1}]}
+        out = str(tmp_path / "result.json")
+        _write_results(results, out, accountant=accountant)
+
+        import json
+        written = json.loads(Path(out).read_text())
+        meta = written["metadata"]
+        assert meta["cost_source"] == "metered"
+        assert meta["cost_usd"] == pytest.approx(1.23)
+        assert meta["n_llm_calls"] == 1
+
+    def test_empty_llm_call_log_gives_zero_count(self, tmp_path: Path) -> None:
+        from tests.self_play.run_simulation import _write_results
+
+        results: dict = {}
+        out = str(tmp_path / "result.json")
+        _write_results(results, out, accountant=None)
+
+        import json
+        written = json.loads(Path(out).read_text())
+        assert written["metadata"]["n_llm_calls"] == 0
+
+    def test_fake_cost_accountant_session_total_property(self) -> None:
+        fake = FakeCostAccountant(session_total=3.50)
+        assert fake.session_total == pytest.approx(3.50)
+
+    def test_fake_cost_accountant_default_session_total_is_zero(self) -> None:
+        fake = FakeCostAccountant()
+        assert fake.session_total == 0.0

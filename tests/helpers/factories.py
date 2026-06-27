@@ -47,10 +47,15 @@ class FakeLLMClient:
 
 
 class FakeCostAccountant:
-    def __init__(self, budgets: Iterable[float] | None = None) -> None:
+    def __init__(self, budgets: Iterable[float] | None = None, session_total: float = 0.0) -> None:
         self.budgets = list(budgets or [])
         self.checks = 0
         self.resets: list[float] = []
+        self._session_total = session_total
+
+    @property
+    def session_total(self) -> float:
+        return self._session_total
 
     def available_budget(self) -> float:
         self.checks += 1
