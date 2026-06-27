@@ -138,12 +138,13 @@ N/A — Telegram chat is the sole interface; all output is sequential message-ba
 | 19 | Scenario Authoring Standalone | `scenario_authoring` package made self-contained (Phase 46): round-context renderer moved to `src/scenario_authoring/round_context.py` (stdlib-only leaf), severing the lone `modules.persona` load-time coupling; standalone contract locked by test; unified `python -m scenario_authoring build|compile|verify|brief` CLI added; package README written. `modules/persona` re-exports `CoachingContext` + `render_round_context_section` for back-compat. | Phase 46 complete |
 | 20 | Coalition Scoring Contract | Coalition-exclusion scoring contract in `tests/self_play/game_environment.py` locked with 23 unit tests (Phase 47): `_find_coalition_value` sorted-set semantics, all `_resolve_deal_scores` paths (partial coalition, grand coalition full-agreement, no-deal, below-BATNA, malformed-input edges). Docstrings updated. `ARCH_scenario_authoring.md` updated with Path B scoring contract section. D-61 closed. | Phase 47 complete |
 | 21 | Narrative Re-skin Shell | `src/scenario_authoring/scenario_narrative.py` (Phase 48): `apply_relabel` (bijective faction/issue/outcome identifier relabeling, numeric values preserved) + `assert_structure_preserved` (value-isomorphism guard: rejects numeric drift, non-bijective/incomplete maps) + `extract_catalogue_entry` (deterministic heading-scoped catalogue slicer) + `reskin_scenario` (one `structured_call` → relabeled analysis + themed prose) + `main()` CLI. Wired into `scenario_authoring` package public API and `narrative` subcommand. 37 new tests. D-62 closed. | Phase 48 complete |
+| 22 | Cost Metadata Capture | `metadata: {cost_usd, cost_source, n_llm_calls}` block added to self-play result JSONs (Phase 49). Live runs write `cost_source: "metered"` from `accountant.session_total`; dry-run writes `"dry_run"`. `FakeCostAccountant.session_total` added. `tools/backfill_cost.py` backfills 108 historical results at `cost_source: "estimated_from_log"`. 17 new tests. D-64 closed. | Phase 49 complete |
 
 ## Testing Status
 
 | Layer | Status |
 |-------|--------|
-| Unit and regression tests | Complete — 620 passed after Phase 48 (Phase 48 added 37 narrative re-skin tests; 1 replay test is flaky in full-suite ordering, passes in isolation) |
+| Unit and regression tests | Complete — 637 passed after Phase 49 (Phase 49 added 17 cost metadata tests; 1 replay test is flaky in full-suite ordering, passes in isolation) |
 | Pipeline integration | Complete — 23 fake-backed Orchestrator integration tests (Phase 18 path coverage added Phase 20) |
 | Transcript replay | Complete — 2 transcript fixtures, 5 replay tests |
 | Prompt regression | Complete — 6 starter scenarios (4 extraction free, 2 generation require live LLM) |
