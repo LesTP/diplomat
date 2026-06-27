@@ -4,6 +4,31 @@
      Each step or milestone gets a structured entry. This is the audit trail.
      Older phases are archived to DEVLOG_archive.md; the active log holds the current phase. -->
 
+## 2026-06-27: Consolidate deal-explorer viz under one convention (operator-supervised)
+
+- **Mode:** Debug / Refine -> Code
+- **Outcome:** complete
+- **Contract changes:** none (regeneration only; layout contract unchanged, 8/8 tests pass)
+
+The Water Rights (beta-squeezed) and Joint Space Mission viz were ad-hoc artifacts
+at repo root (`viz_wrbeta.html`, `viz_jsm1.html`) on the pre-D-63 `.scen2`/`.scencol`
+layout, while the newer succ-v3/succ3b viz already lived in their scenario folders as
+`deal_explorer.html` on the current `.scenflow` layout. Unified all four:
+- Rewrote `tools/build_viz.py` into the canonical regen-all driver - one job per
+  scenario, each rendering `scenarios/<name>/deal_explorer.html` (narrative .md
+  auto-detected via `find_narrative`).
+- Regenerated all four through the pipeline: WR-beta (29 runs) and JSM (28 runs) now
+  carry the new layout + narrative; succ3b refreshed to Run 21's 6 runs; succ-v3
+  unchanged (0 runs, not live-tested yet). All report `narrative yes`.
+- Deleted the two stale root files.
+
+Notes for the record (two false alarms ruled out during review): the `·` "mojibake"
+was only a PowerShell console artifact (bytes are correct UTF-8 `C2 B7`); and the
+scenario narratives were never stranded in the HTML - every scenario has a proper
+narrative .md at `scenarios/` root (`water_rights.md`, `joint_space_mission.md`, ...),
+which the renderer pulls in automatically. Contract locked by
+`tests/test_scenario_viz.py` (8 passed).
+
 ## 2026-06-26: Fix verify_dryrun for bare-prompt runs (operator-supervised)
 
 - **Mode:** Debug -> Code

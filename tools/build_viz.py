@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Regenerate the Diplomat negotiation-outcome dashboards.
+"""Regenerate the Diplomat deal-explorer dashboards.
 
     python tools/build_viz.py
 
-Add a scenario by appending a (analysis, title, output) tuple to JOBS.
+Each job renders ``deal_explorer.html`` into its own scenario folder (the
+narrative .md is auto-detected by ``tools/viz.py`` via ``find_narrative``).
+Add a scenario by appending a (scenario_dir, title) tuple to JOBS.
 """
 import subprocess
 import sys
@@ -12,34 +14,33 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "tests/self_play/results"
 
+# (scenario_dir relative to scenarios/, h1 title)
 JOBS = [
-    (
-        "scenarios/water_rights_beta_squeezed/scenario_analysis.json",
-        "Water Rights (beta-squeezed)",
-        "viz_wrbeta.html",
-    ),
-    (
-        "scenarios/joint_space_mission_v1/scenario_analysis.json",
-        "Joint Space Mission v1",
-        "viz_jsm1.html",
-    ),
+    ("water_rights_beta_squeezed", "Water Rights (beta-squeezed)"),
+    ("joint_space_mission_v1", "Joint Space Mission v1"),
+    ("succession_division_v3", "succ-v3 — Verdanian Succession (Resolvable Contest)"),
+    ("succession_division_v3b", "succ3b — Verdanian Succession (Two-Way Heartland)"),
 ]
 
 
 def main() -> int:
-    for analysis, title, out in JOBS:
+    outputs = []
+    for scenario_dir, title in JOBS:
+        sdir = ROOT / "scenarios" / scenario_dir
+        out = sdir / "deal_explorer.html"
         subprocess.run(
             [
                 sys.executable,
                 str(ROOT / "tools" / "viz.py"),
-                "--analysis", str(ROOT / analysis),
+                "--analysis", str(sdir / "scenario_analysis.json"),
                 "--results-dir", str(RESULTS),
                 "--title", title,
-                "--output", str(ROOT / out),
+                "--output", str(out),
             ],
             check=True,
         )
-    print("Done ->", ", ".join(out for _, _, out in JOBS))
+        outputs.append(str(out.relative_to(ROOT)))
+    print("Done ->", ", ".join(outputs))
     return 0
 
 

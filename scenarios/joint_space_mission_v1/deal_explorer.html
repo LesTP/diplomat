@@ -23,13 +23,14 @@
   .cols2 { display:grid; grid-template-columns:1fr 1fr; gap:1.1em; align-items:start; }
   @media (max-width:860px){ .cols2 { grid-template-columns:1fr; } }
   .colstack { display:flex; flex-direction:column; gap:1.1em; }
-  .scen2 { display:grid; grid-template-columns:1fr 1fr; gap:1.8em; align-items:start; }
-  @media (max-width:860px){ .scen2 { grid-template-columns:1fr; } }
-  .scencol p { margin:.2em 0 .6em; color:#444; font-size:.9em; }
-  .scencol h4 { margin:.5em 0 .2em; font-size:.9em; color:#333; }
-  .scencol .bullet { font-size:.9em; color:#555; margin:.1em 0 .1em .3em; }
-  .scencol .issuelist { margin-top:.8em; font-size:.9em; }
-  .scencol .issuelist .it { margin:.25em 0; color:#555; }
+  .scenflow { columns:2; column-gap:1.8em; column-fill:balance; }
+  @media (max-width:860px){ .scenflow { columns:1; } }
+  .scenflow > :first-child { margin-top:0; }
+  .scenflow p { margin:.2em 0 .6em; color:#444; font-size:.9em; break-inside:avoid; }
+  .scenflow h4 { margin:.7em 0 .2em; font-size:.9em; color:#333; break-after:avoid; break-inside:avoid; }
+  .scenflow .bullet { font-size:.9em; color:#555; margin:.1em 0 .1em .3em; break-inside:avoid; }
+  .scenflow .issuelist { margin-top:.8em; font-size:.9em; break-inside:avoid; }
+  .scenflow .issuelist .it { margin:.25em 0; color:#555; }
   .selbar { display:flex; align-items:center; gap:.7em; flex-wrap:wrap; background:#eef3fb; border:1px solid #cdddf2;
             border-radius:9px; padding:.7em 1em; margin-bottom:1.1em; }
   .selbar b { font-weight:600; }
@@ -81,15 +82,15 @@
 <body>
 <div class="wrap">
   <h1>Diplomat — Joint Space Mission v1</h1>
-  <p class="sub">Deal space + where each self-play run landed · generated 2026-06-23 08:27 UTC · 28 run(s)</p>
+  <p class="sub">Deal space + where each self-play run landed · generated 2026-06-27 05:25 UTC · 28 run(s)</p>
 
   <div class="card">
-    <h2 style="margin-top:0">Joint Space Mission</h2><div class="scen2"><div class="scencol"><p>Three space agencies must negotiate a binding agreement on a single flagship deep-space mission. The mission will launch in 2030, but the design partnership must be locked now — funding cycles, hardware procurement, and crew selection all hinge on this agreement.</p>
-<p>Without a deal, each agency falls back to its current standalone program (BATNA). None of them can fly this mission alone; the cost and risk exceed any single budget. But all three would prefer their own framing of the mission, their own lead role, and the funding split that protects their treasury.</p><h4>The Three Issues</h4>
-<p>1. <b>Mission Objective.</b> What kind of mission this will be. Options: Science-Priority, Exploration-Priority, Commercial-Tech-Demo. 2. <b>Hardware Lead.</b> Which agency designs and integrates the primary spacecraft. Options: Alpha-Lead, Joint-Build, Gamma-Lead. 3. <b>Funding Split.</b> How the mission&#x27;s total cost is divided across the three agencies. Options: Equal-Thirds, Commercial-Heavy (gamma covers 50%+), Government-Heavy (alpha+beta cover 80%+).</p><h4>The Game</h4><p>Four rounds. Each round every faction posts one public proposal (sealed-bid — no within-round back-and-forth). After the final round the proposals are scored: a deal is reached only if all factions agree on the same outcome for <i>every</i> issue; otherwise each faction falls back to its BATNA.</p></div><div class="scencol"><h4>The Three Parties</h4>
+    <h2 style="margin-top:0">Joint Space Mission</h2><div class="scenflow"><p>Three space agencies must negotiate a binding agreement on a single flagship deep-space mission. The mission will launch in 2030, but the design partnership must be locked now — funding cycles, hardware procurement, and crew selection all hinge on this agreement.</p>
+<p>Without a deal, each agency falls back to its current standalone program (BATNA). None of them can fly this mission alone; the cost and risk exceed any single budget. But all three would prefer their own framing of the mission, their own lead role, and the funding split that protects their treasury.</p><h4>The Three Parties</h4>
 <p><b>Alpha — National Exploration Agency.</b> Government-funded, with decades of human-spaceflight heritage and a political mandate to return crewed missions to the Moon and Mars. Alpha&#x27;s reputation depends on visible exploration milestones and crewed firsts. Alpha&#x27;s budget is large but slow-moving and subject to congressional cycles. Alpha will accept partnering only if the mission&#x27;s headline framing matches its exploration mandate and the funding mix doesn&#x27;t expose taxpayers to commercial cost overruns.</p>
 <p><b>Beta — Multinational Science Consortium.</b> A coalition of smaller national space agencies pooling resources for science-priority missions: planetary science, Earth observation, astrophysics. Beta&#x27;s budget is the smallest and least flexible. Beta has strong scientific instrumentation expertise but limited hardware-integration capability. Beta needs the mission to deliver peer-reviewed science to justify its consortium&#x27;s continued funding and will hold firm against any framing that subordinates science to exploration spectacle or commercial demos.</p>
-<p><b>Gamma — Commercial Spaceflight Provider.</b> A private company with the largest funding capacity, the fastest hardware-build cycle in the industry, and a hunger for commercial-tech-demonstration opportunities that prove new capabilities to future customers. Gamma&#x27;s leverage is money and speed; its vulnerability is reputational — a single high-profile failure damages its commercial-contract pipeline. Gamma is willing to fund disproportionately if the mission demonstrates technology it can commercialize after.</p></div></div>
+<p><b>Gamma — Commercial Spaceflight Provider.</b> A private company with the largest funding capacity, the fastest hardware-build cycle in the industry, and a hunger for commercial-tech-demonstration opportunities that prove new capabilities to future customers. Gamma&#x27;s leverage is money and speed; its vulnerability is reputational — a single high-profile failure damages its commercial-contract pipeline. Gamma is willing to fund disproportionately if the mission demonstrates technology it can commercialize after.</p><h4>The Three Issues</h4>
+<p>1. <b>Mission Objective.</b> What kind of mission this will be. Options: Science-Priority, Exploration-Priority, Commercial-Tech-Demo. 2. <b>Hardware Lead.</b> Which agency designs and integrates the primary spacecraft. Options: Alpha-Lead, Joint-Build, Gamma-Lead. 3. <b>Funding Split.</b> How the mission&#x27;s total cost is divided across the three agencies. Options: Equal-Thirds, Commercial-Heavy (gamma covers 50%+), Government-Heavy (alpha+beta cover 80%+).</p><h4>The Game</h4><p>Four rounds. Each round every faction posts one public proposal (sealed-bid — no within-round back-and-forth). After the final round the proposals are scored: a deal is reached only if all factions agree on the same outcome for <i>every</i> issue; otherwise each faction falls back to its BATNA.</p></div>
   </div>
 
   <h2 class="section">A · Deal explorer</h2>
@@ -105,18 +106,16 @@
   <div class="cols2">
     <div class="colstack">
       <div class="card">
+        <h2>Per-faction outcome of the selected deal</h2>
+        <p class="cap">Each faction's <b>payoff</b> (utility points) for the selected deal, not a share of any asset - BATNA floor (dashed), achieved bar, max ceiling (faint). Gap above the floor = surplus captured.</p>
+        <div id="bars"></div>
+      </div>
+      <div class="card">
         <h2>Per-issue payoff decomposition</h2>
-        <p class="chartcap">One stacked bar per (issue, outcome); height = points that outcome gives, summed over
-          factions. A ★ marks each faction's preferred outcome; stars in different columns = a <b>contested</b>
-          issue (logrolling lives there). The selected deal's chosen column is tinted.</p>
+        <p class="chartcap">Columns are each issue's outcomes (left to right). The colored segments are each faction's <b>payoff</b> for that outcome, not a share - e.g. mission objective / Science-Priority: alpha 6, beta 2, gamma 7. Total bar height = total payoff over all factions. ★ marks each faction's preferred outcome; stars in different columns = a <b>contested</b> issue (opportunity for logrolling). The selected deal's chosen column is tinted.</p>
         <div id="legend" class="legend"></div>
         <div id="dealTotal" class="dealtotal"></div>
         <div id="grid" style="overflow-x:auto;margin-top:.2em"></div>
-      </div>
-      <div class="card">
-        <h2>Per-faction outcome of the selected deal</h2>
-        <p class="cap">BATNA floor (dashed), achieved, max ceiling (ghost). Gap above the floor = captured surplus.</p>
-        <div id="bars"></div>
       </div>
     </div>
     <div class="colstack">
@@ -158,12 +157,19 @@ function dealScores(){return selDeal<0?Object.assign({},BA):DEALS[selDeal].sc;}
 
 /* per-issue grid with selected-deal column tint (vertical issue labels) */
 function renderGrid(){
-  const nOut=ISS[0].outcomes.length,cellW=160,cellH=150,gut=56,top=30,barMax=104;
+  const nOut=Math.max(...ISS.map(i=>i.outcomes.length)),cellW=160,cellH=150,gut=56,top=40,barMax=104;
   const maxv=Math.max(...ISS.flatMap(i=>i.outcomes.map(o=>F.reduce((a,f)=>a+(SC[f][i.name][o]||0),0))));
   const w=gut+cellW*nOut+10,h=top+(cellH+8)*ISS.length;
   const s=svg(w,h);s.setAttribute("style","width:100%;height:auto");
   const selOut=selDeal>=0?DEALS[selDeal].outcomes:null;
-  ["A","B","C","D","E"].slice(0,nOut).forEach((lab,o)=>s.appendChild(el("text",{x:gut+cellW*o+cellW/2,y:18,"text-anchor":"middle","font-weight":600,"font-size":15,fill:"#444"},lab)));
+  /* Column header: name the faction each column's outcome hands the asset to
+     (outcomes follow the "<Faction>-..." convention); fall back to A/B/C otherwise. */
+  const colFac=[];
+  for(let o=0;o<nOut;o++){let fac="",ok=true;for(const iss of ISS){if(o<iss.outcomes.length){const oc=iss.outcomes[o].toLowerCase();const m=F.find(f=>oc.startsWith(f.toLowerCase()))||"";if(fac==="")fac=m;if(m===""||m!==fac){ok=false;break;}}}colFac[o]=ok?fac:"";}
+  for(let o=0;o<nOut;o++){const lab=colFac[o]||String.fromCharCode(65+o);s.appendChild(el("text",{x:gut+cellW*o+cellW/2,y:20,"text-anchor":"middle","font-weight":700,"font-size":15,fill:colFac[o]?COL[colFac[o]]:"#444"},lab));}
+  const allFac=colFac.length>0&&colFac.every(c=>c);
+  if(allFac)s.appendChild(el("text",{x:6,y:20,"text-anchor":"start","font-size":13,"font-weight":600,fill:"#333"},"Asset goes to:"));
+  s.appendChild(el("line",{x1:6,y1:29,x2:w-6,y2:29,stroke:"#333","stroke-width":1.2}));
   ISS.forEach((iss,r)=>{
     const y0=top+r*(cellH+8),cy=y0+cellH/2;
     const prefs=F.map(f=>{const v=iss.outcomes.map(o=>SC[f][iss.name][o]||0);return v.indexOf(Math.max(...v));});
@@ -198,14 +204,14 @@ function updateDealTotal(){
 
 /* 2 · per-faction bars for the selected deal */
 function renderBars(){
-  const sc=dealScores(),w=560,h=380,padB=50,padT=20,base=h-padB,top=padT,colW=170,barW=70,padL=20,scale=Math.max(...F.map(f=>MX[f]))+2;
+  const sc=dealScores(),w=640,h=380,padB=50,padT=20,base=h-padB,top=padT,barW=70,padL=50,scale=Math.max(...F.map(f=>MX[f]))+2;
   const s=svg(w,h);s.setAttribute("style","width:100%;height:auto");
-  F.forEach((f,fi)=>{const cx=padL+fi*colW+colW/2,v=sc[f],ba=BA[f],mx=MX[f];
+  F.forEach((f,fi)=>{const cx=padL+fi*(w-2*padL)/(F.length-1),v=sc[f],ba=BA[f],mx=MX[f];
     const yM=base-mx/scale*(base-top),yS=base-v/scale*(base-top),yB=base-ba/scale*(base-top);
     s.appendChild(el("rect",{x:cx-barW/2,y:yM,width:barW,height:base-yM,fill:COL[f],opacity:.13}));
     s.appendChild(el("rect",{x:cx-barW/2,y:yS,width:barW,height:base-yS,fill:COL[f],opacity:.9}));
     s.appendChild(el("line",{x1:cx-barW/2-9,y1:yB,x2:cx+barW/2+9,y2:yB,stroke:"#c0392b","stroke-width":2,"stroke-dasharray":"5 3"}));
-    s.appendChild(el("text",{x:cx+barW/2+11,y:yB+4,"font-size":12,fill:"#c0392b"},"BATNA "+ba));
+    s.appendChild(el("text",{x:cx,y:yB-5,"text-anchor":"middle","font-size":12,fill:"#c0392b"},"BATNA "+ba));
     s.appendChild(el("text",{x:cx,y:yS-6,"text-anchor":"middle","font-weight":700,"font-size":16,fill:"#222"},v));
     s.appendChild(el("text",{x:cx,y:yM-5,"text-anchor":"middle","font-size":12,fill:"#999"},"max "+mx));
     s.appendChild(el("text",{x:cx,y:base+16,"text-anchor":"middle","font-weight":600,"font-size":14,fill:COL[f]},f));
@@ -235,8 +241,8 @@ function renderHeat(){
 
 /* parallel coordinates (enlarged) */
 function renderParallel(){
-  const w=640,h=560,padT=42,padB=54,padL=58,padR=58,base=h-padB;
-  const ax=F.map((f,i)=>padL+i*(w-padL-padR)/(F.length-1));
+  const w=640,h=460,padT=42,padB=54,base=h-padB,padL=50;
+  const ax=F.map((f,i)=>padL+i*(w-2*padL)/(F.length-1));
   const s=svg(w,h);s.setAttribute("style","width:100%;height:auto");
   F.forEach((f,fi)=>{const x=ax[fi];
     s.appendChild(el("line",{x1:x,y1:padT,x2:x,y2:base,stroke:"#ccc"}));
@@ -244,10 +250,12 @@ function renderParallel(){
     s.appendChild(el("text",{x,y:padT-12,"text-anchor":"middle","font-size":14,fill:"#999"},"max "+MX[f]));
     const yB=base-BA[f]/MX[f]*(base-padT);
     s.appendChild(el("line",{x1:x-14,y1:yB,x2:x+14,y2:yB,stroke:"#c0392b","stroke-dasharray":"4 2","stroke-width":1.5}));
-    s.appendChild(el("text",{x:x+18,y:yB+4,"font-size":13,fill:"#c0392b"},"BATNA "+BA[f]));});
+    s.appendChild(el("text",{x,y:yB+16,"text-anchor":"middle","font-size":13,fill:"#c0392b"},"BATNA "+BA[f]));});
   const yOf=(f,v)=>base-v/MX[f]*(base-padT);
   DEALS.map((d,i)=>i).sort((a,b)=>(DEALS[a].pareto?1:0)-(DEALS[b].pareto?1:0)).forEach(i=>{const d=DEALS[i];
-    s.appendChild(el("polyline",{points:F.map((f,fi)=>`${ax[fi]},${yOf(f,d.sc[f])}`).join(" "),fill:"none",stroke:d.pareto?"#1a5fb4":"#d3d3d3","stroke-width":d.pareto?1.6:1,opacity:d.pareto?.8:.4}));});
+    const pts=F.map((f,fi)=>`${ax[fi]},${yOf(f,d.sc[f])}`).join(" ");
+    s.appendChild(el("polyline",{points:pts,fill:"none",stroke:d.pareto?"#1a5fb4":"#d3d3d3","stroke-width":d.pareto?1.6:1,opacity:d.pareto?.8:.4}));
+    const hit=el("polyline",{points:pts,fill:"none",stroke:"transparent","stroke-width":11,style:"cursor:pointer"});hit.onclick=()=>setDeal(i);hit.appendChild(el("title",{},d.label));s.appendChild(hit);});
   if(selDeal>=0){const d=DEALS[selDeal];s.appendChild(el("polyline",{points:F.map((f,fi)=>`${ax[fi]},${yOf(f,d.sc[f])}`).join(" "),fill:"none",stroke:"#000","stroke-width":3.4}));}
   else{s.appendChild(el("polyline",{points:F.map((f,fi)=>`${ax[fi]},${yOf(f,BA[f])}`).join(" "),fill:"none",stroke:"#000","stroke-width":2.6,"stroke-dasharray":"6 3"}));}
   host("parallel").appendChild(s);
@@ -266,9 +274,13 @@ function renderTernary(){
   const share=sc=>{const su=F.map(f=>Math.max(0,sc[f]-BA[f])),t=su[0]+su[1]+su[2];return t>0?pos(su[0]/t,su[1]/t,su[2]/t):null;};
   DEALS.forEach((d,i)=>{if(!d.clears)return;const p=share(d.sc);if(!p)return;
     const rad=4+(d.sum-SUMBA)/Math.max(1,MAXP-SUMBA)*9;
-    s.appendChild(el("circle",{cx:p.x,cy:p.y,r:rad,fill:d.pareto?"#1a5fb4":"#9aa7b5",opacity:.55,stroke:"#fff","stroke-width":1}));});
+    const c=el("circle",{cx:p.x,cy:p.y,r:rad,fill:d.pareto?"#1a5fb4":"#9aa7b5",opacity:.55,stroke:"#fff","stroke-width":1,style:"cursor:pointer"});c.onclick=()=>setDeal(i);c.appendChild(el("title",{},d.label));s.appendChild(c);});
   if(selDeal>=0&&DEALS[selDeal].clears){const p=share(DEALS[selDeal].sc);if(p)s.appendChild(el("circle",{cx:p.x,cy:p.y,r:8,fill:"#ffd23f",opacity:1,stroke:"#000","stroke-width":2.5}));}
-  s.appendChild(el("text",{x:cx,y:h-8,"text-anchor":"middle","font-size":12,fill:"#999"},"each dot = a BATNA-clearing deal · size ∝ surplus · outlined = selected"));
+  let tcap;
+  if(selDeal>=0&&DEALS[selDeal].clears){const d=DEALS[selDeal];const su=F.map(f=>d.sc[f]-BA[f]);const tot=su.reduce((a,b)=>a+b,0);tcap="Surplus split (total "+tot+"): "+F.map((f,i)=>f+" "+su[i]).join(", ");}
+  else if(selDeal>=0){tcap="Selected deal does not clear BATNA - no surplus to split.";}
+  else{tcap="Each dot = a clearing deal (bigger = more surplus). Select a deal to see its surplus split.";}
+  s.appendChild(el("text",{x:cx,y:h-8,"text-anchor":"middle","font-size":12,fill:"#555"},tcap));
   host("ternary").appendChild(s);
 }
 
