@@ -115,7 +115,7 @@ without a breaking change.
   `CostAccountant.estimate_cost` for pricing consistency) and write `metadata`
   with `cost_source: "estimated_from_log"`. Idempotent: skip runs already
   carrying `cost_source: "metered"`. Unit test on a synthetic result JSON.
-- [ ] 49.4 — Run the backfill over `tests/self_play/results/*.json`; spot-check a
+- [x] 49.4 — Run the backfill over `tests/self_play/results/*.json`; spot-check a
   couple of cells against `TUNING_LOG.md` back-of-envelope figures (sanity, not
   exactness — these are estimates); commit the updated result JSONs.
 - [ ] 49.5 — Doc update: `NEXT_STEPS.md` (move "Per-run cost capture" out of the

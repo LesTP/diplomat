@@ -2535,5 +2535,10 @@
       "sender": "moderator",
       "timestamp": "2026-05-29T20:32:50.656628+00:00"
     }
-  ]
+  ],
+  "metadata": {
+    "cost_usd": 0.10356029999999998,
+    "cost_source": "estimated_from_log",
+    "n_llm_calls": 65
+  }
 }
