@@ -147,3 +147,24 @@ Wired into package: `__init__.__all__` exports `reskin_scenario` + `assert_struc
 **Contract changes scan:** `reskin_scenario` + `assert_structure_preserved` added to public API (`__init__.__all__`). No pipeline modules affected. `tests/test_scenario_authoring_api.py` pinned surface updated. No upstream propagation needed.
 
 **Governance updates:** D-62 already closed in DECISIONS.md, ARCHITECTURE.md row 21 + test count updated, coupling note updated, DEVPLAN Phase 48 condensed, entries archived.
+
+## Phase 49 close (2026-06-27)
+
+**Mode:** Close  
+**Outcome:** complete  
+**Tests:** 637 passed, 1 skipped
+
+**What was built:** Per-run cost capture + approximate historical backfill for self-play result JSONs.
+
+- **49.1 — Live cost emission:** Wired `accountant.session_total` into `_write_results` in `tests/self_play/run_simulation.py`. Live runs write `metadata: {cost_usd, cost_source: "metered", n_llm_calls}` at result-write time; dry-run path writes `cost_source: "dry_run"`.
+- **49.2 — Fake-testable + unit test:** Extended `FakeCostAccountant` in `tests/helpers/factories.py` with `session_total` property. Added `tests/test_cost_metadata.py` asserting the metadata block is written with correct fields/values via the fake/dry-run path (no live API).
+- **49.3 — Backfill tool:** Added `tools/backfill_cost.py` (sibling to `backfill_pareto.py` / `backfill_scoring_metrics.py`). Re-estimates cost from `llm_call_log` token counts (`len(text)/4`) priced via `CostAccountant.estimate_cost`. Writes `cost_source: "estimated_from_log"`. Idempotent: skips runs already carrying `cost_source: "metered"`. 7 unit tests.
+- **49.4 — Backfill run:** Ran backfill over 108 historical result JSONs in `tests/self_play/results/`. Spot-checked several cells against `TUNING_LOG.md` back-of-envelope figures — estimates are in the right ballpark (within 20-40% for full runs; dry-run cells carry `cost_source: "dry_run"` and $0.00 as expected). Committed updated result JSONs.
+- **49.5 — Doc update:** `NEXT_STEPS.md` (cost-capture item moved/marked done), `ASSESSMENT.md` §5 Block C (stale ledger / `metadata.cost_usd: None` debt lines dropped), `CLI_REFERENCE.md` (`tools/backfill_cost.py` + `metadata` schema documented), `papers/PAPER_PLAN.md` §5.0 (cost-capture marked done).
+- **49.6 — Phase close:** Full suite green (637 passed, 1 skipped). DEVLOG entry written. D-64 closed.
+
+**DEVLOG learning review:** Phase was clean — pure offline build, no API calls. `FakeCostAccountant.session_total` gap (missing property) was caught immediately by the new test; no regressions in the 637-test suite. No new gotchas to promote.
+
+**Contract changes scan:** `metadata` block added to result JSON schema (new top-level key, backward-compatible). `FakeCostAccountant` gained `session_total` property — no existing tests broke. No pipeline modules affected. No upstream propagation needed.
+
+**Governance updates:** D-64 closed. DEVPLAN Phase 49 condensed (see Current Status). Entries to be archived at next log-rotation boundary.

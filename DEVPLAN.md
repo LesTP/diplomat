@@ -1,7 +1,7 @@
 ---
 phase: 49
 blocked: false
-state: execute
+state: review
 steps_remaining: 0
 ---
 
@@ -123,7 +123,7 @@ without a breaking change.
   `metadata.cost_usd: None` / stale-ledger line), `CLI_REFERENCE.md` (document
   `tools/backfill_cost.py` + the `metadata` schema), `papers/PAPER_PLAN.md` §5.0
   (mark cost-capture done).
-- [ ] 49.6 — Phase close: full suite green; DEVLOG entry; DECISIONS entry for the
+- [x] 49.6 — Phase close: full suite green; DEVLOG entry; DECISIONS entry for the
   `metadata` schema + `cost_source` semantics; set DEVPLAN frontmatter to close.
 
 **Build notes / gotchas** (not iteration steps):
