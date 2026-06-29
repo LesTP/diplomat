@@ -1,25 +1,28 @@
 # Diplomat — Paper Plan (Angle B first → Angle A)
 
-> Living plan for turning the Diplomat benchmark work into publications.
-> **Strategy:** lead with the **benchmark itself** as the primary contribution.
-> **Paper 1 = "Diplomat: a contamination-resistant negotiation benchmark"** —
-> establishes the benchmark is *valid* (well-calibrated to current capability,
-> non-contaminable, construct-valid / correlated-but-distinct from existing
-> benchmarks), then presents **harness/scaffolding lift as a headline finding +
-> measurement caveat**. Paper 1 is built on the *cooperative capability* measure
+> Living plan for turning the Diplomat negotiation work into publications.
+> **Strategy:** lead with **valid measurement** as the primary contribution.
+> Diplomat does **not** introduce negotiation benchmarking — Abdelnabi et al.
+> (2023) did. **Paper 1 = "Diplomat: valid measurement of LLM negotiation
+> skill"** — shows the incumbent's model comparison is ambiguous/non-objective
+> (per an independent reproducibility study) and contributes the four fixes:
+> game-theoretic optimality scoring, a module-level scaffolding ablation +
+> mechanism taxonomy, automated property-targeted/verifiable generation, and
+> construct validity. Paper 1 is built on the *cooperative capability* measure
 > (close-rate / Pareto efficiency / surplus share), which the existing data
 > already supports — so it is **not** gated on solving the distributive-scenario
 > discrimination problem. **Paper 2 = the competitive head-to-head leaderboard**
 > (mixed-model rank lens + coalition-value scoring on distributive / coalition
-scenarios) — gated on succ-v3 + §3.6; every Paper 1 deliverable is reused
+> scenarios) — gated on succ-v3 + §3.6; every Paper 1 deliverable is reused
 > (see §7). **Paper 3 (separate, later) = behavioral steering of negotiators**
 > (disposition × scenario-shape interaction) — the prompt-tuning "can of worms";
 > see §7b.
 >
-> ⚠️ **Framing order matters: benchmark validity first, scaffolding second.** You
-> cannot claim "scaffolding changes the ranking" before establishing the ranking
-> measures something real. Scaffolding lift is a *finding within* a validated
-> benchmark, not the lead.
+> ⚠️ **Framing order: scoring validity first, scaffolding second.** You cannot
+> claim "scaffolding changes the ranking" before establishing the ranking
+> measures something real. The scaffolding ablation is a **co-primary
+> contribution** but is *presented* after the optimality-scoring + construct
+> validity, not as the opener.
 >
 > Status legend used throughout: ✅ complete · 🔧 minor work (more N /
 > re-analysis / hygiene) · 🆕 from scratch.
@@ -29,13 +32,26 @@ scenarios) — gated on succ-v3 + §3.6; every Paper 1 deliverable is reused
 
 ---
 
-## 0. Positioning — why this is a benchmark, and why it's valuable
+## 0. Positioning — what Diplomat contributes, and why it's valuable
 
-**One-sentence pitch.** Diplomat is a contamination-proof,
-game-theoretically-grounded benchmark for LLM *negotiation* skill — a frontier
-agentic capability that static benchmarks can't measure — with built-in
-controls (position rotation, scaffolding ablation) that make model rankings
-*valid* rather than artifacts of the test harness.
+> **Prior art (verified).** Abdelnabi et al. (2023, *LLM-Stakeholders
+> Interactive Negotiation*, arXiv 2309.17234; rev. 2024) already introduced
+> scorable multi-party, multi-issue negotiation as an LLM benchmark — at
+> *larger* scale than Diplomat (6 agents, 24 rounds), with evolving games,
+> difficulty tuning, and greedy/adversarial variants. **Diplomat does not
+> introduce the category.** Its contribution is making negotiation-skill
+> measurement *valid and rigorous* — directly addressing gaps an independent
+> reproducibility study (Carrasco Pollo et al., *[Re] Benchmarking LLM
+> Capabilities in Negotiation through Scoreable Games*) found in that incumbent:
+> **ambiguous model comparison / questionable objectivity, an unreproducible
+> ablation, and no efficiency grounding** (the Re-authors bolted on
+> social-welfare metrics post-hoc).
+
+**One-sentence pitch.** Diplomat makes LLM-negotiation benchmarking
+*measurement-valid*: game-theoretic optimality scoring (Pareto / Nash / surplus,
+not BATNA pass/fail), a documented module-level scaffolding ablation, automated
+property-targeted scenario generation, and construct validity — turning an
+ambiguous model comparison into a defensible one.
 
 ### Why negotiation, why now
 - **Agentic deployment makes it economically real.** LLMs are increasingly
@@ -52,50 +68,63 @@ controls (position rotation, scaffolding ablation) that make model rankings
 ### The gap in existing evaluation
 - **Static QA / multiple-choice benchmarks** are saturating and increasingly
   *contaminated* by training data.
-- **Most prior LLM-negotiation / multi-agent work** is one of: a single fixed
-  scenario, human- or LLM-judged (no objective ground truth), or specific to
-  the Diplomacy *board game* (Cicero / Welfare Diplomacy) rather than general
-  negotiation structure.
-- **Diplomat's niche:** synthetic (contamination-proof) scenarios × objective
-  game-theoretic ground truth × scaffolding-aware, position-controlled
-  measurement × a multi-dimensional diagnostic profile. No existing benchmark
-  combines these.
+- **The negotiation incumbent (Abdelnabi et al.)** established the category but,
+  per the independent reproducibility study, leaves model comparison *ambiguous*
+  and its *objectivity* in question: scoring is BATNA-threshold pass/fail with
+  no optimality reference (no Pareto / Nash / surplus), the ablation is
+  unreproducible, and there is no construct-validity check. Board-game work
+  (Cicero / Welfare Diplomacy) couples negotiation to tactical play.
+- **Diplomat's niche is measurement rigor, not the category:** game-theoretic
+  optimality scoring × a documented module-level scaffolding ablation × automated
+  property-targeted (verifiable, deterministic) generation × construct validity
+  × position-controlled, multi-dimensional profiling. That *combination* is what
+  no prior negotiation benchmark reports.
 
-### Five value pillars
-1. **Contamination-proof by construction.** The reverse builder generates
-   never-published scenarios deterministically — a property static benchmarks
-   are losing and can't recover.
-2. **Objective ground truth.** Outcomes score against a *computable* optimum
-   (Pareto sum, Nash product, surplus share, BATNA) — no human or LLM judge
-   needed to grade the result, unlike most generative evals.
+### Five value pillars (what makes the measurement valid)
+1. **Game-theoretic optimality scoring** *(the primary differentiator vs the
+   incumbent).* Outcomes score against a *computable* optimum — Pareto frontier,
+   Nash product, surplus share, skill-premium-vs-naive — not just BATNA
+   pass/fail. This turns an "ambiguous comparison" into "the group captured 95%
+   of available surplus; this deal is Pareto-optimal."
+2. **Automated, property-targeted, deterministic generation.** The reverse
+   builder *searches* for scenarios hitting typed game-theoretic properties
+   (BATNA–Pareto gap, Pareto count, priority collision) and *verifies* them —
+   vs the incumbent's manual game adaptation. Same evolving-games motivation
+   (contamination resistance), but a verifiable method, not hand-tuning.
 3. **Skill-vs-luck controls.** Position rotation + multi-game aggregation
    separate model skill from seat asymmetry — the infrastructure that makes a
    *leaderboard* credible rather than anecdotal.
-4. **Diagnostic profile, not a scalar.** Six scoring lenses + process
-   signatures yield a profile — value-creation vs value-claiming vs walk-away
-   discipline vs scaffolding-dependence — which is more actionable to model
-   developers than a single number.
-5. **Measurement validity is built in.** The scaffolding-ablation axis (Paper
-   B) is itself part of the benchmark's methodology, not a side study (next).
+4. **Diagnostic profile, not a scalar.** Scoring lenses + process signatures
+   yield a profile — value-creation vs value-claiming vs walk-away discipline
+   vs scaffolding-dependence — more actionable than a single number, and the
+   answer to "why not just use MMLU?"
+5. **Measurement validity is built in.** The module-level scaffolding ablation
+   shows *how you harness a model changes its measured rank* — a validity
+   prerequisite the incumbent's CoT-only, unreproducible ablation did not
+   establish (next, and §1).
 
-### Primary thesis (Paper 1): the validity triad
-The headline contribution is a *validated* benchmark. Three claims, each with
-its own evidence requirement (experiments in §5.7):
+### Primary thesis (Paper 1): valid measurement of an existing category
+The headline contribution is not a new benchmark but a *validated* one — the
+four contributions above that make negotiation-skill measurement defensible.
+Three load-bearing validity claims, each with its evidence requirement
+(experiments in §5.7):
 
-1. **Well-calibrated to current capability.** Models spread across the
-   difficulty range — frontier models do not saturate the hardest scenarios,
-   weak models floor, mid-tier gets stuck. (Evidence: per-scenario score
-   distribution across the roster; at least one cell the best model fails.)
-2. **Contamination-resistant by construction.** Scenarios are synthetic and
-   deterministically generated by the reverse builder — never published, not
-   memorizable. (Evidence: the builder argument; optionally an empirical test
-   that paraphrase/regeneration doesn't move scores.)
-3. **Construct-valid.** The benchmark *correlates* with established capability
-   indices (so it measures real capability) but is *not redundant* — it
-   captures negotiation-specific variance MMLU/Elo miss. (Evidence: §5.7
-   correlation; the multi-dimensional profile answers "why not just use MMLU?")
+1. **Objective, optimality-referenced scoring.** Model comparison is grounded in
+   computable game-theoretic optima, removing the ambiguity the reproducibility
+   study found in BATNA-pass/fail scoring. (Evidence: the §3 lenses across the
+   roster; rankings stable under seed/position.)
+2. **Construct validity.** The benchmark *correlates* with established capability
+   indices (so it measures real capability) but is *not redundant* — it captures
+   negotiation-specific variance MMLU/Elo miss. (Evidence: §5.7 correlation; the
+   multi-dimensional profile.)
+3. **Contamination resistance — by *verifiable* generation.** Scenarios are
+   synthetically searched, deterministically reproduced, and property-verified —
+   not memorizable. (Evidence: builder + verifier; optionally a
+   paraphrase/regeneration test.) Calibration (models spread across difficulty)
+   is reported as a property, *not* claimed as novel — the incumbent calibrates
+   too.
 
-### Secondary contribution (a finding within the validated benchmark): harness lift
+### Harness lift — co-primary contribution, presented after the scoring validity
 Only *after* the benchmark is established as valid do we present
 *scaffolding/harness lift* — the §1 sharpened claim (scaffolding contribution =
 f(scenario × capability), with the three-mechanism taxonomy of "zero lift").
@@ -235,25 +264,49 @@ these as typed spec fields; clean one-at-a-time sweeps possible):
 
 ## 4. The two builds
 
-### 4.1 Mechanism classifier (LLM-judge) — 🆕
+### 4.1 Mechanism classifier (binary-question decomposition) — 🆕
 
 **Purpose.** Label every game outcome so the three-mechanism taxonomy (§1)
 is data, not anecdote.
 
-**Spec.**
-- Input: full transcript + final positions + scored outcome.
-- Output label, no-deal cases: `strategic_refusal` | `near_miss`
-  (converged on a strict subset of issues) | `breakdown` (substantive but
-  scattered) | `incoherence` (identity/quality failure). Deal cases:
-  `closed`. Plus a free-text rationale + the issue(s) of failure.
-- Validation: hand-label a seed set (14e = refusal; gemini jsm1 =
-  incoherence; mid jsm1 = near-miss; nano-bare = breakdown/floor) → measure
-  judge↔human agreement (report Cohen's κ). Ship only if κ is acceptable.
-- Guardrail: the judge model must **not** be one of the contestant models
-  scoring itself; use a fixed independent judge.
+**Method — atomic binary questions, not a holistic label (BINEVAL-style;
+Cho, Chawla et al. 2026).** Rather than ask the judge for one opaque "which
+mechanism?" verdict, decompose into independent yes/no questions and derive
+the label with a deterministic rule. This mirrors how *outcome* scoring
+already works (LLM extracts facts, code does the math): the judge answers
+atomic perceptual questions; aggregation stays rule-based and transparent.
 
-**Status of inputs:** seed labels ✅ (exist from manual 14e/Run-15
-inspection); classifier itself 🆕; validation set 🔧 (extend seed labels).
+Per-game binary questions (judge answers each independently from transcript +
+final positions):
+- Q1 **Substantive engagement** — did every faction make concrete proposals beyond restating openings? (Y/N)
+- Q2 **Subset convergence** — did factions agree on some but not all issues? (Y/N)
+- Q3 **Explicit BATNA preference** — did any faction state it preferred walking away / its BATNA over the live deal? (Y/N)
+- Q4 **Identity/coherence failure** — did any faction lose its role or contradict its persona basics? (Y/N)
+- Q5 **Full agreement** — did all factions agree on every issue? (Y/N)
+
+Deterministic derivation (transparent aggregation, no judge math):
+- Q5 = Y → `closed` (ceiling-vs-lift read from full/bare comparison, not the judge)
+- else Q4 = Y → `incoherence` (mismatch/floor)
+- else Q3 = Y and Q1 = Y → `strategic_refusal` (redirect-failure)
+- else Q2 = Y and Q1 = Y → `near_miss`
+- else → `breakdown` (engaged-but-scattered, or sub-substantive floor)
+
+**Why binary decomposition (vs a single label).** Interpretability (every
+label traces to atomic verdicts), debuggability (localize which question the
+judge got wrong), and — the load-bearing benefit — **easier validation**:
+score each binary question against hand-labels (per-question Cohen's κ)
+instead of one holistic κ, which is more reliable and pinpoints judge error.
+Directly de-risks the "who validates the judge" concern.
+
+**Validation.** Hand-label a seed set (14e = refusal; gemini jsm1 =
+incoherence; mid jsm1 = near-miss; nano-bare = breakdown/floor); compute
+per-question κ; ship only if acceptable.
+
+**Guardrail.** The judge model must **not** be a contestant scoring itself;
+use a fixed independent judge.
+
+**Status of inputs:** seed labels ✅ (manual 14e/Run-15 inspection);
+classifier itself 🆕; validation set 🔧 (extend seed labels).
 
 ### 4.2 Capability probe battery — 🆕
 
@@ -409,13 +462,13 @@ the source doc that seeds it.
 |---|---|---|---|
 | — | Abstract | 🆕 | write last; lead with the validated-benchmark contribution, harness lift second |
 | 1 | Introduction | 🔧 | ASSESS §1 (calculation-vs-negotiation gap) ~80% there; open with §0 value pillars + the **validity triad**, *not* scaffolding |
-| 2 | Related work | 🆕 | **biggest gap & risk** — position against the *benchmark* literature (Cicero, Welfare Diplomacy, NegotiationArena, cooperative-AI evals) per §0; claim the contamination-resistant + ground-truth + correlated-but-distinct niche |
+| 2 | Related work | 🆕 | **biggest gap & risk** — Abdelnabi et al. is the *incumbent* (don't claim the category); position via the Carrasco Pollo reproducibility critique (ambiguous comparison / unreproducible ablation / no efficiency grounding) → claim the **measurement-rigor** niche (optimality scoring + module-level ablation + verifiable generation + construct validity). Board-game (Cicero/Welfare Diplomacy) + LLM-judge (BINEVAL/G-Eval/UniEval) clusters per §0/§5 |
 | 3 | The Diplomat benchmark (game + harness) | 🔧 | `ARCHITECTURE.md` + `ARCH_*.md`; condense to what the benchmark needs |
 | 4 | Scoring & metrics | ✅/🔧 | ASSESS §3 + GG Appendix A nearly publication-ready |
 | 5 | Scenario design & richness axes (synthetic → contamination-resistant) | 🔧 | SG + ASSESS §4 + §2.2; foregrounds the reverse builder as the non-contamination mechanism |
 | **6** | **Benchmark validity (PRIMARY results)** — calibration, contamination, construct validity / correlation | 🔧/🆕 | **the lead result**; §5.7 experiments; the validity triad from §0 |
 | 7 | Per-model results / negotiation profiles | 🔧 | the model ordering + multi-dimensional profile (answers "why not just MMLU") |
-| 8 | Harness lift (SECONDARY) — strength operationalization (probe), three-mechanism taxonomy, lift results, **disposition probe** (redirect-failure confirmation) | 🆕/🔧 | §1 + §4.2 + §5.1–5.5 + §5.9; the finding + measurement caveat, presented *after* validity |
+| 8 | Harness lift (co-primary, presented 2nd) — strength operationalization (probe), three-mechanism taxonomy, lift results, **disposition probe** (redirect-failure confirmation) | 🆕/🔧 | §1 + §4.2 + §5.1–5.5 + §5.9; the measurement-validity contribution, presented *after* scoring validity |
 | 9 | Experimental setup | 🔧 | `RUN_PROTOCOL.md` + dispatcher docs; add N, temp, CIs |
 | 10 | Discussion / threats to validity | ✅ | RN is unusually honest — saturation, tier/provider confound, "unmeasurable not measured" already written |
 | 11 | Limitations & future work (→ Paper 2: competitive leaderboard) | 🔧 | distributive discrimination (succ-v3), §3.6 coalition-value, Group C axes |

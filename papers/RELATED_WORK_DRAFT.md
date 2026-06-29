@@ -44,30 +44,39 @@ skill rather than tactical search.
 **Gap:** negotiation not isolated from tactical play; outcomes not scored
 against a negotiation-specific game-theoretic optimum.
 
-## 2. LLM negotiation environments and arenas
+## 2. LLM negotiation benchmarks — the incumbent and its critique
 
-A closer cluster builds dedicated LLM negotiation settings. *NegotiationArena*
-[Bianchi et al., 2024 — ⚠] provides an environment for LLM-vs-LLM bargaining and
-catalogues emergent strategies. *Deal or No Deal* [Lewis et al., 2017] is the
-foundational pre-LLM end-to-end negotiation-dialogue task (two-party item
-division). Most relevant, **Abdelnabi et al.** [“Cooperation, Competition, and
-Maliciousness: LLM-Stakeholders Interactive Negotiation,” 2023/24 — ⚠] introduce
-a *scored, multi-issue, multi-party* negotiation game with hidden per-party
-incentives — structurally the nearest prior art to Diplomat.
+A dedicated cluster builds LLM negotiation benchmarks. *Deal or No Deal* [Lewis
+et al., 2017] is the foundational pre-LLM two-party item-division task;
+*NegotiationArena* [Bianchi et al., 2024 — ⚠] catalogues LLM bargaining
+behaviors. The **direct incumbent is Abdelnabi et al.** [*Cooperation,
+Competition, and Maliciousness: LLM-Stakeholders Interactive Negotiation*;
+Abdelnabi, Gomaa, Sivaprasad, Schönherr & Fritz; arXiv 2309.17234, 2023, rev.
+2024] — scorable, multi-issue, multi-party negotiation as an LLM benchmark, with
+evolving games, difficulty tuning, role-alignment metrics, and greedy/adversarial
+variants, run at **larger scale than Diplomat (6 agents, 24 rounds)**. Diplomat
+does **not** introduce this category and does not out-scale it.
 
-These establish that LLMs *can* negotiate and that the setting yields rich
-behavior. Diplomat differs on the axes that make it a *benchmark* rather than a
-demonstration: (a) its scenarios are **synthetically generated** by a
-constraint-driven builder, so the test set is not a fixed, eventually-memorized
-corpus; (b) every outcome is scored against the **full computed Pareto frontier
-/ Nash / BATNA structure**, enabling efficiency and surplus-share lenses, not
-just win/lose; (c) it reports **construct validity** (correlation with external
-capability) and **difficulty calibration**, which a behavior study does not
-require.
+What Diplomat contributes is **measurement rigor**, and an independent
+reproducibility study makes the case for us: *[Re] Benchmarking LLM Capabilities
+in Negotiation through Scoreable Games* [Carrasco Pollo, Kapetangeorgis,
+Rosenthal & Yao — ⚠ venue/year] replicates Abdelnabi and finds **model
+comparison ambiguous, with its objectivity in question**, flags an
+**unreproducible ablation** and **information-leakage** issues, and has to
+**add social-welfare metrics post-hoc** because the original lacks
+efficiency/optimality grounding. Diplomat builds those fixes in: (a)
+**game-theoretic optimality scoring** — Pareto frontier / Nash / surplus-share /
+skill-premium, where the incumbent uses BATNA-threshold pass/fail; (b) a
+**documented, deterministic, module-level scaffolding ablation** (vs the
+incumbent's CoT-only, unreproducible one); (c) **automated, property-targeted,
+verifiable** scenario generation (vs manual game adaptation); (d) **construct
+validity** via correlation with external indices.
 
-**Gap:** fixed hand-authored scenarios (contamination over time); outcome
-scoring typically win/lose or single-metric; no construct-validity / calibration
-reporting.
+**Gap (restated):** the incumbent established the category but leaves model
+comparison ambiguous, its ablation unreproducible, and efficiency/construct
+validity unaddressed — exactly the measurement gaps Diplomat targets. Diplomat
+does *not* claim novelty on scale, adversarial/deception variants, or the
+evolving-games idea (all present in the incumbent).
 
 ## 3. Game-theoretic and multi-agent LLM evaluation
 
@@ -118,6 +127,19 @@ contributes a benchmark that is **contamination-resistant by construction**
 outcomes), and **explicitly construct-validated** — a combination rarely
 reported together for a *generative, multi-agent* task.
 
+**LLM-as-judge and interpretable evaluation.** Where Diplomat *does* need
+subjective judgment — classifying *how* a negotiation failed (the
+three-mechanism taxonomy) and the transcript-interpretive process signatures
+(§3.4) — it draws on the LLM-as-judge line: *G-Eval* [Liu et al., 2023 — ⚠]
+and *UniEval* [Zhong et al., 2022 — ⚠] (holistic / multi-dimensional LLM
+judges), and especially *BINEVAL* [Cho, Chawla et al., 2026 — ⚠], which
+decomposes a criterion into atomic binary questions for interpretable,
+calibratable scores (adopted for our mechanism classifier). The contrast
+sharpens Diplomat's positioning: **outcomes are graded by objective
+game-theoretic ground truth (no judge); judge-based methods are confined to
+the process/mechanism layer where no ground truth exists** — pre-empting the
+"why not just LLM-judge everything?" objection.
+
 **Gap:** few generative multi-agent benchmarks report contamination-resistance
 + objective grading + construct validity together.
 
@@ -144,7 +166,7 @@ row against the actual paper before relying on it.**
 | Welfare Diplomacy ⚠ | ✘ | ✔ | ✔ | ~ | ✘ | ✘ | ✘ |
 | Deal or No Deal | ✔ | ✘ (2-party) | ✔ | ~ (item values) | ✘ (fixed) | ✘ | ✘ |
 | NegotiationArena ⚠ | ✔ | ~ | ✔ | ~ | ✘ | ✘ | ✘ |
-| Abdelnabi et al. ⚠ | ✔ | ✔ | ✔ | ~ (per-party score) | ✘ (hand-authored) | ✘ | ✘ |
+| Abdelnabi et al. (verified) | ✔ | ✔ | ✔ | ✘ (BATNA pass/fail) | ~ (evolving, manual) | ✘ | ~ (CoT-only) |
 | GTBench ⚠ | ~ | ✔ | ✘ (known payoff) | ✔ | ~ | ~ | ✘ |
 | Akata et al. (repeated games) ⚠ | ~ | ✘ | ✘ | ✔ | ✘ | ✘ | ✘ |
 | **Diplomat (ours)** | ✔ | ✔ | ✔ | ✔ (Pareto/Nash/BATNA) | ✔ (builder) | ✔ (correlation + calibration) | ✔ (bare/full ablation) |
@@ -159,7 +181,8 @@ should make the empty bottom-right quadrant of prior work visually obvious.
 - [ ] Cicero — exact title, authors, *Science* 2022 cite + DOI
 - [ ] Welfare Diplomacy — authors, venue, year; confirm it's LLM-based
 - [ ] NegotiationArena — authors (Bianchi et al.?), venue, year; confirm scope (bilateral vs multi-party)
-- [ ] Abdelnabi et al. — **most important**; confirm exact title/venue, whether scenarios are fixed/hand-authored, scoring scheme, single vs multi-issue, contamination discussion. This is the nearest competitor; the differentiation must be precise and fair.
+- [x] Abdelnabi et al. — **VERIFIED** (arXiv 2309.17234, 2023; rev. 2024): scorable multi-issue multi-party; BATNA-threshold scoring (no Pareto/Nash); manual game adaptation; CoT-only ablation; 6 agents / 24 rounds; greedy/adversarial variants. Still to confirm: published venue for the 2024 revision.
+- [ ] Carrasco Pollo, Kapetangeorgis, Rosenthal & Yao — *[Re] Benchmarking LLM Capabilities in Negotiation through Scoreable Games* (reproducibility study of Abdelnabi); confirm venue (MLRC / TMLR?) + year. The independent critique motivating Diplomat (ambiguous comparison, unreproducible ablation, post-hoc social-welfare metrics).
 - [ ] Deal or No Deal — Lewis et al. 2017, EMNLP; confirm
 - [ ] GTBench — Duan et al. 2024; confirm games covered + whether any are incomplete-information
 - [ ] Akata et al. repeated games — confirm authors/year
@@ -167,6 +190,9 @@ should make the empty bottom-right quadrant of prior work visually obvious.
 - [ ] ReAct (Yao et al. 2022), Reflexion (Shinn et al. 2023), Tree of Thoughts — confirm
 - [ ] AgentBench (Liu et al. 2023) — confirm
 - [ ] Dynabench (Kiela et al. 2021) — confirm
+- [ ] BINEVAL (Cho, Chawla et al. 2026, arXiv 2606.27226) — confirm; adopted for the mechanism classifier (binary-question decomposition)
+- [ ] G-Eval (Liu et al. 2023) — confirm; LLM-as-judge baseline
+- [ ] UniEval (Zhong et al. 2022) — confirm; multi-dimensional LLM-judge baseline
 - [ ] Chatbot Arena / LMArena (Zheng et al. 2023) — confirm; this is the external-Elo source for §5.7 correlation
 - [ ] Benchmark-validity critique (Raji et al. 2021 "Everything in the Whole Wide World") — confirm
 - [ ] Contamination literature — pick 1–2 canonical cites
@@ -177,12 +203,14 @@ should make the empty bottom-right quadrant of prior work visually obvious.
 
 ## 9. Risks / open issues for this section
 
-- **Abdelnabi et al. is the load-bearing differentiation.** If their setup is
-  closer to Diplomat than assumed (e.g., if they also generate scenarios or
-  report ground-truth efficiency), the novelty narrows. Read it carefully and,
-  if needed, narrow Diplomat's claimed contribution to the parts that remain
-  clearly distinct (synthetic generation + construct validity + scaffolding
-  ablation, even if the game structure overlaps).
+- **Abdelnabi et al. — RESOLVED (read in full).** The overlap is substantial:
+  they own the category, at larger scale, with evolving games + adversarial
+  variants. Diplomat's claim is narrowed accordingly to **measurement rigor**:
+  game-theoretic optimality scoring, module-level (not CoT-only) scaffolding
+  ablation + mechanism taxonomy, automated property-targeted/verifiable
+  generation, and construct validity. The independent reproducibility study
+  (Carrasco Pollo et al.) is third-party evidence that these gaps are real.
+  Do **not** claim novelty on category, scale, or adversarial/deception.
 - **"Correlated with other benchmarks" cuts both ways.** Too-high correlation
   invites "why not just use MMLU/Elo?"; the rebuttal must lean on the
   discriminant residual + the multi-dimensional profile (negotiation-specific
@@ -190,7 +218,7 @@ should make the empty bottom-right quadrant of prior work visually obvious.
   it here.
 - **Field velocity.** A 2025–2026 negotiation benchmark could already occupy
   part of this niche. Fresh sweep is mandatory (checklist item above).
-- **Scope of the scaffolding cluster.** Keep §4 short in the paper — it's the
-  secondary contribution. Over-citing the agent-framework literature risks
-  re-centering the paper on scaffolding, which the benchmark-primary framing
-  explicitly avoids.
+- **Scope of the scaffolding cluster.** Keep §4 short in the paper — the
+  scaffolding ablation is a co-primary *contribution* but only one section.
+  Over-citing the agent-framework literature risks re-centering the paper on
+  scaffolding at the expense of the scoring-validity narrative that leads.
