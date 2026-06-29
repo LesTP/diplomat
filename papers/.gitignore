@@ -1,0 +1,9 @@
+# Third-party source papers (external / copyright — do not commit).
+# Keep our own drafts (*.md) tracked.
+*.pdf
+*.htm
+*.html
+
+# Local text extractions / scratch from source papers.
+_*.txt
+*_text.txt
