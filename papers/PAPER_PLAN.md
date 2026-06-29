@@ -45,13 +45,21 @@
 > Capabilities in Negotiation through Scoreable Games*) found in that incumbent:
 > **ambiguous model comparison / questionable objectivity, an unreproducible
 > ablation, and no efficiency grounding** (the Re-authors bolted on
-> social-welfare metrics post-hoc).
+social-welfare metrics post-hoc).
+>
+> **Concurrent (2025–26).** A wave of concurrent work — esp. **TERMS-Bench**
+> (Zhang et al., Stanford incl. Athey & Zou; arXiv 2605.13909) — independently
+> delivers optimality-/oracle-referenced *beyond-deal-rate* scoring, in the
+> *bilateral* case. So optimality-diagnostic scoring is now **field-standard**,
+> not a novel claim; Diplomat's contributions are what that cluster still lacks.
 
-**One-sentence pitch.** Diplomat makes LLM-negotiation benchmarking
-*measurement-valid*: game-theoretic optimality scoring (Pareto / Nash / surplus,
-not BATNA pass/fail), a documented module-level scaffolding ablation, automated
-property-targeted scenario generation, and construct validity — turning an
-ambiguous model comparison into a defensible one.
+**One-sentence pitch.** With optimality-referenced negotiation scoring now
+field-standard, Diplomat's contribution is *measurement validity the cluster
+lacks*: a module-level **scaffolding ablation** showing *how you harness a model
+changes its measured rank*, extended to **multi-party + coalition** settings
+(the field is bilateral), with **construct validity** against external indices —
+presenting the now-standard game-theoretic scoring through a formal multi-lens
+framework and clear, explanatory visualizations.
 
 ### Why negotiation, why now
 - **Agentic deployment makes it economically real.** LLMs are increasingly
@@ -74,45 +82,52 @@ ambiguous model comparison into a defensible one.
   no optimality reference (no Pareto / Nash / surplus), the ablation is
   unreproducible, and there is no construct-validity check. Board-game work
   (Cicero / Welfare Diplomacy) couples negotiation to tactical play.
-- **Diplomat's niche is measurement rigor, not the category:** game-theoretic
-  optimality scoring × a documented module-level scaffolding ablation × automated
-  property-targeted (verifiable, deterministic) generation × construct validity
-  × position-controlled, multi-dimensional profiling. That *combination* is what
-  no prior negotiation benchmark reports.
+- **The concurrent cluster (esp. TERMS-Bench)** independently delivers
+  optimality-referenced, beyond-deal-rate diagnostics — but *bilateral*, with no
+  module-level scaffolding ablation and no external construct validity.
+- **Diplomat's distinct contribution** is therefore: a **scaffolding
+  measurement-validity** result + **multi-party/coalition** scoring + **construct
+  validity** — with field-standard optimality scoring presented through a formal
+  multi-lens framework and clear visualizations. That *combination* is what no
+  prior or concurrent negotiation benchmark reports.
 
-### Five value pillars (what makes the measurement valid)
-1. **Game-theoretic optimality scoring** *(the primary differentiator vs the
-   incumbent).* Outcomes score against a *computable* optimum — Pareto frontier,
-   Nash product, surplus share, skill-premium-vs-naive — not just BATNA
-   pass/fail. This turns an "ambiguous comparison" into "the group captured 95%
-   of available surplus; this deal is Pareto-optimal."
-2. **Automated, property-targeted, deterministic generation.** The reverse
-   builder *searches* for scenarios hitting typed game-theoretic properties
-   (BATNA–Pareto gap, Pareto count, priority collision) and *verifies* them —
-   vs the incumbent's manual game adaptation. Same evolving-games motivation
-   (contamination resistance), but a verifiable method, not hand-tuning.
-3. **Skill-vs-luck controls.** Position rotation + multi-game aggregation
-   separate model skill from seat asymmetry — the infrastructure that makes a
-   *leaderboard* credible rather than anecdotal.
-4. **Diagnostic profile, not a scalar.** Scoring lenses + process signatures
-   yield a profile — value-creation vs value-claiming vs walk-away discipline
-   vs scaffolding-dependence — more actionable than a single number, and the
-   answer to "why not just use MMLU?"
-5. **Measurement validity is built in.** The module-level scaffolding ablation
-   shows *how you harness a model changes its measured rank* — a validity
-   prerequisite the incumbent's CoT-only, unreproducible ablation did not
-   establish (next, and §1).
+### Value pillars — distinct contributions first
+1. **Scaffolding measurement-validity** *(lead; no one in the cluster does
+   this).* A module-level bare-vs-full ablation shows *how you harness a model
+   changes its measured rank* — so a valid leaderboard must fix the scaffold.
+   Plus the three-mechanism failure taxonomy (§1).
+2. **Multi-party + coalition scoring** *(distinct).* The field (TERMS-Bench,
+   PrefBench, …) is bilateral buyer–seller; Diplomat scores 3+ factions and
+   coalition-exclusion outcomes (§3.6), where Abdelnabi is multi-party but
+   without coalition-value scoring.
+3. **Construct validity** *(distinct).* Correlates with external capability
+   indices (measures real capability) yet captures negotiation-specific variance
+   MMLU/Elo miss — not reported by the concurrent cluster.
+4. **Formal multi-lens optimality scoring + explanatory visualization**
+   *(field-standard, contributed as rigor + clarity, not novelty).* Pareto /
+   Nash / surplus / skill-premium presented as a coherent lens framework with
+   clear, explanatory charts — the now-standard scoring done formally and
+   legibly. The formalism and figures are a genuine asset even though the idea
+   is shared.
+5. **Automated property-targeted generation + skill-vs-luck controls**
+   *(method/infra).* The reverse builder searches scoring-table space for typed
+   game-theoretic properties (BATNA–Pareto gap, Pareto count, priority
+   collision) and verifies them; position rotation + multi-game aggregation
+   separate skill from seat. Reproducible/deterministic.
 
 ### Primary thesis (Paper 1): valid measurement of an existing category
-The headline contribution is not a new benchmark but a *validated* one — the
-four contributions above that make negotiation-skill measurement defensible.
-Three load-bearing validity claims, each with its evidence requirement
-(experiments in §5.7):
+The headline contribution is not a new benchmark, nor optimality-diagnostic
+scoring (now field-standard) — it is the **measurement validity the concurrent
+cluster lacks**: scaffolding-aware ranking, multi-party/coalition scoring, and
+construct validity. Three load-bearing claims, each with its evidence
+requirement (experiments in §5.7):
 
-1. **Objective, optimality-referenced scoring.** Model comparison is grounded in
-   computable game-theoretic optima, removing the ambiguity the reproducibility
-   study found in BATNA-pass/fail scoring. (Evidence: the §3 lenses across the
-   roster; rankings stable under seed/position.)
+1. **Scaffolding-aware, optimality-referenced scoring.** Scoring is grounded in
+   computable game-theoretic optima (now field-standard — Diplomat's value here
+   is the formal multi-lens treatment + clear visualization), *and* shown to be
+   harness-dependent: the bare-vs-full ablation establishes that rankings shift
+   with scaffolding, so the benchmark fixes it. (Evidence: §3 lenses across the
+   roster; §1 ablation; rankings stable under seed/position once harness fixed.)
 2. **Construct validity.** The benchmark *correlates* with established capability
    indices (so it measures real capability) but is *not redundant* — it captures
    negotiation-specific variance MMLU/Elo miss. (Evidence: §5.7 correlation; the

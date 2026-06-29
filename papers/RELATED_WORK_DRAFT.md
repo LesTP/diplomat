@@ -78,6 +78,40 @@ validity unaddressed — exactly the measurement gaps Diplomat targets. Diplomat
 does *not* claim novelty on scale, adversarial/deception variants, or the
 evolving-games idea (all present in the incumbent).
 
+## 2b. Concurrent 2025–26 negotiation benchmarks (field velocity)
+
+A wave of 2025–2026 work converges on much of what Diplomat proposed —
+optimality-/oracle-referenced scoring, "beyond deal rate" diagnostics, and
+procedural/verifiable generation. Most have 0–1 citations (very recent), so they
+are best treated as **concurrent work** rather than established prior art — but
+they reset what counts as a contribution. Diplomat's durable differentiators
+against the whole cluster are (i) a **module-level harness/scaffolding ablation**
++ the scaffolding-contribution-as-a-function result + three-mechanism taxonomy
+(none do this), (ii) **multi-party + coalition-value scoring** (the cluster is
+overwhelmingly bilateral buyer–seller), and (iii) **construct validity** via
+correlation with external indices.
+
+| Work (year) | What it does | Overlap | Why Diplomat still differs |
+|---|---|---|---|
+| **TERMS-Bench** (Zhang et al., Stanford incl. Athey & Zou; arXiv 2605.13909; 2026) | Bayesian-game *bilateral* price negotiation; counterpart simulator as verifier; **surplus efficiency vs a DP oracle** (App. D); agent-attributable failure (surplus extraction, cue use, belief calibration, compliance); 13 frontier models; **prompt + reasoning-effort ablations** | **Highest** — near-twin of the scoring/diagnostic thesis | **Bilateral only** (multi-party deferred; no coalition scoring); **no module-level harness ablation** + no scaffolding-as-measurement-validity framing; **no external-benchmark construct validity** |
+| **Measuring Bargaining Abilities of LLMs** (2024, ~44 cites) | Bargaining as asymmetric incomplete-info game; AmazonHistoryPrice; OG-Narrator buyer enhancement | Game-theoretic bilateral bargaining (the established cite) | Bilateral, single-issue price; no scaffolding ablation / multi-party |
+| **PrefBench** (2026) | Hidden-preference personalized pricing; "deal rate >0.99 but profit weak" | The agreeableness / deal-rate≠skill point | Bilateral pricing; no harness ablation or optimality lenses across a frontier roster |
+| **MERIT / AgoraBench** (2026) | 9 settings incl. deception/monopoly; utility-theoretic metrics (agent utility, negotiation power) | Economic/utility metrics + deception | Benchmark+method to *improve* bargaining; not a scaffolding measurement-validity study |
+| **Self-Driving Negotiator** (2026) | Text-only, procedurally generated driving negotiation; simulator-state verifier, anti-gaming, leaderboard | Verifiable + procedural generation | Different domain (implicit driving coordination); no negotiation-specific lenses / ablation |
+| **Truthful AI Advisors** (2026) | Crawford–Sobel cheap-talk as pre-specified oracle benchmark for honesty under preference misalignment | Oracle-equilibrium reference + deception/honesty | Single-shot cheap-talk signalling, not multi-round multi-issue negotiation; no harness axis |
+
+**Consequence for framing:** optimality-/oracle-referenced scoring and "beyond
+deal rate" diagnostics are now *field-standard* — implement them rigorously but
+**do not** claim them as novelty. The contribution narrows to the **scaffolding
+measurement-validity result + multi-party coalition scoring + construct
+validity**. Diplomat still *adds value within* scoring — a formal multi-lens
+treatment and clear, explanatory visualizations — presented as rigor/clarity,
+not as inventing optimality scoring.
+
+> ⚠ Coverage caveat: this cluster is from a *single* rate-limited Semantic
+> Scholar query. A fuller sweep (with an API key) is required before submission;
+> TERMS-Bench in particular warrants a full-text read for precise differentiation.
+
 ## 3. Game-theoretic and multi-agent LLM evaluation
 
 A broader evaluation line probes strategic reasoning. *GTBench* [Duan et al.,
@@ -197,7 +231,7 @@ should make the empty bottom-right quadrant of prior work visually obvious.
 - [ ] Benchmark-validity critique (Raji et al. 2021 "Everything in the Whole Wide World") — confirm
 - [ ] Contamination literature — pick 1–2 canonical cites
 - [ ] Nash 1950; Fisher & Ury; Raiffa; Susskind — foundations, confirm editions
-- [ ] **Search for newer (2024–2026) LLM-negotiation benchmarks** — the field moves fast; do a fresh literature sweep so nothing newer pre-empts the contribution
+- [~] **Newer (2024–26) negotiation benchmarks — PARTIAL SWEEP DONE** (one rate-limited query; complete with a Semantic Scholar API key before submission). **TERMS-Bench — VERIFIED, full text read** (Zhang et al., Stanford incl. Athey & Zou; arXiv 2605.13909; bilateral; DP-oracle surplus scoring; prompt/reasoning-effort ablations only; no multi-party/coalition; no external construct validity). Still to verify (venue/ID, concurrent-vs-prior): Measuring Bargaining Abilities of LLMs (2024, ~44 cites); PrefBench (2026); MERIT/AgoraBench (2026); Self-Driving Negotiator (2026); Truthful AI Advisors (2026).
 
 ---
 
@@ -216,8 +250,12 @@ should make the empty bottom-right quadrant of prior work visually obvious.
   discriminant residual + the multi-dimensional profile (negotiation-specific
   variance). Make sure §5.7 actually produces that residual before leaning on
   it here.
-- **Field velocity.** A 2025–2026 negotiation benchmark could already occupy
-  part of this niche. Fresh sweep is mandatory (checklist item above).
+- **Field velocity — REALIZED (partial sweep).** Multiple 2025–26 benchmarks
+  (esp. TERMS-Bench) already occupy the optimality-scoring / beyond-deal-rate
+  niche; see §2b. They are mostly *concurrent* (0–1 cites) and *bilateral*. Net:
+  the scoring-metrics framing is no longer a contribution — lead with the
+  scaffolding measurement-validity result + multi-party coalition + construct
+  validity. A fuller sweep (API key) is still required before submission.
 - **Scope of the scaffolding cluster.** Keep §4 short in the paper — the
   scaffolding ablation is a co-primary *contribution* but only one section.
   Over-citing the agent-framework literature risks re-centering the paper on
