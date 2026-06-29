@@ -13,7 +13,7 @@
 > already supports — so it is **not** gated on solving the distributive-scenario
 > discrimination problem. **Paper 2 = the competitive head-to-head leaderboard**
 > (mixed-model rank lens + coalition-value scoring on distributive / coalition
-> scenarios) — gated on succ-v3 + §3.6; every Paper 1 deliverable is reused
+> scenarios). succ-v3/succ3b are now built & brief-passing (Run 21 headroom); the §3.6 coalition-value engine is **elevated to a Paper 1 differentiator** (§5.6b). Every Paper 1 deliverable is reused
 > (see §7). **Paper 3 (separate, later) = behavioral steering of negotiators**
 > (disposition × scenario-shape interaction) — the prompt-tuning "can of worms";
 > see §7b.
@@ -361,6 +361,18 @@ frontier cells; report bootstrap CIs. Rough per-game costs (from TL): nano
 full ~$0.05, mid full ~$1–1.5, sonnet full ~$0.65, bare ~$0.05–0.30; ×3
 rounds for the 12-round horizon cells.
 
+### Framing-update reprioritization (per the §0 resharpen)
+
+Lead = **scaffolding measurement-validity + multi-party/coalition + construct
+validity**; optimality scoring is field-standard. So:
+- **LEAD (gate the contribution):** construct validity (§5.7), scaffolding
+  ablation + mechanism classifier (§5.1–5.5, §4.1), and **multi-party/coalition
+  differentiation (§5.6b)** — the bilateral cluster (TERMS-Bench et al.) cannot
+  do the last two.
+- **Table-stakes (implement + visualize well, do not showcase as novelty):**
+  the optimality lenses themselves and difficulty *calibration*.
+- **Supporting:** horizon sweep, disposition probe, per-module ablation.
+
 ### 5.0 Hygiene / infra (gates everything)
 
 | Item | Status |
@@ -389,7 +401,7 @@ rounds for the 12-round horizon cells.
 | jsm1 sonnet full+bare | ✅ · 🔧 N |
 | jsm1 gpt-5.5 full / Anthropic haiku+opus | 🆕 |
 | WR-β × jsm1 contrast matrix | ✅ assembled · 🔧 N |
-| ≥1 third shape point with headroom (pressured WR-β or working distributive) | 🆕 |
+| ≥1 third shape point with headroom (distributive) | 🔧 succ-v3 + succ3b **built & brief-passing**; Run 21 confirmed bare headroom (deepseek 0/3, sonnet 2/3) — run the ladder×mode cells |
 
 ### 5.3 Claim 3 — three mechanisms of zero lift
 
@@ -418,13 +430,31 @@ rounds for the 12-round horizon cells.
 | Item | Status |
 |---|---|
 | Cross-provider Pareto convergence (4 families → identical deal) | ✅ exists — free section |
-| Cost-economics ($/closed-deal) | 🔧 (needs cost-capture fix) |
+| Cost-economics ($/closed-deal) | 🔧 cost capture ✅ (Phase 49 — live + 108 JSONs backfilled); just aggregate $/closed-deal across the roster |
 | Cross-provider validation (V3, R1) on ladders | ✅ partial · 🔧 N |
 
 **Critical-path "from scratch" set (small):** Anthropic ladder (haiku +
 opus), gpt-5.5 full cells, mechanism classifier, capability probe battery,
-horizon sweep, per-run cost capture. Everything else is N-boosting +
-re-analysis of existing data.
+horizon sweep, **§3.6 coalition-value scoring engine** (now a lead
+differentiator, §5.6b). Per-run cost capture is **done** (Phase 49). Everything
+else is N-boosting + re-analysis of existing data.
+
+### 5.6b Multi-party / coalition differentiation (LEAD — vs the bilateral cluster) — NEW
+
+The concurrent cluster (TERMS-Bench, PrefBench, Measuring-Bargaining) is
+*bilateral*. Under the resharpened framing this is a **lead** differentiator, so
+it needs explicit Paper 1 evidence — not just deferral to Paper 2.
+
+| Item | Status |
+|---|---|
+| Paper 1 runs are already **3-faction** (WR-β, jsm1) | ✅ free differentiator vs the bilateral cluster — just state it |
+| **§3.6 coalition-value scoring engine** (score coalition-exclusion, not binary deal/no-deal) | 🆕 (Note 2 Path B, ~1–2 day build) — **elevated** from Paper 2 to a Paper 1 differentiator |
+| ≥1 **coalition-coercive** scenario scored with coalition values (Susskind Three-Party patched) | 🔧 scenario ready; needs the engine + a run |
+| Full competitive coalition **leaderboard** (mixed-model rank) | → stays **Paper 2** |
+
+Distinction: Paper 1 demonstrates the *capability* to score multi-party +
+coalition outcomes (the bilateral cluster cannot); Paper 2 runs the competitive
+leaderboard on it.
 
 ### 5.7 Construct validity & calibration (NEW — Paper 1 *primary* evidence)
 
@@ -489,7 +519,7 @@ the source doc that seeds it.
 | 11 | Limitations & future work (→ Paper 2: competitive leaderboard) | 🔧 | distributive discrimination (succ-v3), §3.6 coalition-value, Group C axes |
 | 12 | Conclusion | 🆕 | short |
 | 13 | Reproducibility / artifact | 🔧 | deterministic builder + committed specs; add one-command repro |
-| — | Figures & tables | 🆕 | difficulty distribution, Diplomat-vs-external correlation scatter, per-model profile radar, harness-lift curves, mechanism-mix bars; `viz.py` is a start |
+| — | Figures & tables | 🔧 | difficulty distribution, Diplomat-vs-external correlation scatter, per-model profile radar, harness-lift curves, mechanism-mix bars. Viz tooling **consolidated** (deal-explorer dashboards, parcoords/ternary) — a real asset for the explanatory-visualization pillar |
 
 **Writing-effort summary:** the *honest* sections (4, 10) are nearly done. The
 new emphasis concentrates from-scratch effort in **§6 benchmark validity** (the
@@ -553,27 +583,28 @@ reframed them to be, rather than production tunings.
 
 ## 8. Suggested execution order
 
-1. **Infra/hygiene first** (§5.0): uniform temp, cost capture, N-scaling
-   harness check, external-index table. Unblocks clean data.
-2. **Builds in parallel** (§4): mechanism classifier + probe battery. Both are
+1. **Remaining hygiene** (§5.0): uniform temp, N-scaling + bootstrap CIs,
+   external-index table. (Per-run **cost capture is done** — Phase 49.)
+2. **Builds in parallel** (§4): mechanism classifier + probe battery —
    independent of the run campaign; the probe also feeds construct validity.
-3. **N-boost existing cells + roster coverage** (§5.1–5.3 ✅/🔧): cheapest path
-   to statistical power on data we already trust; also populates the roster
-   needed for the validity correlation.
-4. **Validity & calibration analysis** (§5.7) — **the lead result.** Aggregate
-   per-model scores, compute the external-index correlation + calibration
-   distribution + discriminant residual. This is what makes it a *benchmark*
-   paper; prioritize it over the harness-lift extensions.
-5. **From-scratch cells** (§5.1–5.2 🆕): Anthropic ladder, gpt-5.5 full —
-   needed both for harness lift and to thicken the validity roster.
-6. **Harness-lift secondary results**: horizon sweep (§5.4), mechanism
-   classifier across all no-deals (§5.3), minimal **disposition probe** (§5.9 —
-   robustness + redirect-failure confirmation), optional targeted per-module
-   ablation (§5.5). These are the second act, not the lead.
-7. **Figures + writing**, leaning on §6 status marks (validity sections first).
-8. **Meta internal publication / PR / open-source review** — start the process
-   conversation **early** (silent long pole). Target venue per the full-paper
-   goal; if a workshop precedes the conference submission, confirm it is
+3. **N-boost existing cells + roster coverage** (§5.1–5.3): cheapest path to
+   statistical power; also populates the roster for the validity correlation.
+4. **Lead evidence (the three contributions):**
+   - **Construct validity & calibration** (§5.7) — aggregate per-model scores,
+     external-index correlation, discriminant residual.
+   - **Scaffolding ablation** (§5.1–5.5) — same-provider ladders + mechanism
+     classifier across no-deals.
+   - **Multi-party/coalition** (§5.6b) — build the §3.6 coalition-value engine
+     and score one coalition-coercive scenario.
+   Optimality lenses are computed throughout but are table-stakes, not the lead.
+5. **From-scratch cells** (§5.1–5.2): Anthropic ladder, gpt-5.5 full;
+   distributive ladder on succ-v3/succ3b (built, brief-passing, Run 21 headroom).
+6. **Supporting results**: horizon sweep (§5.4), minimal disposition probe
+   (§5.9), optional per-module ablation (§5.5).
+7. **Figures + writing** — lean on the consolidated viz tooling (deal-explorer
+   dashboards) for the explanatory charts.
+8. **Meta internal publication / PR / open-source review** — start **early**
+   (silent long pole); if a workshop precedes the conference, confirm it is
    **non-archival** so Paper 2 isn't blocked by dual-submission.
 
 ---

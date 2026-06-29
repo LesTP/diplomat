@@ -16,15 +16,17 @@
 
 ## How to position (the one-paragraph strategy)
 
-Diplomat sits at the intersection of three literatures, and its contribution is
-the *combination* no single prior line achieves: a negotiation evaluation that
-is (1) **contamination-resistant** because scenarios are synthetically
-generated, (2) graded against **objective game-theoretic ground truth** rather
-than human or LLM judges, (3) **construct-validated** by correlation against
-established capability indices while retaining negotiation-specific variance,
-and (4) instrumented for **scaffolding-aware measurement**. The Related Work
-should make each prior cluster's *missing* property explicit and converge on
-the feature matrix (§7 below).
+The negotiation-benchmark category is established (Abdelnabi et al.) and a
+2025–26 wave (esp. TERMS-Bench) has made optimality-/oracle-referenced,
+beyond-deal-rate scoring **field-standard**. So Diplomat's contribution is *not*
+the category or the scoring idea, but **measurement rigor the cluster lacks**, on
+three axes: (1) a **module-level scaffolding ablation** (how you harness a model
+changes its measured rank), (2) **multi-party + coalition-value scoring** (the
+cluster is bilateral), and (3) **construct validity** against external capability
+indices. Field-standard optimality scoring is implemented and presented through a
+formal multi-lens framework + clear visualizations — a rigor/clarity strength,
+not a novelty claim. The Related Work should make each prior/concurrent cluster's
+*missing* axis explicit and converge on the feature matrix (§7).
 
 ---
 
@@ -203,10 +205,15 @@ row against the actual paper before relying on it.**
 | Abdelnabi et al. (verified) | ✔ | ✔ | ✔ | ✘ (BATNA pass/fail) | ~ (evolving, manual) | ✘ | ~ (CoT-only) |
 | GTBench ⚠ | ~ | ✔ | ✘ (known payoff) | ✔ | ~ | ~ | ✘ |
 | Akata et al. (repeated games) ⚠ | ~ | ✘ | ✘ | ✔ | ✘ | ✘ | ✘ |
-| **Diplomat (ours)** | ✔ | ✔ | ✔ | ✔ (Pareto/Nash/BATNA) | ✔ (builder) | ✔ (correlation + calibration) | ✔ (bare/full ablation) |
+| **TERMS-Bench** (2026) | ✔ | ✘ (bilateral) | ✔ | ✔ (DP oracle) | ~ (seeded simulator) | ✘ | ~ (prompt-only) |
+| **Diplomat (ours)** | ✔ | ✔ | ✔ | ✔ (Pareto/Nash/BATNA) | ✔ (builder) | ✔ (correlation + calibration) | ✔ (module-level bare/full) |
 
-The right-most three columns are where Diplomat is differentiated; the matrix
-should make the empty bottom-right quadrant of prior work visually obvious.
+Post-sweep, **game-theoretic ground truth is no longer Diplomat-exclusive**
+(TERMS-Bench has it via a DP oracle). Diplomat's live differentiators are now
+**Multi-party**, **Construct validity**, and **module-level Scaffolding-aware**
+(vs TERMS-Bench's prompt-only `~`). Optimality scoring is shared/table-stakes;
+Diplomat's edge there is the formal multi-lens treatment + explanatory
+visualization, not the property itself.
 
 ---
 
