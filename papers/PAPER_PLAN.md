@@ -581,33 +581,14 @@ classifier (§4.1), model roster (§5.8), scenario suite, harness, repro tooling
 research program — persona prompts become the "experimental variable" D-56
 reframed them to be, rather than production tunings.
 
-## 8. Suggested execution order
+## 8. Execution sequence -> WORK_SEQUENCING section 9
 
-1. **Remaining hygiene** (§5.0): uniform temp, N-scaling + bootstrap CIs,
-   external-index table. (Per-run **cost capture is done** — Phase 49.)
-2. **Builds in parallel** (§4): mechanism classifier + probe battery —
-   independent of the run campaign; the probe also feeds construct validity.
-3. **N-boost existing cells + roster coverage** (§5.1–5.3): cheapest path to
-   statistical power; also populates the roster for the validity correlation.
-4. **Lead evidence (the three contributions):**
-   - **Construct validity & calibration** (§5.7) — aggregate per-model scores,
-     external-index correlation, discriminant residual.
-   - **Scaffolding ablation** (§5.1–5.5) — same-provider ladders + mechanism
-     classifier across no-deals.
-   - **Multi-party/coalition** (§5.6b) — build the §3.6 coalition-value engine
-     and score one coalition-coercive scenario.
-   Optimality lenses are computed throughout but are table-stakes, not the lead.
-5. **From-scratch cells** (§5.1–5.2): Anthropic ladder, gpt-5.5 full;
-   distributive ladder on succ-v3/succ3b (built, brief-passing, Run 21 headroom).
-6. **Supporting results**: horizon sweep (§5.4), minimal disposition probe
-   (§5.9), optional per-module ablation (§5.5).
-7. **Figures + writing** — lean on the consolidated viz tooling (deal-explorer
-   dashboards) for the explanatory charts.
-8. **Meta internal publication / PR / open-source review** — start **early**
-   (silent long pole); if a workshop precedes the conference, confirm it is
-   **non-archival** so Paper 2 isn't blocked by dual-submission.
-
----
+The ordered execution plan (phases, run-lanes, dependencies) is the master
+sequence in `papers/WORK_SEQUENCING.md` section 9 -- reconciled across this
+plan, the project backlog, and the research notes. PAPER_PLAN owns the *spec*
+(contributions section 0, builds section 4, experiment-ledger detail section 5,
+paper outline section 6, risks section 9 below); WORK_SEQUENCING owns the
+*order*. Route sequencing edits there; spec edits here.
 
 ## 9. Open decisions / risks
 

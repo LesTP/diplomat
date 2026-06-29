@@ -14,7 +14,7 @@
 ## Note 1 — Harness contribution as a function of scenario complexity
 
 **Date:** 2026-06-08
-**Status:** Active thesis. Awaiting Run 14c-14e completion and Clanker Courts validation.
+**Status:** Active thesis (revised). Run 14 complete; the canonical formulation is the Run-16 amendment below — harness contribution = f(scenario shape × unaided capability). Scheduled/parked validation work lives in `papers/WORK_SEQUENCING.md`.
 **Cross-refs:** `NEXT_STEPS.md` §10 (ablation runs), `ASSESSMENT.md` §3.4 (process signatures — the right instruments for measuring the effects discussed here), `DEVPLAN.md` Phase 34 close (bare-mode plumbing).
 
 ### Origin
@@ -595,7 +595,7 @@ Operator decision after the 2026-06-16 consolidation discussion: **commit to the
 ## Note 3 — Provider consistency as a deal-making variable
 
 **Date:** 2026-06-23 (consolidated from the former `NEXT_STEPS.md` §1.7 / §1.8; evidence in `TUNING_LOG.md` Runs 9 / 10 / 18)
-**Status:** Active finding. The follow-up *tests* are deferred under D-56 (they would still produce benchmark-relevant data, but are not Tier-1 priority).
+**Status:** Active finding. The follow-up *tests* are deferred under D-56 (they would still produce benchmark-relevant data, but are not Tier-1 priority) — folded into the unified-campaign analysis / parked in `papers/WORK_SEQUENCING.md` §7–§8.
 **Cross-refs:** `TUNING_LOG.md` Runs 9 / 10 / 18, Note 1 provider-confound bullets (2026-06-16 + Run 18 update), `DECISIONS.md` D-56.
 
 ### Finding

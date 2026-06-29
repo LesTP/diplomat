@@ -24,7 +24,7 @@ work, read [`NEXT_STEPS.md`](NEXT_STEPS.md).
 | Run a single benchmark cell (any provider/model × scenario × mode) | `tools/ablation_multi.sh run MODEL SCENARIO MODE N` |
 | Tune BATNAs, providers, prompts | [`TUNING.md`](experiments/TUNING.md) |
 | See what experiments have run | [`TUNING_LOG.md`](experiments/TUNING_LOG.md) (active arc) + [`TUNING_LOG_archive.md`](experiments/TUNING_LOG_archive.md) (early runs) |
-| Find work to do | [`NEXT_STEPS.md`](NEXT_STEPS.md) |
+| Find work to do | [`papers/WORK_SEQUENCING.md`](papers/WORK_SEQUENCING.md) (master plan) |
 | Understand how skill is measured | [`ASSESSMENT.md`](ASSESSMENT.md) |
 | Author a new scenario (narrative or constraint-driven) | [`SCENARIO_GUIDE.md`](guides/SCENARIO_GUIDE.md) (operator walkthrough) |
 | See architectural diagrams | [`DIAGRAMS.md`](DIAGRAMS.md) (layered: Overview + Lifecycle + per-phase drill-downs with flowcharts and sequence diagrams; render via `Markdown Preview Mermaid Support` extension or `render_mermaid_file`) |
@@ -46,7 +46,8 @@ Active docs (excluding governance — see bottom). Sorted by area of work.
 
 | Doc | What it is | Status |
 |---|---|---|
-| [`NEXT_STEPS.md`](NEXT_STEPS.md) | Forward backlog with A/B/C/X workstream tags and 🔨/🔀/👁 loop-readiness classification. Includes pressure-mechanism ideas, conversation-model upgrades, coached test loop, Clankmates, pricing audit, per-role model strategy, reverse scenario builder, voice templates. Run 10 findings folded in 2026-06-01. | CURRENT — canonical |
+| [`papers/WORK_SEQUENCING.md`](papers/WORK_SEQUENCING.md) | **Master forward plan** (paper-driven). Reconciles the project backlog, paper plan, and research notes into 8 thematic sections + a consolidated execution sequence (§9). The canonical "what to do next." | CURRENT — canonical |
+| [`NEXT_STEPS.md`](NEXT_STEPS.md) | Retired 2026-06-29 to a thin pointer to the master plan + the doc-routing index; superseded Tier-1/2/icebox lists folded into `papers/WORK_SEQUENCING.md`. | POINTER — superseded |
 
 ### Operations — the *how to run it*
 
