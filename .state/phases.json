@@ -1,0 +1,310 @@
+[
+  {
+    "id": 1,
+    "title": "Event Store + State Manager",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 2,
+    "title": "Extraction",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 3,
+    "title": "Coaching",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 4,
+    "title": "Transport",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 5,
+    "title": "Persona",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 6,
+    "title": "Analyst + Divergence",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 7,
+    "title": "Context Assembler",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 8,
+    "title": "Generation",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 9,
+    "title": "Review Gate",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 10,
+    "title": "Adversarial",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 11,
+    "title": "Orchestrator",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 12,
+    "title": "Orchestrator Refactor",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 13,
+    "title": "Layer 3 — Pipeline Integration Tests",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 14,
+    "title": "Layer 3 — Transcript Replay Tests",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 15,
+    "title": "Live Smoke Test — Environment Setup",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 16,
+    "title": "Deployment Readiness",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 17,
+    "title": "Layer 2 — Prompt Regression Infrastructure",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 18,
+    "title": "Multi-Agent Self-Play + Tuning",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 19,
+    "title": "Execute, ad-hoc",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 20,
+    "title": "Layer 3 integration tests for Phase 18 paths",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 21,
+    "title": "Module boundary cleanup",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 22,
+    "title": "Pipeline / Flow split",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 23,
+    "title": "Scoring expansion — Pareto efficiency + process signatures",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 24,
+    "title": "Small builds + Level 1 modularization",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 25,
+    "title": "`tools/service.sh` tmux rewrite",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 26,
+    "title": "Structured per-event logging",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 27,
+    "title": "No-deal-aware scoring metrics",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 28,
+    "title": "Coached self-play harness + Near-miss diagnostic",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 29,
+    "title": "vs-Naive baseline scorers (equal-split, BATNA-clearing, Nash bargaining)",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 30,
+    "title": "OpenRouter provider connector",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 31,
+    "title": "Transport-routed OperatorReviewGate",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 32,
+    "title": "Toolkit-level TG chunking + Diplomat cleanup + queue-drain + /intel trim",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 34,
+    "title": "Bare-prompt mode",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 35,
+    "title": "Reverse Scenario Builder",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 36,
+    "title": "Scenario Builder Search Improvements",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 37,
+    "title": "Add `pareto_outcome_diversity` metric",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 38,
+    "title": "Pressure mechanisms small bundle",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 39,
+    "title": "Scenario compiler `--fill-narrative` mode",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 43,
+    "title": "Integrate deal-explorer viz into scenario_authoring",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 44,
+    "title": "Scenario design-brief + verify-against-brief + auto-doc",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 46,
+    "title": "Standalone scenario_authoring + unified CLI",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 47,
+    "title": "Coalition scoring — lock the Path B contract",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 48,
+    "title": "Narrative-integration shell",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  },
+  {
+    "id": 49,
+    "title": "Per-run cost capture + approximate backfill",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
+  }
+]

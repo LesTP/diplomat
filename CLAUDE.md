@@ -1,140 +1,98 @@
 # Claude Worker Adapter — Diplomat
 
-> **Contract:** Follow `WORKER_SPEC.md` for iteration lifecycle, allowed actions,
-> step budget, escalation conditions, and output contract. This file covers
-> Claude-specific mechanics only.
+> **Contract:** Backend-specific mechanics for Claude workers. The universal loop
+> contract (identity, main loop, escalation, output contract, prohibitions) lives
+> in `WORKER_SPEC.md` and arrives in your prompt pre-assembled — you do not read
+> it. Action procedures live in `instructions/$ACTION.md` and also arrive
+> pre-assembled. This adapter covers what is Claude-specific plus project-specific.
 
 ## Framework
-This project follows the From Idea to Code governance framework.
-
-## Required Reading — Every Iteration
-
-### Tier 1 — Always (mandatory, every iteration)
-
-Auto-loaded via @-references:
-
-- @DEVPLAN.md — current status, cold start summary, gotchas
-- @WORKER_SPEC.md — backend-agnostic worker contract
-
-### Tier 2 — Current module (mandatory for EXECUTE / REVIEW / CLOSE)
-
-After determining the active module from DEVPLAN's Current Status, read the
-relevant ARCH file using the lookup table below.
-
-| Module | ARCH file |
-|--------|----------|
-| Event Store | `ARCH_event_store.md` |
-| State Manager | `ARCH_state_manager.md` |
-| Extraction | `ARCH_extraction.md` |
-| Coaching | `ARCH_coaching.md` |
-| Transport | `ARCH_transport.md` |
-| Persona | `ARCH_persona.md` |
-| Analyst + Divergence | `ARCH_analyst.md` |
-| Context Assembler | `ARCH_context_assembler.md` |
-| Generation | `ARCH_generation.md` |
-| Review Gate | `ARCH_review_gate.md` |
-| Adversarial | `ARCH_adversarial.md` |
-| Orchestrator | `ARCH_orchestrator.md` |
-| Pipeline + Flow | `ARCH_flow.md` |
-
-### Tier 3 — On demand (read only when needed)
-
-Do NOT load these unconditionally. Read only when the action requires them:
-
-- `PROJECT.md` — only during Phase Plan (scope, constraints, success criteria)
-- `ARCHITECTURE.md` — only during Phase Plan, or when reasoning about cross-module wiring
-- `GOVERNANCE.md` — only if uncertain about process (regimes, modes, escalation rules)
-
-### Tier 4 — Reference only (load explicitly when relevant)
-
-- `DECISIONS.md` — read during Phase Review to verify no contract drift since prior decisions; otherwise on demand
-- `DEVLOG.md` / `DEVLOG_archive.md` — read during Phase Complete (DEVLOG learning review per GOVERNANCE.md)
-
-**DEVLOG.md convention:** Append new entries at the bottom (newest last).
-During phase close, archive the previous phase's entries to `DEVLOG_archive.md`.
-
-## Reference Docs to Keep in Sync
-
-These docs are not loaded by default but **MUST** be updated when their listed triggers fire. Each Build phase's step list should include an explicit "doc update" step before phase-review that names which of these the phase touched (or "none" if no doc impact). Doc updates are part of every phase's definition-of-done — not optional follow-up.
-
-| Doc | Update trigger |
-|---|---|
-| `CLI_REFERENCE.md` | Any new/changed/removed CLI flag, env var, or invocation pattern |
-| `ASSESSMENT.md` | Scoring lens status changes (§3.x ✓ / partial / NOT YET); Block A/B/C tech-debt list changes; new workstream items; new scoring or skill insights |
-| `ARCHITECTURE.md` | Component additions/removals; coupling note changes; key decisions added |
-| `ARCH_<module>.md` | Any change to that module's public interface, internals worth documenting, or data shapes |
-| `diplomat-testing-doc.md` | New test layers/tools; test infrastructure changes; deployment doc changes |
-| `TUNING.md` | BATNA semantics, provider defaults, prompt-tuning practice changes |
-| `SMOKE_RUNBOOK.md` | Bot lifecycle or smoke-checklist change |
-| `RUN_PROTOCOL.md` | Self-play pre-flight or live-run procedure change |
-| `TUNING_LOG.md` | Each live run produces an entry (run number, scenario, providers, cost, observations, decisions) |
-| `DECISIONS.md` | New architectural decision or status change to an existing one |
-
-Phase step examples: Phase 24 (Build) lists a "doc update" step that names `CLI_REFERENCE.md` (3 new flags), `TUNING.md` (asymmetric BATNA fractions + force-clamp semantics), `diplomat-testing-doc.md` (Layer 2 extraction examples location moved). Phase 22 lists `ARCHITECTURE.md` (Pipeline + Flow rows added), `ARCH_orchestrator.md` (compat shim), `ARCH_flow.md` (new, created in 22.7), `ASSESSMENT.md` (Pipeline/Flow tech-debt → ✓).
-
-This file (CLAUDE.md) provides Available Modules and Project-Specific Notes
-inline so non-plan iters don't need to load PROJECT or ARCHITECTURE for
-high-level orientation.
+i2c.
 
 ## Available Modules
 
-**Storage (leaf dependencies):**
-- Event Store: Append-only raw event log (SQLite)
-- State Manager: Structured domain state with schema-validated patches (SQLite)
+**Storage (leaf):**
+- `event_store`: append-only raw event log (SQLite)
+- `state_manager`: structured domain state with schema-validated patches (SQLite)
 
 **Processing:**
-- Extraction: Text → structured state patch via toolkit/llm_client
-- Coaching: Parse and route operator input by tag
-- Persona: Faction identity configuration with hot-reload
+- `extraction`: text → structured state patch via toolkit/llm_client
+- `coaching`: parse and route operator input by tag
+- `persona`: faction identity configuration with hot-reload
 
 **Intelligence:**
-- Analyst + Divergence: Dual-provider strategic analysis with divergence detection
+- `analyst` + `divergence`: dual-provider strategic analysis with divergence detection
 
 **Response pipeline:**
-- Context Assembler: Assemble all inputs into Decision Engine context
-- Generation: Context → response text via toolkit/llm_client
-- Adversarial: Draft → adversarial analysis via toolkit/llm_client (optional)
+- `context_assembler`: assemble all inputs into Decision Engine context
+- `generation`: context → response text via toolkit/llm_client
+- `adversarial`: draft → adversarial analysis via toolkit/llm_client (optional)
 
 **Platform:**
-- Transport: Platform I/O via toolkit/telegram_client
-- Review Gate: Human approval workflow via toolkit/telegram_client
+- `transport`: platform I/O via toolkit/telegram_client
+- `review_gate`: human approval workflow via toolkit/telegram_client
 
 **Composition:**
-- Pipeline: Per-agent capability surface (start/shutdown, store_event, extract_from, run_response, advance_to_round, etc.)
-- Flow: Scheduling strategy — `EventDrivenFlow` (production Telegram/CLI), `RoundSteppedFlow` (self-play)
-- Orchestrator: Compat factory returning `EventDrivenFlow`; see `ARCH_orchestrator.md` → `ARCH_flow.md`
+- `pipeline`: per-agent capability surface (start/shutdown, store_event, extract_from, run_response, advance_to_round)
+- `flow`: scheduling strategy — `EventDrivenFlow` (production), `RoundSteppedFlow` (self-play)
+- `orchestrator`: compat factory returning `EventDrivenFlow` (see `ARCH_flow.md`)
 
 ## Project-Specific Notes
-- **Language:** Python 3, async throughout (asyncio)
-- **Persistence:** SQLite with WAL mode, single file at data/game.db
-- **External dependencies:** toolkit project (llm_client, telegram_client, cost_accountant). No direct provider SDK imports.
-- **Test strategy:** pytest, one test file per module. Fakes for toolkit dependencies.
-- **Key constraint:** toolkit/llm_client returns plain text — Extraction must handle JSON schema enforcement locally (prompt + parse + validate)
-- **Config-driven:** All domain logic in config/ directory (prompts, schemas, routing rules, pipeline.yaml)
+- **Language:** Python 3, async throughout (asyncio).
+- **Persistence:** SQLite (WAL mode), single file at `data/game.db`.
+- **External dependencies:** `toolkit/` (sibling project) — `llm_client`,
+  `telegram_client`, `cost_accountant`. No direct provider SDK imports.
+- **Test strategy:** pytest, one test file per module; fakes for toolkit deps.
+  The suite is hermetic (runs offline).
+- **Key constraint:** `toolkit/llm_client` returns plain text — Extraction must
+  enforce JSON schema locally (prompt + parse + validate).
+- **Config-driven:** all domain logic in `config/` (prompts, schemas, routing,
+  `pipeline.yaml`).
+- **Doc-sync discipline:** each Build phase's step list must include a "doc
+  update" step naming which reference docs it touched (or "none") before phase
+  review — `CLI_REFERENCE.md`, `ASSESSMENT.md`, `ARCHITECTURE.md`,
+  `ARCH_<module>.md`, `diplomat-testing-doc.md`, `TUNING.md`, `SMOKE_RUNBOOK.md`,
+  `RUN_PROTOCOL.md`, `TUNING_LOG.md`, `DECISIONS.md`.
 
 ## Claude-Specific Tool Rules
-- **Edit tool requires fresh reads:** Before editing any file (especially DEVPLAN.md), read it immediately before the edit — not at the start of the iteration.
-- **No subagent spawning for simple tasks:** Do NOT spawn Agent(Explore) subagents for simple file discovery — use `bash find` or `bash ls` instead.
-- **Never self-judge budget.** Do NOT decide "STEP_BUDGET of N is exhausted (used M actions)" based on your own count. Call `state_machine.sh` after every completed action and do exactly what it returns. The script decrements deterministically and decides EXIT/EXECUTE/REVIEW — your arithmetic may be off (iter 54 lost 2 actions to a wrong `5 - 3 = exhausted`). See `WORKER_SPEC.md` §3 "Loop discipline."
-- **Non-interactive shell only.** No interactive editors, pagers, or git prompts. `git add -p`, `git commit` without `-m`, `git rebase -i`, and any `$EDITOR`-opening command will hang the loop (iter 80 lost ~35 min this way). See `WORKER_SPEC.md` §3 "Shell command discipline (non-interactive only)" for the full list and the recommended alternatives.
 
-## Claude-Specific Runner Info
-**Runner:** `run-iteration.sh` — runs `claude -p` per iteration, logs to `logs/loop/`.
+- **Edit tool requires fresh reads.** Before editing any source or test file,
+  read it immediately before the edit — not at the start of the iteration.
+  Governance state arrived fresh in your prompt; this applies to source files.
+- **No subagent spawning for routine work.** Do NOT spawn `Agent(Explore)` for
+  simple file discovery — use `bash find` / `bash ls`. Subagents are for
+  genuinely open-ended research.
+- **Non-interactive shell only.** The loop has no stdin. Commands that open
+  editors (`git commit` without `-m`, `git rebase -i`, `vim`), prompt for input
+  (`read`, `sudo` without `-n`), or page (`git log` without `--no-pager`,
+  `less`) will hang. Use discrete edits or `git restore`; `git add -p` is
+  interactive-only.
+- **State writes go through `i2c state`.** Never `sed` / `echo >` / direct edits
+  on `.state/` files — the CLI guarantees atomic, schema-validated writes.
+- **Use `i2c state --from-file` for multi-line or `$`-laden payloads.** Write
+  the JSON to a temp file and pass `--from-file <path>`.
 
-**Slash commands:** Project commands in `.claude/commands/` — these are NOT
-Skill-tool skills. To use them, read the `.md` file and follow its instructions.
-Do NOT call them via the Skill tool.
+## Output Contract
 
-| Action (from WORKER_SPEC) | Claude command file |
-|---------------------------|---------------------|
-| Phase Plan | `.claude/commands/phase-plan.md` |
-| Step Execution | `.claude/commands/step-done.md` |
-| Phase Review | `.claude/commands/phase-review.md` |
-| Phase Complete | `.claude/commands/phase-complete.md` |
+End every invocation with exactly these two lines — no text after:
 
-## Autonomy
-This project supports autonomous execution. When invoked with
-`autonomous: true` in the prompt, commands auto-proceed and the agent follows
-`WORKER_SPEC.md`. Otherwise, commands pause for human approval.
+```
+EXIT: 0 | 2
+REASON: <one-line summary>
+```
 
-See WORKER_SPEC.md §8 for mode definitions (autonomous vs. supervised).
+| Code | Meaning |
+|------|---------|
+| 0 | Normal completion — runner reads `.state/project.json` for next dispatch |
+| 2 | Error — judgment-based escalation or health check tripped |
+
+Do not omit it — prose-only output makes the runner report
+`exit=2 "signal missing or malformed"` even when the work landed in `.state/`
+and the commit.
+
+## Mode
+
+Mode (autonomous vs. supervised) is set by the runner via the assembler's
+`--mode` flag; the assembled prompt's framing reflects it. Autonomous (default):
+apply, commit, transition, emit the signal. Supervised: surface changes before
+committing. You do not choose the mode.

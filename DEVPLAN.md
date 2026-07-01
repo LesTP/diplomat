@@ -1,11 +1,15 @@
 ---
 phase: 49
-blocked: true
-state: close
+blocked: false
+state: plan
 steps_remaining: 0
 ---
 
-# Diplomat — Development Plan
+> **ON i2c NOW (migrated 2026-06-30).** Do NOT run `run-iteration.sh` — diplomat is
+> driven by the i2c bot (`/setdir diplomat` + `/run`). Live state lives in
+> `.state/`; this DEVPLAN is a frozen pre-migration snapshot/archive.
+
+# Diplomat - Development Plan
 
 <!-- This file is the primary state document for cold-start sessions.
      Workers read it on every cold start to determine what to do next.

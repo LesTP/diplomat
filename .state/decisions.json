@@ -1,0 +1,492 @@
+[
+  {
+    "id": "D-1",
+    "title": "Toolkit integration over direct SDK dependencies",
+    "status": "closed",
+    "decision": "All LLM calls go through toolkit/llm_client and all Telegram I/O goes through toolkit/telegram_client. No direct imports of `anthropic`, `openai`, or `python-telegram-bot` SDKs. Cost governance via toolkit/cost_accountant.",
+    "rationale": "Three sibling projects (Phosphene, Codexbot, TGBot) already consume toolkit. Using the same abstractions gives Diplomat provider rotation, rate-limit handling, cost tracking, and message formatting for free. Eliminates redundant SDK integrations.",
+    "revisit_if": "Diplomat needs a toolkit capability that doesn't exist yet (e.g., structured output enforcement) and adding it to toolkit is higher cost than a local workaround.",
+    "priority": "critical",
+    "timestamp": "2026-05-24T00:00:00Z"
+  },
+  {
+    "id": "D-2",
+    "title": "Single LLMAnalyst implementation parameterised by provider",
+    "status": "closed",
+    "decision": "One `LLMAnalyst` class used for both primary and secondary analysis, configured with different `LLMConfig` objects (different providers, same interface). Not separate `ClaudeAnalyst` / `OpenAIAnalyst` classes.",
+    "rationale": "The analysis logic is identical — only the provider differs. Provider selection is a config concern, not a code concern. Adding a third analyst (e.g., Google) is a pipeline.yaml change, not a new class.",
+    "revisit_if": "Provider-specific features (e.g., Claude's extended thinking) become important for analysis quality and can't be handled through toolkit/llm_client's interface.",
+    "priority": "high",
+    "timestamp": "2026-05-24T00:00:00Z"
+  },
+  {
+    "id": "D-3",
+    "title": "Python as implementation language",
+    "status": "closed",
+    "decision": "Python for all modules. Async throughout (asyncio).",
+    "rationale": "Consistent with toolkit (Python), good Telegram libraries, easy SQLite handling, good fit for Pi deployment. Same language as all sibling projects.",
+    "revisit_if": "Performance on Pi becomes a problem, or a better-supported SDK appears in another language.",
+    "priority": "critical",
+    "timestamp": "2026-05-24T00:00:00Z"
+  },
+  {
+    "id": "D-4",
+    "title": "SQLite as sole persistence layer",
+    "status": "closed",
+    "decision": "Single SQLite file for all state (events, domain tables, coaching, intelligence, reviews).",
+    "rationale": "Simplest option that survives restarts. No external database dependencies. Fits the single-process, single-machine model. Same pattern as Codexbot.",
+    "revisit_if": "Concurrent write contention becomes a real problem, or state needs to be shared across machines.",
+    "priority": "high",
+    "timestamp": "2026-05-24T00:00:00Z"
+  },
+  {
+    "id": "D-5",
+    "title": "Review gate enabled by default",
+    "status": "closed",
+    "decision": "`review_gate.enabled: true` for the first game. No autonomous posting.",
+    "rationale": "First game is about calibrating the faction prompt and building operator trust. The edit log from the review gate is the primary feedback mechanism for prompt improvement.",
+    "revisit_if": "The operator consistently approves without edit for multiple consecutive rounds, indicating the prompt is well-calibrated.",
+    "priority": "high",
+    "timestamp": "2026-05-24T00:00:00Z"
+  },
+  {
+    "id": "D-6",
+    "title": "Extraction remains stateless",
+    "status": "closed",
+    "decision": "The Extraction module processes one supplied text batch at a time and does not own debounce windows, batching, or event scheduling.",
+    "rationale": "`ARCH_extraction.md` already defines independent `extract()` calls, and Orchestrator has the pipeline context needed to batch transport events. Keeping Extraction stateless makes it easy to test with fake LLM responses and avoids coupling it to round timing before Orchestrator is implemented.",
+    "revisit_if": "Real game traffic shows that extraction quality depends on stateful message accumulation that cannot be represented by Orchestrator-provided batches.",
+    "priority": "high",
+    "timestamp": "2026-05-25T00:00:00Z"
+  },
+  {
+    "id": "D-7",
+    "title": "Coaching remains a pure config-driven parser",
+    "status": "closed",
+    "decision": "Phase 3 will implement Coaching as a stateless parser that loads tag routes and command allowlists from `config/coaching_routes.yaml`; persistence, command dispatch, and INTEL forwarding stay with later Orchestrator wiring.",
+    "rationale": "`ARCH_coaching.md` defines Coaching as pure parsing with no state. Keeping routing data in config preserves domain flexibility and makes Phase 3 testable without storage or Telegram dependencies.",
+    "revisit_if": "Operator coaching requires durable queue semantics before Context Assembler or Orchestrator integration.",
+    "priority": "high",
+    "timestamp": "2026-05-25T00:00:00Z"
+  },
+  {
+    "id": "D-8",
+    "title": "Phase 4 targets Telegram bot transport plus CLI test transport",
+    "status": "closed",
+    "decision": "Phase 4 will implement the platform-neutral Transport contract, `CLITransport` for deterministic local testing, and `TelegramBotTransport` through `toolkit/telegram_client`. `TelethonUserTransport` remains deferred unless the game moderator confirms bot-to-bot messaging is blocked.",
+    "rationale": "MVP scope requires Telegram bot I/O and all Telegram access must go through toolkit. CLI transport gives repeatable coverage without live credentials. Building Telethon now would add a direct SDK dependency and expand scope before the account-mode question is answered.",
+    "revisit_if": "The moderator requires a user account, or toolkit lacks the Telegram client surface needed for polling and sending.",
+    "priority": "high",
+    "timestamp": "2026-05-25T00:00:00Z"
+  },
+  {
+    "id": "D-9",
+    "title": "Persona strips CURRENT ROUND CONTEXT section from faction_prompt.txt",
+    "status": "closed",
+    "decision": "`faction_prompt.txt` may contain a `## CURRENT ROUND CONTEXT` section. `FileBasedPersona.get_base_prompt()` returns everything before that marker, allowing the operator to optionally include a human-readable placeholder in the file without it leaking into the base prompt. `build_round_context()` constructs the round context string dynamically from caller-supplied inputs.",
+    "rationale": "Keeps the faction prompt file self-documenting (the operator can annotate the expected round context format) while ensuring the dynamic context is always freshly assembled from live state, not read from a static file that may be stale.",
+    "revisit_if": "The file format needs to support multiple sections or variable interpolation within the base prompt.",
+    "priority": "high",
+    "timestamp": "2026-05-25T00:00:00Z"
+  },
+  {
+    "id": "D-10",
+    "title": "Generation parses review-gate JSON locally",
+    "status": "closed",
+    "decision": "Phase 8 will implement a single `LLMGenerator` that consumes `DecisionContext` and parses review-gate JSON (`response`, `reasoning`) locally while preserving a plain-text mode when review gate output is disabled.",
+    "rationale": "`toolkit/llm_client` returns plain text and the Review Gate needs both a draft and reasoning for human approval. Keeping parsing local mirrors Extraction and Analyst, avoids a toolkit contract expansion, and preserves provider selection as configuration/dependency injection.",
+    "revisit_if": "toolkit adds first-class structured output with portable schema enforcement across providers.",
+    "priority": "high",
+    "timestamp": "2026-05-25T00:00:00Z"
+  },
+  {
+    "id": "D-11",
+    "title": "Review gate timeout is configurable auto-block",
+    "status": "closed",
+    "decision": "Phase 9 will resolve the provisional Review Gate timeout contract with a configurable `timeout_seconds`. When set, `TelegramReviewGate.submit()` auto-blocks after the timeout and logs the blocked decision; when unset, it waits indefinitely for an operator command.",
+    "rationale": "Auto-block is the safest default for a diplomacy agent because it prevents stale or unreviewed drafts from being posted after a round boundary. Keeping the timeout optional preserves local/manual workflows where the operator intentionally wants the gate to wait.",
+    "revisit_if": "Orchestrator round management needs carry-forward drafts or explicit operator escalation instead of blocking.",
+    "priority": "high",
+    "timestamp": "2026-05-25T00:00:00Z"
+  },
+  {
+    "id": "D-12",
+    "title": "Adversarial remains optional, stateless, and locally schema-validated",
+    "status": "closed",
+    "decision": "Phase 10 will implement `LLMAdversarialReader` as an independent optional module that validates JSON analysis locally against `config/schemas/adversarial.json`, while leaving skip behavior and persistence to the Orchestrator.",
+    "rationale": "`ARCH_adversarial.md` defines the reader as standalone and optional, and `toolkit/llm_client` returns plain text. Local validation matches the established Extraction, Analyst, and Generation pattern without expanding toolkit contracts or coupling the module to pipeline state.",
+    "revisit_if": "toolkit adds portable structured output enforcement or Orchestrator needs adversarial reads to own persistence.",
+    "priority": "high",
+    "timestamp": "2026-05-26T00:00:00Z"
+  },
+  {
+    "id": "D-13",
+    "title": "External dependency fakes must be derived from source, not from prose",
+    "status": "closed",
+    "decision": "When a module depends on an external library (toolkit, etc.), test fakes must match the real library's type signatures — not the ARCH file's prose description. If the library is not importable in the worker's environment, the worker must read the library's source files (ARCH docs, type definitions, function signatures) from the shared filesystem to derive correct fakes. Unverified fakes must be logged as warnings in DEVLOG.",
+    "rationale": "Phases 2–11 built fakes from ARCH prose (\"calls toolkit/llm_client.complete()\") without verifying the real function signature. This produced three integration mismatches: Message objects vs dicts, LLMConfig vs plain dict, LLMResponse vs plain str. All 165 unit tests passed against incorrect fakes. The mismatches were only caught during the post-implementation dependency probe — after 11 phases of code had been written against the wrong interface. An adapter layer (ToolkitLLMAdapter, DiplomatCostGate) was required to bridge the gap.",
+    "revisit_if": "The governance framework adds a structural mechanism (interface snapshot files, cross-project contract tests) that makes this rule redundant.",
+    "priority": "critical",
+    "timestamp": "2026-05-27T00:00:00Z"
+  },
+  {
+    "id": "D-14",
+    "title": "Phase 12 moves Orchestrator persistence fallbacks into State Manager",
+    "status": "closed",
+    "decision": "Phase 12 will expand `SQLiteStateManager` with explicit persistence methods for coaching, intelligence, game-state key/value updates, adversarial reads, and coaching consumption, then remove the Orchestrator's raw SQLite fallback code for those operations.",
+    "rationale": "The Orchestrator should compose modules, not own persistence details for State Manager tables. Making these operations public State Manager APIs keeps table ownership in one module, removes duplicate SQLite write paths, and makes Orchestrator tests use the same contract production code uses.",
+    "revisit_if": "State Manager persistence needs become large enough to justify a separate repository/service boundary rather than a module API expansion.",
+    "priority": "high",
+    "timestamp": "2026-05-27T00:00:00Z"
+  },
+  {
+    "id": "D-15",
+    "title": "Phase 13 integration tests use injected fakes only",
+    "status": "closed",
+    "decision": "Phase 13 pipeline integration tests will exercise cross-module Diplomat behavior through Orchestrator wiring while injecting `TestTransport`, `FakeLLMClient`, `FakeCostAccountant`, and `StubAnalyst`; they will not call real toolkit providers or Telegram APIs.",
+    "rationale": "Layer 3 tests should prove Diplomat's pipeline data flow, persistence effects, and failure handling deterministically. Real provider and Telegram compatibility is already covered by adapter probes and belongs to deployment/integration validation, not the core regression suite.",
+    "revisit_if": "A stable local toolkit simulator becomes available and can run without credentials or network access.",
+    "priority": "high",
+    "timestamp": "2026-05-27T00:00:00Z"
+  },
+  {
+    "id": "D-16",
+    "title": "Phase 14 transcript replay stays deterministic and fake-backed",
+    "status": "closed",
+    "decision": "Phase 14 will add synthetic JSON transcripts that intentionally match `RuleBasedExtractor` regex patterns, replay them through the Phase 13 fake-backed Orchestrator integration fixture, and assert on persisted final state rather than generated prose quality.",
+    "rationale": "Transcript replay should validate full-pipeline state accumulation across round boundaries without introducing live API calls, prompt variability, or Telegram dependencies. Keeping fixture text aligned to deterministic rule-based extraction makes failures actionable and keeps Layer 3 regression tests stable.",
+    "revisit_if": "Layer 3 replay needs to validate LLM extraction quality rather than pipeline state flow; that belongs in Layer 2 prompt regression or a separately costed integration suite.",
+    "priority": "high",
+    "timestamp": "2026-05-27T00:00:00Z"
+  },
+  {
+    "id": "D-17",
+    "title": "Phase 15 smoke setup uses OpenAI-only cheap config first",
+    "status": "closed",
+    "decision": "Phase 15 will prepare a dedicated smoke-test pipeline config that uses OpenAI `gpt-4.1-mini` for primary and secondary LLM roles, keeps `RuleBasedExtractor`, enables the live Telegram review gate, disables adversarial review, and applies tight per-round/session budgets.",
+    "rationale": "The smoke test needs to validate real Telegram, toolkit imports, LLM calls, and review-gate wiring with the smallest practical credential and cost surface. A separate config preserves the production-oriented `pipeline.yaml` while giving the Pi operator a low-cost startup path.",
+    "revisit_if": "OpenAI credentials are unavailable during deployment or the cheapest model fails required response quality for smoke validation.",
+    "priority": "high",
+    "timestamp": "2026-05-27T00:00:00Z"
+  },
+  {
+    "id": "D-18",
+    "title": "Phase 16 deployment readiness is operational hardening only",
+    "status": "closed",
+    "decision": "Phase 16 will limit work to regression coverage for smoke-test fixes, two-channel Telegram deployment documentation, a Raspberry Pi systemd unit, production log cleanup, and final regression verification. It will not tune game rules, faction strategy, round mechanics, or prompt content.",
+    "rationale": "The live smoke test proved the core pipeline works. The remaining gap before deployment is operational readiness and test coverage for the fixes found during smoke testing; game-specific configuration should stay a deployment-time concern.",
+    "revisit_if": "Deployment reveals a runtime failure that cannot be fixed without changing pipeline contracts or game-specific behavior.",
+    "priority": "high",
+    "timestamp": "2026-05-27T00:00:00Z"
+  },
+  {
+    "id": "D-19",
+    "title": "Phase 17 prompt regression stays module-scoped and adapter-compatible",
+    "status": "closed",
+    "decision": "Phase 17 will build Layer 2 prompt regression infrastructure around module-level scenarios, structural JSON-path checks, and optional LLM-as-judge checks that use the same injected `llm_client.complete(messages, config, tier)` adapter shape as Diplomat modules. It will not exercise the full Orchestrator pipeline or import provider SDKs/toolkit directly.",
+    "rationale": "Prompt regression needs to catch prompt-quality regressions with a smaller, more targeted surface than Layer 3 pipeline replay. Keeping the harness module-scoped makes failures actionable, while reusing the adapter shape preserves the no-direct-SDK contract and lets the suite run on the Pi where toolkit is installed.",
+    "revisit_if": "Prompt regressions primarily arise from cross-module context assembly rather than individual module behavior.",
+    "priority": "high",
+    "timestamp": "2026-05-27T00:00:00Z"
+  },
+  {
+    "id": "D-20",
+    "title": "Per-event extraction replaces cancel-and-replace debounce",
+    "status": "closed",
+    "decision": "Rewrite Orchestrator message extraction from a single `_debounce_task` that cancels the previous message's extraction to `_extraction_tasks: set[asyncio.Task]` where each message gets its own independent extraction task with self-cleanup via `done_callback`.",
+    "rationale": "Self-play Run 2 revealed that the cancel-and-replace pattern silently dropped all messages except the last in a burst. In a 3-faction game, only `[ROUND END]` was ever extracted because it arrived last and cancelled all faction messages. This is also a production bug — in a real Telegram game, multiple players could send messages within the debounce window. The per-event model ensures every message is extracted regardless of arrival timing.",
+    "revisit_if": "Extraction costs become a concern under genuine burst traffic (e.g., 50+ messages in seconds). In that case, consider batching rather than cancellation.",
+    "priority": "critical",
+    "timestamp": "2026-05-28T00:00:00Z"
+  },
+  {
+    "id": "D-21",
+    "title": "All LLM modules use toolkit structured_call",
+    "status": "closed",
+    "decision": "Rewire all four LLM-consuming modules (extraction, analyst, adversarial, generation) to use `toolkit.structured_llm.structured_call()` instead of manual prompt assembly + parse + validate patterns. `structured_call` handles schema injection into the system prompt, few-shot example formatting, JSON parsing, schema validation, and retry-with-error-feedback.",
+    "rationale": "Each module independently reimplemented the same pattern: build messages with schema, call LLM, parse JSON, validate, handle errors. Self-play Run 3 showed that ~30% of extraction calls failed schema validation when using narrative-only prompts. `structured_call` with few-shot examples and retry reduced failures to near zero. Centralizing this in toolkit eliminates duplication and ensures consistent enforcement across all modules.",
+    "revisit_if": "Provider-native structured output (OpenAI `response_format: json_schema`) becomes available through toolkit — would replace the prompt-based enforcement with token-level enforcement.",
+    "priority": "high",
+    "timestamp": "2026-05-28T00:00:00Z"
+  },
+  {
+    "id": "D-22",
+    "title": "Extraction tracks proposals, not just binding commitments",
+    "status": "closed",
+    "decision": "Broaden the extraction prompt's definition of a \"promise\" to include concrete proposals with specific terms, conditional offers, and demands — not just explicit binding commitments.",
+    "rationale": "Self-play Run 6 (Three-Party Coalition) tracked only 1 promise despite 12 messages full of specific proposals (\"I propose we split 70/14\"). The original definition (\"a promise requires a clear commitment\") was too strict for negotiation language where parties make offers, demands, and conditional proposals before anything becomes binding. Tracking proposals gives the intelligence pipeline material to work with.",
+    "revisit_if": "Over-extraction becomes a problem (too many low-quality promise entries). May need a confidence threshold or a separate \"proposals\" entity type.",
+    "priority": "high",
+    "timestamp": "2026-05-28T00:00:00Z"
+  },
+  {
+    "id": "D-23",
+    "title": "Scenario compiler is a production tool, not test infrastructure",
+    "status": "closed",
+    "decision": "Place the scenario compiler in `src/tools/` rather than `tests/self_play/`. It is an operator-facing pre-game preparation tool, not test scaffolding.",
+    "rationale": "The scenario compiler converts a narrative game description into scored persona files with point tables, BATNAs, deception tactics, and game-mode-specific behavioral instructions. This is exactly what a human operator would do before a real game — read the rules, assess their faction's interests, and prepare a strategy. Placing it in `src/tools/` signals that it's part of the operational toolkit, usable both in self-play and in real game preparation.",
+    "revisit_if": "The compiler grows complex enough to warrant its own module with tests alongside (currently tested via `tests/test_scenario_compiler.py`).",
+    "priority": "high",
+    "timestamp": "2026-05-28T00:00:00Z"
+  },
+  {
+    "id": "D-24",
+    "title": "Game-mode classification drives persona behavioral style",
+    "status": "closed",
+    "decision": "The scenario compiler classifies each scenario as cooperative, competitive, or mixed, and the persona template injects mode-specific behavioral instructions accordingly. Competitive mode instructs agents to maximize their own score, exploit others' urgency, and threaten to walk away. Cooperative mode instructs mutual value creation while maximizing own share.",
+    "rationale": "Self-play Runs 1-4 showed that LLMs default to cooperative behavior regardless of scenario structure. Without explicit competitive instructions, agents converge on reasonable deals too quickly and never employ deception or hardball tactics. The game-mode classification lets the scenario structure (not a global toggle) determine how competitive agents should be. Dirty bargaining Run 5 with explicit competitive personas produced dramatically more strategic play including successful bluffs and progressive concession tactics.",
+    "revisit_if": "A more nuanced per-issue competitiveness model is needed (some issues cooperative, others zero-sum within the same negotiation).",
+    "priority": "high",
+    "timestamp": "2026-05-28T00:00:00Z"
+  },
+  {
+    "id": "D-25",
+    "title": "Phase 21 cleanup stays in Build regime",
+    "status": "closed",
+    "decision": "Phase 21 will execute the existing module-boundary cleanup plan as nine state-machine-tracked Build steps, with review and close handled by the autonomous loop rather than as an executable checkbox.",
+    "rationale": "The work is already scoped to concrete API cleanup, adapter attribution plumbing, and duplicate wiring removal. Keeping review/close out of the executable checklist prevents the loop from treating governance actions as code steps and lets `STOP_BEFORE_REVIEW=true` stop at the intended review gate.",
+    "revisit_if": "A Phase 21 step requires a contract change outside Orchestrator/self-play/LLM adapter boundaries.",
+    "priority": "high",
+    "timestamp": "2026-05-31T00:00:00Z"
+  },
+  {
+    "id": "D-26",
+    "title": "Phase 22 extracts Pipeline and Flow in Build regime",
+    "status": "closed",
+    "decision": "Phase 22 will split Orchestrator into a per-agent `Pipeline` capability interface plus `Flow` scheduling strategies, with review and close handled by the autonomous loop rather than as an executable checkbox.",
+    "rationale": "Production and self-play already share the same module capabilities but differ in scheduling. Making that boundary explicit lets new applications add a Flow without copying Orchestrator internals or inventing a parallel driver.",
+    "revisit_if": "Extraction exposes a cross-module contract change that cannot be contained inside Orchestrator, Pipeline, Flow, and self-play wiring.",
+    "priority": "high",
+    "timestamp": "2026-05-31T00:00:00Z"
+  },
+  {
+    "id": "D-28",
+    "title": "Phase 24 closes small tooling debt in Build regime",
+    "status": "closed",
+    "decision": "Phase 24 will execute a fixed Build checklist of small standalone improvements: toolkit OpenAI dispatch tests, asymmetric BATNA CLI support, force-clamped BATNAs, game-mode runtime override, extraction examples moved to config JSON, and schema-derived entity type references. Review and close remain state-machine actions, not executable checklist items.",
+    "rationale": "These items are already scoped, testable, and do not require live provider calls or product judgment. Keeping them in one Build phase closes known tooling and Level 1 modularization debt while preserving the autonomous loop's review gate.",
+    "revisit_if": "Any step requires expanding runtime contracts outside the named CLI/self-play/extraction/reconciliation surfaces.",
+    "priority": "high",
+    "timestamp": "2026-05-31T00:00:00Z"
+  },
+  {
+    "id": "D-29",
+    "title": "Phase 25 makes tmux the service supervisor",
+    "status": "closed",
+    "decision": "Phase 25 will rewrite `tools/service.sh` around the working tmux window pattern. The default supervising session is `bot`, overridable with `BOT_TMUX_SESSION`; commands skip `sudo -u claude` when already running as `claude`; missing sessions fail with a clear create-session command instead of auto-creating.",
+    "rationale": "The 2026-05-31 smoke showed `nohup` children die when started through `incus exec` because the transient cgroup is torn down. A tmux pane in the long-lived `bot` session survived the same launch path, and making that pattern the canonical service interface keeps Pi operations to one wrapped command while preserving a test override.",
+    "revisit_if": "The deployment host moves away from the long-lived tmux supervision model or the operator standardizes on systemd outside `incus exec`.",
+    "priority": "high",
+    "timestamp": "2026-06-01T00:00:00Z"
+  },
+  {
+    "id": "D-30",
+    "title": "Phase 26 adds structured per-event logging in Build regime",
+    "status": "closed",
+    "decision": "Phase 26 will add structured, grep-able logging across startup, Telegram transport, event-driven flow, pipeline routing, extraction, round boundaries, and response completion. Logs will stream to stdout/stderr through the normal service `tee` path, default to INFO, and support `DIPLOMAT_LOG_LEVEL` override plus config-level defaults.",
+    "rationale": "The Phase 19 smoke exposed a routing/tagging failure that required temporary `print` instrumentation to diagnose. Making per-event logging part of the runtime contract gives future smokes an auditable diagnostic surface without ad-hoc code changes or duplicate log-file writers.",
+    "revisit_if": "The runtime moves to a structured log collector that requires JSON output or a non-stream handler.",
+    "priority": "high",
+    "timestamp": "2026-06-01T00:00:00Z"
+  },
+  {
+    "id": "D-32",
+    "title": "Phase 28 coached-game uses module_overrides injection, not YAML swap",
+    "status": "closed",
+    "decision": "`coached_game.py` injects `TelegramReviewGate` for the coached faction via `module_overrides[\"review_gate\"]` in the `Orchestrator` constructor rather than writing a custom pipeline YAML with `class: TelegramReviewGate`. `FakeTelegramReviewGate` is a dedicated dry-run stand-in (not `AutoApproveReviewGate`) so test assertions can distinguish the coached faction's gate from auto-approve by type.",
+    "rationale": "`module_overrides` is the existing pattern for injecting test doubles (`TestTransport`). Using the same mechanism for the review gate keeps `_generate_faction_config()` unchanged and makes the coaching wiring visible in one place (`setup()` override). A dedicated fake class avoids coupling test assertions to production-only imports while keeping the dry-run path completely free of Telegram dependencies.",
+    "revisit_if": "A future coached-game variant needs to configure the review gate primarily through YAML (e.g., different timeout per run file) — at that point, adding `TelegramReviewGate` to the YAML registry becomes the cleaner path.",
+    "priority": "high",
+    "timestamp": "2026-06-02T00:00:00Z"
+  },
+  {
+    "id": "D-31",
+    "title": "Phase 27 stays metric-only in Build regime",
+    "status": "closed",
+    "decision": "Phase 27 will add baseline-normalized no-deal-aware scoring metrics, report rendering, a historical backfill tool, and documentation updates without changing scorer prompts, agent behavior, provider routing, or partial-consensus deal detection.",
+    "rationale": "Run 9 showed the current `pareto_efficiency` metric ranks no-deal outcomes by BATNA height rather than negotiated improvement. Companion fields can correct post-game interpretation while preserving the existing all-faction convergence scorer and keeping partial-consensus scoring as a separate Phase 28 candidate.",
+    "revisit_if": "Later tuning work needs the normalized surplus metrics to influence prompts or runtime negotiation strategy rather than remain diagnostic outputs.",
+    "priority": "high",
+    "timestamp": "2026-06-01T00:00:00Z"
+  },
+  {
+    "id": "D-33",
+    "title": "Phase 29 baseline scorers stay diagnostic-only in Build regime",
+    "status": "closed",
+    "decision": "Phase 29 will add equal-split, BATNA-clearing, and Nash bargaining baseline scorers to the self-play scoring pipeline, plus report rendering, backfill support, and documentation updates, without changing negotiation behavior, scenario compilation, or provider routing.",
+    "rationale": "The new metrics answer \"did negotiation outperform naive strategies?\" in a way that is comparable across scenarios while keeping the scoring layer purely observational. That preserves the existing runtime contract and keeps the phase inside the current self-play/test surface.",
+    "revisit_if": "A later tuning phase needs these baselines to influence prompts or live decision-making rather than remain post-game diagnostics.",
+    "priority": "high",
+    "timestamp": "2026-06-03T00:00:00Z"
+  },
+  {
+    "id": "D-34",
+    "title": "Phase 30 keeps OpenRouter support as a thin OpenAI-compatible adapter",
+    "status": "open",
+    "decision": "Phase 30 will add `OpenRouterProvider` as a thin wrapper around the OpenAI-compatible client, wire `\"openrouter\"` through provider selection and self-play env loading, add representative OpenRouter pricing entries, and keep the phase scoped to provider plumbing, probe support, and docs.",
+    "rationale": "OpenRouter is a provider concern, not a new runtime behavior. Keeping the phase narrow preserves the existing `toolkit/llm_client` contract, avoids broader refactors, and lets the phase land as a pure build step.",
+    "revisit_if": "OpenRouter needs provider-specific behavior beyond OpenAI-compatible request/response handling or a later provider abstraction refactor is warranted.",
+    "priority": "high",
+    "timestamp": "2026-06-03T00:00:00Z"
+  },
+  {
+    "id": "D-35",
+    "title": "Phase 31 stays scoped to transport-routed operator review handling",
+    "status": "closed",
+    "decision": "Phase 31 will replace `TelegramReviewGate` with a transport-routed `OperatorReviewGate`, add message chunking, lazy fetch for reasoning/adversarial sections, and dispatcher pass-through for non-review slash commands. Buttons and callback-query UX remain out of scope.",
+    "rationale": "The current product issue is not \"more UI\", it is that the review gate is too tightly coupled to Telegram polling and a single oversized message. Keeping the phase limited to transport reuse and command routing fixes the actual failure modes while preserving the existing operator text-command workflow.",
+    "revisit_if": "A later operator UX pass explicitly adds callback-query support or another review-channel interaction model.",
+    "priority": "high",
+    "timestamp": "2026-06-04T00:00:00Z"
+  },
+  {
+    "id": "D-39",
+    "title": "No inline buttons in Phase 31 OperatorReviewGate",
+    "status": "closed",
+    "decision": "Telegram inline buttons are out of scope for Phase 31. Text commands (`/approve`, `/edit:`, `/block`, `/reasoning`, `/adversarial`) cover the same UX surface.",
+    "rationale": "`toolkit/telegram_client` does not surface `callback_query` updates. Building that pipeline is a separate project. Text commands have the same result with no new platform surface.",
+    "revisit_if": "A later operator UX pass adds callback_query support to the toolkit transport.",
+    "priority": "high",
+    "timestamp": "2026-06-04T00:00:00Z"
+  },
+  {
+    "id": "D-40",
+    "title": "Lazy fetch for Reasoning and Adversarial sections",
+    "status": "closed",
+    "decision": "Only the draft is pushed eagerly on `submit()`. Operator types `/reasoning` or `/adversarial` to fetch deeper context on demand.",
+    "rationale": "Reduces noise on routine approvals where the operator only needs the draft. Avoids bloating every review message with sections that may not be needed.",
+    "revisit_if": "Operator feedback shows they always want reasoning/adversarial inline — at that point, make eager push the default and remove lazy-fetch path.",
+    "priority": "high",
+    "timestamp": "2026-06-04T00:00:00Z"
+  },
+  {
+    "id": "D-41",
+    "title": "Concurrent submit raises RuntimeError",
+    "status": "closed",
+    "decision": "`OperatorReviewGate` holds a single `_pending` slot. Concurrent `submit()` while a review is in progress raises `RuntimeError(\"OperatorReviewGate has a pending review\")`.",
+    "rationale": "The current pipeline never concurrent-submits per agent. Raising hard is the correct contract signal if that invariant ever breaks, rather than silently queuing or overwriting.",
+    "revisit_if": "The pipeline architecture changes to support concurrent per-agent response pipelines — upgrade the single slot to a keyed dict at that point.",
+    "priority": "high",
+    "timestamp": "2026-06-04T00:00:00Z"
+  },
+  {
+    "id": "D-42",
+    "title": "Chunk-mid-send failure aborts review with blocked decision",
+    "status": "closed",
+    "decision": "If transport.send() raises during the eager draft send, `submit()` returns `ReviewDecision(action=\"blocked\", edit_notes=\"transport error: <e>\")`, clears `_pending`, logs via state_manager, then re-raises after logging.",
+    "rationale": "Transport already handles retries on individual sends. If it still fails, the review session collapses cleanly rather than leaving partial messages that confuse the operator. The caller sees the exception and can surface it.",
+    "revisit_if": "A future transport layer adds its own idempotent retry and the abort-on-partial-send behavior becomes wrong.",
+    "priority": "high",
+    "timestamp": "2026-06-04T00:00:00Z"
+  },
+  {
+    "id": "D-43",
+    "title": "Hard rename TelegramReviewGate → OperatorReviewGate",
+    "status": "closed",
+    "decision": "All production code, tests, configs, and registry entries rename `TelegramReviewGate` to `OperatorReviewGate`. No back-compat shim or re-export.",
+    "rationale": "There is only one in-tree consumer outside the production config (`coached_game.py`). Back-compat shims are anti-modular and would survive into future phases. The rename is the correct permanent signal that the gate is no longer Telegram-specific.",
+    "revisit_if": "An external consumer (outside this repo) depended on the old name — would need a shim there, not here.",
+    "priority": "high",
+    "timestamp": "2026-06-04T00:00:00Z"
+  },
+  {
+    "id": "D-44",
+    "title": "Coached-mode operator-input bridge",
+    "status": "closed",
+    "decision": "`CoachedGameEnvironment` spawns a background `_listen_for_operator` task that consumes the wrapped `TelegramBotTransport.listen()` iterator and forwards operator-tagged events to the coached agent's `pipeline.dispatch_operator`. The task is cancelled in `teardown`.",
+    "rationale": "Phase 31's `OperatorReviewGate` is a passive handler that relies on `Pipeline.dispatch_operator → review_gate.handle_command`. `EventDrivenFlow.process_event` provides that routing in production; `RoundSteppedFlow` does not, and `CoachedGameTransport` only consumes the local injected-event queue. Without a dedicated bridge, the coached game hangs at the first review prompt (observed live 2026-06-04 during Run 13 setup — operator typed /state, /status, /approve to no effect). Reusing `TelegramBotTransport.listen()` rather than re-implementing chat-id routing keeps the bridge minimal and consistent with the production path.",
+    "revisit_if": "A future `RoundSteppedFlow` consumer needs operator-input bridging too — promote `_listen_for_operator` to a flow-level helper or a generic `OperatorBridge` module rather than duplicating in each environment.",
+    "priority": "high",
+    "timestamp": "2026-06-04T00:00:00Z"
+  },
+  {
+    "id": "D-45",
+    "title": "No controlled re-test of Gemini coached-vs-uncoached defection",
+    "status": "closed",
+    "decision": "Do not run a second uncoached Gemini-flash Water Rights symmetric game to test whether Run 13's R3→R4 defection (γ pivoting from Heavy-Downstream to Shared) is reproducible vs Run 12b's clean Pareto deal on the same model + same BATNAs.",
+    "rationale": "Operator 2026-06-04: `I do suspect that these differences are also stochastic and harness-related, not just a property of the model so don't want to pursue this right now.'' Two single-game data points cannot distinguish stochasticity from coached-pathway timing from generation.txt conciseness pressure. A meaningful answer would require N≥3 per condition (uncoached vs coached, with and without conciseness rewrite), which is an experiment, not a debug. Skip until a future Gemini run on this model shows a third defection or until coached-vs-uncoached deltas are themselves the experimental subject.",
+    "revisit_if": "A future Gemini run on Water Rights or similar shows another R3→R4 defection — at which point the pattern is worth characterizing systematically.",
+    "priority": "medium",
+    "timestamp": "2026-06-04T00:00:00Z"
+  },
+  {
+    "id": "D-46",
+    "title": "Toolkit-level Telegram auto-chunking",
+    "status": "closed",
+    "decision": "Move oversized Telegram message splitting out of Diplomat's review gate and into the shared toolkit transport. `TelegramClient.send_message` now auto-chunks oversize content, and `split_message` remains available for explicit chunking use cases.",
+    "rationale": "Review-gate chunking duplicated transport concerns and encouraged callsites to own a Telegram-specific limit that belongs in the shared transport layer. Centralizing the behavior makes every consumer get the same 4096-char handling for free and removes a class of review-gate-only bugs.",
+    "revisit_if": "The shared toolkit transport changes its message-splitting contract or a downstream consumer needs custom chunk boundaries that differ from the toolkit default.",
+    "priority": "high",
+    "timestamp": "2026-06-04T00:00:00Z"
+  },
+  {
+    "id": "D-47",
+    "title": "Coached-game startup drain window",
+    "status": "closed",
+    "decision": "`CoachedGameEnvironment._listen_for_operator` drains stale Telegram updates for one second on startup before it forwards operator-tagged commands into `pipeline.dispatch_operator`.",
+    "rationale": "A previously killed coached session can leave stale `/approve`-style updates queued in Telegram. Draining the initial burst avoids poisoning the next round's first review prompt while preserving the normal forwarding path after the window expires.",
+    "revisit_if": "The Telegram update backlog behavior changes or a future flow needs a different drain duration / start-up policy.",
+    "priority": "high",
+    "timestamp": "2026-06-04T00:00:00Z"
+  },
+  {
+    "id": "D-48",
+    "title": "Phase 33 stays inside existing review-gate and state-manager surfaces",
+    "status": "closed",
+    "decision": "Phase 33 will add `/revise:` and edit-log classification without introducing a new runtime module or changing the ARCHITECTURE implementation-sequence status. The work stays within the existing Pipeline, Review Gate, State Manager, prompt-regression, and CLI surfaces.",
+    "rationale": "The requested behavior is a refinement of the current coached review loop, not a platform or transport expansion. Keeping the phase scoped to existing module boundaries avoids unnecessary architecture churn and keeps the build phase testable in place.",
+    "revisit_if": "The revise/classification work requires a new cross-cutting runtime boundary or module ownership split.",
+    "priority": "high",
+    "timestamp": "2026-06-07T00:00:00Z"
+  },
+  {
+    "id": "D-49",
+    "title": "Raw `/edits-summary` fast-path before coaching parse",
+    "status": "closed",
+    "decision": "Treat `/edits-summary` as an operator command in the orchestrator before passing the message into `TaggedCoachingParser`.",
+    "rationale": "The shared coaching parser classifies hyphenated slash commands as free coaching, which would bypass the operator dispatcher. Intercepting the exact raw command preserves the intended slash-command UX without changing the parser contract for other inputs.",
+    "revisit_if": "The shared parser grows native support for hyphenated operator commands and the fast-path becomes redundant.",
+    "priority": "high",
+    "timestamp": "2026-06-07T00:00:00Z"
+  },
+  {
+    "id": "D-50",
+    "title": "Phase 34 bare-prompt mode stays all-or-none per game",
+    "status": "closed",
+    "decision": "Phase 34 will implement bare-prompt ablation as an all-bare or all-full game-level toggle only. Mixed bare/full factions in the same game stay out of scope, and the implementation remains self-play/ablation only rather than wiring production defaults.",
+    "rationale": "The experiment’s question is whether the harness contributes at the game level. Keeping the toggle per-game avoids confounding the comparison with mixed-mode interactions and preserves a clean baseline against the existing full harness.",
+    "revisit_if": "A later experiment explicitly needs faction-level mixed-mode ablation or production exposure.",
+    "priority": "high",
+    "timestamp": "2026-06-08T00:00:00Z"
+  },
+  {
+    "id": "D-55",
+    "title": "Phase 38 pressure mechanisms stay in a small Build bundle",
+    "status": "open",
+    "decision": "Group round-cost decay, asymmetric clocks, and penalty floor into one build phase. Keep exogenous events and cascade scoring out of the bundle.",
+    "rationale": "The three mechanisms share the same pressure schema, persona rendering, and verifier surface, so bundling them minimizes repeated edits while keeping the phase testable. Exogenous events require round-aware BATNA recomputation and a different verifier shape, so they remain deferred.",
+    "revisit_if": "the shared pressure surface proves larger than expected or Phase 38 starts to blur into the deferred mechanisms.",
+    "priority": "high",
+    "timestamp": "2026-06-11T00:00:00Z"
+  },
+  {
+    "id": "D-56",
+    "title": "Project direction — negotiation benchmark over operator coaching product",
+    "status": "open",
+    "decision": "Diplomat's primary purpose is now an **LLM negotiation benchmark** — a multi-model, multi-scenario evaluation harness for measuring negotiation skill across model classes. The operator coaching product (live Telegram games, coached self-play with `/revise:`, persona drift management, real-game deployment) is **deferred**, not abandoned: infrastructure stays in tree, but no new investment goes into the coaching loop until benchmark milestones land. Resolves the `RESEARCH_NOTES.md` Note 2 product-direction fork (Diplomat-as-coaching-tool vs Diplomat-as-research-benchmark) in favor of the benchmark direction.",
+    "rationale": "Runs 14, 15, 16, 17 were *de facto* benchmark work executed under coaching-product framing. The mismatch produced the agreeableness-bias structural problem (Note 2 §1) and the thrashing pattern (sessions producing surprising findings → new questions → new pivots → no thread closure). Explicitly committing to the benchmark direction (a) gives every queued experiment a yardstick — *does this produce differential model rankings or scenario-discrimination signal?* (b) unlocks work that the coaching framing was implicitly blocking (coalition-exclusion scoring, rank-based scoring lens, tournament harness, mixed-model populations as default rather than experimental), and (c) lets the queued coaching items (Run 13b, §4 Pi coaching loop, §5 Clankmates, §6 pricing audit-as-prod-budget-baseline) drop out of the immediate Tier-1 conversation without abandoning the infrastructure that supports them. What changes downstream: - **Promoted to Tier 1.** NEXT_STEPS §11 (competitive scoring — Path B coalition-exclusion engine, rank-based scoring lens, mixed-model populations), Phase 41/42 (scale-matrix verification enabling richer scenarios), scenario-class authoring (zero-sum / distributive / asymmetric-BATNA / hidden-value), provider-matrix expansion (R1 unblocked, Qwen, OpenAI o-series, Gemini-flash tier). - **Demoted to deferred.** Run 13b (coached game `/revise:` validation), §4 coaching test loop on Pi, §5 Clankmates transport for game traffic, persona-rigidity/drift A/Bs (these were tunings for live-game performance — irrelevant if the benchmark uses fresh per-cell agents). - **Unchanged.** Module architecture (Pipeline/Flow split), scenario compiler + reverse builder, self-play infrastructure, bare-mode plumbing, all four ASSESSMENT §3 scoring lenses (kept as cooperative measures; competitive measures added alongside, not replacing), toolkit dependency contract. - **Reframed.** ASSESSMENT §5 workstream blocks: Block C (game creation, scoring, assessment) becomes the primary investment surface; Block A (architecture/memory) stays infrastructure; Block B (prompt tuning) demotes to \"tunings that affect benchmark results\" only — persona-tuning for live-game performance drops out.",
+    "revisit_if": "(a) a real game opportunity emerges with a concrete deadline (e.g., Clanker Courts live deployment, a hosted multiplayer Diplomacy event) that makes the coaching product immediately useful, (b) benchmark findings stall — three+ consecutive experimental campaigns produce no new discrimination signal — suggesting the benchmark surface itself has hit a ceiling, or (c) external pressure makes the operator-coaching framing more valuable than the research framing (Meta product use case, paper deadline, etc.).",
+    "priority": "critical",
+    "timestamp": "2026-06-16T00:00:00Z"
+  },
+  {
+    "id": "D-57",
+    "title": "Decline `tools/` directory rename to `scripts/`",
+    "status": "closed",
+    "decision": "The repo's top-level `tools/` directory (shell scripts + helper Python) stays as `tools/`. The Phase 1 motivation for considering a rename — ambiguity between `src/tools/` (the scenario package) and `tools/` (the shell dir) — is now obsolete because Phase 1 Commit 1 deleted `src/tools/`. The remaining `tools/` at root has one unambiguous meaning by convention.",
+    "rationale": "The rename's blast radius is ~25 files (17 Python + 8 shell) plus ~133 doc lines across live docs, for a payoff that no longer exists. Better to spend the effort elsewhere.",
+    "revisit_if": "A second project-internal directory with `tools` in its name appears AND ambiguity becomes a documented friction point.",
+    "priority": "medium",
+    "timestamp": "2026-06-21T00:00:00Z"
+  }
+]

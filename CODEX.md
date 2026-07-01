@@ -1,239 +1,111 @@
 # Codex Worker Adapter — Diplomat
 
-> **Contract:** Follow `WORKER_SPEC.md` for iteration lifecycle, allowed actions,
-> step budget, escalation conditions, and output contract. This file covers
-> Codex-specific mechanics only.
+> **Contract:** Backend-specific mechanics for Codex workers. The universal loop
+> contract (identity, main loop, escalation, output contract, prohibitions) lives
+> in `WORKER_SPEC.md` and arrives in your prompt pre-assembled — you do not read
+> it. Action procedures live in `instructions/$ACTION.md` and also arrive
+> pre-assembled. This adapter covers what is Codex-specific plus project-specific.
 
 ## Framework
-This project follows the From Idea to Code governance framework.
-
-## Required Reading — Every Iteration
-
-You do not have `@`-reference loading. You must explicitly read these files at
-the start of every iteration before taking any action.
-
-**CRITICAL: Minimize tool calls.** Each tool call round-trips through the full
-context window. Combine reads into as few shell commands as possible.
-
-### Tier 1 — Always (mandatory, every iteration)
-
-Read this file, WORKER_SPEC.md, and DEVPLAN.md in a **single command**:
-
-```bash
-cat CODEX.md && echo '---SPLIT---' && cat WORKER_SPEC.md && echo '---SPLIT---' && cat DEVPLAN.md
-```
-
-**DEVLOG.md convention:** Append new entries at the bottom (newest last).
-During phase close, archive the previous phase's entries to `DEVLOG_archive.md`.
-
-### Tier 2 — Current module (mandatory for step/review/complete actions)
-
-After determining the active module from DEVPLAN's Current Status, read the
-relevant ARCH file. Combine with source files in the **same command**:
-
-```bash
-cat ARCH_module.md && echo '---SPLIT---' && cat src/modules/module/impl.py
-```
-
-### Tier 3 — On demand (read only when needed)
-- `PROJECT.md` — only during Phase Plan actions
-- `ARCHITECTURE.md` — only during Phase Plan or cross-module wiring
-- `GOVERNANCE.md` — only if unsure about process
-
-### Read efficiency rules
-- **Combine related reads** into one `cat A && echo '---' && cat B` command
-- **Never read one file per tool call** when you need multiple files
-- **Combine source + test reads**: `cat src/foo.py && echo '---' && cat tests/test_foo.py`
-- **Fresh reads before edits** — re-read immediately before editing, not at iteration start
-- **Megareads can fragment context.** Single `cat`/`sed` commands producing >40k chars of output sometimes trigger an internal "let me reorient" moment where the temptation is to re-call `state_machine.sh`. **Don't dispatch — peek.** Use `bash tools/state_machine.sh --peek` to re-validate state mid-action without burning budget. Reserve the bare `bash tools/state_machine.sh` (dispatch) for the top of each LOOP iteration, paired with the action it returns. See `WORKER_SPEC.md` §3 "Loop discipline" — iter 53 lost its final step before `--peek` existed; iter 102 burned a full 6-step budget on defensive dispatches and is the reason `--peek` was added.
-- **Only call dispatch when you are about to write code or commit. Anything else is `--peek`.** See "Dispatch vs peek" below for the shape. Past failure modes that motivated this rule and `--peek`'s introduction: iters 102, 105, 138, 139 — each lost their iteration to a duplicate dispatch chained inside a context-load command.
-- **Scope recursive greps narrowly — never include `.` at the repo root.** The repo contains very large files that will blow the context window if matched: `DEVLOG_archive.md` (~194KB), `TUNING_LOG.md` (~107KB), `diplomat-testing-doc.md` (~67KB), `NEXT_STEPS.md` (~62KB), `DEVLOG.md` (~46KB), plus multi-MB self-play result JSONs in `tests/self_play/results/` (some >3MB) and multi-MB iteration logs in `logs/loop/`. A single `grep -RIn 'foo' .` can stream 30+MB into the codex process and trigger a SIGKILL (OOM / response-size limit) — this killed iter 103 mid-action.
-  - **Default:** `grep -RIn 'foo' src tests` (source + tests only).
-  - **Need ARCH docs:** `grep -n 'foo' ARCH_*.md` (glob, not recursive).
-  - **Need DEVPLAN/PROJECT:** name them explicitly.
-  - **Always pipe broad results through `head -n 100` or `wc -l`** before reading the full match list.
-  - **Never** include any of: `DEVLOG*.md`, `TUNING_LOG*.md`, `NEXT_STEPS.md`, `tests/self_play/results/`, `logs/`. If you need to search history, read the specific file directly with `grep -n` (no `-R`) and a bounded line range.
-
-## Reference Docs to Keep in Sync
-
-These docs are not loaded by default but **MUST** be updated when their listed triggers fire. Each Build phase's step list should include an explicit "doc update" step before phase-review that names which of these the phase touched (or "none" if no doc impact). Doc updates are part of every phase's definition-of-done — not optional follow-up.
-
-| Doc | Update trigger |
-|---|---|
-| `CLI_REFERENCE.md` | Any new/changed/removed CLI flag, env var, or invocation pattern |
-| `ASSESSMENT.md` | Scoring lens status changes (§3.x ✓ / partial / NOT YET); Block A/B/C tech-debt list changes; new workstream items; new scoring or skill insights |
-| `ARCHITECTURE.md` | Component additions/removals; coupling note changes; key decisions added |
-| `ARCH_<module>.md` | Any change to that module's public interface, internals worth documenting, or data shapes |
-| `diplomat-testing-doc.md` | New test layers/tools; test infrastructure changes; deployment doc changes |
-| `TUNING.md` | BATNA semantics, provider defaults, prompt-tuning practice changes |
-| `SMOKE_RUNBOOK.md` | Bot lifecycle or smoke-checklist change |
-| `RUN_PROTOCOL.md` | Self-play pre-flight or live-run procedure change |
-| `TUNING_LOG.md` | Each live run produces an entry (run number, scenario, providers, cost, observations, decisions) |
-| `DECISIONS.md` | New architectural decision or status change to an existing one |
-
-Phase step examples: Phase 24 (Build) lists a "doc update" step that names `CLI_REFERENCE.md` (3 new flags), `TUNING.md` (asymmetric BATNA fractions + force-clamp semantics), `diplomat-testing-doc.md` (Layer 2 extraction examples location moved). Phase 22 lists `ARCHITECTURE.md` (Pipeline + Flow rows added), `ARCH_orchestrator.md` (compat shim), `ARCH_flow.md` (new, created in 22.7), `ASSESSMENT.md` (Pipeline/Flow tech-debt → ✓).
-
-When updating a doc, **read it fresh first** (it may have changed since the last iteration) and combine the read with the edit in one tool round-trip where possible.
-
-## Load for Current Module
-
-| Module | ARCH file |
-|--------|----------|
-| Event Store | `ARCH_event_store.md` |
-| State Manager | `ARCH_state_manager.md` |
-| Extraction | `ARCH_extraction.md` |
-| Coaching | `ARCH_coaching.md` |
-| Transport | `ARCH_transport.md` |
-| Persona | `ARCH_persona.md` |
-| Analyst + Divergence | `ARCH_analyst.md` |
-| Context Assembler | `ARCH_context_assembler.md` |
-| Generation | `ARCH_generation.md` |
-| Review Gate | `ARCH_review_gate.md` |
-| Adversarial | `ARCH_adversarial.md` |
-| Orchestrator | `ARCH_orchestrator.md` |
-| Pipeline + Flow | `ARCH_flow.md` |
+i2c.
 
 ## Available Modules
 
-**Storage (leaf dependencies):**
-- Event Store: Append-only raw event log (SQLite)
-- State Manager: Structured domain state with schema-validated patches (SQLite)
+**Storage (leaf):**
+- `event_store`: append-only raw event log (SQLite)
+- `state_manager`: structured domain state with schema-validated patches (SQLite)
 
 **Processing:**
-- Extraction: Text → structured state patch via toolkit/llm_client
-- Coaching: Parse and route operator input by tag
-- Persona: Faction identity configuration with hot-reload
+- `extraction`: text → structured state patch via toolkit/llm_client
+- `coaching`: parse and route operator input by tag
+- `persona`: faction identity configuration with hot-reload
 
 **Intelligence:**
-- Analyst + Divergence: Dual-provider strategic analysis with divergence detection
+- `analyst` + `divergence`: dual-provider strategic analysis with divergence detection
 
 **Response pipeline:**
-- Context Assembler: Assemble all inputs into Decision Engine context
-- Generation: Context → response text via toolkit/llm_client
-- Adversarial: Draft → adversarial analysis via toolkit/llm_client (optional)
+- `context_assembler`: assemble all inputs into Decision Engine context
+- `generation`: context → response text via toolkit/llm_client
+- `adversarial`: draft → adversarial analysis via toolkit/llm_client (optional)
 
 **Platform:**
-- Transport: Platform I/O via toolkit/telegram_client
-- Review Gate: Human approval workflow via toolkit/telegram_client
+- `transport`: platform I/O via toolkit/telegram_client
+- `review_gate`: human approval workflow via toolkit/telegram_client
 
 **Composition:**
-- Pipeline: Per-agent capability surface (start/shutdown, store_event, extract_from, run_response, advance_to_round, etc.)
-- Flow: Scheduling strategy — `EventDrivenFlow` (production Telegram/CLI), `RoundSteppedFlow` (self-play)
-- Orchestrator: Compat factory returning `EventDrivenFlow`; see `ARCH_orchestrator.md` → `ARCH_flow.md`
+- `pipeline`: per-agent capability surface (start/shutdown, store_event, extract_from, run_response, advance_to_round)
+- `flow`: scheduling strategy — `EventDrivenFlow` (production), `RoundSteppedFlow` (self-play)
+- `orchestrator`: compat factory returning `EventDrivenFlow` (see `ARCH_flow.md`)
 
 ## Project-Specific Notes
-- **Language:** Python 3, async throughout (asyncio)
-- **Persistence:** SQLite with WAL mode, single file at data/game.db
-- **External dependencies:** toolkit project (llm_client, telegram_client, cost_accountant). No direct provider SDK imports.
-- **Test strategy:** pytest, one test file per module. Fakes for toolkit dependencies.
-- **Key constraint:** toolkit/llm_client returns plain text — Extraction must handle JSON schema enforcement locally
-- **Config-driven:** All domain logic in config/ directory
+- **Language:** Python 3, async throughout (asyncio).
+- **Persistence:** SQLite (WAL mode), single file at `data/game.db`.
+- **External dependencies:** `toolkit/` (sibling project) — `llm_client`,
+  `telegram_client`, `cost_accountant`. No direct provider SDK imports.
+- **Test strategy:** pytest, one test file per module; fakes for toolkit deps.
+  The suite is hermetic (runs offline).
+- **Key constraint:** `toolkit/llm_client` returns plain text — Extraction must
+  enforce JSON schema locally (prompt + parse + validate).
+- **Config-driven:** all domain logic in `config/` (prompts, schemas, routing,
+  `pipeline.yaml`).
+- **Doc-sync discipline:** each Build phase's step list must include a "doc
+  update" step naming which reference docs it touched (or "none") before phase
+  review — `CLI_REFERENCE.md`, `ASSESSMENT.md`, `ARCHITECTURE.md`,
+  `ARCH_<module>.md`, `diplomat-testing-doc.md`, `TUNING.md`, `SMOKE_RUNBOOK.md`,
+  `RUN_PROTOCOL.md`, `TUNING_LOG.md`, `DECISIONS.md`.
 
 ## Codex-Specific Tool Rules
-- **No `@` references.** Read files explicitly using CLI.
-  When a file contains `@FILENAME` references, treat them as file paths to read.
-- **Minimize tool calls.** Every tool call re-processes the full context. Combine
-  multiple file reads, greps, and short commands into single shell invocations.
-- **Command files shared with Claude.** Action procedures live in
-  `.claude/commands/*.md`. Read these files and follow their instructions the
-  same way Claude does — the content is backend-agnostic.
-- **Fresh reads before edits.** Before editing any file (especially DEVPLAN.md),
-  read it immediately before the edit — not at the start of the iteration.
-- **Shell usage.** Use CLI tools directly for builds, tests, git operations,
-  file discovery, and search.
-- **Search tool availability.** This loop environment may not have `rg`
-  installed. Before using `rg`, check availability with `command -v rg`. If it
-  is absent, use portable fallbacks instead: `find` for file discovery,
-  `grep -RIn` for text search, and `sed -n` for bounded file reads.
-- **Non-interactive shell only.** No interactive editors, pagers, or git
-  prompts. `git add -p`, `git commit` without `-m`, `git rebase -i`, and any
-  `$EDITOR`-opening command will hang the loop (iter 80 lost ~35 min this way).
-  See `WORKER_SPEC.md` §3 "Shell command discipline (non-interactive only)"
-  for the full list and recommended alternatives.
 
-## Action Instructions
+- **No `@`-reference loading.** Read files explicitly with shell commands; treat
+  any `@FILENAME` markers in prose as paths to `cat` / `sed -n`.
+- **Minimize tool calls.** Combine reads/greps into single shell invocations
+  (`cat A && echo --- && cat B`; `grep -n foo A B`).
+- **Search-tool fallback.** Check `command -v rg` before using `rg`; if absent,
+  use `find` / `grep -RIn` / `sed -n`. Do not retry `rg` after it fails.
+- **Fresh reads before edits.** Re-read any source/test file immediately before
+  editing it. Governance arrived fresh in your prompt; this applies to source.
+- **Non-interactive shell only.** No editors (`git commit` without `-m`,
+  `git rebase -i`), input prompts (`read`, `sudo` without `-n`), or pagers
+  (`git log` without `--no-pager`, `less`). `git add -p` is interactive-only.
+- **State writes go through `i2c state`.** Never `sed` / `echo >` / direct edits
+  on `.state/` files.
+- **Use `i2c state --from-file` for multi-line or `$`-laden payloads.**
 
-Follow the main loop from WORKER_SPEC.md §3:
+## Turn Health Check (Codex-specific safety)
 
-```
-LOOP:
-  1. output=$(bash tools/state_machine.sh)
-  2. ACTION = parse "ACTION:" from output
-     NEXT   = parse "NEXT:" from output
-  3. if ACTION == "EXIT" → emit exit signal, stop
-  4. perform the action (see below)
-  5. if error → emit exit signal with EXIT 2, stop
-  6. commit, update DEVLOG/DEVPLAN
-  7. sed -i "s/^state:.*/state: $NEXT/" DEVPLAN.md
-  8. goto LOOP
-```
-
-### Dispatch vs peek
-
-`bash tools/state_machine.sh` (dispatch) — advances the state machine and decrements the step budget. Run once per iteration, immediately before the work the action calls for. Read from step 1 of LOOP above.
-
-`bash tools/state_machine.sh --peek` (peek) — reports the same `ACTION:` and `NEXT:` without advancing state or decrementing budget. Run as often as needed for re-orientation: after a megaread, mid-action, before a preflight check.
-
-Shape:
+A circuit breaker, separate from the step budget. When the runner provides
+`ITERATION_JSONL`, after each completed action check:
 
 ```bash
-$ bash tools/state_machine.sh                                             # dispatch ONCE, at top
-ACTION: EXECUTE
-NEXT: execute
-
-$ cat CODEX.md && echo '---SPLIT---' && cat WORKER_SPEC.md && echo '---SPLIT---' && cat DEVPLAN.md
-
-$ bash tools/state_machine.sh --peek                                      # peek freely, no cost
-
-$ ...edit, test, commit...
-
-$ sed -i "s/^state:.*/state: $NEXT/" DEVPLAN.md
+grep -c '"item.completed"' "$ITERATION_JSONL"
 ```
 
-Shell-chain trap: `bash tools/state_machine.sh && cat CODEX.md` runs dispatch FIRST, then the `cat`. The chain looks like "check state, then load context" but it's just a plain dispatch followed by reads. A second such chain in the same iteration dispatches twice.
-
-**Peek's return is informational, not authoritative.** The action the worker owes is the one its most recent DISPATCH returned. If the first dispatch this iteration returned `EXECUTE` / `REVIEW` / `PLAN` / `CLOSE`, perform that action even if a later peek returns `EXIT`. Peek's `EXIT` reports "no more dispatches available this iteration"; dispatch's `EXIT` reports "no work the loop wants done." Two different signals, two different meanings.
-
-**CRITICAL — state-write command (step 7).** Copy-paste this **exactly**:
-
-```bash
-sed -i "s/^state:.*/state: execute/" DEVPLAN.md
-```
-
-Replace `execute` with the value from `NEXT:` in the state-machine output.
-Use **double quotes** around the full sed expression. Do NOT use single quotes
-with embedded double quotes — the pattern `'s/"'^state:...'` does not match
-and silently fails. This bug has wasted multiple iterations (iters 81, 86).
-
-### PLAN
-Read `.claude/commands/phase-plan.md` and follow its instructions.
-
-### EXECUTE
-Pick the next unchecked step from DEVPLAN. Do the work, run tests.
-Read `.claude/commands/step-done.md` and follow its instructions.
-
-### REVIEW
-Read `.claude/commands/phase-review.md` and follow its instructions.
-
-### CLOSE
-Read `.claude/commands/phase-complete.md` and follow its instructions.
+If `total_turns > actions_performed * 50`, emit `EXIT 2` with reason
+`"turn health check exceeded"`. Cross-repo steps (editing both diplomat and
+`toolkit/`) legitimately need more calls — if you trip the ceiling there, log
+the cause in the devlog `summary`.
 
 ## Output Contract
 
-End every invocation with exactly these five lines — no additional text after:
+End every invocation with exactly these two lines — no text after:
 
 ```
-EXIT: 0 | 1 | 2
+EXIT: 0 | 2
 REASON: <one-line summary>
-ACTION_TYPE: PLAN | EXECUTE | REVIEW | CLOSE
-ACTION_ID: <phase.step>
-STEPS_COMPLETED: <number of actions performed in this invocation>
 ```
 
-## Autonomy
+| Code | Meaning |
+|------|---------|
+| 0 | Normal completion — runner reads `.state/project.json` for next dispatch |
+| 2 | Error — judgment-based escalation or health check tripped |
 
-When invoked in autonomous mode, execute the action and emit the exit signal
-without waiting for human input. In supervised mode, surface proposed changes
-for approval before committing.
+Do not omit it — prose-only output makes the runner report
+`exit=2 "signal missing or malformed"` even when the work landed in `.state/`
+and the commit.
 
-See WORKER_SPEC.md §7 for full mode definitions.
+## Mode
+
+Mode (autonomous vs. supervised) is set by the runner via the assembler's
+`--mode` flag; the assembled prompt's framing reflects it. Autonomous (default):
+apply, commit, transition, emit the signal. Supervised: surface changes before
+committing. You do not choose the mode.

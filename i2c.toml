@@ -1,0 +1,21 @@
+# i2c run config for diplomat.
+# Precedence: CLI flag > this file > built-in default.
+# Secrets / API keys do NOT belong here — use environment variables.
+#
+# NO [telegram] block here: that is the bot's portfolio config at the workspace
+# root (/home/claude/workspace/i2c.toml). A consumer project contributes only
+# [run] / [run.backends]; the nearest i2c.toml (this one) governs diplomat's runs.
+
+[run]
+backend = "claude"
+model = "sonnet"
+max_budget_usd = 5.00
+
+# Per-action backend split — exercises both claude (sonnet) and codex. The i2c
+# bot's /batch picks the backend per action from this table; telemetry records
+# `backend` per row, so mixing does not muddy attribution.
+[run.backends]
+plan = "claude"
+execute = "codex"
+review = "claude"
+close = "codex"
