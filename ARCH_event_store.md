@@ -45,6 +45,7 @@ class StoredEvent:
 ## Outputs
 - event_id (str) on append
 - list[StoredEvent] on query — used by Context Assembler for recent transcript
+- per-agent `event_log` in the self-play result JSON — `collect_results()` dumps `query()` output for replay/audit (see §"Phase 50")
 
 ## State
 Owns the `messages` table in the shared SQLite database:
@@ -84,3 +85,57 @@ round_events = await store.query(EventFilter(round_number=3))
 # Query by source
 operator_msgs = await store.query(EventFilter(source="operator"))
 ```
+
+---
+
+## Phase 50 — Result-persistence of the raw event log (complete)
+
+> Phase 50 is complete. `collect_results()` in `tests/self_play/game_environment.py`
+> now queries each agent's event store and persists `event_log` into the result JSON.
+> Regime was: **Build** (AI-evaluable). Small: one function + its tests. Additive only.
+
+**Intent.** Persist each faction's authoritative raw event log into the self-play
+result JSON so a game is fully replayable/auditable from the durable results alone.
+
+**Why.** In self-play each faction's `SQLiteEventStore` lives in a per-faction temp
+`.db` (`tmp_dir/{faction_id}.db`) that is **discarded** when the run's
+`TemporaryDirectory` is torn down. `collect_results()`
+(`tests/self_play/game_environment.py`) persists the transcript from the in-memory
+`channel_log` and **never queries `event_store`**, so the append-only raw message
+log — the audit-trail substrate — is lost from the durable `results/*.json`. This
+also underpins the product "audit trail" claim (`OFFERING.md` §1).
+
+**Scope (additive only).**
+- In `collect_results()`, for each agent, query its event store —
+  `event_store.query(EventFilter(limit=<full game>))` — **before** the
+  `TemporaryDirectory` is torn down, and add the serialized events to that agent's
+  result block under a new `event_log` key.
+- Serialize each `StoredEvent` to a JSON-safe dict:
+  `{event_id, round_number, timestamp, sender_faction, channel, recipient,
+  content, telegram_msg_id}`. Query order is timestamp-ascending — preserve it.
+- **Do not** change scoring, the `transcript` / `channel_log`, or any existing
+  result field. `event_log` is purely additive.
+- Works in both full and bare mode: bare overrides Extraction/Analyst/etc., but the
+  event store is still a required module and still appends every message.
+
+**Contract change.** Each per-agent result block gains:
+`event_log: [ {event_id, round_number, timestamp, sender_faction, channel,
+recipient, content, telegram_msg_id}, … ]`. (Reflected in Outputs above; propagate
+to `ARCHITECTURE.md` Data Flow if a Contract-Change scan flags it.)
+
+**Acceptance criteria (tests-first — specify before implementing).**
+1. After a short fake-backed self-play game, each agent's result block contains a
+   non-empty `event_log` whose entries match the messages appended to that agent's
+   event store (round numbers present; content matches the broadcast messages).
+2. **Additivity:** all pre-existing result fields (`transcript`, `scores`,
+   `promises`, …) are unchanged and the existing self-play tests still pass.
+3. **Edge:** a faction that received no messages yields `event_log: []` (present,
+   empty) — not a missing key, not an error.
+4. **Ordering:** `event_log` is timestamp-ascending.
+
+**Out of scope.** No changes to the temp-`.db` lifecycle beyond reading before
+teardown; no continuous-value/scoring changes; no schema changes to the `messages`
+table.
+
+**Gotcha.** `collect_results()` must query `event_store` **before** the run's
+`TemporaryDirectory` is cleaned up (the per-faction `.db`s live inside it).
