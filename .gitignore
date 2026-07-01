@@ -18,10 +18,7 @@ config/.env
 .env
 # Logs
 logs/*.log
-logs/loop/*.jsonl
-logs/loop/*.txt
-logs/loop/*.log
-logs/loop/.*.tmp
+logs/loop/
 # Runtime
 .diplomat.pid
 # Self-play noisy artifacts (regenerable; results JSONs are kept)
