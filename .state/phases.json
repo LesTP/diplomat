@@ -315,6 +315,6 @@
     "dependencies": [
       "event_store"
     ],
-    "status": "pending"
+    "status": "complete"
   }
 ]
