@@ -488,5 +488,14 @@
     "revisit_if": "A second project-internal directory with `tools` in its name appears AND ambiguity becomes a documented friction point.",
     "priority": "medium",
     "timestamp": "2026-06-21T00:00:00Z"
+  },
+  {
+    "id": "D-65",
+    "phase": 50,
+    "title": "query limit for full-game event_log dump",
+    "status": "closed",
+    "priority": "medium",
+    "decision": "Use EventFilter(limit=10000) in collect_results() to capture the full game log. The default limit of 100 is too small for multi-round multi-faction games. 10000 is safely beyond any plausible game size.",
+    "rationale": "EventFilter.limit defaults to 100; a 4-faction 10-round game can produce hundreds of events. No schema change needed — limit is a query parameter, not a schema field."
   }
 ]

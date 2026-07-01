@@ -306,5 +306,15 @@
     "regime": "build",
     "dependencies": [],
     "status": "pending"
+  },
+  {
+    "id": 50,
+    "module": "event_store",
+    "title": "Persist event log into self-play result JSON",
+    "regime": "build",
+    "dependencies": [
+      "event_store"
+    ],
+    "status": "pending"
   }
 ]

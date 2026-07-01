@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "phase": 50,
+    "step": 1,
+    "title": "Acceptance tests for event_log in collect_results",
+    "status": "pending",
+    "notes": "New file tests/self_play/test_event_log_persistence.py. Four tests per ARCH_event_store.md §Phase 50: (1) non-empty event_log with correct fields after fake-backed game, (2) additivity — transcript/scores/promises unchanged, existing suite passes, (3) edge: faction with no messages → event_log:[] not missing, (4) ordering: timestamp-ascending. Tests must fail before step 2 lands."
+  },
+  {
+    "phase": 50,
+    "step": 2,
+    "title": "Implement event_log population in collect_results()",
+    "status": "pending",
+    "notes": "In game_environment.py::collect_results(): import EventFilter from modules.event_store; for each faction handle, await handle.orchestrator.event_store.query(EventFilter(limit=10000)); serialize each StoredEvent to {event_id, round_number, timestamp (ISO str), sender_faction, channel, recipient, content, telegram_msg_id}; add as event_log key in agent_results[faction_id]. Must be called before TemporaryDirectory teardown — already guaranteed since collect_results() runs inside the with-block. Also commit working-tree pre-phase changes (ARCH_event_store.md §Phase50 annotation, analysis.py compute_near_miss removal, test_self_play_near_miss.py deletion)."
+  }
+]
