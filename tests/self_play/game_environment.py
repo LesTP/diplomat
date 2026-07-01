@@ -17,6 +17,7 @@ from typing import Any
 
 import yaml
 
+from modules.event_store import EventFilter
 from modules.types import InboundEvent
 from flows.round_stepped import RoundSteppedFlow
 from orchestrator import OrchestrationOptions, Orchestrator
@@ -753,6 +754,9 @@ class GameEnvironment:
             state_change_log = await _safe_query(sm, "state_change_log", {})
             coaching = await _safe_query(sm, "coaching", {})
             adversarial_reads = await _safe_query(sm, "adversarial_reads", {})
+            raw_events = await handle.orchestrator.event_store.query(
+                EventFilter(limit=10000)
+            )
 
             agent_results[faction_id] = {
                 "full_state": full_state,
@@ -763,6 +767,7 @@ class GameEnvironment:
                 "state_change_log": state_change_log,
                 "coaching": coaching,
                 "adversarial_reads": adversarial_reads,
+                "event_log": [_serialize_stored_event(row) for row in raw_events],
                 "round": handle.orchestrator.current_round,
             }
 
@@ -787,6 +792,21 @@ async def _safe_query(
         return await state_manager.query(entity_type, filters)
     except Exception:
         return []
+
+
+def _serialize_stored_event(row: Any) -> dict[str, Any]:
+    """Convert a StoredEvent into the JSON-safe result shape."""
+    event = row.event
+    return {
+        "event_id": row.event_id,
+        "round_number": row.round_number,
+        "timestamp": event.timestamp.isoformat(),
+        "sender_faction": event.sender_faction,
+        "channel": event.channel,
+        "recipient": event.recipient,
+        "content": event.content,
+        "telegram_msg_id": event.telegram_msg_id,
+    }
 
 
 def _pareto_efficiency_metrics(
