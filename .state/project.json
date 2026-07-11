@@ -1,7 +1,7 @@
 {
-  "schema_version": 1,
-  "phase": 50,
-  "state": "close",
+  "schema_version": 3,
+  "phase": 51,
+  "state": "plan",
   "gotchas": [
     "Use EventFilter(limit=10000) for full-game result dumps; the default limit silently truncates self-play logs."
   ],
