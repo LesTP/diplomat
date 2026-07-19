@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://diplomat.local/schemas/mechanism_classifier.json",
+  "title": "Diplomat Mechanism Classification Judgment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "q1",
+    "q2",
+    "q3",
+    "q4",
+    "q5",
+    "rationale"
+  ],
+  "properties": {
+    "q1": {
+      "type": "boolean"
+    },
+    "q2": {
+      "type": "boolean"
+    },
+    "q3": {
+      "type": "boolean"
+    },
+    "q4": {
+      "type": "boolean"
+    },
+    "q5": {
+      "type": "boolean"
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}
