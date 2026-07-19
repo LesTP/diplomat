@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any, Mapping
 
+from toolkit.structured_llm import load_schema, structured_call
+
+from modules.extraction import load_prompt
 
 DEFAULT_PROMPT_PATH = "config/prompts/mechanism_classifier.txt"
 DEFAULT_SCHEMA_PATH = "config/schemas/mechanism_classifier.json"
@@ -30,3 +34,104 @@ def derive_label(answers: Mapping[str, Any]) -> str:
 def schema_path() -> Path:
     """Return the packaged schema location for the mechanism judge."""
     return Path(DEFAULT_SCHEMA_PATH)
+
+
+class MechanismClassifier:
+    """LLM-backed classifier for negotiation mechanisms."""
+
+    def __init__(
+        self,
+        llm_client: Any,
+        llm_config: Any,
+        tier: Any,
+        prompt_path: str | Path,
+        attribution: str | None = None,
+    ) -> None:
+        self.llm_client = llm_client
+        self.llm_config = llm_config
+        self.tier = tier
+        self.system_prompt = load_prompt(prompt_path)
+        self.schema = load_schema(DEFAULT_SCHEMA_PATH)
+        self.attribution = attribution
+
+    async def classify(self, result: dict[str, Any]) -> str:
+        user_prompt = self._build_user_prompt(result)
+        structured = await structured_call(
+            self.llm_client,
+            self.llm_config,
+            self.tier,
+            schema=self.schema,
+            system_prompt=self.system_prompt,
+            user_prompt=user_prompt,
+            max_retries=1,
+            purpose="mechanism",
+            attribution=self.attribution,
+        )
+        if not structured.success:
+            raise RuntimeError(structured.error or "Mechanism classification failed")
+        return derive_label(structured.data or {})
+
+    def _build_user_prompt(self, result: dict[str, Any]) -> str:
+        transcript = result.get("transcript", [])
+        rounds_completed = result.get("rounds_completed")
+        round_responses = result.get("round_responses", {})
+        final_round = round_responses.get(str(rounds_completed), {})
+
+        return "\n\n".join(
+            [
+                "Transcript:",
+                _dump_json(transcript),
+                f"Final round responses for round {rounds_completed}:",
+                _dump_json(final_round),
+            ]
+        )
+
+
+def build_mechanism_classifier(
+    llm_client: Any,
+    llm_providers_config: dict[str, Any],
+    tier: Any = "commodity",
+    attribution: str | None = None,
+) -> MechanismClassifier | None:
+    """Build a mechanism classifier from Diplomat's pipeline provider config."""
+    primary = llm_providers_config.get("primary", {})
+    if not primary:
+        return None
+
+    return MechanismClassifier(
+        llm_client=llm_client,
+        llm_config=_subsystem_llm_config(primary, tier),
+        tier=tier,
+        prompt_path=DEFAULT_PROMPT_PATH,
+        attribution=attribution,
+    )
+
+
+def _subsystem_llm_config(primary: dict[str, Any], tier: Any) -> dict[str, Any]:
+    api_key_env = primary.get("api_key_env", "")
+    models = primary.get("models", {})
+    model_name = ""
+    if isinstance(models, dict):
+        model_name = models.get(tier, "")
+
+    return {
+        "provider": primary.get("provider", "openai"),
+        "models": {tier: model_name},
+        "api_key": os.getenv(api_key_env, "") if api_key_env else "",
+    }
+
+
+def _dump_json(value: Any) -> str:
+    import json
+
+    return json.dumps(value, indent=2, sort_keys=True)
+
+
+__all__ = [
+    "DEFAULT_PROMPT_PATH",
+    "DEFAULT_SCHEMA_PATH",
+    "MechanismClassifier",
+    "build_mechanism_classifier",
+    "derive_label",
+    "schema_path",
+]
