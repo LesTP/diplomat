@@ -157,7 +157,7 @@ As of Phase 22.6, the full suite is 308 passing.
 
 ---
 
-## Phase 51 — Client-agent ingress (prompt path) + asymmetric 1:1 harness (planned · Build 🔨)
+## Phase 52 — Client-agent ingress (prompt path) + asymmetric 1:1 harness (deferred · Build 🔨)
 
 > Phase intent for the i2c PLAN action. Regime: **Build** (AI-evaluable) with the
 > one architecture choice pre-decided below (so PLAN can go straight to steps).

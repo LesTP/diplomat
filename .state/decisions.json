@@ -497,5 +497,14 @@
     "priority": "medium",
     "decision": "Use EventFilter(limit=10000) in collect_results() to capture the full game log. The default limit of 100 is too small for multi-round multi-faction games. 10000 is safely beyond any plausible game size.",
     "rationale": "EventFilter.limit defaults to 100; a 4-faction 10-round game can produce hundreds of events. No schema change needed — limit is a query parameter, not a schema field."
+  },
+  {
+    "id": "D-66",
+    "phase": 51,
+    "title": "Phase 51 paper-hygiene bundle scope (uniform temp all-slots + external index + N-pooling/CIs)",
+    "status": "closed",
+    "priority": "high",
+    "decision": "Phase 52 ('Phase C' in WORK_SEQUENCING §9) bundles the three PAPER_PLAN §5.0 hygiene items as ONE autonomous Build phase, each a hermetic zero-LLM-cost test-gated slice; full contract in ARCH_self_play.md §Phase 52. (1) Uniform temperature: fix game_environment._generate_faction_config to apply the resolved temperature to EVERY provider slot (not just the generator slot); keep the gpt-5.x/o-series temperature=1 exception but record which slots are exempt; bring ablation.sh + ablation_jsm1.sh to TEMPERATURE-env parity with ablation_multi.sh. (2) External index: new Diplomat-side tests/self_play/external_index.py (EXTERNAL_INDEX dict + ExternalIndex frozen dataclass with lmarena_elo/mmlu/source/as_of + lookup()) mirroring toolkit cost_accountant DEFAULT_PRICING + normalize_model_name; tests lock structure/presence/range only, value correctness confirmed supervised. (3) N-pooling + CIs: lock rank_aggregator N-pooling with synthetic-fixture tests and add a deterministically-seeded bootstrap_ci() helper (stdlib random).",
+    "rationale": "These three gate the §5.7 construct-validity correlation (needs the external index) and remove the gpt-5.5 temperature confound before the expensive supervised unified campaign (Phase D) spends anything - the cheapest, lowest-risk, fully-loopable first paper build. Pre-deciding the architecture keeps the phase a clean Build with zero open decisions for the loop (D-61/D-64 pattern). Queued as phase 51 - the CONTIGUOUS next phase after 50 - because the operator's Telegram control surface dispatches the current/contiguous phase and cannot dispatch a discontinuous one (phase 52 while 51 is unrun); the offering foundation is therefore renumbered to phase 52 (ARCH_flow.md §Phase 52 / papers/OFFERING.md) and deferred. Supersedes the initial authoring, which queued hygiene as 52 and left the offering at 51."
   }
 ]
