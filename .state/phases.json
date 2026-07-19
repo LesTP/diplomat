@@ -330,6 +330,7 @@
     "title": "Mechanism Classifier (machinery + initial prompt)",
     "regime": "build",
     "dependencies": [],
-    "status": "pending"
+    "status": "pending",
+    "module": "mechanism_classifier"
   }
 ]

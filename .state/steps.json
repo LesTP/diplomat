@@ -46,5 +46,61 @@
     "status": "complete",
     "notes": "Add TEMPERATURE env support to tools/ablation.sh and tools/ablation_jsm1.sh mirroring ablation_multi.sh lines 203-209 pattern (temp_flag variable, --temperature ${TEMPERATURE} passthrough). Not test-gated (ablation_multi supersedes both). Doc update: ARCH_self_play.md Phase 51 status planned->complete; ARCHITECTURE.md implementation-sequence Phase 51 row status->complete.",
     "commit": "a9bcc17"
+  },
+  {
+    "phase": 52,
+    "step": 1,
+    "title": "Module scaffold + JSON schema",
+    "status": "pending",
+    "notes": "Create src/modules/mechanism_classifier/ with __init__.py stub, classifier.py stub, label_rules.py stub. Create config/schemas/mechanism_classifier.json: required fields {q1..q5: bool, rationale: str}. Tests (tests/test_mechanism_classifier_schema.py or similar): schema loads as valid JSON; jsonschema.validate() accepts a well-formed {q1:true,q2:false,...,rationale:\"x\"} dict; rejects missing required fields."
+  },
+  {
+    "phase": 52,
+    "step": 2,
+    "title": "derive_label pure rule + exhaustive tests",
+    "status": "pending",
+    "notes": "Create src/modules/mechanism_classifier/label_rules.py: derive_label(q1,q2,q3,q4,q5:bool)->str implementing the ARCH priority chain (Q5->closed; Q4->incoherence; Q3&&Q1->strategic_refusal; Q2&&Q1->near_miss; else->breakdown). Tests in tests/test_mechanism_classifier_rules.py: exhaustive truth-table over all 32 bool combinations (verify each row against derivation table); assert all 5 labels are reachable; assert Q5 beats Q4 beats Q3-pair beats Q2-pair."
+  },
+  {
+    "phase": 52,
+    "step": 3,
+    "title": "MechanismClassifier class + fake-backed tests",
+    "status": "pending",
+    "notes": "Fill src/modules/mechanism_classifier/classifier.py: _MECHANISM_JUDGE const (placeholder str, operator-selected per D-67); MechanismClassifier(llm_client, llm_config, tier, prompt_path, attribution) with classify(transcript:list[str], round_responses:dict)->dict({q1..q5:bool, rationale:str, label:str}). Calls toolkit.structured_llm.structured_call with schema=mechanism_classifier schema, purpose=mechanism, max_retries=1; runs derive_label on validated answers. Tests (tests/test_mechanism_classifier.py): inline FakeLLMClient returns canned 5-bool JSON; verify Q1-Q5 boolean parsing; verify input isolation (classify receives only transcript + final round_responses, NOT scores—assert on fake.calls[0] message content that scores.* keys are absent); all 5 labels reachable via 5 different canned responses."
+  },
+  {
+    "phase": 52,
+    "step": 4,
+    "title": "build_mechanism_classifier factory + public API",
+    "status": "pending",
+    "notes": "Fill src/modules/mechanism_classifier/__init__.py: build_mechanism_classifier(llm_client, llm_providers_config, tier=\"commodity\", attribution=None)->MechanismClassifier|None. Mirror build_edit_classifier exactly: read primary dict from llm_providers_config, return None if absent, else build MechanismClassifier via _subsystem_llm_config helper (same pattern as classifier.py _subsystem_llm_config). Export MechanismClassifier, build_mechanism_classifier, derive_label, cohens_kappa in __all__. Tests: factory(fake_client, {primary:{provider,api_key_env,models}}) returns MechanismClassifier; factory(fake_client, {}) returns None; factory(fake_client, {primary:{}}) returns None."
+  },
+  {
+    "phase": 52,
+    "step": 5,
+    "title": "Initial judge prompt config/prompts/mechanism_classifier.txt",
+    "status": "pending",
+    "notes": "Author config/prompts/mechanism_classifier.txt: role preamble (you are an independent negotiation outcome judge), task description (read transcript + final positions, answer 5 binary questions), the 5 questions (Q1 substantive engagement, Q2 subset convergence, Q3 explicit BATNA preference, Q4 identity/coherence failure, Q5 full agreement), guidance on evidence-only judgment, and output spec ({q1..q5:bool, rationale:str}). This is a best-effort initial prompt; tuning (supervised follow-on) is out of scope. Tests: prompt file exists at DEFAULT_PROMPT_PATH; loaded string len>=100; string contains each of the substrings Q1/Q2/Q3/Q4/Q5 (or equivalent markers); MechanismClassifier constructed with this prompt path does not raise on __init__."
+  },
+  {
+    "phase": 52,
+    "step": 6,
+    "title": "cohens_kappa stdlib function",
+    "status": "pending",
+    "notes": "Create src/modules/mechanism_classifier/kappa.py: cohens_kappa(labels_a:list, labels_b:list)->float using stdlib only (collections.Counter, no sklearn). Formula: kappa=(p_o - p_e)/(1 - p_e) where p_o=observed agreement, p_e=expected chance agreement from marginals. Degenerate: if 1-p_e==0 (all same class), return 0.0. Export from __init__. Tests: perfect_agreement (identical lists) -> 1.0; no_agreement on a 2-class balanced swap -> -1.0 or <=0; balanced_random (half/half both lists same composition) -> 0.0; degenerate_single_class -> 0.0 without crash. Use concrete fixtures (not approximations) where kappa is analytically known."
+  },
+  {
+    "phase": 52,
+    "step": 7,
+    "title": "DryRunLLMClient mechanism route",
+    "status": "pending",
+    "notes": "Edit tests/self_play/fake_llm_client.py: add \"mechanism\": \"MECHANISM\" to _PURPOSE_TO_CALL_TYPE; add _mechanism_response()->str returning json.dumps({\"q1\":false,\"q2\":false,\"q3\":false,\"q4\":false,\"q5\":false,\"rationale\":\"dryrun: no real mechanism analysis\"}) (-> breakdown label); wire \"MECHANISM\": lambda f,r: _mechanism_response() into _RESPONSE_BUILDERS. Optionally update classify_call() docstring to mention MECHANISM. Tests: DryRunLLMClient().complete(purpose=\"mechanism\", messages=[{\"role\":\"system\",\"content\":\"...\"},{\"role\":\"user\",\"content\":\"...\"}]) returns JSON that validates against mechanism_classifier.json schema; MechanismClassifier(DryRunLLMClient(), ...).classify([\"line1\"],{\"1\":{\"alpha\":\"text\"}}) returns {label:\"breakdown\",...} end-to-end offline."
+  },
+  {
+    "phase": 52,
+    "step": 8,
+    "title": "Batch CLI tools/classify_mechanisms.py + doc update",
+    "status": "pending",
+    "notes": "Create tools/classify_mechanisms.py mirroring tools/classify_edit_log.py: args --results-dir <dir> (glob *.json result files), --dry-run (use DryRunLLMClient, no real API keys needed), --config, --tier, --provider, --model. For each result JSON: read results[\"transcript\"] + results[\"round_responses\"][str(results[\"rounds_completed\"])] -> classify -> emit label. Print markdown table with columns: file, label, q1..q5. Tests (tests/test_classify_mechanisms.py): --help exits 0; --dry-run on a synthetic result JSON (in-memory via tmp_path) emits a table containing the breakdown label and all 5 Q columns. Doc update step: ARCH_mechanism_classifier.md Phase 52 status planned->complete; ARCHITECTURE.md implementation-sequence Phase 52 row status->complete. Full suite must still pass (no regression)."
   }
 ]
