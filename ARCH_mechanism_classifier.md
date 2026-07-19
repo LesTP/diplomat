@@ -58,7 +58,7 @@ to `_SELF_PLAY_PRIMARY` in `game_environment.py`), operator-selected.
 
 ---
 
-## Phase 52 — Mechanism classifier (machinery + initial prompt) (planned · Build 🔨)
+## Phase 52 — Mechanism classifier (machinery + initial prompt) (complete · Build 🔨)
 
 > Phase intent for the i2c PLAN action. Regime: **Build** for the loopable slice
 > below; the **validation is a supervised follow-on** (see "Assisted"). This mirrors
