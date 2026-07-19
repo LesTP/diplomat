@@ -20,7 +20,8 @@
   (BATNA-relative / Pareto / Nash / surplus + Path B coalition scoring).
 - **Dispatchers (bash, run on pirozhok):** `tools/ablation_multi.sh` (generalized;
   supersedes `tools/ablation.sh` + `tools/ablation_jsm1.sh`) — `run` / `runmix` /
-  `runrotate` subcommands; `TEMPERATURE` env → `--temperature`.
+  `runrotate` subcommands; `TEMPERATURE` env → `--temperature`. The legacy
+  wrappers now mirror that env override for single-cell runs.
 - **Seat rotation:** `tests/self_play/position_rotation.py` (`cyclic_rotations`,
   `all_permutations`).
 - **Aggregation:** `tests/self_play/rank_aggregator.py` — cross-game `mean_rank` /
@@ -75,7 +76,8 @@ param) but make it **explicit**: expose the set of exempt slots/models on the re
 so a cell's true temperature profile is recorded rather than implied. Bring
 `ablation.sh` + `ablation_jsm1.sh` to `TEMPERATURE`-env parity with
 `ablation_multi.sh` (additive shell edit; not test-gated — `ablation_multi` supersedes
-both).
+both). The shell wrappers' `TEMPERATURE` handling is part of the phase contract,
+even though the harness now prefers `ablation_multi.sh` for new work.
 
 **Acceptance criteria (tests-first, hermetic):**
 1. With `temperature=X`, `_generate_faction_config` emits `temperature: X` on **every**

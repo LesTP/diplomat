@@ -83,6 +83,11 @@ cmd_run() {
     bare_flag="--bare-prompt"
   fi
 
+  local temp_flag=""
+  if [ -n "${TEMPERATURE:-}" ]; then
+    temp_flag="--temperature ${TEMPERATURE}"
+  fi
+
   echo "[run] model=$model mode=$mode run=$run_n output=$output (python=$PY)"
   "$PY" -m tests.self_play.run_simulation \
     --scenario "$SCENARIO_MD" \
@@ -91,6 +96,7 @@ cmd_run() {
     --rounds 4 \
     --per-faction-providers "$(providers_json "$model")" \
     $bare_flag \
+    $temp_flag \
     --output "$output"
 
   echo "[done] $output"
