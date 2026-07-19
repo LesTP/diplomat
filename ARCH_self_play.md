@@ -4,7 +4,7 @@
 > dispatchers, and post-game aggregation that produce the paper's experimental
 > cells. Unlike the pipeline-module ARCH files, this covers the *offline
 > research tooling* around `GameEnvironment`, not a runtime pipeline module.
-> Companion docs: `ARCH_flow.md` (the `Flow` contract + Phase 52 harness),
+> Companion docs: `ARCH_flow.md` (the `Flow` contract + the shelved Phase 0 harness),
 > `ARCH_scenario_authoring.md` (scenario compiler/builder + Path B scoring),
 > `papers/PAPER_PLAN.md` §5 (experiment ledger), `papers/WORK_SEQUENCING.md` §9
 > (execution order).

@@ -324,5 +324,12 @@
     "dependencies": [],
     "status": "complete",
     "module": "self_play"
+  },
+  {
+    "id": 52,
+    "title": "Mechanism Classifier (machinery + initial prompt)",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
   }
 ]

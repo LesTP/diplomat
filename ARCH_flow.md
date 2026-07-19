@@ -157,7 +157,12 @@ As of Phase 22.6, the full suite is 308 passing.
 
 ---
 
-## Phase 52 — Client-agent ingress (prompt path) + asymmetric 1:1 harness (deferred · Build 🔨)
+## Phase 0 (shelved) — Client-agent ingress (prompt path) + asymmetric 1:1 harness (offering; deferred · Build 🔨)
+
+> **SHELVED (offering).** Parked off the phase sequence at Phase 0 so the i2c bot
+> never dispatches it as the contiguous next phase; renumber to reactivate when the
+> offering thread resumes (D-67). Spec below is intact and ready. See
+> `papers/OFFERING.md`.
 
 > Phase intent for the i2c PLAN action. Regime: **Build** (AI-evaluable) with the
 > one architecture choice pre-decided below (so PLAN can go straight to steps).
