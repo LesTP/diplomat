@@ -1,9 +1,10 @@
 {
   "schema_version": 3,
   "phase": 51,
-  "state": "plan",
+  "state": "audit_boundary",
   "gotchas": [
-    "Use EventFilter(limit=10000) for full-game result dumps; the default limit silently truncates self-play logs."
+    "Use EventFilter(limit=10000) for full-game result dumps; the default limit silently truncates self-play logs.",
+    "At close, verify ARCHITECTURE.md's implementation-sequence row; phase-local doc updates can leave the project-wide table stale."
   ],
   "budget_type": "steps"
 }

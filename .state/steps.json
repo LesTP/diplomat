@@ -19,28 +19,32 @@
     "phase": 51,
     "step": 1,
     "title": "Uniform temperature: fix _generate_faction_config + acceptance tests",
-    "status": "pending",
-    "notes": "Apply self.temperature to ALL provider slots in config[llm_providers], not just the generator slot. Add gpt-5.x/o-series reasoning-model exception: detect by model name prefix, exempt from temperature override, record exempt_slots list in the returned config or as a return value. Acceptance tests (hermetic, no LLM): (a) temperature=X emits the value on every slot; (b) temperature=None emits no override on any slot; (c) a reasoning-model slot is recorded as exempt, not silently skipped; (d) existing test_self_play.py suite still passes."
+    "status": "complete",
+    "notes": "Apply self.temperature to ALL provider slots in config[llm_providers], not just the generator slot. Add gpt-5.x/o-series reasoning-model exception: detect by model name prefix, exempt from temperature override, record exempt_slots list in the returned config or as a return value. Acceptance tests (hermetic, no LLM): (a) temperature=X emits the value on every slot; (b) temperature=None emits no override on any slot; (c) a reasoning-model slot is recorded as exempt, not silently skipped; (d) existing test_self_play.py suite still passes.",
+    "commit": "442bff7"
   },
   {
     "phase": 51,
     "step": 2,
     "title": "External index module + acceptance tests",
-    "status": "pending",
-    "notes": "New file tests/self_play/external_index.py: (a) ExternalIndex frozen dataclass with lmarena_elo: float, mmlu: float, source: str, as_of: str; (b) EXTERNAL_INDEX: dict[str, ExternalIndex] covering Paper-1 roster (gpt-4.1-nano, gpt-5.4-mini, gpt-5.5, claude-haiku-4-5, claude-sonnet-4-6, claude-opus, deepseek-v3, deepseek-r1); (c) normalize_model_name(model) mirroring toolkit date-suffix stripping (_OPENAI_DATE_SUFFIX_RE + _ANTHROPIC_PACKED_DATE_SUFFIX_RE patterns); (d) lookup(model) -> ExternalIndex | None with normalize->exact->fallback resolution. New tests/test_external_index.py: all roster models resolve via lookup (including date-suffix variants); each entry has Elo in 800-1600 and MMLU in 0.0-1.0; unknown model returns None without error. Numeric values are placeholders confirmed supervised."
+    "status": "complete",
+    "notes": "New file tests/self_play/external_index.py: (a) ExternalIndex frozen dataclass with lmarena_elo: float, mmlu: float, source: str, as_of: str; (b) EXTERNAL_INDEX: dict[str, ExternalIndex] covering Paper-1 roster (gpt-4.1-nano, gpt-5.4-mini, gpt-5.5, claude-haiku-4-5, claude-sonnet-4-6, claude-opus, deepseek-v3, deepseek-r1); (c) normalize_model_name(model) mirroring toolkit date-suffix stripping (_OPENAI_DATE_SUFFIX_RE + _ANTHROPIC_PACKED_DATE_SUFFIX_RE patterns); (d) lookup(model) -> ExternalIndex | None with normalize->exact->fallback resolution. New tests/test_external_index.py: all roster models resolve via lookup (including date-suffix variants); each entry has Elo in 800-1600 and MMLU in 0.0-1.0; unknown model returns None without error. Numeric values are placeholders confirmed supervised.",
+    "commit": "9a4aeff"
   },
   {
     "phase": 51,
     "step": 3,
     "title": "N-pooling lock + bootstrap_ci helper + acceptance tests",
-    "status": "pending",
-    "notes": "New file tests/self_play/aggregate_stats.py: bootstrap_ci(values: list[float], *, seed: int, iterations: int = 1000, alpha: float = 0.05) -> tuple[float, float, float] (point = mean, ci_low, ci_high). Pure stdlib (random.Random(seed)), no new deps. Deterministic: fixed seed -> byte-identical result. New tests/test_aggregate_stats.py: (a) N-pooling: synthetic K-file fixture, aggregate_files pools exactly K games per (model, scenario) cell; (b) determinism: same seed -> identical CIs; (c) correctness: ci_low <= point <= ci_high; narrower alpha -> narrower CI; (d) edge cases: n=1 and all-equal values do not crash. Extend tests/test_rank_aggregator.py with N-pooling contract fixture if not covered by (a)."
+    "status": "complete",
+    "notes": "New file tests/self_play/aggregate_stats.py: bootstrap_ci(values: list[float], *, seed: int, iterations: int = 1000, alpha: float = 0.05) -> tuple[float, float, float] (point = mean, ci_low, ci_high). Pure stdlib (random.Random(seed)), no new deps. Deterministic: fixed seed -> byte-identical result. New tests/test_aggregate_stats.py: (a) N-pooling: synthetic K-file fixture, aggregate_files pools exactly K games per (model, scenario) cell; (b) determinism: same seed -> identical CIs; (c) correctness: ci_low <= point <= ci_high; narrower alpha -> narrower CI; (d) edge cases: n=1 and all-equal values do not crash. Extend tests/test_rank_aggregator.py with N-pooling contract fixture if not covered by (a).",
+    "commit": "735d01b"
   },
   {
     "phase": 51,
     "step": 4,
     "title": "Shell parity + doc update",
-    "status": "pending",
-    "notes": "Add TEMPERATURE env support to tools/ablation.sh and tools/ablation_jsm1.sh mirroring ablation_multi.sh lines 203-209 pattern (temp_flag variable, --temperature ${TEMPERATURE} passthrough). Not test-gated (ablation_multi supersedes both). Doc update: ARCH_self_play.md Phase 51 status planned->complete; ARCHITECTURE.md implementation-sequence Phase 51 row status->complete."
+    "status": "complete",
+    "notes": "Add TEMPERATURE env support to tools/ablation.sh and tools/ablation_jsm1.sh mirroring ablation_multi.sh lines 203-209 pattern (temp_flag variable, --temperature ${TEMPERATURE} passthrough). Not test-gated (ablation_multi supersedes both). Doc update: ARCH_self_play.md Phase 51 status planned->complete; ARCHITECTURE.md implementation-sequence Phase 51 row status->complete.",
+    "commit": "a9bcc17"
   }
 ]

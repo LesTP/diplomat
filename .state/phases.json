@@ -322,7 +322,7 @@
     "title": "Paper Hygiene (uniform temperature + external index + N-pooling/CIs)",
     "regime": "build",
     "dependencies": [],
-    "status": "pending",
+    "status": "complete",
     "module": "self_play"
   }
 ]
