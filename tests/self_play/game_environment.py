@@ -130,6 +130,28 @@ def _safe_messages(messages: Any) -> list[dict[str, str]]:
     return result
 
 
+def _is_reasoning_model_name(model_name: str) -> bool:
+    """Return True for model families that reject custom temperature overrides."""
+    normalized = model_name.strip().lower()
+    return normalized.startswith("gpt-5") or (
+        normalized.startswith("o") and len(normalized) > 1 and normalized[1].isdigit()
+    )
+
+
+def _slot_reasoning_models(slot_config: dict[str, Any]) -> list[str]:
+    """Return the reasoning-model names configured for one provider slot."""
+    models = slot_config.get("models")
+    if not isinstance(models, dict):
+        return []
+
+    reasoning_models = {
+        model_name
+        for model_name in models.values()
+        if isinstance(model_name, str) and _is_reasoning_model_name(model_name)
+    }
+    return sorted(reasoning_models)
+
+
 # ---------------------------------------------------------------------------
 # Provider routing helpers
 # ---------------------------------------------------------------------------
@@ -313,14 +335,31 @@ class GameEnvironment:
             "tier": "commodity",
             "max_tokens": 512,
         }
-        # Optional per-run temperature override, applied to the provider slot
-        # the generator resolves to. In bare mode the generator is the only
-        # active LLM module, so this cleanly sets the faction-agent sampling
-        # temperature; in full mode it also applies to other modules sharing
-        # the same slot. OpenAI reasoning models ignore it (toolkit omits the
-        # param for gpt-5.x / o-series, which require temperature=1).
+        # Optional per-run temperature override. Apply it to every emitted
+        # provider slot that accepts custom sampling, and record any reasoning
+        # slots explicitly so the true temperature profile is visible.
         if self.temperature is not None:
-            config["llm_providers"][generator_provider_slot]["temperature"] = self.temperature
+            exempt_slots: list[str] = []
+            exempt_models: dict[str, list[str]] = {}
+            applied_slots: list[str] = []
+            for slot_name, slot_config in config["llm_providers"].items():
+                reasoning_models = _slot_reasoning_models(slot_config)
+                if reasoning_models:
+                    exempt_slots.append(slot_name)
+                    exempt_models[slot_name] = reasoning_models
+                    continue
+
+                slot_config["temperature"] = self.temperature
+                applied_slots.append(slot_name)
+
+            if exempt_slots:
+                config["temperature_exempt_slots"] = exempt_slots
+                config["temperature_profile"] = {
+                    "resolved_temperature": self.temperature,
+                    "applied_slots": applied_slots,
+                    "exempt_slots": exempt_slots,
+                    "exempt_models": exempt_models,
+                }
         config["modules"]["adversarial"] = {
             "class": "LLMAdversarialReader",
             "provider": "secondary",
