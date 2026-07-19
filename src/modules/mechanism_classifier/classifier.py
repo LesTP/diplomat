@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from collections import Counter
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -34,6 +35,36 @@ def derive_label(answers: Mapping[str, Any]) -> str:
 def schema_path() -> Path:
     """Return the packaged schema location for the mechanism judge."""
     return Path(DEFAULT_SCHEMA_PATH)
+
+
+def cohens_kappa(labels_a: Any, labels_b: Any) -> float:
+    """Return Cohen's kappa for two equally sized label sequences."""
+    seq_a = list(labels_a)
+    seq_b = list(labels_b)
+    if len(seq_a) != len(seq_b):
+        raise ValueError("cohens_kappa requires label sequences of equal length")
+    if not seq_a:
+        raise ValueError("cohens_kappa requires at least one label pair")
+    if seq_a == seq_b:
+        return 1.0
+
+    total = len(seq_a)
+    counts_a = Counter(seq_a)
+    counts_b = Counter(seq_b)
+    observed = sum(left == right for left, right in zip(seq_a, seq_b)) / total
+    expected = sum(
+        (counts_a[label] / total) * (counts_b[label] / total)
+        for label in counts_a.keys() | counts_b.keys()
+    )
+    if expected == 1.0:
+        return 1.0 if observed == 1.0 else 0.0
+
+    kappa = (observed - expected) / (1.0 - expected)
+    if kappa < -1.0:
+        return -1.0
+    if kappa > 1.0:
+        return 1.0
+    return float(kappa)
 
 
 class MechanismClassifier:
@@ -130,6 +161,7 @@ def _dump_json(value: Any) -> str:
 __all__ = [
     "DEFAULT_PROMPT_PATH",
     "DEFAULT_SCHEMA_PATH",
+    "cohens_kappa",
     "MechanismClassifier",
     "build_mechanism_classifier",
     "derive_label",

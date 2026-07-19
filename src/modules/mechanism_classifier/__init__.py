@@ -3,6 +3,7 @@
 from .classifier import (
     DEFAULT_PROMPT_PATH,
     DEFAULT_SCHEMA_PATH,
+    cohens_kappa,
     MechanismClassifier,
     build_mechanism_classifier,
     derive_label,
@@ -12,6 +13,7 @@ from .classifier import (
 __all__ = [
     "DEFAULT_PROMPT_PATH",
     "DEFAULT_SCHEMA_PATH",
+    "cohens_kappa",
     "MechanismClassifier",
     "build_mechanism_classifier",
     "derive_label",

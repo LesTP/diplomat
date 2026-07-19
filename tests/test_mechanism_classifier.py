@@ -4,7 +4,7 @@ import itertools
 
 import pytest
 
-from modules.mechanism_classifier import derive_label
+from modules.mechanism_classifier import cohens_kappa, derive_label
 
 
 def _ref_derive_label(q1: bool, q2: bool, q3: bool, q4: bool, q5: bool) -> str:
@@ -48,3 +48,15 @@ def test_q1_is_required_for_q2_or_q3_routes() -> None:
     answers_q3 = {"q1": False, "q2": False, "q3": True, "q4": False, "q5": False}
     assert derive_label(answers_q2) == "breakdown"
     assert derive_label(answers_q3) == "breakdown"
+
+
+def test_cohens_kappa_perfect_agreement() -> None:
+    labels = ["closed", "breakdown", "near_miss"]
+    assert cohens_kappa(labels, labels) == pytest.approx(1.0)
+
+
+def test_cohens_kappa_chance_level_is_bounded() -> None:
+    labels_a = ["closed", "closed", "breakdown", "breakdown"]
+    labels_b = ["breakdown", "breakdown", "closed", "closed"]
+    result = cohens_kappa(labels_a, labels_b)
+    assert -1.0 <= result <= 1.0
