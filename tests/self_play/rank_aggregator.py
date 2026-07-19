@@ -32,6 +32,8 @@ import statistics
 from pathlib import Path
 from typing import Any
 
+from tests.self_play.aggregate_stats import bootstrap_ci
+
 # run17_<mode>_<modeltag>_<scenario>_<n>.json  (modeltag is dot/dash-stripped)
 _RESULT_NAME_RE = re.compile(r"run17_(full|bare)_(.+?)_([a-z0-9]+)_(\d+)")
 
