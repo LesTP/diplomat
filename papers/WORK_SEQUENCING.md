@@ -10,9 +10,9 @@
 > `NEXT_STEPS.md` is retired to a pointer here (its Tier-1/2/icebox folded in).
 > Lives in `papers/` for now; could move to root + fully replace NEXT_STEPS later.
 >
-> **Run-lane tags:** 🔨 autonomous-loopable (queue to the pirozhok/codexbot loop;
-> diplomat is an e2e project driven by codexbot) · 👁 supervised (operator /
-> cost / judgment — this laptop's interactive lane) · 🔀 mixed.
+> **Run-lane tags:** 🔨 autonomous-loopable (queue to the i2c bot on pirozhok;
+> diplomat is i2c-migrated — driven by `i2c serve telegram`, not codexbot) · 👁
+> supervised (operator / cost / judgment — this laptop's interactive lane) · 🔀 mixed.
 >
 > **Framing (post-resharpen).** The category + optimality-diagnostic scoring are
 > field-standard (Abdelnabi; TERMS-Bench). Diplomat's lead contributions are
@@ -120,7 +120,7 @@ needs). Clearest case for keeping a separate paper-work doc.
 
 **Decisions (this session):** build **sequentially — classifier first, then
 probe** (operator runs one workstream at a time); **full 7-probe scope**; both
-queued as **autonomous pirozhok phases** (🔨, codexbot loop) with tight specs —
+queued as **autonomous pirozhok phases** (🔨, i2c bot loop) with tight specs —
 not manual laptop work.
 
 **A. Mechanism classifier (§4.1) — build first.** Binary-question decomposition
@@ -306,7 +306,7 @@ tuning (Phase 48 follow-on).
 ## 9. Consolidated execution sequence
 
 Ordered across all sections, respecting dependencies. **Run-lanes:** 🔨 autonomous
-on pirozhok (codexbot loop) · 👁 supervised (cost/judgment) · 🔀 mixed.
+on pirozhok (i2c bot loop) · 👁 supervised (cost/judgment) · 🔀 mixed.
 
 **Linchpin:** the **§4 unified campaign** — it produces construct-validity (§4),
 harness-lift (§5), and distributive/coalition discrimination (§1) data in one

@@ -2,8 +2,10 @@
 
 > **Live forward backlog only.** Closed work lives in `DEVLOG.md` /
 > `DEVLOG_archive.md` (phases) and `TUNING_LOG.md` (runs). Findings / theses
-> live in `RESEARCH_NOTES.md`. Decisions live in `DECISIONS.md`. The canonical
-> phase plan is `DEVPLAN.md`. Keep this file short — route everything else home.
+> live in `RESEARCH_NOTES.md`. Decisions live in `DECISIONS.md`. Since the
+> 2026-07-01 i2c migration the canonical phase state is `.state/` (via the `i2c`
+> CLI) with intent in `ARCHITECTURE.md`; `DEVPLAN.md` is a frozen e2e archive.
+> Keep this file short — route everything else home.
 >
 > **Workstream tags** (`ASSESSMENT.md` §5): `[A]` agent architecture & memory ·
 > `[B]` prompt tuning · `[C]` game creation & scoring · `[X]` cross-cutting infra.
