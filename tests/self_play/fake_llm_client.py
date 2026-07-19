@@ -40,6 +40,7 @@ _PURPOSE_TO_CALL_TYPE: dict[str, str] = {
     "reconciliation": "RECON",
     "compilation": "COMPILE",
     "scoring": "SCORE",
+    "mechanism": "MECHANISM",
     "judge": "JUDGE",
 }
 
@@ -215,6 +216,19 @@ def _judge_response() -> str:
     return "PASS|dryrun stub"
 
 
+def _mechanism_response() -> str:
+    return json.dumps(
+        {
+            "q1": True,
+            "q2": False,
+            "q3": False,
+            "q4": False,
+            "q5": False,
+            "rationale": "dryrun stub for mechanism judge",
+        }
+    )
+
+
 _RESPONSE_BUILDERS = {
     "ADV": lambda f, r: _adv_response(),
     "EXTRACT": lambda f, r: _extract_response(),
@@ -222,6 +236,7 @@ _RESPONSE_BUILDERS = {
     "RECON": lambda f, r: _recon_response(),
     "COMPILE": lambda f, r: _compile_response(),
     "SCORE": lambda f, r: _score_response(),
+    "MECHANISM": lambda f, r: _mechanism_response(),
     "JUDGE": lambda f, r: _judge_response(),
     "GEN": _gen_response,
 }
