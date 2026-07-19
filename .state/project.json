@@ -1,10 +1,12 @@
 {
   "schema_version": 3,
   "phase": 52,
-  "state": "plan",
+  "state": "audit_boundary",
   "gotchas": [
     "Use EventFilter(limit=10000) for full-game result dumps; the default limit silently truncates self-play logs.",
-    "At close, verify ARCHITECTURE.md's implementation-sequence row; phase-local doc updates can leave the project-wide table stale."
+    "At close, verify ARCHITECTURE.md's implementation-sequence row; phase-local doc updates can leave the project-wide table stale.",
+    "Keep validation-only scores.* out of mechanism judge input; the classifier should read transcript plus final round responses only.",
+    "New DryRunLLMClient purposes need explicit fake-route registration; otherwise offline tests fall back to generic dry-run behavior."
   ],
   "budget_type": "steps"
 }
