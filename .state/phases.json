@@ -332,5 +332,12 @@
     "dependencies": [],
     "status": "complete",
     "module": "mechanism_classifier"
+  },
+  {
+    "id": 53,
+    "title": "Single-Model Self-Powered Harness",
+    "regime": "build",
+    "dependencies": [],
+    "status": "pending"
   }
 ]

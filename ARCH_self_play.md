@@ -154,3 +154,65 @@ Pooling-contract tests use synthetic result-JSON fixtures (no games run).
 steps (temperature fix + test · external_index module + test · bootstrap/pooling +
 test · shell parity · doc-update). Loops run on pirozhok via the i2c bot, not the
 laptop (`rules/deployment.md`, FU-28).
+
+---
+
+## Phase 53 — Single-model self-powered harness (planned · Build 🔨)
+
+> Phase intent for the i2c PLAN action. Regime: **Build** for the config change +
+> hermetic tests; weak-model structured-output robustness is a supervised follow-on.
+> Removes the mixed-provider confound in the harness-lift ablation. Pre-decided
+> architecture (D-69).
+
+**Problem.** `_generate_faction_config` overrides only the `generator_override` slot;
+the whole scaffold (`primary_analyst`, `secondary_analyst`, extraction, reconciliation,
+scorer) stays pinned to `primary`/`secondary` = the pipeline default (OpenAI). The code
+comment names this the "Run 8 design" (vary the generator, hold the scaffold constant).
+Consequence: a "gemini/nano full-harness" cell is really *that model's negotiation
+message wrapped in an OpenAI scaffold*, so measured harness lift conflates the scaffold
+**architecture** with **a stronger model powering it**. (Surfaced in seed-label review:
+an OpenAI analyst injected a false "no proposal from Gamma" summary into gemini's
+context, plausibly triggering gemini's identity confusion — logged in
+`run15_calib_gemini25flashlite_jsm1_1`.)
+
+**Pre-decided architecture (D-69).** For the paper the harness is **single-model,
+self-powered**: every per-faction *agent* module runs on that faction's model. Extend
+the per-faction override to set the `primary` and `secondary` slots (not just
+`generator_override`) to the faction's provider/model, so generation + that faction's
+analyst/intelligence + extraction + reconciliation all use the faction model.
+Homogeneous games become truly all-one-model; mixed-model games make each faction one
+model end-to-end. **The neutral game scorer stays on a fixed, independent model**
+(measurement consistency across cells + the no-self-scoring guardrail; "the pipeline"
+here = per-faction agent modules, NOT the neutral scorer). **No `self|fixed` axis** —
+single-model is the paper's only mode (simpler/cleaner). The Run-8 fixed-scaffold
+behavior is retired for the paper; a fixed capable scaffold remains a possible *offering*
+config, deferred with the offering (Phase 0).
+
+**Acceptance criteria (tests-first, hermetic — assert on the emitted config, no LLM):**
+1. With a per-faction provider override, the emitted faction config points **every agent
+   module slot** — generator, `primary_analyst`, `secondary_analyst`, extraction,
+   reconciliation — at the faction's provider/model.
+2. The **neutral game scorer** resolves to the fixed independent scorer config and is
+   **unchanged** by the faction override.
+3. Homogeneous run (one model for all factions) → every agent module for every faction
+   uses that model.
+4. Mixed-model run → each faction's agent modules use that faction's model (no cross-bleed).
+5. Phase-51 temperature-to-all-slots still holds; existing self-play suite still passes.
+
+**Assisted follow-on (supervised — the loop stops here):**
+- Weak-model structured-output robustness: verify nano / gemini-flash-lite can emit
+  schema-valid analyst/extraction/reconciliation JSON when self-powered (the
+  empty-content/retry risk in `PROJECT.md`); add graceful failure + cost caps. A model
+  that *cannot* self-scaffold is itself a finding.
+- Re-run the key paper cells under the single-model harness (historical "full" cells are
+  Run-8 mixed-provider and don't transfer). The confounded gemini incoherence seed
+  (mechanism-classifier case 2) gets re-run cleanly here.
+
+**Sequencing note.** The mechanism classifier's live κ validation (phase 52 assisted
+follow-on) should use single-model-harness data — run it *after* this phase lands.
+
+**Out of scope.** The `self|fixed` axis and any fixed-scaffold offering config (deferred
+with Phase 0); neutral scorer / mechanism-judge model *selection* (stays fixed).
+
+**Regime.** Build 🔨 (config + hermetic tests); weak-model robustness + re-runs are
+supervised. Loops run on pirozhok, not the laptop (FU-28).
